@@ -1,0 +1,40 @@
+# Fichiers uploadés (contiennent des données sensibles)
+uploads/*
+!uploads/.htaccess
+
+# PDF générés (contiennent des données personnelles)
+pdf/*
+!pdf/generate-bail.php
+!pdf/download.php
+
+# Configuration locale (peut contenir des credentials)
+includes/config.local.php
+
+# Logs
+*.log
+error_log
+
+# Fichiers temporaires
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Composer
+vendor/
+composer.lock
+
+# Node modules (si utilisé)
+node_modules/
+package-lock.json
+
+# Cache
+cache/
+*.cache
