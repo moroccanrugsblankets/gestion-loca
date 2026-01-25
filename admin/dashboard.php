@@ -7,16 +7,22 @@
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/functions.php';
 
-// Récupérer les filtres
-$filterStatut = $_GET['statut'] ?? '';
-
-// Récupérer les contrats
-$contrats = $filterStatut ? getAllContracts($filterStatut) : getAllContracts();
-
-// Statistiques
-$statsEnAttente = count(getAllContracts('en_attente'));
-$statsSignes = count(getAllContracts('signe'));
-$statsExpires = count(getAllContracts('expire'));
+// Gestion des erreurs pour le développement
+try {
+    // Récupérer les filtres
+    $filterStatut = $_GET['statut'] ?? '';
+    
+    // Récupérer les contrats
+    $contrats = $filterStatut ? getAllContracts($filterStatut) : getAllContracts();
+    
+    // Statistiques
+    $statsEnAttente = count(getAllContracts('en_attente'));
+    $statsSignes = count(getAllContracts('signe'));
+    $statsExpires = count(getAllContracts('expire'));
+} catch (Exception $e) {
+    error_log("Erreur dashboard: " . $e->getMessage());
+    die("Erreur lors du chargement du tableau de bord. Veuillez vérifier les logs.");
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -109,13 +115,23 @@ $statsExpires = count(getAllContracts('expire'));
                             <tbody>
                                 <?php foreach ($contrats as $contrat): ?>
                                     <?php
-                                    $badgeClass = match($contrat['statut']) {
-                                        'en_attente' => 'bg-warning',
-                                        'signe' => 'bg-success',
-                                        'expire' => 'bg-danger',
-                                        'annule' => 'bg-secondary',
-                                        default => 'bg-secondary'
-                                    };
+                                    // Déterminer la classe du badge selon le statut
+                                    switch($contrat['statut']) {
+                                        case 'en_attente':
+                                            $badgeClass = 'bg-warning';
+                                            break;
+                                        case 'signe':
+                                            $badgeClass = 'bg-success';
+                                            break;
+                                        case 'expire':
+                                            $badgeClass = 'bg-danger';
+                                            break;
+                                        case 'annule':
+                                            $badgeClass = 'bg-secondary';
+                                            break;
+                                        default:
+                                            $badgeClass = 'bg-secondary';
+                                    }
                                     ?>
                                     <tr>
                                         <td><?= $contrat['id'] ?></td>
