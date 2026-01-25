@@ -53,3 +53,11 @@ date_default_timezone_set('Europe/Paris');
 // Affichage des erreurs (à désactiver en production)
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
+ini_set('log_errors', 1);
+ini_set('error_log', dirname(__DIR__) . '/error.log');
+
+// Gestion des erreurs pour éviter les 500
+set_error_handler(function($errno, $errstr, $errfile, $errline) {
+    error_log("Error [$errno]: $errstr in $errfile on line $errline");
+    return false;
+});
