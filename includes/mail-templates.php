@@ -20,16 +20,17 @@ Merci de prendre connaissance de la procédure ci-dessous.
 Procédure de signature du bail
 
 Merci de compléter l'ensemble de la procédure dans un délai de 24 heures, à compter de la réception du présent message, incluant :
-
-1. La signature du contrat de bail en ligne
-2. La transmission d'une pièce d'identité en cours de validité (carte nationale d'identité ou passeport)
-3. Le règlement immédiat du dépôt de garantie, correspondant à deux mois de loyer, par virement bancaire instantané
+	1.	La signature du contrat de bail en ligne
+	2.	La transmission d'une pièce d'identité en cours de validité (carte nationale d'identité ou passeport)
+	3.	Le règlement immédiat du dépôt de garantie, correspondant à deux mois de loyer, par virement bancaire instantané
 
 La prise d'effet du bail ainsi que la remise des clés interviendront uniquement après réception complète de l'ensemble des éléments ci-dessus.
 
 À défaut de réception complète du dossier dans le délai indiqué, la réservation du logement pourra être remise en disponibilité sans autre formalité.
 
 Pour accéder au contrat de bail : $signatureLink
+
+Nous restons à votre disposition en cas de question.
 
 Cordialement,
 MY Invest Immobilier
@@ -63,9 +64,9 @@ Nous vous rappelons que :
 
 La prise d'effet du bail intervient après le règlement immédiat du dépôt de garantie, correspondant à deux mois de loyer ($depotGarantie), par virement bancaire instantané sur le compte suivant :
 
-" . BANK_NAME . "
-IBAN : " . IBAN . "
-BIC : " . BIC . "
+MY Invest Immobilier
+IBAN : FR76 1027 8021 6000 0206 1834 585
+BIC : CMCIFRA
 
 Dès réception du règlement, nous vous confirmerons la prise d'effet du bail ainsi que les modalités de remise des clés.
 

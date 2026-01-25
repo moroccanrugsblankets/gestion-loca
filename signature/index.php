@@ -112,10 +112,16 @@ $csrfToken = generateCsrfToken();
                             <h5>Procédure de signature</h5>
                             <p>Pour finaliser votre bail, vous devrez :</p>
                             <ol>
-                                <li>Renseigner vos informations personnelles</li>
-                                <li>Apposer votre signature électronique</li>
-                                <li>Télécharger vos pièces d'identité (recto et verso)</li>
+                                <li>La signature du contrat de bail en ligne</li>
+                                <li>La transmission d'une pièce d'identité en cours de validité (carte nationale d'identité ou passeport)</li>
+                                <li>Le règlement immédiat du dépôt de garantie, correspondant à deux mois de loyer, par virement bancaire instantané</li>
                             </ol>
+                            <p>
+                                La prise d'effet du bail ainsi que la remise des clés interviendront uniquement après réception complète de l'ensemble des éléments ci-dessus.
+                            </p>
+                            <p>
+                                À défaut de réception complète du dossier dans le délai indiqué, la réservation du logement pourra être remise en disponibilité sans autre formalité.
+                            </p>
                             <p class="text-danger">
                                 <strong>⚠️ Important :</strong> Ce lien expire le 
                                 <?= formatDateFr($contrat['date_expiration'], 'd/m/Y à H:i') ?>
@@ -126,22 +132,53 @@ $csrfToken = generateCsrfToken();
                             <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
                             
                             <div class="mb-4">
-                                <p><strong>Souhaitez-vous poursuivre la procédure de signature ?</strong></p>
+                                <p><strong>Validation de la procédure</strong></p>
                                 
-                                <div class="d-grid gap-2">
-                                    <button type="submit" name="choix" value="accepte" class="btn btn-success btn-lg">
-                                        ✓ J'accepte et je souhaite poursuivre
-                                    </button>
-                                    <button type="submit" name="choix" value="refuse" class="btn btn-danger">
-                                        ✗ Je refuse
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="choix" id="accepte" value="accepte" required>
+                                    <label class="form-check-label" for="accepte">
+                                        ☐ J'accepte la procédure ci-dessus et m'engage à la compléter dans le délai de 24 heures.
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="choix" id="refuse" value="refuse">
+                                    <label class="form-check-label" for="refuse">
+                                        ☐ Je refuse la procédure et renonce à la poursuite de la location du logement.
+                                    </label>
+                                </div>
+                                
+                                <div class="d-grid gap-2 mt-4">
+                                    <button type="submit" class="btn btn-lg" id="submitBtn">
+                                        Valider
                                     </button>
                                 </div>
                             </div>
                         </form>
+                        
+                        <div class="mt-3 text-center">
+                            <p class="text-muted">Nous restons à votre disposition en cas de question.</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    
+    <script>
+        // Changer la couleur du bouton selon le choix
+        document.querySelectorAll('input[name="choix"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const btn = document.getElementById('submitBtn');
+                if (this.value === 'accepte') {
+                    btn.className = 'btn btn-success btn-lg';
+                    btn.textContent = 'J\'accepte et je continue';
+                } else {
+                    btn.className = 'btn btn-danger btn-lg';
+                    btn.textContent = 'Je refuse';
+                }
+            });
+        });
+    </script>
 </body>
 </html>
