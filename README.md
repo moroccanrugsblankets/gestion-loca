@@ -88,7 +88,8 @@ Application web PHP complète pour la gestion des candidatures locatives avec wo
    
    Cela créera:
    - Base de données unique `bail_signature`
-   - 11 tables (logements, candidatures, contrats, locataires, états des lieux, paiements, etc.)
+   - 10 tables (logements, candidatures, contrats, locataires, états des lieux, paiements, etc.)
+   - 2 vues SQL (candidatures_a_traiter, dashboard_stats)
    - Compte admin par défaut
    - Logement de test RP-01
    - Vues SQL pour statistiques et workflow

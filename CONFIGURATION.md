@@ -13,7 +13,8 @@ mysql -u root -p < database.sql
 
 Cette commande créera:
 - Base de données unique `bail_signature`
-- 11 tables interconnectées avec clés étrangères
+- 10 tables interconnectées avec clés étrangères
+- 2 vues SQL pour le workflow et les statistiques
 - Système complet de gestion du cycle de vie des baux
 - Données de test et compte administrateur
 

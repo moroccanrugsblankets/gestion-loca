@@ -144,8 +144,11 @@ set_error_handler(function($errno, $errstr, $errfile, $errline) {
 
 /**
  * Calcule le nombre de jours ouvrés entre deux dates
+ * @param DateTime $dateDebut Date de début
+ * @param DateTime $dateFin Date de fin
+ * @return int Nombre de jours ouvrés
  */
-function calculerJoursOuvres($dateDebut, $dateFin) {
+function calculerJoursOuvres(DateTime $dateDebut, DateTime $dateFin): int {
     $joursOuvres = 0;
     $current = clone $dateDebut;
     
@@ -162,8 +165,11 @@ function calculerJoursOuvres($dateDebut, $dateFin) {
 
 /**
  * Calcule la date après X jours ouvrés
+ * @param DateTime $date Date de départ
+ * @param int $nbJours Nombre de jours ouvrés à ajouter
+ * @return DateTime Nouvelle date
  */
-function ajouterJoursOuvres($date, $nbJours) {
+function ajouterJoursOuvres(DateTime $date, int $nbJours): DateTime {
     $current = clone $date;
     $joursAjoutes = 0;
     
@@ -180,22 +186,37 @@ function ajouterJoursOuvres($date, $nbJours) {
 
 /**
  * Vérifie si c'est un jour ouvré
+ * @param DateTime $date Date à vérifier
+ * @return bool True si jour ouvré
  */
-function estJourOuvre($date) {
+function estJourOuvre(DateTime $date): bool {
     $dayOfWeek = (int)$date->format('N');
     return in_array($dayOfWeek, JOURS_OUVRES);
 }
 
 /**
  * Génère une référence unique
+ * @param string $prefix Préfixe de la référence (ex: 'CAND', 'CONT')
+ * @return string Référence unique
  */
-function genererReferenceUnique($prefix = 'CAND') {
-    return $prefix . '-' . date('Ymd') . '-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
+function genererReferenceUnique(string $prefix = 'CAND'): string {
+    try {
+        return $prefix . '-' . date('Ymd') . '-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
+    } catch (Exception $e) {
+        // Fallback si random_bytes échoue (très rare)
+        return $prefix . '-' . date('Ymd') . '-' . strtoupper(substr(md5(uniqid('', true)), 0, 8));
+    }
 }
 
 /**
  * Génère un token sécurisé
+ * @return string Token hexadécimal de 64 caractères
  */
-function genererToken() {
-    return bin2hex(random_bytes(32));
+function genererToken(): string {
+    try {
+        return bin2hex(random_bytes(32));
+    } catch (Exception $e) {
+        // Fallback si random_bytes échoue (très rare)
+        return hash('sha256', uniqid('', true) . microtime());
+    }
 }

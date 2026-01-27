@@ -39,6 +39,8 @@ La base de données unique `bail_signature` contient:
 9. **logs** - Traçabilité de toutes les actions
 10. **administrateurs** - Comptes administrateurs
 
+Total: **10 tables** + **2 vues SQL**
+
 ### Vues SQL
 - **candidatures_a_traiter** - Candidatures en attente de traitement automatique
 - **dashboard_stats** - Statistiques pour le tableau de bord
@@ -92,27 +94,45 @@ define('DB_NAME', 'bail_signature');
 ### Pour les Installations Existantes
 
 **Si vous aviez `myinvest_location`:**
-```sql
--- Option 1: Renommer la base existante
-RENAME DATABASE myinvest_location TO bail_signature;
+```bash
+# Sauvegarder l'ancienne base
+mysqldump -u root -p myinvest_location > backup_myinvest_location.sql
 
--- Option 2: Créer une nouvelle base et migrer
+# Créer la nouvelle base
 mysql -u root -p < database.sql
--- Puis migrer vos données manuellement si nécessaire
+
+# Migrer les données
+# Note: Si myinvest_location contenait déjà la structure complète,
+# vous pouvez simplement renommer et mettre à jour:
+mysql -u root -p
 ```
 
-**Si vous aviez `bail_signature` (ancienne version):**
 ```sql
--- Sauvegarder vos données
-mysqldump -u root -p bail_signature > backup_old.sql
+-- Dans MySQL:
+DROP DATABASE IF EXISTS bail_signature;
+CREATE DATABASE bail_signature;
 
--- Supprimer l'ancienne base
-DROP DATABASE bail_signature;
+-- Restaurer les données
+USE bail_signature;
+SOURCE backup_myinvest_location.sql;
 
--- Créer la nouvelle base unifiée
+-- Mettre à jour les références si nécessaire
+-- (Les tables et structures doivent être identiques)
+```
+
+**Si vous aviez `bail_signature` (ancienne version limitée):**
+```bash
+# Sauvegarder vos données importantes
+mysqldump -u root -p bail_signature logements contrats locataires > backup_old.sql
+
+# Supprimer l'ancienne base
+mysql -u root -p -e "DROP DATABASE bail_signature;"
+
+# Créer la nouvelle base unifiée
 mysql -u root -p < database.sql
 
--- Migrer vos données depuis backup_old.sql si nécessaire
+# Migrer les données depuis backup_old.sql
+# Note: Nécessite adaptation manuelle car les structures sont différentes
 ```
 
 ## ✅ Avantages de la Consolidation
