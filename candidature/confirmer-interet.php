@@ -5,7 +5,7 @@
  * Allows accepted candidates to confirm their interest after receiving acceptance email
  */
 
-require_once __DIR__ . '/../includes/config-v2.php';
+require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 
 $error = '';

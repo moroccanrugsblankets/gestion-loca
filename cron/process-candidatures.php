@@ -9,7 +9,7 @@
  * Example: 0 9 * * * /usr/bin/php /path/to/process-candidatures.php
  */
 
-require_once __DIR__ . '/../includes/config-v2.php';
+require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/mail-templates.php';
 

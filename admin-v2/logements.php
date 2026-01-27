@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once '../includes/config-v2.php';
+require_once '../includes/config.php';
 require_once 'auth.php';
 
 // Handle form submissions

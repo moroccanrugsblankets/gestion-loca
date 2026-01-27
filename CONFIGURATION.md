@@ -2,14 +2,23 @@
 
 ## Configuration de base
 
-### 1. Base de données
+### 1. Base de données unique
+
+⚠️ **Important:** Ce système utilise maintenant une base de données unique `bail_signature` pour toutes les fonctionnalités (candidatures, contrats, signature électronique, états des lieux, paiements).
 
 Créer la base de données :
 ```bash
 mysql -u root -p < database.sql
 ```
 
-### 2. Fichier de configuration
+Cette commande créera:
+- Base de données unique `bail_signature`
+- 10 tables interconnectées avec clés étrangères
+- 2 vues SQL pour le workflow et les statistiques
+- Système complet de gestion du cycle de vie des baux
+- Données de test et compte administrateur
+
+### 2. Fichier de configuration unique
 
 Le fichier `includes/config.php` contient toutes les configurations de l'application.
 
@@ -18,12 +27,14 @@ Le fichier `includes/config.php` contient toutes les configurations de l'applica
 ```php
 // Base de données
 define('DB_HOST', 'localhost');          // Hôte de la base de données
-define('DB_NAME', 'bail_signature');     // Nom de la base de données
+define('DB_NAME', 'bail_signature');     // Nom de la base de données unique
 define('DB_USER', 'root');               // Utilisateur MySQL
 define('DB_PASS', '');                   // Mot de passe MySQL
 
 // URL de l'application
 define('SITE_URL', 'http://localhost/contrat-bail');  // URL complète de votre site
+define('CANDIDATURE_URL', SITE_URL . '/candidature/');
+define('ADMIN_URL', SITE_URL . '/admin/');
 
 // Email
 define('MAIL_FROM', 'contact@myinvest-immobilier.com');
