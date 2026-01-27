@@ -75,29 +75,27 @@ Application web PHP complète pour la gestion des candidatures locatives avec wo
 
 ### Étapes d'installation
 
-**⚠️ Note:** Cette application utilise maintenant `database-candidature.sql` au lieu de `database.sql`
-
 1. **Cloner le repository**
    ```bash
    git clone <repository-url>
    cd contrat-de-bail
-   git checkout copilot/create-web-signature-app
    ```
 
-2. **Importer la base de données**
+2. **Importer la base de données unique**
    ```bash
-   mysql -u root -p < database-candidature.sql
+   mysql -u root -p < database.sql
    ```
    
    Cela créera:
-   - Base de données `bail_signature`
-   - 11 tables (logements, candidatures, contrats, etc.)
+   - Base de données unique `bail_signature`
+   - 11 tables (logements, candidatures, contrats, locataires, états des lieux, paiements, etc.)
    - Compte admin par défaut
    - Logement de test RP-01
+   - Vues SQL pour statistiques et workflow
 
 3. **Configurer la connexion**
    
-   Éditer `includes/config-v2.php`:
+   Éditer `includes/config.php`:
    ```php
    define('DB_HOST', 'localhost');
    define('DB_NAME', 'bail_signature');
@@ -181,7 +179,7 @@ contrat-de-bail/
 │   └── README.md          # Documentation cron
 │
 ├── includes/              # Fichiers communs
-│   ├── config-v2.php      # Configuration
+│   ├── config.php         # Configuration unifiée
 │   ├── db.php             # Connexion DB
 │   ├── functions.php      # Fonctions utilitaires
 │   └── mail-templates.php # Templates emails
@@ -195,7 +193,7 @@ contrat-de-bail/
 │   ├── js/signature.js
 │   └── images/
 │
-├── database-candidature.sql   # Schéma DB complet
+├── database.sql           # Schéma DB unique et complet
 │
 └── Documentation/
     ├── LISEZ-MOI-DABORD.md    # Guide rapide ⭐
