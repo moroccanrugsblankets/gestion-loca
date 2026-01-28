@@ -342,11 +342,11 @@ VALUES (
 )
 ON DUPLICATE KEY UPDATE reference=reference;
 
--- Administrateur par défaut (password: admin123 - À CHANGER EN PRODUCTION)
+-- Administrateur par défaut (password: password - À CHANGER EN PRODUCTION)
 INSERT INTO administrateurs (username, password_hash, email, nom, prenom, role) 
 VALUES (
     'admin',
-    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', -- admin123
+    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', -- password
     'contact@myinvest-immobilier.com',
     'ALEXANDRE',
     'Maxime',
