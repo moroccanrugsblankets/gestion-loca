@@ -58,9 +58,9 @@ if (isset($_SESSION['signature_token'])) {
                                     <strong>Effectuez le virement du dépôt de garantie</strong> (correspondant à deux mois de loyer) 
                                     sur le compte suivant :
                                     <div class="mt-2 p-3 bg-light rounded">
-                                        <strong><?= BANK_NAME ?></strong><br>
-                                        IBAN : <?= IBAN ?><br>
-                                        BIC : <?= BIC ?>
+                                        <strong><?= $config['BANK_NAME'] ?></strong><br>
+                                        IBAN : <?= $config['IBAN'] ?><br>
+                                        BIC : <?= $config['BIC'] ?>
                                     </div>
                                 </li>
                                 <li class="mb-2">
@@ -79,8 +79,8 @@ if (isset($_SESSION['signature_token'])) {
                             Pour toute question, n'hésitez pas à nous contacter :
                         </p>
                         <p>
-                            <strong><?= COMPANY_NAME ?></strong><br>
-                            Email : <a href="mailto:<?= COMPANY_EMAIL ?>"><?= COMPANY_EMAIL ?></a>
+                            <strong><?= $config['COMPANY_NAME'] ?></strong><br>
+                            Email : <a href="mailto:<?= $config['COMPANY_EMAIL'] ?>"><?= $config['COMPANY_EMAIL'] ?></a>
                         </p>
                     </div>
                 </div>

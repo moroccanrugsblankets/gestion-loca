@@ -26,47 +26,47 @@ if (!file_exists(__DIR__ . '/includes/config-v2.php')) {
 }
 
 // Test 3: Vérifier les constantes de la base de données
-echo "\nTest 3: Constantes de base de données\n";
-if (defined('DB_NAME') && DB_NAME === 'bail_signature') {
+echo "\nTest 3: Configuration de base de données\n";
+if (isset($config['DB_NAME']) && $config['DB_NAME'] === 'bail_signature') {
     echo "✅ DB_NAME est défini à 'bail_signature'\n";
 } else {
     echo "❌ DB_NAME n'est pas défini correctement\n";
 }
 
-if (defined('DB_HOST')) {
-    echo "✅ DB_HOST est défini: " . DB_HOST . "\n";
+if (isset($config['DB_HOST'])) {
+    echo "✅ DB_HOST est défini: " . $config['DB_HOST'] . "\n";
 }
 
-if (defined('DB_CHARSET')) {
-    echo "✅ DB_CHARSET est défini: " . DB_CHARSET . "\n";
+if (isset($config['DB_CHARSET'])) {
+    echo "✅ DB_CHARSET est défini: " . $config['DB_CHARSET'] . "\n";
 }
 
 // Test 4: Vérifier les nouvelles constantes du workflow
-echo "\nTest 4: Constantes du workflow\n";
-if (defined('DELAI_REPONSE_JOURS_OUVRES')) {
-    echo "✅ DELAI_REPONSE_JOURS_OUVRES est défini: " . DELAI_REPONSE_JOURS_OUVRES . "\n";
+echo "\nTest 4: Configuration du workflow\n";
+if (isset($config['DELAI_REPONSE_JOURS_OUVRES'])) {
+    echo "✅ DELAI_REPONSE_JOURS_OUVRES est défini: " . $config['DELAI_REPONSE_JOURS_OUVRES'] . "\n";
 }
 
-if (defined('JOURS_OUVRES')) {
+if (isset($config['JOURS_OUVRES'])) {
     echo "✅ JOURS_OUVRES est défini\n";
 }
 
-if (defined('REVENUS_MIN_ACCEPTATION')) {
-    echo "✅ REVENUS_MIN_ACCEPTATION est défini: " . REVENUS_MIN_ACCEPTATION . "\n";
+if (isset($config['REVENUS_MIN_ACCEPTATION'])) {
+    echo "✅ REVENUS_MIN_ACCEPTATION est défini: " . $config['REVENUS_MIN_ACCEPTATION'] . "\n";
 }
 
 // Test 5: Vérifier les URLs
 echo "\nTest 5: URLs de l'application\n";
-if (defined('SITE_URL')) {
-    echo "✅ SITE_URL est défini: " . SITE_URL . "\n";
+if (isset($config['SITE_URL'])) {
+    echo "✅ SITE_URL est défini: " . $config['SITE_URL'] . "\n";
 }
 
-if (defined('CANDIDATURE_URL')) {
-    echo "✅ CANDIDATURE_URL est défini: " . CANDIDATURE_URL . "\n";
+if (isset($config['CANDIDATURE_URL'])) {
+    echo "✅ CANDIDATURE_URL est défini: " . $config['CANDIDATURE_URL'] . "\n";
 }
 
-if (defined('ADMIN_URL')) {
-    echo "✅ ADMIN_URL est défini: " . ADMIN_URL . "\n";
+if (isset($config['ADMIN_URL'])) {
+    echo "✅ ADMIN_URL est défini: " . $config['ADMIN_URL'] . "\n";
 }
 
 // Test 6: Vérifier les constantes de sécurité
