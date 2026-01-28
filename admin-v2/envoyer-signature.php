@@ -55,12 +55,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Créer le lien de signature
         $signature_link = SITE_URL . '/signature/index.php?token=' . $token;
         
-        // Envoyer l'email d'invitation
+        // Envoyer l'email d'invitation avec PHPMailer
         $subject = "Contrat de bail à signer – Action immédiate requise";
-        $message = getSignatureInvitationEmail($signature_link, $contrat['adresse'], $nb_locataires);
+        $htmlBody = getInvitationSignatureEmailHTML($signature_link, $contrat['adresse'], $nb_locataires);
         
-        // Simuler l'envoi d'email (dans un vrai projet, utiliser mail() ou PHPMailer)
-        // mail($email_principal, $subject, $message, "From: " . MAIL_FROM);
+        // Envoyer avec PHPMailer (format HTML)
+        $emailSent = sendEmail($email_principal, $subject, $htmlBody, null, true);
+        
+        if (!$emailSent) {
+            error_log("Erreur lors de l'envoi de l'email de signature à $email_principal");
+            throw new Exception("Erreur lors de l'envoi de l'email");
+        }
         
         // Logger l'action
         $stmt = $pdo->prepare("

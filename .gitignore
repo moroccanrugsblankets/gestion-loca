@@ -39,3 +39,6 @@ package-lock.json
 # Cache
 cache/
 *.cache
+
+# Email previews (generated files)
+demo-emails/

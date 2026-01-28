@@ -2,6 +2,7 @@
 require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
+require_once '../includes/mail-templates.php';
 
 $pdo = getDbConnection();
 
@@ -60,73 +61,51 @@ if ($send_email) {
     
     // Email templates based on status
     $subject = '';
-    $message = '';
     
     switch ($nouveau_statut) {
         case 'Accepté':
             $subject = "Candidature acceptée - MyInvest Immobilier";
-            $message = "Bonjour $nom_complet,\n\n";
-            $message .= "Nous avons le plaisir de vous informer que votre candidature a été acceptée.\n\n";
-            $message .= "Nous vous contacterons prochainement pour organiser une visite du logement.\n\n";
-            $message .= "Cordialement,\nMyInvest Immobilier";
             break;
             
         case 'Refusé':
             $subject = "Suite à votre candidature - MyInvest Immobilier";
-            $message = "Bonjour $nom_complet,\n\n";
-            $message .= "Nous vous remercions pour l'intérêt que vous portez à nos logements.\n\n";
-            $message .= "Malheureusement, nous ne pouvons pas donner suite à votre candidature à ce stade.\n\n";
-            $message .= "Nous vous souhaitons bonne continuation dans vos recherches.\n\n";
-            $message .= "Cordialement,\nMyInvest Immobilier";
             break;
             
         case 'Visite planifiée':
             $subject = "Visite de logement planifiée - MyInvest Immobilier";
-            $message = "Bonjour $nom_complet,\n\n";
-            $message .= "Votre visite du logement a été planifiée.\n\n";
-            $message .= "Nous vous contacterons prochainement pour confirmer la date et l'heure.\n\n";
-            $message .= "Cordialement,\nMyInvest Immobilier";
             break;
             
         case 'Contrat envoyé':
             $subject = "Contrat de bail - MyInvest Immobilier";
-            $message = "Bonjour $nom_complet,\n\n";
-            $message .= "Votre contrat de bail est prêt.\n\n";
-            $message .= "Vous allez recevoir un lien pour le signer électroniquement.\n\n";
-            $message .= "Cordialement,\nMyInvest Immobilier";
             break;
             
         case 'Contrat signé':
             $subject = "Contrat signé - MyInvest Immobilier";
-            $message = "Bonjour $nom_complet,\n\n";
-            $message .= "Nous avons bien reçu votre contrat signé.\n\n";
-            $message .= "Nous vous contacterons prochainement pour les modalités d'entrée dans le logement.\n\n";
-            $message .= "Cordialement,\nMyInvest Immobilier";
             break;
     }
     
-    if ($subject && $message) {
-        if ($commentaire) {
-            $message .= "\n\nNote: $commentaire";
+    if ($subject) {
+        // Générer l'email HTML
+        $htmlBody = getStatusChangeEmailHTML($nom_complet, $nouveau_statut, $commentaire);
+        
+        // Envoyer l'email avec PHPMailer
+        $emailSent = sendEmail($to, $subject, $htmlBody, null, true);
+        
+        if ($emailSent) {
+            // Log email sent
+            $stmt = $pdo->prepare("
+                INSERT INTO logs (candidature_id, action, details, ip_address, created_at)
+                VALUES (?, ?, ?, ?, NOW())
+            ");
+            $stmt->execute([
+                $candidature_id,
+                "Email envoyé",
+                "Objet: $subject",
+                $_SERVER['REMOTE_ADDR']
+            ]);
+        } else {
+            error_log("Erreur lors de l'envoi de l'email à $to pour le changement de statut");
         }
-        
-        $headers = "From: contact@myinvest-immobilier.com\r\n";
-        $headers .= "Reply-To: contact@myinvest-immobilier.com\r\n";
-        $headers .= "X-Mailer: PHP/" . phpversion();
-        
-        mail($to, $subject, $message, $headers);
-        
-        // Log email sent
-        $stmt = $pdo->prepare("
-            INSERT INTO logs (candidature_id, action, details, ip_address, created_at)
-            VALUES (?, ?, ?, ?, NOW())
-        ");
-        $stmt->execute([
-            $candidature_id,
-            "Email envoyé",
-            "Objet: $subject",
-            $_SERVER['REMOTE_ADDR']
-        ]);
     }
 }
 
