@@ -7,6 +7,7 @@
 session_start();
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/mail-templates.php';
 
 header('Content-Type: application/json');
 
@@ -165,31 +166,14 @@ try {
     
     // Envoyer un email de confirmation au candidat
     $subject = 'Candidature locative reçue - MY Invest Immobilier';
-    $message = "
-Bonjour $prenom $nom,
-
-Nous avons bien reçu votre candidature pour le logement {$logement['reference']}.
-
-Votre dossier sera étudié et vous recevrez une réponse par email dans un délai de 4 jours ouvrés.
-
-Informations de votre candidature :
-- Logement : {$logement['reference']} - {$logement['type']}
-- Adresse : {$logement['adresse']}
-- Loyer : {$logement['loyer']} €/mois
-- Documents joints : $uploaded_count
-
-Nous restons à votre disposition pour toute question.
-
-Cordialement,
-MY Invest Immobilier
-contact@myinvest-immobilier.com
-    ";
+    $htmlBody = getCandidatureRecueEmailHTML($prenom, $nom, $logement, $uploaded_count);
     
-    $headers = 'From: MY Invest Immobilier <contact@myinvest-immobilier.com>' . "\r\n";
-    $headers .= 'Reply-To: contact@myinvest-immobilier.com' . "\r\n";
-    $headers .= 'X-Mailer: PHP/' . phpversion();
+    // Envoyer l'email avec PHPMailer (format HTML)
+    $emailSent = sendEmail($email, $subject, $htmlBody, null, true);
     
-    @mail($email, $subject, $message, $headers);
+    if (!$emailSent) {
+        error_log("Avertissement: Email de confirmation non envoyé à $email pour candidature #$candidature_id");
+    }
     
     // Retourner le succès
     echo json_encode([

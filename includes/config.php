@@ -33,6 +33,16 @@ define('DB_CHARSET', 'utf8mb4');
 define('MAIL_FROM', 'contact@myinvest-immobilier.com');
 define('MAIL_FROM_NAME', 'MY Invest Immobilier');
 
+// Configuration SMTP pour PHPMailer
+// Note: Configurez ces valeurs selon votre serveur SMTP
+define('SMTP_HOST', 'smtp.gmail.com'); // Exemple: smtp.gmail.com, smtp.office365.com, etc.
+define('SMTP_PORT', 587); // Port SMTP (587 pour TLS, 465 pour SSL)
+define('SMTP_SECURE', 'tls'); // 'tls' ou 'ssl'
+define('SMTP_AUTH', true); // Authentification SMTP
+define('SMTP_USERNAME', 'contact@myinvest-immobilier.com'); // Votre email SMTP
+define('SMTP_PASSWORD', ''); // Votre mot de passe SMTP (à configurer)
+define('SMTP_DEBUG', 0); // 0 = off, 1 = client, 2 = client et serveur
+
 // =====================================================
 // CONFIGURATION APPLICATION
 // =====================================================
