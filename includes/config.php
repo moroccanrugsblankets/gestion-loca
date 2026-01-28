@@ -16,6 +16,12 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Si une config locale existe, on la charge et on arrête ici 
+if (file_exists(__DIR__ . '/config.local.php')) {
+	require __DIR__ . '/config.local.php';
+	return;
+}
+
 // =====================================================
 // CONFIGURATION BASE DE DONNÉES
 // =====================================================
@@ -30,7 +36,7 @@ define('DB_CHARSET', 'utf8mb4');
 // CONFIGURATION EMAIL
 // =====================================================
 
-define('MAIL_FROM', 'gestion@myinvest-immobilier.com');
+define('MAIL_FROM', 'contact@myinvest-immobilier.com');
 define('MAIL_FROM_NAME', 'MY Invest Immobilier');
 
 // Configuration SMTP pour PHPMailer
@@ -49,7 +55,7 @@ define('SMTP_DEBUG', 0); // 0 = off, 1 = client, 2 = client et serveur
 // CONFIGURATION APPLICATION
 // =====================================================
 
-define('SITE_URL', 'https://contrat.myinvest-immobilier.com');
+define('SITE_URL', 'http://localhost/contrat-bail');
 define('CANDIDATURE_URL', SITE_URL . '/candidature/');
 define('ADMIN_URL', SITE_URL . '/admin/');
 
@@ -231,10 +237,4 @@ function genererToken(): string {
         // Fallback si random_bytes échoue (très rare)
         return hash('sha256', uniqid('', true) . microtime());
     }
-}
-
-
-// Charger la configuration locale si elle existe 
-if (file_exists(__DIR__ . '/config.local.php')) {
-	require __DIR__ . '/config.local.php';
 }
