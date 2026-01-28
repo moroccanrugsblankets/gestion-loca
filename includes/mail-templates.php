@@ -28,6 +28,7 @@ use PHPMailer\PHPMailer\SMTP;
  * @return array ['subject' => string, 'body' => string]
  */
 function getInvitationEmailTemplate($signatureLink, $logement) {
+    global $config;
     $subject = "Contrat de bail à signer – Action immédiate requise";
     
     $body = "Bonjour,
@@ -51,7 +52,7 @@ Nous restons à votre disposition en cas de question.
 
 Cordialement,
 MY Invest Immobilier
-" . COMPANY_EMAIL;
+" . $config['COMPANY_EMAIL'];
     
     return [
         'subject' => $subject,
@@ -67,6 +68,7 @@ MY Invest Immobilier
  * @return array ['subject' => string, 'body' => string]
  */
 function getFinalisationEmailTemplate($contrat, $logement, $locataires) {
+    global $config;
     $subject = "Contrat de bail – Finalisation";
     
     $depotGarantie = formatMontant($logement['depot_garantie']);
@@ -91,7 +93,7 @@ Nous restons à votre disposition pour toute question.
 
 Cordialement,
 MY Invest Immobilier
-" . COMPANY_EMAIL;
+" . $config['COMPANY_EMAIL'];
     
     return [
         'subject' => $subject,
@@ -109,27 +111,28 @@ MY Invest Immobilier
  * @return bool True si l'email a été envoyé avec succès
  */
 function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true) {
+    global $config;
     $mail = new PHPMailer(true);
     
     try {
         // Configuration du serveur SMTP
-        if (SMTP_AUTH) {
+        if ($config['SMTP_AUTH']) {
             $mail->isSMTP();
-            $mail->Host       = SMTP_HOST;
-            $mail->SMTPAuth   = SMTP_AUTH;
-            $mail->Username   = SMTP_USERNAME;
-            $mail->Password   = SMTP_PASSWORD;
-            $mail->SMTPSecure = SMTP_SECURE;
-            $mail->Port       = SMTP_PORT;
-            $mail->SMTPDebug  = SMTP_DEBUG;
+            $mail->Host       = $config['SMTP_HOST'];
+            $mail->SMTPAuth   = $config['SMTP_AUTH'];
+            $mail->Username   = $config['SMTP_USERNAME'];
+            $mail->Password   = $config['SMTP_PASSWORD'];
+            $mail->SMTPSecure = $config['SMTP_SECURE'];
+            $mail->Port       = $config['SMTP_PORT'];
+            $mail->SMTPDebug  = $config['SMTP_DEBUG'];
         }
         
         // Encodage
         $mail->CharSet = 'UTF-8';
         
         // Expéditeur
-        $mail->setFrom(MAIL_FROM, MAIL_FROM_NAME);
-        $mail->addReplyTo(MAIL_FROM, MAIL_FROM_NAME);
+        $mail->setFrom($config['MAIL_FROM'], $config['MAIL_FROM_NAME']);
+        $mail->addReplyTo($config['MAIL_FROM'], $config['MAIL_FROM_NAME']);
         
         // Destinataire
         $mail->addAddress($to);
@@ -165,7 +168,7 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true)
         error_log("Exception lors de l'envoi d'email à $to: " . $e->getMessage());
         
         // En cas d'échec SMTP, essayer avec la fonction mail() native en fallback
-        if (SMTP_AUTH) {
+        if ($config['SMTP_AUTH']) {
             error_log("Tentative de fallback avec mail() natif...");
             return sendEmailFallback($to, $subject, $body, $attachmentPath, $isHtml);
         }
@@ -179,12 +182,13 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true)
  * Utilisée si PHPMailer échoue
  */
 function sendEmailFallback($to, $subject, $body, $attachmentPath = null, $isHtml = true) {
+    global $config;
     try {
         if ($attachmentPath && file_exists($attachmentPath)) {
             // Email avec pièce jointe
             $boundary = md5(time());
-            $headers = "From: " . MAIL_FROM_NAME . " <" . MAIL_FROM . ">\r\n";
-            $headers .= "Reply-To: " . MAIL_FROM . "\r\n";
+            $headers = "From: " . $config['MAIL_FROM_NAME'] . " <" . $config['MAIL_FROM'] . ">\r\n";
+            $headers .= "Reply-To: " . $config['MAIL_FROM'] . "\r\n";
             $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
             $headers .= "MIME-Version: 1.0\r\n";
             $headers .= "Content-Type: multipart/mixed; boundary=\"$boundary\"\r\n";
@@ -208,8 +212,8 @@ function sendEmailFallback($to, $subject, $body, $attachmentPath = null, $isHtml
             $result = mail($to, $subject, $message, $headers);
         } else {
             // Email simple
-            $headers = "From: " . MAIL_FROM_NAME . " <" . MAIL_FROM . ">\r\n";
-            $headers .= "Reply-To: " . MAIL_FROM . "\r\n";
+            $headers = "From: " . $config['MAIL_FROM_NAME'] . " <" . $config['MAIL_FROM'] . ">\r\n";
+            $headers .= "Reply-To: " . $config['MAIL_FROM'] . "\r\n";
             $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
             
             if ($isHtml) {
@@ -242,6 +246,7 @@ function sendEmailFallback($to, $subject, $body, $attachmentPath = null, $isHtml
  * @return string HTML de l'email
  */
 function getCandidatureRecueEmailHTML($prenom, $nom, $logement, $uploaded_count) {
+    global $config;
     $html = '
 <!DOCTYPE html>
 <html lang="fr">
@@ -292,7 +297,7 @@ function getCandidatureRecueEmailHTML($prenom, $nom, $logement, $uploaded_count)
             <p style="margin-top: 30px;">
                 Cordialement,<br>
                 <strong>MY Invest Immobilier</strong><br>
-                <a href="mailto:' . COMPANY_EMAIL . '">' . COMPANY_EMAIL . '</a>
+                <a href="mailto:' . $config['COMPANY_EMAIL'] . '">' . $config['COMPANY_EMAIL'] . '</a>
             </p>
         </div>
         <div class="footer">
@@ -314,6 +319,7 @@ function getCandidatureRecueEmailHTML($prenom, $nom, $logement, $uploaded_count)
  * @return string HTML de l'email
  */
 function getInvitationSignatureEmailHTML($signatureLink, $adresse, $nb_locataires) {
+    global $config;
     $html = '
 <!DOCTYPE html>
 <html lang="fr">
@@ -372,7 +378,7 @@ function getInvitationSignatureEmailHTML($signatureLink, $adresse, $nb_locataire
             <p style="margin-top: 30px;">
                 Cordialement,<br>
                 <strong>MY Invest Immobilier</strong><br>
-                <a href="mailto:' . COMPANY_EMAIL . '">' . COMPANY_EMAIL . '</a>
+                <a href="mailto:' . $config['COMPANY_EMAIL'] . '">' . $config['COMPANY_EMAIL'] . '</a>
             </p>
         </div>
         <div class="footer">
@@ -393,6 +399,7 @@ function getInvitationSignatureEmailHTML($signatureLink, $adresse, $nb_locataire
  * @return string HTML de l'email
  */
 function getStatusChangeEmailHTML($nom_complet, $statut, $commentaire = '') {
+    global $config;
     $title = '';
     $message = '';
     $color = '#667eea';
@@ -480,7 +487,7 @@ function getStatusChangeEmailHTML($nom_complet, $statut, $commentaire = '') {
             <p style="margin-top: 30px;">
                 Cordialement,<br>
                 <strong>MY Invest Immobilier</strong><br>
-                <a href="mailto:' . COMPANY_EMAIL . '">' . COMPANY_EMAIL . '</a>
+                <a href="mailto:' . $config['COMPANY_EMAIL'] . '">' . $config['COMPANY_EMAIL'] . '</a>
             </p>
         </div>
         <div class="footer">
