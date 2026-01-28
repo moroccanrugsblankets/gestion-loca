@@ -134,7 +134,7 @@ try {
         }
         
         $filename = 'doc_' . $uploaded_count . '_' . bin2hex(random_bytes(8)) . $extension;
-        $filepath = $upload_dir . '/' . $filename';
+        $filepath = $upload_dir . '/' . $filename;
         
         // Déplacer le fichier
         if (move_uploaded_file($documents['tmp_name'][$i], $filepath)) {
