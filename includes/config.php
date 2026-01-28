@@ -125,13 +125,6 @@ $config = [
     'TOKEN_EXPIRY_HOURS' => 24,
 ];
 
-// Répertoires (computed values)
-$config['UPLOAD_DIR'] = dirname(__DIR__) . '/uploads/';
-$config['PDF_DIR'] = dirname(__DIR__) . '/pdf/';
-$config['DOCUMENTS_DIR'] = dirname(__DIR__) . '/documents/';
-$config['CANDIDATURE_URL'] = $config['SITE_URL'] . '/candidature/';
-$config['ADMIN_URL'] = $config['SITE_URL'] . '/admin/';
-
 // Load local configuration if exists
 if (file_exists(__DIR__ . '/config.local.php')) {
     $localConfig = require __DIR__ . '/config.local.php';
@@ -139,6 +132,13 @@ if (file_exists(__DIR__ . '/config.local.php')) {
         $config = array_merge($config, $localConfig);
     }
 }
+
+// Répertoires (computed values after local config is loaded)
+$config['UPLOAD_DIR'] = dirname(__DIR__) . '/uploads/';
+$config['PDF_DIR'] = dirname(__DIR__) . '/pdf/';
+$config['DOCUMENTS_DIR'] = dirname(__DIR__) . '/documents/';
+$config['CANDIDATURE_URL'] = $config['SITE_URL'] . '/candidature/';
+$config['ADMIN_URL'] = $config['SITE_URL'] . '/admin/';
 
 // Timezone
 date_default_timezone_set('Europe/Paris');

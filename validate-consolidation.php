@@ -70,13 +70,13 @@ if (isset($config['ADMIN_URL'])) {
 }
 
 // Test 6: Vérifier les constantes de sécurité
-echo "\nTest 6: Constantes de sécurité\n";
-if (defined('CSRF_KEY')) {
+echo "\nTest 6: Configuration de sécurité\n";
+if (isset($config['CSRF_KEY'])) {
     echo "✅ CSRF_KEY est défini\n";
 }
 
-if (defined('REFERENCE_SALT')) {
-    echo "✅ REFERENCE_SALT est défini: " . REFERENCE_SALT . "\n";
+if (isset($config['REFERENCE_SALT'])) {
+    echo "✅ REFERENCE_SALT est défini: " . $config['REFERENCE_SALT'] . "\n";
 }
 
 // Test 7: Vérifier les fonctions utilitaires

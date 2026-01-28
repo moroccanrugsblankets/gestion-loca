@@ -16,6 +16,8 @@ require_once __DIR__ . '/../includes/functions.php';
  * @return string|false Chemin du fichier PDF généré
  */
 function generateBailPDF($contratId) {
+    global $config;
+    
     // Récupérer les données du contrat
     $contrat = fetchOne("SELECT c.*, l.* FROM contrats c INNER JOIN logements l ON c.logement_id = l.id WHERE c.id = ?", [$contratId]);
     
