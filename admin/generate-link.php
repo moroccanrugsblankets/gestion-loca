@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $contrat = createContract($logement['id'], $nbLocataires);
                 
                 if ($contrat) {
-                    $signatureLink = SITE_URL . '/signature/index.php?token=' . $contrat['token'];
+                    $signatureLink = $config['SITE_URL'] . '/signature/index.php?token=' . $contrat['token'];
                     $generatedLink = $signatureLink;
                     
                     // Générer le template d'email

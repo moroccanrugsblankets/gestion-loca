@@ -145,22 +145,22 @@ if (!file_exists(__DIR__ . '/database-candidature.sql')) {
 
 // Test 11: Vérifier les constantes de pagination
 echo "\nTest 11: Pagination\n";
-if (defined('ITEMS_PER_PAGE')) {
-    echo "✅ ITEMS_PER_PAGE est défini: " . ITEMS_PER_PAGE . "\n";
+if (isset($config['ITEMS_PER_PAGE'])) {
+    echo "✅ ITEMS_PER_PAGE est défini: " . $config['ITEMS_PER_PAGE'] . "\n";
 }
 
-if (defined('MAX_ITEMS_PER_PAGE')) {
-    echo "✅ MAX_ITEMS_PER_PAGE est défini: " . MAX_ITEMS_PER_PAGE . "\n";
+if (isset($config['MAX_ITEMS_PER_PAGE'])) {
+    echo "✅ MAX_ITEMS_PER_PAGE est défini: " . $config['MAX_ITEMS_PER_PAGE'] . "\n";
 }
 
 // Test 12: Vérifier les informations légales
 echo "\nTest 12: Informations légales\n";
-if (defined('DPE_CLASSE_ENERGIE')) {
-    echo "✅ DPE_CLASSE_ENERGIE est défini: " . DPE_CLASSE_ENERGIE . "\n";
+if (isset($config['DPE_CLASSE_ENERGIE'])) {
+    echo "✅ DPE_CLASSE_ENERGIE est défini: " . $config['DPE_CLASSE_ENERGIE'] . "\n";
 }
 
-if (defined('BAILLEUR_NOM')) {
-    echo "✅ BAILLEUR_NOM est défini: " . BAILLEUR_NOM . "\n";
+if (isset($config['BAILLEUR_NOM'])) {
+    echo "✅ BAILLEUR_NOM est défini: " . $config['BAILLEUR_NOM'] . "\n";
 }
 
 echo "\n=== FIN DE LA VALIDATION ===\n";

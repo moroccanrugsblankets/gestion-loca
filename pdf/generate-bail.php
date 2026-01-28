@@ -34,16 +34,16 @@ function generateBailPDF($contratId) {
     
     // Nom du fichier PDF
     $filename = 'bail_' . $contrat['reference'] . '_' . date('Ymd_His') . '.pdf';
-    $filepath = PDF_DIR . $filename;
+    $filepath = $config['PDF_DIR'] . $filename;
     
     // Créer le dossier PDF s'il n'existe pas
-    if (!is_dir(PDF_DIR)) {
-        mkdir(PDF_DIR, 0755, true);
+    if (!is_dir($config['PDF_DIR'])) {
+        mkdir($config['PDF_DIR'], 0755, true);
     }
     
     // Pour une implémentation simple, on sauvegarde en HTML
     // En production, utiliser TCPDF, mPDF ou wkhtmltopdf
-    $htmlFilepath = PDF_DIR . 'bail_' . $contrat['reference'] . '_' . date('Ymd_His') . '.html';
+    $htmlFilepath = $config['PDF_DIR'] . 'bail_' . $contrat['reference'] . '_' . date('Ymd_His') . '.html';
     file_put_contents($htmlFilepath, $html);
     
     // Si wkhtmltopdf est installé, on peut générer le PDF
