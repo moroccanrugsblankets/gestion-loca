@@ -4,8 +4,18 @@
  * My Invest Immobilier
  */
 
-// Charger l'autoload de Composer pour PHPMailer
-require_once dirname(__DIR__) . '/vendor/autoload.php';
+// Charger PHPMailer
+// Si installé via Composer, utiliser l'autoload standard
+if (file_exists(dirname(__DIR__) . '/vendor/autoload.php')) {
+    require_once dirname(__DIR__) . '/vendor/autoload.php';
+}
+
+// Sinon, charger manuellement (installation manuelle)
+if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+    require_once dirname(__DIR__) . '/vendor/phpmailer/phpmailer/src/Exception.php';
+    require_once dirname(__DIR__) . '/vendor/phpmailer/phpmailer/src/PHPMailer.php';
+    require_once dirname(__DIR__) . '/vendor/phpmailer/phpmailer/src/SMTP.php';
+}
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -148,9 +158,11 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true)
         return $result;
         
     } catch (Exception $e) {
-        // Logger l'erreur
-        error_log("Erreur lors de l'envoi de l'email à $to: {$mail->ErrorInfo}");
-        error_log("Exception: " . $e->getMessage());
+        // Logger l'erreur avec contexte approprié
+        if ($mail instanceof PHPMailer) {
+            error_log("Erreur PHPMailer lors de l'envoi à $to: {$mail->ErrorInfo}");
+        }
+        error_log("Exception lors de l'envoi d'email à $to: " . $e->getMessage());
         
         // En cas d'échec SMTP, essayer avec la fonction mail() native en fallback
         if (SMTP_AUTH) {
@@ -168,17 +180,6 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true)
  */
 function sendEmailFallback($to, $subject, $body, $attachmentPath = null, $isHtml = true) {
     try {
-        $headers = "From: " . MAIL_FROM_NAME . " <" . MAIL_FROM . ">\r\n";
-        $headers .= "Reply-To: " . MAIL_FROM . "\r\n";
-        $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
-        
-        if ($isHtml) {
-            $headers .= "MIME-Version: 1.0\r\n";
-            $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-        } else {
-            $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
-        }
-        
         if ($attachmentPath && file_exists($attachmentPath)) {
             // Email avec pièce jointe
             $boundary = md5(time());
@@ -204,13 +205,30 @@ function sendEmailFallback($to, $subject, $body, $attachmentPath = null, $isHtml
             $message .= $fileContent . "\r\n";
             $message .= "--$boundary--";
             
-            return @mail($to, $subject, $message, $headers);
+            $result = mail($to, $subject, $message, $headers);
         } else {
             // Email simple
-            return @mail($to, $subject, $body, $headers);
+            $headers = "From: " . MAIL_FROM_NAME . " <" . MAIL_FROM . ">\r\n";
+            $headers .= "Reply-To: " . MAIL_FROM . "\r\n";
+            $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
+            
+            if ($isHtml) {
+                $headers .= "MIME-Version: 1.0\r\n";
+                $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+            } else {
+                $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            }
+            
+            $result = mail($to, $subject, $body, $headers);
         }
+        
+        if (!$result) {
+            error_log("Fallback mail() a échoué pour l'envoi à $to");
+        }
+        
+        return $result;
     } catch (Exception $e) {
-        error_log("Fallback mail() a également échoué: " . $e->getMessage());
+        error_log("Exception dans fallback mail(): " . $e->getMessage());
         return false;
     }
 }

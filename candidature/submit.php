@@ -192,6 +192,6 @@ try {
     
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error' => 'Une erreur est survenue lors de l\'enregistrement de votre candidature. Merci de réessayer.'
     ]);
 }

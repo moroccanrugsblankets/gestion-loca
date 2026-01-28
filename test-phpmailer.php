@@ -123,7 +123,7 @@ echo "✓ Les fonctions d'envoi d'email sont disponibles\n";
 echo "✓ Les templates HTML sont fonctionnels\n";
 echo "✓ La configuration SMTP est définie\n\n";
 
-if (strlen(SMTP_PASSWORD) == 0) {
+if (empty(SMTP_PASSWORD)) {
     echo "⚠ ATTENTION: Le mot de passe SMTP est vide.\n";
     echo "  Pour un envoi réel d'emails, configurez SMTP_PASSWORD dans includes/config.php\n\n";
 }

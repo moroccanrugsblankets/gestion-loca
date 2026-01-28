@@ -190,7 +190,7 @@ Ce script vérifie :
 
 - Vérifiez que le port SMTP est correct (587 pour TLS, 465 pour SSL)
 - Vérifiez que votre pare-feu autorise les connexions sortantes sur ce port
-- Vérifiez que votre hébergeur n'bloque pas les connexions SMTP
+- Vérifiez que votre hébergeur ne bloque pas les connexions SMTP
 
 ## Sécurité
 

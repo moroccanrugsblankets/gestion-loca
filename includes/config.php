@@ -35,12 +35,14 @@ define('MAIL_FROM_NAME', 'MY Invest Immobilier');
 
 // Configuration SMTP pour PHPMailer
 // Note: Configurez ces valeurs selon votre serveur SMTP
+// IMPORTANT: Ne commitez JAMAIS de vrais mots de passe dans Git
+// Utilisez includes/config.local.php pour vos credentials (voir PHPMAILER_CONFIGURATION.md)
 define('SMTP_HOST', 'smtp.gmail.com'); // Exemple: smtp.gmail.com, smtp.office365.com, etc.
 define('SMTP_PORT', 587); // Port SMTP (587 pour TLS, 465 pour SSL)
 define('SMTP_SECURE', 'tls'); // 'tls' ou 'ssl'
 define('SMTP_AUTH', true); // Authentification SMTP
 define('SMTP_USERNAME', 'contact@myinvest-immobilier.com'); // Votre email SMTP
-define('SMTP_PASSWORD', ''); // Votre mot de passe SMTP (à configurer)
+define('SMTP_PASSWORD', ''); // CONFIGUREZ CECI dans includes/config.local.php
 define('SMTP_DEBUG', 0); // 0 = off, 1 = client, 2 = client et serveur
 
 // =====================================================
