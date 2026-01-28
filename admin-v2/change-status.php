@@ -1,7 +1,9 @@
 <?php
-session_start();
 require_once '../includes/config.php';
 require_once 'auth.php';
+require_once '../includes/db.php';
+
+$pdo = getDbConnection();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: candidatures.php');
