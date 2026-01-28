@@ -1,0 +1,9 @@
+{
+    "name": "myinvest/contrat-de-bail",
+    "description": "Système de gestion de contrats de bail",
+    "type": "project",
+    "require": {
+        "php": ">=7.2",
+        "phpmailer/phpmailer": "^6.8"
+    }
+}

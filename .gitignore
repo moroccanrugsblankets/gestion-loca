@@ -39,5 +39,10 @@ package-lock.json
 # Cache
 cache/
 *.cache
+
+# Fichiers spécifiques OVH
 .htaccess
 includes/config.php
+
+# Email previews (generated files)
+demo-emails/
