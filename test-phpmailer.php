@@ -77,32 +77,32 @@ try {
 // Test 5: Vérifier la configuration SMTP
 echo "Test 5: Vérification de la configuration SMTP...\n";
 $configOK = true;
-if (!defined('SMTP_HOST')) {
+if (!isset($config['SMTP_HOST'])) {
     echo "  ✗ SMTP_HOST n'est pas défini\n";
     $configOK = false;
 } else {
-    echo "  ✓ SMTP_HOST: " . SMTP_HOST . "\n";
+    echo "  ✓ SMTP_HOST: " . $config['SMTP_HOST'] . "\n";
 }
 
-if (!defined('SMTP_PORT')) {
+if (!isset($config['SMTP_PORT'])) {
     echo "  ✗ SMTP_PORT n'est pas défini\n";
     $configOK = false;
 } else {
-    echo "  ✓ SMTP_PORT: " . SMTP_PORT . "\n";
+    echo "  ✓ SMTP_PORT: " . $config['SMTP_PORT'] . "\n";
 }
 
-if (!defined('SMTP_USERNAME')) {
+if (!isset($config['SMTP_USERNAME'])) {
     echo "  ✗ SMTP_USERNAME n'est pas défini\n";
     $configOK = false;
 } else {
-    echo "  ✓ SMTP_USERNAME: " . SMTP_USERNAME . "\n";
+    echo "  ✓ SMTP_USERNAME: " . $config['SMTP_USERNAME'] . "\n";
 }
 
-if (!defined('SMTP_PASSWORD')) {
+if (!isset($config['SMTP_PASSWORD'])) {
     echo "  ✗ SMTP_PASSWORD n'est pas défini\n";
     $configOK = false;
 } else {
-    $passLength = strlen(SMTP_PASSWORD);
+    $passLength = strlen($config['SMTP_PASSWORD']);
     if ($passLength > 0) {
         echo "  ✓ SMTP_PASSWORD: défini (" . $passLength . " caractères)\n";
     } else {
@@ -123,7 +123,7 @@ echo "✓ Les fonctions d'envoi d'email sont disponibles\n";
 echo "✓ Les templates HTML sont fonctionnels\n";
 echo "✓ La configuration SMTP est définie\n\n";
 
-if (empty(SMTP_PASSWORD)) {
+if (empty($config['SMTP_PASSWORD'])) {
     echo "⚠ ATTENTION: Le mot de passe SMTP est vide.\n";
     echo "  Pour un envoi réel d'emails, configurez SMTP_PASSWORD dans includes/config.php\n\n";
 }

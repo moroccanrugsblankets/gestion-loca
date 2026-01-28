@@ -12,10 +12,11 @@ require_once __DIR__ . '/db.php';
  * @return string
  */
 function generateCsrfToken() {
-    if (!isset($_SESSION[CSRF_TOKEN_NAME])) {
-        $_SESSION[CSRF_TOKEN_NAME] = bin2hex(random_bytes(32));
+    global $config;
+    if (!isset($_SESSION[$config['CSRF_TOKEN_NAME']])) {
+        $_SESSION[$config['CSRF_TOKEN_NAME']] = bin2hex(random_bytes(32));
     }
-    return $_SESSION[CSRF_TOKEN_NAME];
+    return $_SESSION[$config['CSRF_TOKEN_NAME']];
 }
 
 /**
@@ -24,7 +25,8 @@ function generateCsrfToken() {
  * @return bool
  */
 function verifyCsrfToken($token) {
-    return isset($_SESSION[CSRF_TOKEN_NAME]) && hash_equals($_SESSION[CSRF_TOKEN_NAME], $token);
+    global $config;
+    return isset($_SESSION[$config['CSRF_TOKEN_NAME']]) && hash_equals($_SESSION[$config['CSRF_TOKEN_NAME']], $token);
 }
 
 /**
@@ -81,8 +83,9 @@ function logAction($contratId, $action, $details = '') {
  * @return array|false ['id' => int, 'token' => string, 'expiration' => string]
  */
 function createContract($logementId, $nbLocataires = 1) {
+    global $config;
     $token = generateContractToken();
-    $expiration = date('Y-m-d H:i:s', strtotime('+' . TOKEN_EXPIRY_HOURS . ' hours'));
+    $expiration = date('Y-m-d H:i:s', strtotime('+' . $config['TOKEN_EXPIRY_HOURS'] . ' hours'));
     
     $sql = "INSERT INTO contrats (reference_unique, logement_id, nb_locataires, date_expiration) 
             VALUES (?, ?, ?, ?)";
@@ -214,19 +217,20 @@ function finalizeContract($contratId) {
  * @return array ['success' => bool, 'error' => string, 'filename' => string]
  */
 function validateUploadedFile($file) {
+    global $config;
     // Vérifier les erreurs d'upload
     if ($file['error'] !== UPLOAD_ERR_OK) {
         return ['success' => false, 'error' => 'Erreur lors de l\'upload du fichier.'];
     }
     
     // Vérifier la taille
-    if ($file['size'] > MAX_FILE_SIZE) {
+    if ($file['size'] > $config['MAX_FILE_SIZE']) {
         return ['success' => false, 'error' => 'Le fichier est trop volumineux (max 5 Mo).'];
     }
     
     // Vérifier l'extension
     $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    if (!in_array($extension, ALLOWED_EXTENSIONS)) {
+    if (!in_array($extension, $config['ALLOWED_EXTENSIONS'])) {
         return ['success' => false, 'error' => 'Type de fichier non autorisé. Utilisez JPG, PNG ou PDF.'];
     }
     
@@ -235,7 +239,7 @@ function validateUploadedFile($file) {
     $mimeType = finfo_file($finfo, $file['tmp_name']);
     finfo_close($finfo);
     
-    if (!in_array($mimeType, ALLOWED_MIME_TYPES)) {
+    if (!in_array($mimeType, $config['ALLOWED_MIME_TYPES'])) {
         return ['success' => false, 'error' => 'Type de fichier invalide.'];
     }
     
@@ -252,11 +256,12 @@ function validateUploadedFile($file) {
  * @return bool
  */
 function saveUploadedFile($file, $newFilename) {
-    $destination = UPLOAD_DIR . $newFilename;
+    global $config;
+    $destination = $config['UPLOAD_DIR'] . $newFilename;
     
     // Créer le dossier uploads s'il n'existe pas
-    if (!is_dir(UPLOAD_DIR)) {
-        mkdir(UPLOAD_DIR, 0755, true);
+    if (!is_dir($config['UPLOAD_DIR'])) {
+        mkdir($config['UPLOAD_DIR'], 0755, true);
     }
     
     return move_uploaded_file($file['tmp_name'], $destination);

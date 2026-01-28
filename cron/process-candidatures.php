@@ -136,9 +136,10 @@ function evaluateCandidature($candidature) {
  * Send email using PHP mail function
  */
 function sendEmail($to, $subject, $htmlMessage) {
+    global $config;
     $headers = "MIME-Version: 1.0" . "\r\n";
     $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-    $headers .= "From: MY Invest Immobilier <" . MAIL_FROM . ">" . "\r\n";
+    $headers .= "From: MY Invest Immobilier <" . $config['MAIL_FROM'] . ">" . "\r\n";
     
     return mail($to, $subject, $htmlMessage, $headers);
 }
@@ -147,7 +148,8 @@ function sendEmail($to, $subject, $htmlMessage) {
  * Get acceptance email template
  */
 function getAcceptanceEmailTemplate($prenom, $nom, $reference) {
-    $confirmUrl = SITE_URL . "/candidature/confirmer-interet.php?ref=" . urlencode($reference);
+    global $config;
+    $confirmUrl = $config['SITE_URL'] . "/candidature/confirmer-interet.php?ref=" . urlencode($reference);
     
     return <<<HTML
 <!DOCTYPE html>

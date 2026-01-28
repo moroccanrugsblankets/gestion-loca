@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$token, $date_expiration, $nb_locataires, $contrat_id]);
         
         // Créer le lien de signature
-        $signature_link = SITE_URL . '/signature/index.php?token=' . $token;
+        $signature_link = $config['SITE_URL'] . '/signature/index.php?token=' . $token;
         
         // Envoyer l'email d'invitation avec PHPMailer
         $subject = "Contrat de bail à signer – Action immédiate requise";

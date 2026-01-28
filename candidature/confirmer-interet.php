@@ -82,7 +82,7 @@ if (isset($_GET['ref'])) {
                                 </div>
                                 <h3 class="mb-3">Erreur</h3>
                                 <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
-                                <a href="<?php echo SITE_URL; ?>" class="btn btn-primary">Retour à l'accueil</a>
+                                <a href="<?php echo $config['SITE_URL']; ?>" class="btn btn-primary">Retour à l'accueil</a>
                             </div>
                         <?php elseif ($success): ?>
                             <div class="text-center">

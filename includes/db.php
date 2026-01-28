@@ -11,17 +11,18 @@ require_once __DIR__ . '/config.php';
  * @return PDO|null
  */
 function getDbConnection() {
+    global $config;
     static $pdo = null;
     
     if ($pdo === null) {
         try {
-            $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+            $dsn = "mysql:host=" . $config['DB_HOST'] . ";dbname=" . $config['DB_NAME'] . ";charset=utf8mb4";
             $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
             ];
-            $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+            $pdo = new PDO($dsn, $config['DB_USER'], $config['DB_PASS'], $options);
         } catch (PDOException $e) {
             error_log("Erreur de connexion à la base de données: " . $e->getMessage());
             die("Erreur de connexion à la base de données. Veuillez contacter l'administrateur.");

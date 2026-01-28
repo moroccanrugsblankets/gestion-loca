@@ -51,8 +51,8 @@ try {
 // Test 6: Dossiers
 echo "<h2>6. Dossiers</h2>";
 $dirs = [
-    'uploads' => UPLOAD_DIR,
-    'pdf' => PDF_DIR
+    'uploads' => $config['UPLOAD_DIR'],
+    'pdf' => $config['PDF_DIR']
 ];
 foreach ($dirs as $name => $dir) {
     $exists = is_dir($dir) ? '✓ Existe' : '✗ N\'existe pas';

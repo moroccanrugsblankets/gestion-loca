@@ -21,7 +21,7 @@ if (!$contrat) {
 }
 
 // Chercher le fichier PDF/HTML généré
-$pattern = PDF_DIR . 'bail_' . $contrat['reference'] . '_*';
+$pattern = $config['PDF_DIR'] . 'bail_' . $contrat['reference'] . '_*';
 $files = glob($pattern);
 
 if (empty($files)) {
