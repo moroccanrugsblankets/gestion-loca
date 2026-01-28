@@ -1,7 +1,9 @@
 <?php
-session_start();
 require_once '../includes/config.php';
 require_once 'auth.php';
+require_once '../includes/db.php';
+
+$pdo = getDbConnection();
 
 // Get candidature ID if provided
 $candidature_id = isset($_GET['candidature_id']) ? (int)$_GET['candidature_id'] : 0;

@@ -1,7 +1,9 @@
 <?php
-session_start();
 require_once '../includes/config.php';
 require_once 'auth.php';
+require_once '../includes/db.php';
+
+$pdo = getDbConnection();
 
 // Get application ID
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
