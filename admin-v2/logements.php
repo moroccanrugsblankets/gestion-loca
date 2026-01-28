@@ -3,8 +3,6 @@ require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
 
-$pdo = getDbConnection();
-
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {

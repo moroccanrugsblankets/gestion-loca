@@ -7,29 +7,22 @@
 require_once __DIR__ . '/config.php';
 
 /**
- * Obtenir une connexion à la base de données
- * @return PDO|null
+ * Connexion PDO globale
+ * Initialisée avec la configuration de la base de données
  */
-function getDbConnection() {
-    global $config;
-    static $pdo = null;
-    
-    if ($pdo === null) {
-        try {
-            $dsn = "mysql:host=" . $config['DB_HOST'] . ";dbname=" . $config['DB_NAME'] . ";charset=utf8mb4";
-            $options = [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false,
-            ];
-            $pdo = new PDO($dsn, $config['DB_USER'], $config['DB_PASS'], $options);
-        } catch (PDOException $e) {
-            error_log("Erreur de connexion à la base de données: " . $e->getMessage());
-            die("Erreur de connexion à la base de données. Veuillez contacter l'administrateur.");
-        }
-    }
-    
-    return $pdo;
+$pdo = null;
+
+try {
+    $dsn = "mysql:host=" . $config['DB_HOST'] . ";dbname=" . $config['DB_NAME'] . ";charset=" . $config['DB_CHARSET'];
+    $options = [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ];
+    $pdo = new PDO($dsn, $config['DB_USER'], $config['DB_PASS'], $options);
+} catch (PDOException $e) {
+    error_log("Erreur de connexion à la base de données: " . $e->getMessage());
+    die("Erreur de connexion à la base de données. Veuillez contacter l'administrateur.");
 }
 
 /**
@@ -39,8 +32,8 @@ function getDbConnection() {
  * @return PDOStatement|false
  */
 function executeQuery($sql, $params = []) {
+    global $pdo;
     try {
-        $pdo = getDbConnection();
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         return $stmt;
@@ -77,6 +70,6 @@ function fetchAll($sql, $params = []) {
  * @return string
  */
 function getLastInsertId() {
-    $pdo = getDbConnection();
+    global $pdo;
     return $pdo->lastInsertId();
 }

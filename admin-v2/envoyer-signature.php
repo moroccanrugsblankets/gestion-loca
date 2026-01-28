@@ -4,8 +4,6 @@ require_once 'auth.php';
 require_once '../includes/db.php';
 require_once '../includes/mail-templates.php';
 
-$pdo = getDbConnection();
-
 // Vérifier l'ID du contrat
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     header('Location: contrats.php?error=invalid_id');

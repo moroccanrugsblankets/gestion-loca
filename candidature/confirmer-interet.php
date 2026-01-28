@@ -16,8 +16,6 @@ if (isset($_GET['ref'])) {
     $reference = $_GET['ref'];
     
     try {
-        $pdo = getDbConnection();
-        
         // Get candidature by reference
         $stmt = $pdo->prepare("SELECT * FROM candidatures WHERE reference_candidature = ? AND statut = 'Accepté'");
         $stmt->execute([$reference]);

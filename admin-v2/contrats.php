@@ -3,8 +3,6 @@ require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
 
-$pdo = getDbConnection();
-
 // Get filters
 $statut_filter = isset($_GET['statut']) ? $_GET['statut'] : '';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';

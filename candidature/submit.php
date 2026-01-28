@@ -159,7 +159,10 @@ try {
     }
     
     // Logger l'action
-    logAction($pdo, null, 'Candidature soumise', "Candidature #$candidature_id - $nom $prenom", $_SERVER['REMOTE_ADDR']);
+    // Note: logAction from functions.php takes (contratId, action, details)
+    // For candidature logging, we'll use executeQuery directly
+    $logSql = "INSERT INTO logs (candidature_id, action, details, ip_address) VALUES (?, ?, ?, ?)";
+    executeQuery($logSql, [$candidature_id, 'Candidature soumise', "Candidature #$candidature_id - $nom $prenom", $_SERVER['REMOTE_ADDR']]);
     
     // Valider la transaction
     $pdo->commit();

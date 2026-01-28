@@ -3,8 +3,6 @@ require_once 'auth.php';
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 
-$pdo = getDbConnection();
-
 // Handle filters
 $filter_statut = $_GET['statut'] ?? '';
 $filter_search = $_GET['search'] ?? '';
