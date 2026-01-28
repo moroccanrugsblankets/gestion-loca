@@ -7,6 +7,7 @@
 session_start();
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/mail-templates.php';
 
 header('Content-Type: application/json');
@@ -159,10 +160,9 @@ try {
     }
     
     // Logger l'action
-    // Note: logAction from functions.php takes (contratId, action, details)
-    // For candidature logging, we'll use executeQuery directly
+    // Note: Using executeQuery directly for candidature logging (logAction is for contracts)
     $logSql = "INSERT INTO logs (candidature_id, action, details, ip_address) VALUES (?, ?, ?, ?)";
-    executeQuery($logSql, [$candidature_id, 'Candidature soumise', "Candidature #$candidature_id - $nom $prenom", $_SERVER['REMOTE_ADDR']]);
+    executeQuery($logSql, [$candidature_id, 'Candidature soumise', "Candidature #$candidature_id - $nom $prenom", getClientIp()]);
     
     // Valider la transaction
     $pdo->commit();
