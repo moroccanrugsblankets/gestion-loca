@@ -4,6 +4,11 @@
  * Include this file at the top of all admin pages
  */
 
+// Ensure session is started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 if (!isset($_SESSION['admin_id'])) {
     header('Location: login.php');
     exit;
