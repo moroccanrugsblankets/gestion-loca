@@ -19,21 +19,16 @@ if (isset($_POST['login'])) {
         $admin = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($admin && password_verify($password, $admin['password_hash'])) {
-            // Update last login before setting session
-            $updateStmt = $pdo->prepare("UPDATE administrateurs SET derniere_connexion = NOW() WHERE id = ?");
-            $updateStmt->execute([$admin['id']]);
-            
-            // Set session variables
             $_SESSION['admin_id'] = $admin['id'];
             $_SESSION['admin_username'] = $admin['username'];
             $_SESSION['admin_nom'] = $admin['nom'];
             $_SESSION['admin_prenom'] = $admin['prenom'];
             
-            // Ensure session is written before redirect
-            session_write_close();
+            // Update last login
+            $updateStmt = $pdo->prepare("UPDATE administrateurs SET derniere_connexion = NOW() WHERE id = ?");
+            $updateStmt->execute([$admin['id']]);
             
-            // Redirect to dashboard with absolute path
-            header('Location: ' . dirname($_SERVER['PHP_SELF']) . '/index.php');
+            header('Location: index.php');
             exit;
         } else {
             $error = "Identifiants incorrects.";
