@@ -19,6 +19,74 @@
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 
+/**
+ * Split SQL string into individual statements, respecting string literals
+ * Copied from run-migrations.php to avoid dependency issues
+ * @param string $sql SQL content
+ * @return array Array of SQL statements
+ */
+function splitSqlStatements($sql) {
+    $statements = [];
+    $currentStatement = '';
+    $inString = false;
+    $stringChar = null;
+    $escaped = false;
+    $length = strlen($sql);
+    
+    for ($i = 0; $i < $length; $i++) {
+        $char = $sql[$i];
+        $nextChar = ($i + 1 < $length) ? $sql[$i + 1] : null;
+        
+        // Handle line comments
+        if (!$inString && $char === '-' && $nextChar === '-') {
+            // Add newline to preserve token boundaries, then skip until end of line
+            $currentStatement .= "\n";
+            while ($i < $length && $sql[$i] !== "\n") {
+                $i++;
+            }
+            continue;
+        }
+        
+        // Handle string literals
+        if (!$escaped && ($char === '"' || $char === "'")) {
+            if (!$inString) {
+                $inString = true;
+                $stringChar = $char;
+            } elseif ($char === $stringChar) {
+                $inString = false;
+                $stringChar = null;
+            }
+        }
+        
+        // Handle escape sequences in strings
+        if ($inString && $char === '\\') {
+            $escaped = !$escaped;
+        } else {
+            $escaped = false;
+        }
+        
+        // Add character to current statement
+        $currentStatement .= $char;
+        
+        // Check for statement delimiter (semicolon outside of strings)
+        if (!$inString && $char === ';') {
+            $trimmed = trim($currentStatement);
+            if (!empty($trimmed)) {
+                $statements[] = $currentStatement;
+            }
+            $currentStatement = '';
+        }
+    }
+    
+    // Add any remaining statement
+    $trimmed = trim($currentStatement);
+    if (!empty($trimmed)) {
+        $statements[] = $currentStatement;
+    }
+    
+    return $statements;
+}
+
 echo "=== Migration Fix Tool ===\n\n";
 
 try {
@@ -56,8 +124,14 @@ try {
         if (isset($migrationToTable[$filename])) {
             $tableName = $migrationToTable[$filename];
             
-            // Check if table exists
-            $stmt = $pdo->query("SHOW TABLES LIKE '$tableName'");
+            // Validate table name to prevent SQL injection (alphanumeric and underscore only)
+            if (!preg_match('/^[a-zA-Z0-9_]+$/', $tableName)) {
+                echo "✗ ERROR: Invalid table name '$tableName' for migration '$filename'\n";
+                continue;
+            }
+            
+            // Check if table exists (safe since table name is validated)
+            $stmt = $pdo->query("SHOW TABLES LIKE " . $pdo->quote($tableName));
             $tableExists = $stmt->fetch();
             
             if (!$tableExists) {
@@ -81,6 +155,13 @@ try {
     foreach ($toRerun as $filename) {
         echo "Fixing: $filename\n";
         
+        // Validate filename to prevent path traversal attacks
+        if (!preg_match('/^[a-zA-Z0-9_-]+\.sql$/', $filename) || strpos($filename, '..') !== false) {
+            echo "  ✗ Error: Invalid migration filename format\n";
+            echo "  Skipping for security reasons\n\n";
+            continue;
+        }
+        
         // Start transaction
         $pdo->beginTransaction();
         
@@ -94,21 +175,17 @@ try {
             $migrationPath = __DIR__ . '/migrations/' . $filename;
             
             if (!file_exists($migrationPath)) {
-                throw new Exception("Migration file not found: $migrationPath");
+                throw new PDOException("Migration file not found: $migrationPath");
             }
             
             $sql = file_get_contents($migrationPath);
             
-            // Split SQL into statements (simple split on semicolon)
-            $statements = array_filter(
-                array_map('trim', explode(';', $sql)),
-                function($stmt) {
-                    return !empty($stmt) && !preg_match('/^--/', $stmt);
-                }
-            );
+            // Split SQL into statements using the robust parser
+            $statements = splitSqlStatements($sql);
             
             foreach ($statements as $statement) {
-                if (!empty(trim($statement))) {
+                $trimmed = trim($statement);
+                if (!empty($trimmed)) {
                     $pdo->exec($statement);
                 }
             }
@@ -124,7 +201,7 @@ try {
             $pdo->commit();
             echo "  ✓ Migration fixed successfully\n\n";
             
-        } catch (Exception $e) {
+        } catch (PDOException $e) {
             // Rollback on error
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();

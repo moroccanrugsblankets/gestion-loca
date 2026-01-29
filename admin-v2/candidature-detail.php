@@ -90,9 +90,6 @@ foreach ($allDocuments as $doc) {
     ];
 }
 
-// Keep a flat list for backward compatibility
-$documents = $allDocuments;
-
 // Status badge helper
 function getStatusBadge($status) {
     $badges = [
@@ -377,7 +374,17 @@ function getStatusBadge($status) {
                         <?php foreach ($documentsByType as $type => $docs): ?>
                             <div class="document-type-section">
                                 <div class="document-type-header">
-                                    <i class="bi bi-folder"></i> <?php echo htmlspecialchars($documentTypeLabels[$type] ?? ucfirst(str_replace('_', ' ', $type))); ?>
+                                    <i class="bi bi-folder"></i> 
+                                    <?php 
+                                    if (isset($documentTypeLabels[$type])) {
+                                        echo htmlspecialchars($documentTypeLabels[$type]);
+                                    } else {
+                                        // Log unexpected document type
+                                        error_log("Unexpected document type: $type for candidature #$id");
+                                        // Display formatted fallback
+                                        echo htmlspecialchars(ucfirst(str_replace('_', ' ', $type)));
+                                    }
+                                    ?>
                                 </div>
                                 <?php foreach ($docs as $doc): ?>
                                     <div class="document-item">
