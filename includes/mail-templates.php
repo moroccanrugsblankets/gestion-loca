@@ -106,12 +106,14 @@ MY Invest Immobilier
  * @param string $to Email du destinataire
  * @param string $subject Sujet de l'email
  * @param string $body Corps de l'email (peut être HTML ou texte)
- * @param string|null $attachmentPath Chemin vers une pièce jointe (optionnel)
+ * @param string|array|null $attachmentPath Chemin(s) vers pièce(s) jointe(s) - peut être un string ou array de ['path' => ..., 'name' => ...]
  * @param bool $isHtml Si true, le corps sera traité comme HTML (par défaut: true)
  * @param bool $isAdminEmail Si true, envoie aussi à l'adresse secondaire si configurée
+ * @param string|null $replyTo Email de réponse personnalisé (optionnel)
+ * @param string|null $replyToName Nom pour l'email de réponse (optionnel)
  * @return bool True si l'email a été envoyé avec succès
  */
-function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true, $isAdminEmail = false) {
+function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true, $isAdminEmail = false, $replyTo = null, $replyToName = null) {
     global $config;
     $mail = new PHPMailer(true);
     
@@ -130,10 +132,17 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
         
         // Encodage
         $mail->CharSet = 'UTF-8';
+        $mail->Encoding = 'base64';
         
         // Expéditeur
         $mail->setFrom($config['MAIL_FROM'], $config['MAIL_FROM_NAME']);
-        $mail->addReplyTo($config['MAIL_FROM'], $config['MAIL_FROM_NAME']);
+        
+        // Email de réponse personnalisé ou par défaut
+        if ($replyTo) {
+            $mail->addReplyTo($replyTo, $replyToName ?: $replyTo);
+        } else {
+            $mail->addReplyTo($config['MAIL_FROM'], $config['MAIL_FROM_NAME']);
+        }
         
         // Destinataire principal
         $mail->addAddress($to);
@@ -141,6 +150,11 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
         // Si c'est un email admin et qu'une adresse secondaire est configurée
         if ($isAdminEmail && !empty($config['ADMIN_EMAIL_SECONDARY'])) {
             $mail->addCC($config['ADMIN_EMAIL_SECONDARY']);
+        }
+        
+        // Ajouter BCC pour contact@myinvest-immobilier.com si c'est un email admin
+        if ($isAdminEmail && !empty($config['ADMIN_EMAIL_BCC'])) {
+            $mail->addBCC($config['ADMIN_EMAIL_BCC']);
         }
         
         // Contenu
@@ -153,9 +167,22 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
             $mail->AltBody = strip_tags($body);
         }
         
-        // Pièce jointe
-        if ($attachmentPath && file_exists($attachmentPath)) {
-            $mail->addAttachment($attachmentPath);
+        // Pièces jointes - supporter un seul fichier ou un array de fichiers
+        if ($attachmentPath) {
+            if (is_array($attachmentPath)) {
+                foreach ($attachmentPath as $attachment) {
+                    if (is_string($attachment) && file_exists($attachment)) {
+                        // Simple chemin de fichier
+                        $mail->addAttachment($attachment);
+                    } elseif (is_array($attachment) && !empty($attachment['path']) && file_exists($attachment['path'])) {
+                        // Array avec path et name optionnel
+                        $mail->addAttachment($attachment['path'], $attachment['name'] ?? '');
+                    }
+                }
+            } elseif (is_string($attachmentPath) && file_exists($attachmentPath)) {
+                // Un seul fichier (backward compatibility)
+                $mail->addAttachment($attachmentPath);
+            }
         }
         
         // Envoyer l'email
@@ -291,20 +318,25 @@ function getCandidatureRecueEmailHTML($prenom, $nom, $logement, $uploaded_count)
                 <div class="info-item"><strong>Documents joints :</strong> ' . $uploaded_count . ' pièce(s) justificative(s)</div>
             </div>
             
-            <p><strong>Prochaines étapes :</strong></p>
-            <ul>
-                <li>Votre dossier sera étudié dans les meilleurs délais</li>
-                <li>Vous recevrez une réponse par email dans un délai de <strong>4 jours ouvrés</strong></li>
-                <li>Si votre candidature est retenue, nous vous contacterons pour organiser une visite</li>
-            </ul>
+            <p>Il est actuellement en cours d\'étude. Une réponse vous sera apportée sous 1 à 4 jours ouvrés.</p>
             
-            <p>Nous restons à votre disposition pour toute question.</p>
-            
-            <p style="margin-top: 30px;">
-                Cordialement,<br>
-                <strong>MY Invest Immobilier</strong><br>
-                <a href="mailto:' . $config['COMPANY_EMAIL'] . '">' . $config['COMPANY_EMAIL'] . '</a>
-            </p>
+            <p style="margin-top: 30px;">Sincères salutations</p>
+            <br><br>
+            <table style="border-collapse: collapse;">
+                <tbody>
+                    <tr>
+                        <td style="vertical-align: middle;">
+                            <img src="https://www.myinvest-immobilier.com/images/logo.png" alt="MY Invest Immobilier" style="max-width: 150px; height: auto;">
+                        </td>
+                        <td style="width: 20px;">&nbsp;</td>
+                        <td style="vertical-align: middle;">
+                            <h3 style="margin: 0; font-size: 18px; color: #333;">
+                                MY INVEST IMMOBILIER
+                            </h3>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
         <div class="footer">
             <p>© ' . date('Y') . ' MY Invest Immobilier - Tous droits réservés</p>
@@ -510,11 +542,13 @@ function getStatusChangeEmailHTML($nom_complet, $statut, $commentaire = '') {
  * Envoyer un email aux administrateurs (emails principal et secondaire)
  * @param string $subject Sujet de l'email
  * @param string $body Corps de l'email (peut être HTML ou texte)
- * @param string|null $attachmentPath Chemin vers une pièce jointe (optionnel)
+ * @param string|array|null $attachmentPath Chemin(s) vers pièce(s) jointe(s) - peut être un string ou array
  * @param bool $isHtml Si true, le corps sera traité comme HTML (par défaut: true)
+ * @param string|null $replyTo Email de réponse personnalisé (optionnel)
+ * @param string|null $replyToName Nom pour l'email de réponse (optionnel)
  * @return array ['success' => bool, 'sent_to' => array, 'errors' => array]
  */
-function sendEmailToAdmins($subject, $body, $attachmentPath = null, $isHtml = true) {
+function sendEmailToAdmins($subject, $body, $attachmentPath = null, $isHtml = true, $replyTo = null, $replyToName = null) {
     global $config;
     
     $results = [
@@ -561,7 +595,7 @@ function sendEmailToAdmins($subject, $body, $attachmentPath = null, $isHtml = tr
     // Envoyer à chaque administrateur
     foreach ($adminEmails as $adminEmail) {
         try {
-            $sent = sendEmail($adminEmail, $subject, $body, $attachmentPath, $isHtml);
+            $sent = sendEmail($adminEmail, $subject, $body, $attachmentPath, $isHtml, false, $replyTo, $replyToName);
             if ($sent) {
                 $results['sent_to'][] = $adminEmail;
                 $results['success'] = true; // Au moins un email envoyé
@@ -586,13 +620,34 @@ function sendEmailToAdmins($subject, $body, $attachmentPath = null, $isHtml = tr
 
 /**
  * Template HTML pour notification admin - Nouvelle candidature reçue
- * @param array $candidature Données de la candidature
+ * @param array $candidature Données de la candidature (doit inclure 'response_token')
  * @param array $logement Informations du logement
  * @param int $nb_documents Nombre de documents uploadés
  * @return string HTML de l'email
  */
 function getAdminNewCandidatureEmailHTML($candidature, $logement, $nb_documents) {
     global $config;
+    
+    // Générer les liens de réponse si un token est fourni
+    $responseLinksHtml = '';
+    if (!empty($candidature['response_token'])) {
+        $baseUrl = !empty($config['SITE_URL']) ? $config['SITE_URL'] : 'https://www.myinvest-immobilier.com';
+        $linkPositive = $baseUrl . '/candidature/reponse-candidature.php?token=' . urlencode($candidature['response_token']) . '&action=positive';
+        $linkNegative = $baseUrl . '/candidature/reponse-candidature.php?token=' . urlencode($candidature['response_token']) . '&action=negative';
+        
+        $responseLinksHtml = '
+            <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107;">
+                <h3 style="color: #856404;">⚡ Actions Rapides</h3>
+                <div style="text-align: center; margin: 15px 0;">
+                    <a href="' . htmlspecialchars($linkPositive) . '" class="btn" style="background: #28a745; margin: 5px;">
+                        ✓ Accepter la candidature
+                    </a>
+                    <a href="' . htmlspecialchars($linkNegative) . '" class="btn" style="background: #dc3545; margin: 5px;">
+                        ✗ Refuser la candidature
+                    </a>
+                </div>
+            </div>';
+    }
     
     $html = '
 <!DOCTYPE html>
@@ -651,15 +706,31 @@ function getAdminNewCandidatureEmailHTML($candidature, $logement, $nb_documents)
                 <div class="info-item"><strong>Nombre de pièces :</strong> ' . $nb_documents . ' document(s)</div>
             </div>
             
+            ' . $responseLinksHtml . '
+            
             <div style="text-align: center; margin: 30px 0;">
                 <a href="' . $config['SITE_URL'] . '/admin-v2/candidature-detail.php?id=' . $candidature['id'] . '" class="btn">
                     Voir la Candidature
                 </a>
             </div>
             
-            <p style="margin-top: 30px; font-size: 12px; color: #666;">
-                Cette notification a été envoyée automatiquement suite à la soumission d\'une nouvelle candidature.
-            </p>
+            <p style="margin-top: 30px;">Sincères salutations</p>
+            <br><br>
+            <table style="border-collapse: collapse;">
+                <tbody>
+                    <tr>
+                        <td style="vertical-align: middle;">
+                            <img src="https://www.myinvest-immobilier.com/images/logo.png" alt="MY Invest Immobilier" style="max-width: 150px; height: auto;">
+                        </td>
+                        <td style="width: 20px;">&nbsp;</td>
+                        <td style="vertical-align: middle;">
+                            <h3 style="margin: 0; font-size: 18px; color: #333;">
+                                MY INVEST IMMOBILIER
+                            </h3>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
         <div class="footer">
             <p>© ' . date('Y') . ' MY Invest Immobilier - Système de Gestion des Candidatures</p>

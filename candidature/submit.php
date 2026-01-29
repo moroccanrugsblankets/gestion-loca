@@ -110,20 +110,24 @@ try {
     // Générer une référence unique pour la candidature
     $reference_unique = 'CAND-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(4)));
     
+    // Générer un token sécurisé pour les réponses par email
+    $response_token = bin2hex(random_bytes(32));
+    
     // Insérer la candidature
     $stmt = $pdo->prepare("
         INSERT INTO candidatures (
-            reference_unique, logement_id, nom, prenom, email, telephone,
+            reference_unique, response_token, logement_id, nom, prenom, email, telephone,
             statut_professionnel, periode_essai,
             revenus_mensuels, type_revenus,
             situation_logement, preavis_donne,
             nb_occupants, garantie_visale,
             statut, date_soumission
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'En cours', NOW())
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'En cours', NOW())
     ");
     
     $stmt->execute([
         $reference_unique,
+        $response_token,
         $logement_id,
         $nom,
         $prenom,
@@ -140,7 +144,7 @@ try {
     ]);
     
     $candidature_id = $pdo->lastInsertId();
-    logDebug("Candidature insérée", ['id' => $candidature_id, 'reference' => $reference_unique]);
+    logDebug("Candidature insérée", ['id' => $candidature_id, 'reference' => $reference_unique, 'token' => $response_token]);
     
     // Créer le dossier uploads pour cette candidature
     $upload_dir = __DIR__ . '/../uploads/candidatures/' . $candidature_id;
@@ -152,6 +156,7 @@ try {
     // Traiter les documents uploadés pour chaque type
     $total_uploaded = 0;
     $upload_summary = [];
+    $uploaded_files = []; // Conserver les chemins de fichiers pour l'envoi par email
     
     foreach ($required_doc_types as $doc_type => $doc_label) {
         $documents = $_FILES[$doc_type];
@@ -212,6 +217,12 @@ try {
                     $mime_type
                 ]);
                 
+                // Ajouter à la liste des fichiers uploadés pour email
+                $uploaded_files[] = [
+                    'path' => $filepath,
+                    'name' => $documents['name'][$i]
+                ];
+                
                 $type_count++;
                 $total_uploaded++;
                 logDebug("Fichier uploadé", ['type' => $doc_type, 'filename' => $filename, 'original' => $documents['name'][$i]]);
@@ -255,6 +266,7 @@ try {
     $candidatureData = [
         'id' => $candidature_id,
         'reference' => $reference_unique,
+        'response_token' => $response_token,  // Ajouter le token pour les liens de réponse
         'nom' => $nom,
         'prenom' => $prenom,
         'email' => $email,
@@ -266,7 +278,8 @@ try {
     ];
     $adminHtmlBody = getAdminNewCandidatureEmailHTML($candidatureData, $logement, $total_uploaded);
     
-    $adminEmailResult = sendEmailToAdmins($adminSubject, $adminHtmlBody, null, true);
+    // Envoyer avec les fichiers en pièces jointes et le candidat en reply-to
+    $adminEmailResult = sendEmailToAdmins($adminSubject, $adminHtmlBody, $uploaded_files, true, $email, $nom . ' ' . $prenom);
     if ($adminEmailResult['success']) {
         logDebug("Notification admin envoyée", ['sent_to' => $adminEmailResult['sent_to']]);
         // Log warning if partial success
