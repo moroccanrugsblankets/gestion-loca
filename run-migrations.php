@@ -8,6 +8,73 @@
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 
+/**
+ * Split SQL string into individual statements, respecting string literals
+ * @param string $sql SQL content
+ * @return array Array of SQL statements
+ */
+function splitSqlStatements($sql) {
+    $statements = [];
+    $currentStatement = '';
+    $inString = false;
+    $stringChar = null;
+    $escaped = false;
+    $length = strlen($sql);
+    
+    for ($i = 0; $i < $length; $i++) {
+        $char = $sql[$i];
+        $nextChar = ($i + 1 < $length) ? $sql[$i + 1] : null;
+        
+        // Handle line comments
+        if (!$inString && $char === '-' && $nextChar === '-') {
+            // Add newline to preserve token boundaries, then skip until end of line
+            $currentStatement .= "\n";
+            while ($i < $length && $sql[$i] !== "\n") {
+                $i++;
+            }
+            continue;
+        }
+        
+        // Handle string literals
+        if (!$escaped && ($char === '"' || $char === "'")) {
+            if (!$inString) {
+                $inString = true;
+                $stringChar = $char;
+            } elseif ($char === $stringChar) {
+                $inString = false;
+                $stringChar = null;
+            }
+        }
+        
+        // Handle escape sequences in strings
+        if ($inString && $char === '\\') {
+            $escaped = !$escaped;
+        } else {
+            $escaped = false;
+        }
+        
+        // Add character to current statement
+        $currentStatement .= $char;
+        
+        // Check for statement delimiter (semicolon outside of strings)
+        if (!$inString && $char === ';') {
+            $trimmed = trim($currentStatement);
+            if (!empty($trimmed)) {
+                $statements[] = $currentStatement;
+            }
+            $currentStatement = '';
+        }
+    }
+    
+    // Add any remaining statement
+    $trimmed = trim($currentStatement);
+    if (!empty($trimmed)) {
+        $statements[] = $currentStatement;
+    }
+    
+    return $statements;
+}
+
 echo "=== Migration Runner ===\n\n";
 
 try {
@@ -73,12 +140,13 @@ foreach ($files as $file) {
         // Start transaction for this migration
         $pdo->beginTransaction();
         
-        // Split by semicolon to handle multiple statements
-        $statements = array_filter(array_map('trim', explode(';', $sql)));
+        // Split SQL into statements, respecting string literals
+        $statements = splitSqlStatements($sql);
         
         foreach ($statements as $statement) {
-            // Skip empty statements and pure comment lines
-            if (empty($statement) || preg_match('/^\s*--/', $statement)) {
+            $trimmed = trim($statement);
+            // Skip empty statements
+            if (empty($trimmed)) {
                 continue;
             }
             
