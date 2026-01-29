@@ -3,9 +3,10 @@
 -- Description: Add total_mensuel, revenus_requis, and update type field
 
 -- Add new fields to logements table
+-- Use COALESCE to handle NULL values in calculations
 ALTER TABLE logements 
-ADD COLUMN total_mensuel DECIMAL(10,2) GENERATED ALWAYS AS (loyer + charges) STORED COMMENT 'Total mensuel (loyer + charges)',
-ADD COLUMN revenus_requis DECIMAL(10,2) GENERATED ALWAYS AS ((loyer + charges) * 3) STORED COMMENT 'Revenus requis (3x total mensuel)';
+ADD COLUMN total_mensuel DECIMAL(10,2) GENERATED ALWAYS AS (COALESCE(loyer, 0) + COALESCE(charges, 0)) STORED COMMENT 'Total mensuel (loyer + charges)',
+ADD COLUMN revenus_requis DECIMAL(10,2) GENERATED ALWAYS AS ((COALESCE(loyer, 0) + COALESCE(charges, 0)) * 3) STORED COMMENT 'Revenus requis (3x total mensuel)';
 
 -- Update date_disponibilite column if not exists (already in schema, but ensure it's there)
 -- ALTER TABLE logements ADD COLUMN IF NOT EXISTS date_disponibilite DATE;

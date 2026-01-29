@@ -24,6 +24,6 @@ INSERT INTO parametres (cle, valeur, type, description, groupe) VALUES
 ('revenus_min_requis', '3000', 'integer', 'Revenus nets mensuels minimum requis (en euros)', 'criteres'),
 ('statuts_pro_acceptes', '["CDI", "CDD"]', 'json', 'Statuts professionnels acceptés automatiquement', 'criteres'),
 ('type_revenus_accepte', 'Salaires', 'string', 'Type de revenus accepté', 'criteres'),
-('nb_occupants_acceptes', '["1", "2"]', 'json', 'Nombres d\'occupants acceptés', 'criteres'),
+('nb_occupants_acceptes', '[1, 2]', 'json', 'Nombres d\'occupants acceptés', 'criteres'),
 ('garantie_visale_requise', 'true', 'boolean', 'Garantie Visale requise (true/false)', 'criteres')
 ON DUPLICATE KEY UPDATE cle=cle;

@@ -6,11 +6,29 @@ require_once '../includes/db.php';
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'update') {
+        $hasError = false;
         foreach ($_POST['parametres'] as $cle => $valeur) {
+            // Validate JSON parameters
+            $stmt = $pdo->prepare("SELECT type FROM parametres WHERE cle = ?");
+            $stmt->execute([$cle]);
+            $param = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($param && $param['type'] === 'json') {
+                json_decode($valeur);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    $_SESSION['error'] = "Erreur JSON dans le paramètre $cle: " . json_last_error_msg();
+                    $hasError = true;
+                    break;
+                }
+            }
+            
             $stmt = $pdo->prepare("UPDATE parametres SET valeur = ?, updated_at = NOW() WHERE cle = ?");
             $stmt->execute([$valeur, $cle]);
         }
-        $_SESSION['success'] = "Paramètres mis à jour avec succès";
+        
+        if (!$hasError) {
+            $_SESSION['success'] = "Paramètres mis à jour avec succès";
+        }
         header('Location: parametres.php');
         exit;
     }
@@ -187,6 +205,13 @@ foreach ($allParams as $param) {
             </div>
         </div>
 
+        <?php if (isset($_SESSION['error'])): ?>
+            <div class="alert alert-danger alert-dismissible fade show">
+                <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
+        
         <?php if (isset($_SESSION['success'])): ?>
             <div class="alert alert-success alert-dismissible fade show">
                 <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>

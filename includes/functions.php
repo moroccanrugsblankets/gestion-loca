@@ -414,8 +414,13 @@ function setParameter($cle, $valeur) {
             $valeur = json_encode($valeur);
         }
         
-        $stmt = $pdo->prepare("UPDATE parametres SET valeur = ?, updated_at = NOW() WHERE cle = ?");
-        return $stmt->execute([$valeur, $cle]);
+        // Use INSERT ... ON DUPLICATE KEY UPDATE to handle both insert and update
+        $stmt = $pdo->prepare("
+            INSERT INTO parametres (cle, valeur, updated_at) 
+            VALUES (?, ?, NOW())
+            ON DUPLICATE KEY UPDATE valeur = ?, updated_at = NOW()
+        ");
+        return $stmt->execute([$cle, $valeur, $valeur]);
     } catch (PDOException $e) {
         error_log("Error setting parameter $cle: " . $e->getMessage());
         return false;
@@ -449,8 +454,16 @@ function getEmailTemplate($identifiant) {
 function replaceTemplateVariables($template, $data) {
     foreach ($data as $key => $value) {
         $placeholder = '{{' . $key . '}}';
-        $template = str_replace($placeholder, $value, $template);
+        // Ensure value is a string
+        $value = $value !== null ? (string)$value : '';
+        $template = str_replace($placeholder, htmlspecialchars($value, ENT_QUOTES, 'UTF-8'), $template);
     }
+    
+    // Log warning if there are unreplaced variables
+    if (preg_match_all('/\{\{([^}]+)\}\}/', $template, $matches)) {
+        error_log("Warning: Unreplaced variables in template: " . implode(', ', $matches[1]));
+    }
+    
     return $template;
 }
 
