@@ -146,6 +146,11 @@ $stats = [
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link" href="parametres.php">
+                    <i class="bi bi-gear"></i> Paramètres
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" href="logout.php">
                     <i class="bi bi-box-arrow-right"></i> Déconnexion
                 </a>

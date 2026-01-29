@@ -1,0 +1,269 @@
+<?php
+require_once '../includes/config.php';
+require_once 'auth.php';
+require_once '../includes/db.php';
+
+// Handle form submissions
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if ($_POST['action'] === 'update') {
+        foreach ($_POST['parametres'] as $cle => $valeur) {
+            $stmt = $pdo->prepare("UPDATE parametres SET valeur = ?, updated_at = NOW() WHERE cle = ?");
+            $stmt->execute([$valeur, $cle]);
+        }
+        $_SESSION['success'] = "Paramètres mis à jour avec succès";
+        header('Location: parametres.php');
+        exit;
+    }
+}
+
+// Get all parameters grouped by category
+$stmt = $pdo->query("SELECT * FROM parametres ORDER BY groupe, cle");
+$allParams = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Group parameters by category
+$parametres = [];
+foreach ($allParams as $param) {
+    $parametres[$param['groupe']][] = $param;
+}
+?>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paramètres - My Invest Immobilier</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .sidebar {
+            background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+            min-height: 100vh;
+            padding: 0;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 250px;
+            color: white;
+        }
+        .sidebar .logo {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar .logo h4 {
+            margin: 10px 0 5px 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .sidebar .logo small {
+            color: #bdc3c7;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+        .sidebar .nav-link:hover {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+            border-left-color: #3498db;
+        }
+        .sidebar .nav-link.active {
+            background-color: rgba(52, 152, 219, 0.2);
+            color: white;
+            border-left-color: #3498db;
+        }
+        .sidebar .nav-link i {
+            margin-right: 10px;
+            width: 20px;
+        }
+        .main-content {
+            margin-left: 250px;
+            padding: 30px;
+        }
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .param-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .param-card h5 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+        }
+        .param-item {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        .param-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .param-label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        .param-description {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+        .logout-btn {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo">
+            <i class="bi bi-building" style="font-size: 2rem;"></i>
+            <h4>MY Invest</h4>
+            <small>Immobilier</small>
+        </div>
+        <ul class="nav flex-column mt-4">
+            <li class="nav-item">
+                <a class="nav-link" href="index.php">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="candidatures.php">
+                    <i class="bi bi-file-earmark-text"></i> Candidatures
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="logements.php">
+                    <i class="bi bi-house-door"></i> Logements
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="contrats.php">
+                    <i class="bi bi-file-earmark-check"></i> Contrats
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="parametres.php">
+                    <i class="bi bi-gear"></i> Paramètres
+                </a>
+            </li>
+        </ul>
+        <a href="logout.php" class="btn btn-outline-light logout-btn">
+            <i class="bi bi-box-arrow-right"></i> Déconnexion
+        </a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4>Paramètres de l'application</h4>
+            </div>
+        </div>
+
+        <?php if (isset($_SESSION['success'])): ?>
+            <div class="alert alert-success alert-dismissible fade show">
+                <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
+
+        <form method="POST" action="parametres.php">
+            <input type="hidden" name="action" value="update">
+
+            <?php foreach ($parametres as $groupe => $params): ?>
+                <div class="param-card">
+                    <h5>
+                        <i class="bi bi-<?php echo $groupe === 'workflow' ? 'arrow-repeat' : 'check-circle'; ?>"></i>
+                        <?php 
+                        $groupeTitles = [
+                            'workflow' => 'Workflow et Délais',
+                            'criteres' => 'Critères d\'Acceptation',
+                            'general' => 'Général'
+                        ];
+                        echo $groupeTitles[$groupe] ?? ucfirst($groupe);
+                        ?>
+                    </h5>
+
+                    <?php foreach ($params as $param): ?>
+                        <div class="param-item">
+                            <label class="param-label">
+                                <?php 
+                                $labels = [
+                                    'delai_reponse_jours' => 'Délai de réponse automatique (jours ouvrés)',
+                                    'jours_ouvres_debut' => 'Premier jour ouvré (1 = Lundi)',
+                                    'jours_ouvres_fin' => 'Dernier jour ouvré (5 = Vendredi)',
+                                    'revenus_min_requis' => 'Revenus nets mensuels minimum requis (€)',
+                                    'statuts_pro_acceptes' => 'Statuts professionnels acceptés',
+                                    'type_revenus_accepte' => 'Type de revenus accepté',
+                                    'nb_occupants_acceptes' => 'Nombres d\'occupants acceptés',
+                                    'garantie_visale_requise' => 'Garantie Visale requise'
+                                ];
+                                echo $labels[$param['cle']] ?? $param['cle'];
+                                ?>
+                            </label>
+                            <div class="param-description">
+                                <?php echo htmlspecialchars($param['description']); ?>
+                            </div>
+                            
+                            <?php if ($param['type'] === 'boolean'): ?>
+                                <select name="parametres[<?php echo $param['cle']; ?>]" class="form-select">
+                                    <option value="true" <?php echo $param['valeur'] === 'true' ? 'selected' : ''; ?>>Oui</option>
+                                    <option value="false" <?php echo $param['valeur'] === 'false' ? 'selected' : ''; ?>>Non</option>
+                                </select>
+                            <?php elseif ($param['type'] === 'integer'): ?>
+                                <input type="number" 
+                                       name="parametres[<?php echo $param['cle']; ?>]" 
+                                       class="form-control" 
+                                       value="<?php echo htmlspecialchars($param['valeur']); ?>"
+                                       required>
+                            <?php elseif ($param['type'] === 'json'): ?>
+                                <textarea name="parametres[<?php echo $param['cle']; ?>]" 
+                                          class="form-control" 
+                                          rows="2"
+                                          required><?php echo htmlspecialchars($param['valeur']); ?></textarea>
+                                <small class="text-muted">Format JSON, ex: ["CDI", "CDD"]</small>
+                            <?php else: ?>
+                                <input type="text" 
+                                       name="parametres[<?php echo $param['cle']; ?>]" 
+                                       class="form-control" 
+                                       value="<?php echo htmlspecialchars($param['valeur']); ?>"
+                                       required>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endforeach; ?>
+
+            <div class="text-end">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-check-circle"></i> Enregistrer les paramètres
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

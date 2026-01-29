@@ -120,6 +120,9 @@ $recent_candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <a class="nav-link" href="contrats.php">
                 <i class="bi bi-file-earmark-check"></i> Contrats
             </a>
+            <a class="nav-link" href="parametres.php">
+                <i class="bi bi-gear"></i> Paramètres
+            </a>
             <a class="nav-link" href="etats-lieux.php">
                 <i class="bi bi-clipboard-check"></i> États des lieux
             </a>
