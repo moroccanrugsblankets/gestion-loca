@@ -421,3 +421,60 @@ function setParameter($cle, $valeur) {
         return false;
     }
 }
+
+/**
+ * Get email template from database by identifier
+ * @param string $identifiant Template identifier
+ * @return array|false Template data or false if not found
+ */
+function getEmailTemplate($identifiant) {
+    global $pdo;
+    
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM email_templates WHERE identifiant = ? AND actif = 1");
+        $stmt->execute([$identifiant]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log("Error getting email template $identifiant: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Replace template variables with actual values
+ * @param string $template Template string with {{variable}} placeholders
+ * @param array $data Associative array of variable => value pairs
+ * @return string Processed template
+ */
+function replaceTemplateVariables($template, $data) {
+    foreach ($data as $key => $value) {
+        $placeholder = '{{' . $key . '}}';
+        $template = str_replace($placeholder, $value, $template);
+    }
+    return $template;
+}
+
+/**
+ * Send email using database template
+ * @param string $templateId Template identifier
+ * @param string $to Recipient email
+ * @param array $variables Variables to replace in template
+ * @param string|null $attachmentPath Optional attachment path
+ * @param bool $isAdminEmail Whether this is an admin email (for CC to secondary admin)
+ * @return bool Success status
+ */
+function sendTemplatedEmail($templateId, $to, $variables = [], $attachmentPath = null, $isAdminEmail = false) {
+    $template = getEmailTemplate($templateId);
+    
+    if (!$template) {
+        error_log("Email template not found: $templateId");
+        return false;
+    }
+    
+    // Replace variables in subject and body
+    $subject = replaceTemplateVariables($template['sujet'], $variables);
+    $body = replaceTemplateVariables($template['corps_html'], $variables);
+    
+    // Send email using the existing sendEmail function
+    return sendEmail($to, $subject, $body, $attachmentPath, true, $isAdminEmail);
+}

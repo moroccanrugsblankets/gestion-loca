@@ -114,6 +114,9 @@ $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <a class="nav-link" href="parametres.php">
                 <i class="bi bi-gear"></i> Paramètres
             </a>
+            <a class="nav-link" href="email-templates.php">
+                <i class="bi bi-envelope"></i> Templates d'Email
+            </a>
             <a class="nav-link" href="etats-lieux.php">
                 <i class="bi bi-clipboard-check"></i> États des lieux
             </a>

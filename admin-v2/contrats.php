@@ -151,6 +151,11 @@ $stats = [
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link" href="email-templates.php">
+                    <i class="bi bi-envelope"></i> Templates d'Email
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" href="logout.php">
                     <i class="bi bi-box-arrow-right"></i> Déconnexion
                 </a>

@@ -168,6 +168,11 @@ foreach ($allParams as $param) {
                     <i class="bi bi-gear"></i> Paramètres
                 </a>
             </li>
+                    <li class="nav-item">
+                <a class="nav-link" href="email-templates.php">
+                    <i class="bi bi-envelope"></i> Templates d'Email
+                </a>
+            </li>
         </ul>
         <a href="logout.php" class="btn btn-outline-light logout-btn">
             <i class="bi bi-box-arrow-right"></i> Déconnexion
