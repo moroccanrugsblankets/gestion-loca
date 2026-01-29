@@ -480,39 +480,65 @@ document.getElementById('candidatureForm').addEventListener('submit', function(e
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Envoi en cours...';
     
-    // Créer un FormData avec tous les fichiers
-    const formData = new FormData(this);
-    
-    // Supprimer les inputs de fichiers vides et ajouter nos fichiers
-    for (const docType of requiredDocTypes) {
-        formData.delete(`${docType}[]`);
-        documentsByType[docType].forEach((file) => {
-            formData.append(`${docType}[]`, file);
-        });
-    }
-    
-    // Envoyer via AJAX
-    fetch('submit.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Rediriger vers la page de confirmation
-            window.location.href = 'confirmation.php?id=' + data.candidature_id;
-        } else {
-            alert('Erreur lors de l\'envoi : ' + (data.error || 'Erreur inconnue'));
+    // Fonction pour envoyer le formulaire
+    const submitForm = (recaptchaToken) => {
+        // Créer un FormData avec tous les fichiers
+        const formData = new FormData(this);
+        
+        // Ajouter le token reCAPTCHA si fourni
+        if (recaptchaToken) {
+            formData.append('recaptcha_response', recaptchaToken);
+        }
+        
+        // Supprimer les inputs de fichiers vides et ajouter nos fichiers
+        for (const docType of requiredDocTypes) {
+            formData.delete(`${docType}[]`);
+            documentsByType[docType].forEach((file) => {
+                formData.append(`${docType}[]`, file);
+            });
+        }
+        
+        // Envoyer via AJAX
+        fetch('submit.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Rediriger vers la page de confirmation
+                window.location.href = 'confirmation.php?id=' + data.candidature_id;
+            } else {
+                alert('Erreur lors de l\'envoi : ' + (data.error || 'Erreur inconnue'));
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-send-fill"></i> Envoyer ma candidature';
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Une erreur est survenue lors de l\'envoi de votre candidature. Merci de réessayer.');
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="bi bi-send-fill"></i> Envoyer ma candidature';
-        }
-    })
-    .catch(error => {
-        console.error('Erreur:', error);
-        alert('Une erreur est survenue lors de l\'envoi de votre candidature. Merci de réessayer.');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="bi bi-send-fill"></i> Envoyer ma candidature';
-    });
+        });
+    };
+    
+    // Si reCAPTCHA est activé, obtenir un token avant de soumettre
+    if (typeof grecaptcha !== 'undefined' && window.RECAPTCHA_SITE_KEY) {
+        grecaptcha.ready(function() {
+            grecaptcha.execute(window.RECAPTCHA_SITE_KEY, {action: 'submit_candidature'})
+                .then(function(token) {
+                    submitForm(token);
+                })
+                .catch(function(error) {
+                    console.error('Erreur reCAPTCHA:', error);
+                    // Continuer sans reCAPTCHA en cas d'erreur
+                    submitForm(null);
+                });
+        });
+    } else {
+        // Pas de reCAPTCHA, soumettre directement
+        submitForm(null);
+    }
 });
 
 // Initialisation
