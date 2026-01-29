@@ -188,7 +188,9 @@ foreach ($allParams as $param) {
                                 <div class="mt-2">
                                     <strong>Aperçu:</strong>
                                     <div class="border p-3 mt-2" style="background: #f8f9fa;">
-                                        <?php echo $param['valeur']; ?>
+                                        <iframe srcdoc="<?php echo htmlspecialchars($param['valeur']); ?>" 
+                                                style="border: none; width: 100%; min-height: 150px;"
+                                                sandbox="allow-same-origin"></iframe>
                                     </div>
                                 </div>
                                 <?php endif; ?>

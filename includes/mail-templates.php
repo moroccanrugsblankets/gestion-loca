@@ -118,20 +118,23 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
     $mail = new PHPMailer(true);
     
     try {
-        // Get email signature from parametres if HTML email
+        // Get email signature from parametres if HTML email (with caching)
+        static $signatureCache = null;
         $signature = '';
-        if ($isHtml && $pdo) {
+        if ($isHtml && $pdo && $signatureCache === null) {
             try {
                 $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'email_signature' LIMIT 1");
                 $stmt->execute();
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                if ($result && !empty($result['valeur'])) {
-                    $signature = $result['valeur'];
-                }
+                $signatureCache = ($result && !empty($result['valeur'])) ? $result['valeur'] : '';
             } catch (Exception $e) {
                 // Silently fail if parametres table doesn't exist yet
                 error_log("Could not fetch email signature: " . $e->getMessage());
+                $signatureCache = '';
             }
+        }
+        if ($isHtml && $signatureCache !== null) {
+            $signature = $signatureCache;
         }
         
         // Configuration du serveur SMTP

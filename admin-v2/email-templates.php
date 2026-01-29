@@ -51,10 +51,6 @@ $templates = $stmt->fetchAll(PDO::FETCH_ASSOC);
             margin-bottom: 30px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .main-content {
-            margin-left: 250px;
-            padding: 30px;
-        }
         .template-card {
             background: white;
             border-radius: 10px;
