@@ -60,6 +60,7 @@ try {
             text-decoration: underline;
         }
         .document-upload-zone {
+            position: relative;
             border: 2px dashed #dee2e6;
             border-radius: 0.375rem;
             padding: 2rem;
@@ -75,18 +76,125 @@ try {
             border-color: #0d6efd;
             background-color: #cfe2ff;
         }
+        .file-list {
+            min-height: 0;
+            transition: all 0.3s ease;
+        }
         .file-list-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0.5rem;
+            padding: 0.75rem;
             margin-bottom: 0.5rem;
             background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
             border-radius: 0.375rem;
+            animation: slideIn 0.3s ease-out;
+            transition: all 0.2s ease;
+        }
+        .file-list-item:hover {
+            background-color: #e9ecef;
+            border-color: #dee2e6;
+            transform: translateX(2px);
+        }
+        .file-list-item .file-info {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+        .file-list-item .file-icon {
+            font-size: 1.5rem;
+            margin-right: 0.75rem;
+        }
+        .file-list-item .file-icon.pdf {
+            color: #dc3545;
+        }
+        .file-list-item .file-icon.image {
+            color: #0d6efd;
+        }
+        .file-list-item .file-details {
+            display: flex;
+            flex-direction: column;
+        }
+        .file-list-item .file-name {
+            font-weight: 500;
+            color: #212529;
+            word-break: break-word;
+        }
+        .file-list-item .file-size {
+            font-size: 0.875rem;
+            color: #6c757d;
         }
         .btn-remove-file {
+            background: none;
+            border: none;
             color: #dc3545;
             cursor: pointer;
+            font-size: 1.25rem;
+            padding: 0.25rem;
+            transition: all 0.2s ease;
+            border-radius: 0.25rem;
+        }
+        .btn-remove-file:hover {
+            background-color: #dc3545;
+            color: white;
+            transform: scale(1.1);
+        }
+        .btn-remove-file:focus {
+            outline: 2px solid #dc3545;
+            outline-offset: 2px;
+        }
+        .file-count-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #198754;
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.875rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            animation: scaleIn 0.3s ease-out;
+        }
+        .file-upload-success {
+            display: inline-block;
+            color: #198754;
+            font-size: 0.875rem;
+            margin-left: 0.5rem;
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
     </style>
 </head>
