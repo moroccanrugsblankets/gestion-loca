@@ -25,8 +25,6 @@ function logMessage($message) {
 logMessage("=== Starting candidature processing ===");
 
 try {
-    $pdo = getDbConnection();
-    
     // Get applications that are ready to be processed (4 business days old)
     $query = "SELECT * FROM v_candidatures_a_traiter WHERE jours_ouvres_ecoules >= 4";
     $stmt = $pdo->query($query);

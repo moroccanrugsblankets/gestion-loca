@@ -13,7 +13,6 @@ if (isset($_POST['login'])) {
     $password = $_POST['password'] ?? '';
     
     try {
-        $pdo = getDbConnection();
         $stmt = $pdo->prepare("SELECT * FROM administrateurs WHERE username = ? AND actif = 1");
         $stmt->execute([$username]);
         $admin = $stmt->fetch(PDO::FETCH_ASSOC);

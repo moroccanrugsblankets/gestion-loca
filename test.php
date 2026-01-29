@@ -28,7 +28,6 @@ echo "<p>✓ config.php chargé</p>";
 echo "<h2>4. Connexion Base de Données</h2>";
 try {
     require_once __DIR__ . '/includes/db.php';
-    $pdo = getDbConnection();
     echo "<p>✓ Connexion réussie</p>";
     
     // Test une requête simple

@@ -7,6 +7,7 @@
 session_start();
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/mail-templates.php';
 
 header('Content-Type: application/json');
@@ -134,7 +135,7 @@ try {
         }
         
         $filename = 'doc_' . $uploaded_count . '_' . bin2hex(random_bytes(8)) . $extension;
-        $filepath = $upload_dir . '/' . $filename';
+        $filepath = $upload_dir . '/' . $filename;
         
         // Déplacer le fichier
         if (move_uploaded_file($documents['tmp_name'][$i], $filepath)) {
@@ -159,7 +160,9 @@ try {
     }
     
     // Logger l'action
-    logAction($pdo, null, 'Candidature soumise', "Candidature #$candidature_id - $nom $prenom", $_SERVER['REMOTE_ADDR']);
+    // Note: Using executeQuery directly for candidature logging (logAction is for contracts)
+    $logSql = "INSERT INTO logs (candidature_id, action, details, ip_address) VALUES (?, ?, ?, ?)";
+    executeQuery($logSql, [$candidature_id, 'Candidature soumise', "Candidature #$candidature_id - $nom $prenom", getClientIp()]);
     
     // Valider la transaction
     $pdo->commit();

@@ -45,3 +45,7 @@ cache/
 
 # Email previews (generated files)
 demo-emails/
+
+# Test files
+test-db-connection.php
+test-refactoring.php
