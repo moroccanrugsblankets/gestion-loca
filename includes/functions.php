@@ -359,3 +359,65 @@ function getFlashMessage() {
     }
     return null;
 }
+
+/**
+ * Get parameter value from database
+ * @param string $cle Parameter key
+ * @param mixed $default Default value if parameter not found
+ * @return mixed
+ */
+function getParameter($cle, $default = null) {
+    global $pdo;
+    
+    try {
+        $stmt = $pdo->prepare("SELECT valeur, type FROM parametres WHERE cle = ?");
+        $stmt->execute([$cle]);
+        $param = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$param) {
+            return $default;
+        }
+        
+        // Cast value based on type
+        switch ($param['type']) {
+            case 'integer':
+                return (int)$param['valeur'];
+            case 'float':
+                return (float)$param['valeur'];
+            case 'boolean':
+                return $param['valeur'] === 'true' || $param['valeur'] === '1';
+            case 'json':
+                return json_decode($param['valeur'], true);
+            default:
+                return $param['valeur'];
+        }
+    } catch (PDOException $e) {
+        error_log("Error getting parameter $cle: " . $e->getMessage());
+        return $default;
+    }
+}
+
+/**
+ * Set parameter value in database
+ * @param string $cle Parameter key
+ * @param mixed $valeur Parameter value
+ * @return bool
+ */
+function setParameter($cle, $valeur) {
+    global $pdo;
+    
+    try {
+        // Convert value to string based on type
+        if (is_bool($valeur)) {
+            $valeur = $valeur ? 'true' : 'false';
+        } elseif (is_array($valeur)) {
+            $valeur = json_encode($valeur);
+        }
+        
+        $stmt = $pdo->prepare("UPDATE parametres SET valeur = ?, updated_at = NOW() WHERE cle = ?");
+        return $stmt->execute([$valeur, $cle]);
+    } catch (PDOException $e) {
+        error_log("Error setting parameter $cle: " . $e->getMessage());
+        return false;
+    }
+}

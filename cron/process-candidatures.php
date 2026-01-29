@@ -11,6 +11,7 @@
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/mail-templates.php';
 
 // Log file for cron execution
@@ -25,9 +26,14 @@ function logMessage($message) {
 logMessage("=== Starting candidature processing ===");
 
 try {
-    // Get applications that are ready to be processed (4 business days old)
-    $query = "SELECT * FROM v_candidatures_a_traiter WHERE jours_ouvres_ecoules >= 4";
-    $stmt = $pdo->query($query);
+    // Get delay parameter from database (defaults to 4 if not set)
+    $delaiReponse = getParameter('delai_reponse_jours', 4);
+    logMessage("Using automatic response delay: $delaiReponse business days");
+    
+    // Get applications that are ready to be processed
+    $query = "SELECT * FROM v_candidatures_a_traiter WHERE jours_ouvres_ecoules >= ?";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute([$delaiReponse]);
     $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     logMessage("Found " . count($candidatures) . " applications to process");
@@ -40,8 +46,10 @@ try {
         
         logMessage("Processing application #$id for $prenom $nom");
         
-        // Evaluate acceptance criteria
-        $accepted = evaluateCandidature($candidature);
+        // Evaluate acceptance criteria with NEW STRICTER RULES
+        $result = evaluateCandidature($candidature);
+        $accepted = $result['accepted'];
+        $motifRefus = $result['motif'];
         
         if ($accepted) {
             // Send acceptance email
@@ -49,7 +57,7 @@ try {
             $message = getAcceptanceEmailTemplate($prenom, $nom, $candidature['reference_candidature']);
             
             // Update status to "Accepté"
-            $updateStmt = $pdo->prepare("UPDATE candidatures SET statut = 'Accepté', date_reponse = NOW() WHERE id = ?");
+            $updateStmt = $pdo->prepare("UPDATE candidatures SET statut = 'accepte', reponse_automatique = 'accepte', date_reponse_auto = NOW(), date_reponse_envoyee = NOW() WHERE id = ?");
             $updateStmt->execute([$id]);
             
             // Send email
@@ -57,8 +65,8 @@ try {
                 logMessage("Acceptance email sent to $email for application #$id");
                 
                 // Log the action
-                $logStmt = $pdo->prepare("INSERT INTO logs (candidature_id, action, details) VALUES (?, ?, ?)");
-                $logStmt->execute([$id, 'email_acceptation', "Email d'acceptation envoyé à $email"]);
+                $logStmt = $pdo->prepare("INSERT INTO logs (type_entite, entite_id, action, details) VALUES (?, ?, ?, ?)");
+                $logStmt->execute(['candidature', $id, 'email_acceptation', "Email d'acceptation envoyé à $email"]);
             } else {
                 logMessage("ERROR: Failed to send acceptance email to $email");
             }
@@ -68,17 +76,17 @@ try {
             $subject = "Candidature - MyInvest Immobilier";
             $message = getRejectionEmailTemplate($prenom, $nom);
             
-            // Update status to "Refusé"
-            $updateStmt = $pdo->prepare("UPDATE candidatures SET statut = 'Refusé', date_reponse = NOW() WHERE id = ?");
-            $updateStmt->execute([$id]);
+            // Update status to "Refusé" with rejection reason
+            $updateStmt = $pdo->prepare("UPDATE candidatures SET statut = 'refuse', reponse_automatique = 'refuse', motif_refus = ?, date_reponse_auto = NOW(), date_reponse_envoyee = NOW() WHERE id = ?");
+            $updateStmt->execute([$motifRefus, $id]);
             
             // Send email
             if (sendEmail($email, $subject, $message)) {
-                logMessage("Rejection email sent to $email for application #$id");
+                logMessage("Rejection email sent to $email for application #$id. Reason: $motifRefus");
                 
                 // Log the action
-                $logStmt = $pdo->prepare("INSERT INTO logs (candidature_id, action, details) VALUES (?, ?, ?)");
-                $logStmt->execute([$id, 'email_refus', "Email de refus envoyé à $email"]);
+                $logStmt = $pdo->prepare("INSERT INTO logs (type_entite, entite_id, action, details) VALUES (?, ?, ?, ?)");
+                $logStmt->execute(['candidature', $id, 'email_refus', "Email de refus envoyé à $email. Motif: $motifRefus"]);
             } else {
                 logMessage("ERROR: Failed to send rejection email to $email");
             }
@@ -93,41 +101,59 @@ try {
 }
 
 /**
- * Evaluate if a candidature should be accepted based on criteria
+ * Evaluate if a candidature should be accepted based on NEW STRICTER criteria
+ * Returns array with 'accepted' (bool) and 'motif' (string) keys
  */
 function evaluateCandidature($candidature) {
-    // Criteria for acceptance:
-    // 1. Income >= 2300€ (revenus_nets_mensuels must be ">= 2300€" or "3000 € et +")
-    // 2. Stable professional status (CDI with trial period passed, or other stable situations)
-    // 3. Not currently in trial period for CDI
+    // Get parameters from database
+    $revenusMinRequis = getParameter('revenus_min_requis', 3000);
+    $statutsProAcceptes = getParameter('statuts_pro_acceptes', ['CDI', 'CDD']);
+    $typeRevenusAccepte = getParameter('type_revenus_accepte', 'Salaires');
+    $nbOccupantsAcceptes = getParameter('nb_occupants_acceptes', ['1', '2']);
+    $garantieVisaleRequise = getParameter('garantie_visale_requise', true);
     
-    $revenus = $candidature['revenus_nets_mensuels'];
-    $statut_pro = $candidature['statut_professionnel'];
-    $periode_essai = $candidature['periode_essai'];
+    $motifs = [];
     
-    // Check income - reject if < 2300€
-    if ($revenus === '< 2300 €') {
-        return false;
+    // RULE 1: Professional situation - must be CDI or CDD
+    if (!in_array($candidature['statut_professionnel'], $statutsProAcceptes)) {
+        $motifs[] = "Statut professionnel non accepté (doit être CDI ou CDD)";
     }
     
-    // Check professional status and trial period
-    if ($statut_pro === 'CDI') {
-        // For CDI, trial period must be passed
-        if ($periode_essai === 'En cours') {
-            return false;
-        }
-    } elseif ($statut_pro === 'CDD') {
-        // CDD is acceptable if income is good
-        // Already checked income above
-    } elseif ($statut_pro === 'Indépendant') {
-        // Independent workers are acceptable
-    } else {
-        // "Autre" status - need manual review, so auto-reject
-        return false;
+    // RULE 2: Monthly net income - must be >= 3000€
+    // Convert enum values to numeric for comparison
+    $revenus = $candidature['revenus_mensuels'];
+    if ($revenus === '< 2300' || $revenus === '2300-3000') {
+        $motifs[] = "Revenus nets mensuels insuffisants (minimum 3000€ requis)";
     }
     
-    // All criteria met
-    return true;
+    // RULE 3: Income type - must be Salaires
+    if ($candidature['type_revenus'] !== $typeRevenusAccepte) {
+        $motifs[] = "Type de revenus non accepté (doit être: $typeRevenusAccepte)";
+    }
+    
+    // RULE 4: Number of occupants - must be 1 or 2 (not "Autre")
+    if (!in_array($candidature['nb_occupants'], $nbOccupantsAcceptes)) {
+        $motifs[] = "Nombre d'occupants non accepté (doit être 1 ou 2)";
+    }
+    
+    // RULE 5: Visale guarantee - must be "Oui"
+    if ($garantieVisaleRequise && $candidature['garantie_visale'] !== 'Oui') {
+        $motifs[] = "Garantie Visale requise";
+    }
+    
+    // RULE 6: If CDI, trial period must be passed
+    if ($candidature['statut_professionnel'] === 'CDI' && $candidature['periode_essai'] === 'En cours') {
+        $motifs[] = "Période d'essai en cours";
+    }
+    
+    // All criteria must be met for acceptance
+    $accepted = empty($motifs);
+    $motif = $accepted ? '' : implode(', ', $motifs);
+    
+    return [
+        'accepted' => $accepted,
+        'motif' => $motif
+    ];
 }
 
 /**
