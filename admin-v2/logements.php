@@ -9,8 +9,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($_POST['action']) {
             case 'add':
                 $stmt = $pdo->prepare("
-                    INSERT INTO logements (reference, adresse, appartement, type, surface, loyer, charges, depot_garantie, parking, statut, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Disponible', NOW())
+                    INSERT INTO logements (reference, adresse, appartement, type, surface, loyer, charges, depot_garantie, parking, statut, date_disponibilite, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'disponible', ?, NOW())
                 ");
                 $stmt->execute([
                     $_POST['reference'],
@@ -21,16 +21,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_POST['loyer'],
                     $_POST['charges'],
                     $_POST['depot_garantie'],
-                    $_POST['parking']
+                    $_POST['parking'],
+                    !empty($_POST['date_disponibilite']) ? $_POST['date_disponibilite'] : null
                 ]);
                 $_SESSION['success'] = "Logement ajouté avec succès";
                 break;
                 
             case 'edit':
+                // Map French UI values to database values
+                $statutMap = [
+                    'Disponible' => 'disponible',
+                    'Réservé' => 'en_location',
+                    'Loué' => 'en_location',
+                    'Maintenance' => 'maintenance',
+                    'Indisponible' => 'indisponible'
+                ];
+                $dbStatut = $statutMap[$_POST['statut']] ?? strtolower($_POST['statut']);
+                
                 $stmt = $pdo->prepare("
                     UPDATE logements SET 
                         reference = ?, adresse = ?, appartement = ?, type = ?, surface = ?,
-                        loyer = ?, charges = ?, depot_garantie = ?, parking = ?, statut = ?
+                        loyer = ?, charges = ?, depot_garantie = ?, parking = ?, statut = ?, date_disponibilite = ?
                     WHERE id = ?
                 ");
                 $stmt->execute([
@@ -43,7 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_POST['charges'],
                     $_POST['depot_garantie'],
                     $_POST['parking'],
-                    $_POST['statut'],
+                    $dbStatut,
+                    !empty($_POST['date_disponibilite']) ? $_POST['date_disponibilite'] : null,
                     $_POST['logement_id']
                 ]);
                 $_SESSION['success'] = "Logement modifié avec succès";
@@ -87,12 +99,24 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $logements = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Map database status to UI status for display
+$statutMap = [
+    'disponible' => 'Disponible',
+    'en_location' => 'Loué',
+    'maintenance' => 'Maintenance',
+    'indisponible' => 'Indisponible'
+];
+
+foreach ($logements as &$logement) {
+    $logement['statut_ui'] = $statutMap[$logement['statut']] ?? ucfirst($logement['statut']);
+}
+
 // Get statistics
 $stats = [
     'total' => $pdo->query("SELECT COUNT(*) FROM logements")->fetchColumn(),
-    'disponible' => $pdo->query("SELECT COUNT(*) FROM logements WHERE statut = 'Disponible'")->fetchColumn(),
-    'loue' => $pdo->query("SELECT COUNT(*) FROM logements WHERE statut = 'Loué'")->fetchColumn(),
-    'maintenance' => $pdo->query("SELECT COUNT(*) FROM logements WHERE statut = 'Maintenance'")->fetchColumn()
+    'disponible' => $pdo->query("SELECT COUNT(*) FROM logements WHERE statut = 'disponible'")->fetchColumn(),
+    'loue' => $pdo->query("SELECT COUNT(*) FROM logements WHERE statut = 'en_location'")->fetchColumn(),
+    'maintenance' => $pdo->query("SELECT COUNT(*) FROM logements WHERE statut = 'maintenance'")->fetchColumn()
 ];
 ?>
 <!DOCTYPE html>
@@ -329,7 +353,7 @@ $stats = [
                             <td><?php echo number_format($logement['depot_garantie'], 0, ',', ' '); ?> €</td>
                             <td>
                                 <span class="status-badge status-<?php echo strtolower($logement['statut']); ?>">
-                                    <?php echo htmlspecialchars($logement['statut']); ?>
+                                    <?php echo htmlspecialchars($logement['statut_ui']); ?>
                                 </span>
                             </td>
                             <td>
@@ -345,7 +369,8 @@ $stats = [
                                             data-charges="<?php echo $logement['charges']; ?>"
                                             data-depot="<?php echo $logement['depot_garantie']; ?>"
                                             data-parking="<?php echo htmlspecialchars($logement['parking']); ?>"
-                                            data-statut="<?php echo htmlspecialchars($logement['statut']); ?>"
+                                            data-statut="<?php echo htmlspecialchars($logement['statut_ui']); ?>"
+                                            data-date-disponibilite="<?php echo htmlspecialchars($logement['date_disponibilite'] ?? ''); ?>"
                                             data-bs-toggle="modal" 
                                             data-bs-target="#editLogementModal">
                                         <i class="bi bi-pencil"></i>
@@ -393,7 +418,11 @@ $stats = [
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Type *</label>
-                                <input type="text" name="type" class="form-control" placeholder="Ex: T1 Bis" required>
+                                <select name="type" class="form-select" required>
+                                    <option value="">Sélectionner...</option>
+                                    <option value="T1 Bis">T1 Bis</option>
+                                    <option value="T2">T2</option>
+                                </select>
                             </div>
                             <div class="col-md-8">
                                 <label class="form-label">Adresse *</label>
@@ -426,6 +455,18 @@ $stats = [
                                     <option value="1 place">1 place</option>
                                 </select>
                             </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Date de disponibilité</label>
+                                <input type="date" name="date_disponibilite" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Total mensuel (calculé automatiquement)</label>
+                                <input type="text" class="form-control" id="add_total_mensuel" readonly disabled placeholder="Loyer + Charges">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Revenus requis (calculé automatiquement)</label>
+                                <input type="text" class="form-control" id="add_revenus_requis" readonly disabled placeholder="Total mensuel × 3">
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -456,7 +497,11 @@ $stats = [
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Type *</label>
-                                <input type="text" name="type" id="edit_type" class="form-control" required>
+                                <select name="type" id="edit_type" class="form-select" required>
+                                    <option value="">Sélectionner...</option>
+                                    <option value="T1 Bis">T1 Bis</option>
+                                    <option value="T2">T2</option>
+                                </select>
                             </div>
                             <div class="col-md-8">
                                 <label class="form-label">Adresse *</label>
@@ -498,6 +543,18 @@ $stats = [
                                     <option value="Maintenance">Maintenance</option>
                                 </select>
                             </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Date de disponibilité</label>
+                                <input type="date" name="date_disponibilite" id="edit_date_disponibilite" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Total mensuel (calculé automatiquement)</label>
+                                <input type="text" class="form-control" id="edit_total_mensuel" readonly disabled placeholder="Loyer + Charges">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Revenus requis (calculé automatiquement)</label>
+                                <input type="text" class="form-control" id="edit_revenus_requis" readonly disabled placeholder="Total mensuel × 3">
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -535,6 +592,40 @@ $stats = [
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Calculate total mensuel and revenus requis
+        function calculateTotals(prefix) {
+            const loyer = parseFloat(document.querySelector(`[name="loyer"]${prefix ? '#' + prefix + '_loyer' : ''}`).value) || 0;
+            const charges = parseFloat(document.querySelector(`[name="charges"]${prefix ? '#' + prefix + '_charges' : ''}`).value) || 0;
+            const totalMensuel = loyer + charges;
+            const revenusRequis = totalMensuel * 3;
+            
+            const totalField = document.getElementById(prefix + '_total_mensuel');
+            const revenusField = document.getElementById(prefix + '_revenus_requis');
+            
+            if (totalField) {
+                totalField.value = totalMensuel.toFixed(2) + ' €';
+            }
+            if (revenusField) {
+                revenusField.value = revenusRequis.toFixed(2) + ' €';
+            }
+        }
+        
+        // Add event listeners for add form
+        ['loyer', 'charges'].forEach(field => {
+            const input = document.querySelector(`#addLogementModal [name="${field}"]`);
+            if (input) {
+                input.addEventListener('input', () => calculateTotals('add'));
+            }
+        });
+        
+        // Add event listeners for edit form
+        ['loyer', 'charges'].forEach(field => {
+            const input = document.getElementById(`edit_${field}`);
+            if (input) {
+                input.addEventListener('input', () => calculateTotals('edit'));
+            }
+        });
+        
         // Edit button handler
         document.querySelectorAll('.edit-btn').forEach(btn => {
             btn.addEventListener('click', function() {
@@ -549,6 +640,10 @@ $stats = [
                 document.getElementById('edit_depot').value = this.dataset.depot;
                 document.getElementById('edit_parking').value = this.dataset.parking;
                 document.getElementById('edit_statut').value = this.dataset.statut;
+                document.getElementById('edit_date_disponibilite').value = this.dataset.dateDisponibilite || '';
+                
+                // Calculate totals for edit form
+                calculateTotals('edit');
             });
         });
 
