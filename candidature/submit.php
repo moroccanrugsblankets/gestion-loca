@@ -24,6 +24,49 @@ function logDebug($message, $data = null) {
 try {
     logDebug("Début du traitement de la candidature");
     
+    // Vérification reCAPTCHA (si activé)
+    if (!empty($config['RECAPTCHA_ENABLED']) && $config['RECAPTCHA_ENABLED']) {
+        if (empty($_POST['recaptcha_response'])) {
+            logDebug("Erreur: Token reCAPTCHA manquant");
+            throw new Exception('Vérification reCAPTCHA manquante');
+        }
+        
+        // Vérifier le token reCAPTCHA auprès de Google
+        $recaptcha_url = 'https://www.google.com/recaptcha/api/siteverify';
+        $recaptcha_secret = $config['RECAPTCHA_SECRET_KEY'];
+        $recaptcha_response = $_POST['recaptcha_response'];
+        
+        $recaptcha_data = [
+            'secret' => $recaptcha_secret,
+            'response' => $recaptcha_response,
+            'remoteip' => getClientIp()
+        ];
+        
+        $options = [
+            'http' => [
+                'header' => "Content-type: application/x-www-form-urlencoded\r\n",
+                'method' => 'POST',
+                'content' => http_build_query($recaptcha_data)
+            ]
+        ];
+        
+        $context = stream_context_create($options);
+        $recaptcha_verify = file_get_contents($recaptcha_url, false, $context);
+        $recaptcha_result = json_decode($recaptcha_verify);
+        
+        if (!$recaptcha_result || !$recaptcha_result->success) {
+            logDebug("Erreur: Échec de vérification reCAPTCHA", ['result' => $recaptcha_result]);
+            throw new Exception('Échec de la vérification reCAPTCHA');
+        }
+        
+        if ($recaptcha_result->score < $config['RECAPTCHA_MIN_SCORE']) {
+            logDebug("Erreur: Score reCAPTCHA trop bas", ['score' => $recaptcha_result->score]);
+            throw new Exception('Vérification de sécurité échouée. Veuillez réessayer.');
+        }
+        
+        logDebug("reCAPTCHA validé", ['score' => $recaptcha_result->score]);
+    }
+    
     // Vérification du token CSRF
     if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
         logDebug("Erreur: Token CSRF invalide", ['session' => $_SESSION['csrf_token'] ?? 'N/A', 'post' => $_POST['csrf_token'] ?? 'N/A']);

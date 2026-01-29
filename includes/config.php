@@ -115,6 +115,13 @@ $config = [
     // Clé pour tokens CSRF (à changer en production)
     'CSRF_KEY' => 'myinvest_csrf_' . date('Y-m-d'),
     
+    // reCAPTCHA v3 configuration
+    // IMPORTANT: Configurez ces valeurs dans includes/config.local.php pour la production
+    'RECAPTCHA_SITE_KEY' => '6LczcMMmAAAAAOVOT8pFKt5lHWzKQvTmJ-YOUR-KEY', // Clé publique à remplacer
+    'RECAPTCHA_SECRET_KEY' => '6LczcMMmAAAAACI-8mypCxxPH_2MfUlh_JxgJa4K', // Clé secrète à remplacer
+    'RECAPTCHA_ENABLED' => false, // Mettre à true pour activer reCAPTCHA
+    'RECAPTCHA_MIN_SCORE' => 0.5, // Score minimum (0.0 à 1.0)
+    
     // Salt pour génération de références uniques
     'REFERENCE_SALT' => 'myinvest_2024_',
     
