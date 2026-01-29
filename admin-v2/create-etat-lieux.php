@@ -16,11 +16,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
     
+    // Validate date format and reasonableness
+    $date = DateTime::createFromFormat('Y-m-d', $date_etat);
+    if (!$date || $date->format('Y-m-d') !== $date_etat) {
+        $_SESSION['error'] = "Format de date invalide";
+        header('Location: etats-lieux.php');
+        exit;
+    }
+    
+    // Check date is not too far in the past or future (within 5 years)
+    $now = new DateTime();
+    $diff = $now->diff($date);
+    if ($diff->y > 5) {
+        $_SESSION['error'] = "La date ne peut pas être à plus de 5 ans dans le passé ou le futur";
+        header('Location: etats-lieux.php');
+        exit;
+    }
+    
     // Verify contract exists
     $stmt = $pdo->prepare("SELECT id FROM contrats WHERE id = ?");
     $stmt->execute([$contrat_id]);
     if (!$stmt->fetch()) {
         $_SESSION['error'] = "Contrat non trouvé";
+        header('Location: etats-lieux.php');
+        exit;
+    }
+    
+    // Check for duplicate
+    $stmt = $pdo->prepare("SELECT id FROM etats_lieux WHERE contrat_id = ? AND type = ?");
+    $stmt->execute([$contrat_id, $type]);
+    if ($stmt->fetch()) {
+        $_SESSION['error'] = "Un état des lieux de ce type existe déjà pour ce contrat";
         header('Location: etats-lieux.php');
         exit;
     }
@@ -34,7 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$contrat_id, $type, $date_etat]);
         $_SESSION['success'] = "État des lieux créé avec succès";
     } catch (PDOException $e) {
-        $_SESSION['error'] = "Erreur lors de la création: " . $e->getMessage();
+        error_log("Error creating état des lieux: " . $e->getMessage());
+        $_SESSION['error'] = "Erreur lors de la création de l'état des lieux";
     }
     
     header('Location: etats-lieux.php');

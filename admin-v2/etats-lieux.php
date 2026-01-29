@@ -275,7 +275,7 @@ $etats_lieux = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Date:</label>
-                            <input type="date" name="date_etat" class="form-control" required>
+                            <input type="date" name="date_etat" class="form-control" required value="<?php echo date('Y-m-d'); ?>">
                         </div>
                     </div>
                     <div class="modal-footer">
