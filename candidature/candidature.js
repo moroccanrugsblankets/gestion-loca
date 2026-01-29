@@ -5,7 +5,15 @@
 
 let currentSection = 1;
 const totalSections = 7;
-let uploadedFiles = [];
+
+// Structure pour stocker les fichiers par type de document
+let documentsByType = {
+    piece_identite: [],
+    bulletins_salaire: [],
+    contrat_travail: [],
+    avis_imposition: [],
+    quittances_loyer: []
+};
 
 // Navigation entre les sections
 function nextSection(sectionNumber) {
@@ -74,32 +82,39 @@ function validateCurrentSection() {
 
 // Gestion de l'upload de fichiers
 document.addEventListener('DOMContentLoaded', function() {
-    const uploadZone = document.getElementById('uploadZone');
-    const fileInput = document.getElementById('documents');
-    const fileList = document.getElementById('fileList');
+    // Pour chaque type de document
+    const documentTypes = ['piece_identite', 'bulletins_salaire', 'contrat_travail', 'avis_imposition', 'quittances_loyer'];
     
-    // Drag & Drop
-    uploadZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadZone.classList.add('drag-over');
+    documentTypes.forEach(docType => {
+        const uploadZone = document.querySelector(`.document-upload-zone[data-doc-type="${docType}"]`);
+        const fileInput = document.querySelector(`.document-input[data-doc-type="${docType}"]`);
+        const fileList = document.querySelector(`.file-list[data-doc-type="${docType}"]`);
+        
+        if (!uploadZone || !fileInput || !fileList) return;
+        
+        // Drag & Drop
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('drag-over');
+        });
+        
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('drag-over');
+        });
+        
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('drag-over');
+            handleFiles(e.dataTransfer.files, docType);
+        });
+        
+        // Click pour parcourir
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files, docType);
+        });
     });
     
-    uploadZone.addEventListener('dragleave', () => {
-        uploadZone.classList.remove('drag-over');
-    });
-    
-    uploadZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadZone.classList.remove('drag-over');
-        handleFiles(e.dataTransfer.files);
-    });
-    
-    // Click pour parcourir
-    fileInput.addEventListener('change', (e) => {
-        handleFiles(e.target.files);
-    });
-    
-    function handleFiles(files) {
+    function handleFiles(files, docType) {
         Array.from(files).forEach(file => {
             // Vérifier la taille du fichier (max 5 Mo)
             if (file.size > 5 * 1024 * 1024) {
@@ -114,22 +129,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Ajouter à la liste
-            uploadedFiles.push(file);
-            displayFile(file);
+            // Ajouter à la liste du type de document correspondant
+            documentsByType[docType].push(file);
+            displayFile(file, docType);
         });
+        
+        // Mettre à jour le badge requis
+        updateRequiredBadge(docType);
     }
     
-    function displayFile(file) {
+    function displayFile(file, docType) {
+        const fileList = document.querySelector(`.file-list[data-doc-type="${docType}"]`);
         const fileItem = document.createElement('div');
         fileItem.className = 'file-list-item';
+        fileItem.setAttribute('data-filename', file.name);
         fileItem.innerHTML = `
             <div>
                 <i class="bi bi-file-earmark-text me-2"></i>
                 <span>${file.name}</span>
                 <small class="text-muted ms-2">(${formatFileSize(file.size)})</small>
             </div>
-            <i class="bi bi-trash btn-remove-file" onclick="removeFile('${file.name}')"></i>
+            <i class="bi bi-trash btn-remove-file" onclick="removeFile('${docType}', '${file.name.replace(/'/g, "\\'")}')"></i>
         `;
         fileList.appendChild(fileItem);
     }
@@ -139,23 +159,34 @@ document.addEventListener('DOMContentLoaded', function() {
         if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
         return (bytes / 1048576).toFixed(1) + ' MB';
     }
+    
+    function updateRequiredBadge(docType) {
+        const fileInput = document.querySelector(`.document-input[data-doc-type="${docType}"]`);
+        if (documentsByType[docType].length > 0) {
+            fileInput.removeAttribute('required');
+            fileInput.classList.remove('is-invalid');
+        } else {
+            fileInput.setAttribute('required', 'required');
+        }
+    }
 });
 
-function removeFile(fileName) {
-    uploadedFiles = uploadedFiles.filter(f => f.name !== fileName);
+function removeFile(docType, fileName) {
+    documentsByType[docType] = documentsByType[docType].filter(f => f.name !== fileName);
     
     // Mettre à jour l'affichage
-    const fileList = document.getElementById('fileList');
+    const fileList = document.querySelector(`.file-list[data-doc-type="${docType}"]`);
     const items = fileList.querySelectorAll('.file-list-item');
     items.forEach(item => {
-        if (item.textContent.includes(fileName)) {
+        if (item.getAttribute('data-filename') === fileName) {
             item.remove();
         }
     });
     
-    // Réinitialiser l'input si plus de fichiers
-    if (uploadedFiles.length === 0) {
-        document.getElementById('documents').value = '';
+    // Mettre à jour le badge requis
+    const fileInput = document.querySelector(`.document-input[data-doc-type="${docType}"]`);
+    if (documentsByType[docType].length === 0) {
+        fileInput.setAttribute('required', 'required');
     }
 }
 
@@ -198,7 +229,21 @@ function generateRecapitulatif() {
     
     // Documents
     html += '<tr class="table-primary"><th colspan="2"><i class="bi bi-file-earmark-text-fill me-2"></i>Documents</th></tr>';
-    html += `<tr><td><strong>Fichiers joints</strong></td><td>${uploadedFiles.length} document(s)</td></tr>`;
+    
+    const documentLabels = {
+        piece_identite: 'Pièce d\'identité',
+        bulletins_salaire: 'Bulletins de salaire',
+        contrat_travail: 'Contrat de travail',
+        avis_imposition: 'Avis d\'imposition',
+        quittances_loyer: 'Quittances de loyer'
+    };
+    
+    let totalDocs = 0;
+    for (const [docType, files] of Object.entries(documentsByType)) {
+        totalDocs += files.length;
+        html += `<tr><td><strong>${documentLabels[docType]}</strong></td><td>${files.length} fichier(s)</td></tr>`;
+    }
+    html += `<tr class="table-light"><td><strong>Total</strong></td><td><strong>${totalDocs} document(s)</strong></td></tr>`;
     
     html += '</table>';
     html += '</div>';
@@ -210,9 +255,25 @@ function generateRecapitulatif() {
 document.getElementById('candidatureForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
-    // Vérifier que des fichiers ont été uploadés
-    if (uploadedFiles.length === 0) {
-        alert('Merci de joindre au moins un document justificatif.');
+    // Vérifier que tous les types de documents ont au moins un fichier
+    const requiredDocTypes = ['piece_identite', 'bulletins_salaire', 'contrat_travail', 'avis_imposition', 'quittances_loyer'];
+    const documentLabels = {
+        piece_identite: 'Pièce d\'identité',
+        bulletins_salaire: '3 derniers bulletins de salaire',
+        contrat_travail: 'Contrat de travail',
+        avis_imposition: 'Dernier avis d\'imposition',
+        quittances_loyer: '3 dernières quittances de loyer'
+    };
+    
+    let missingDocs = [];
+    for (const docType of requiredDocTypes) {
+        if (!documentsByType[docType] || documentsByType[docType].length === 0) {
+            missingDocs.push(documentLabels[docType]);
+        }
+    }
+    
+    if (missingDocs.length > 0) {
+        alert('Documents manquants :\n- ' + missingDocs.join('\n- '));
         showSection(6);
         return;
     }
@@ -231,11 +292,13 @@ document.getElementById('candidatureForm').addEventListener('submit', function(e
     // Créer un FormData avec tous les fichiers
     const formData = new FormData(this);
     
-    // Remplacer les fichiers par ceux de notre liste
-    formData.delete('documents[]');
-    uploadedFiles.forEach((file, index) => {
-        formData.append('documents[]', file);
-    });
+    // Supprimer les inputs de fichiers vides et ajouter nos fichiers
+    for (const docType of requiredDocTypes) {
+        formData.delete(`${docType}[]`);
+        documentsByType[docType].forEach((file) => {
+            formData.append(`${docType}[]`, file);
+        });
+    }
     
     // Envoyer via AJAX
     fetch('submit.php', {
