@@ -2,6 +2,7 @@
 require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
+require_once '../includes/document-types.php';
 
 // Get application ID and validate
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -14,13 +15,9 @@ if (!$id || $id < 1) {
 
 // Fetch application details
 $stmt = $pdo->prepare("
-    SELECT c.*, 
-           GROUP_CONCAT(cd.nom_fichier SEPARATOR '|||') as documents,
-           GROUP_CONCAT(cd.chemin_fichier SEPARATOR '|||') as documents_paths
+    SELECT c.*
     FROM candidatures c
-    LEFT JOIN candidature_documents cd ON c.id = cd.candidature_id
     WHERE c.id = ?
-    GROUP BY c.id
 ");
 $stmt->execute([$id]);
 $candidature = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -29,6 +26,16 @@ if (!$candidature) {
     header('Location: candidatures.php');
     exit;
 }
+
+// Fetch documents separately to maintain type information
+$stmt = $pdo->prepare("
+    SELECT type_document, nom_fichier, chemin_fichier, uploaded_at
+    FROM candidature_documents
+    WHERE candidature_id = ?
+    ORDER BY type_document, uploaded_at
+");
+$stmt->execute([$id]);
+$allDocuments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch action history
 // Try to fetch logs using candidature_id first (if column exists)
@@ -59,17 +66,19 @@ try {
     }
 }
 
-// Process documents
-$documents = [];
-if ($candidature['documents']) {
-    $doc_names = explode('|||', $candidature['documents']);
-    $doc_paths = explode('|||', $candidature['documents_paths']);
-    for ($i = 0; $i < count($doc_names); $i++) {
-        $documents[] = [
-            'name' => $doc_names[$i],
-            'path' => $doc_paths[$i]
-        ];
+// Process documents and group by type
+$documentsByType = [];
+
+foreach ($allDocuments as $doc) {
+    $type = $doc['type_document'];
+    if (!isset($documentsByType[$type])) {
+        $documentsByType[$type] = [];
     }
+    $documentsByType[$type][] = [
+        'name' => $doc['nom_fichier'],
+        'path' => $doc['chemin_fichier'],
+        'uploaded_at' => $doc['uploaded_at']
+    ];
 }
 
 // Status badge helper
@@ -158,6 +167,22 @@ function getStatusBadge($status) {
             background: #f8f9fa;
             border-radius: 5px;
             margin-bottom: 10px;
+        }
+        .document-type-section {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .document-type-section:last-child {
+            border-bottom: none;
+        }
+        .document-type-header {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #0066cc;
+            margin-bottom: 12px;
+            padding-left: 5px;
+            border-left: 3px solid #0066cc;
         }
         .timeline {
             position: relative;
@@ -336,16 +361,24 @@ function getStatusBadge($status) {
                 <!-- Documents -->
                 <div class="info-card">
                     <h5 class="mb-3"><i class="bi bi-paperclip"></i> Documents Justificatifs</h5>
-                    <?php if (!empty($documents)): ?>
-                        <?php foreach ($documents as $doc): ?>
-                            <div class="document-item">
-                                <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
-                                <span class="flex-grow-1"><?php echo htmlspecialchars($doc['name']); ?></span>
-                                <a href="../<?php echo htmlspecialchars($doc['path']); ?>" 
-                                   class="btn btn-sm btn-outline-primary" 
-                                   target="_blank">
-                                    <i class="bi bi-download"></i> Télécharger
-                                </a>
+                    <?php if (!empty($documentsByType)): ?>
+                        <?php foreach ($documentsByType as $type => $docs): ?>
+                            <div class="document-type-section">
+                                <div class="document-type-header">
+                                    <i class="bi bi-folder"></i> 
+                                    <?php echo htmlspecialchars(getDocumentTypeLabel($type)); ?>
+                                </div>
+                                <?php foreach ($docs as $doc): ?>
+                                    <div class="document-item">
+                                        <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
+                                        <span class="flex-grow-1"><?php echo htmlspecialchars($doc['name']); ?></span>
+                                        <a href="../<?php echo htmlspecialchars($doc['path']); ?>" 
+                                           class="btn btn-sm btn-outline-primary" 
+                                           target="_blank">
+                                            <i class="bi bi-download"></i> Télécharger
+                                        </a>
+                                    </div>
+                                <?php endforeach; ?>
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
