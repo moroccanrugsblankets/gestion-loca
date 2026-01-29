@@ -359,3 +359,135 @@ function getFlashMessage() {
     }
     return null;
 }
+
+/**
+ * Get parameter value from database
+ * @param string $cle Parameter key
+ * @param mixed $default Default value if parameter not found
+ * @return mixed
+ */
+function getParameter($cle, $default = null) {
+    global $pdo;
+    
+    try {
+        $stmt = $pdo->prepare("SELECT valeur, type FROM parametres WHERE cle = ?");
+        $stmt->execute([$cle]);
+        $param = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$param) {
+            return $default;
+        }
+        
+        // Cast value based on type
+        switch ($param['type']) {
+            case 'integer':
+                return (int)$param['valeur'];
+            case 'float':
+                return (float)$param['valeur'];
+            case 'boolean':
+                return $param['valeur'] === 'true' || $param['valeur'] === '1';
+            case 'json':
+                return json_decode($param['valeur'], true);
+            default:
+                return $param['valeur'];
+        }
+    } catch (PDOException $e) {
+        error_log("Error getting parameter $cle: " . $e->getMessage());
+        return $default;
+    }
+}
+
+/**
+ * Set parameter value in database
+ * @param string $cle Parameter key
+ * @param mixed $valeur Parameter value
+ * @return bool
+ */
+function setParameter($cle, $valeur) {
+    global $pdo;
+    
+    try {
+        // Convert value to string based on type
+        if (is_bool($valeur)) {
+            $valeur = $valeur ? 'true' : 'false';
+        } elseif (is_array($valeur)) {
+            $valeur = json_encode($valeur);
+        }
+        
+        // Use INSERT ... ON DUPLICATE KEY UPDATE to handle both insert and update
+        $stmt = $pdo->prepare("
+            INSERT INTO parametres (cle, valeur, updated_at) 
+            VALUES (?, ?, NOW())
+            ON DUPLICATE KEY UPDATE valeur = ?, updated_at = NOW()
+        ");
+        return $stmt->execute([$cle, $valeur, $valeur]);
+    } catch (PDOException $e) {
+        error_log("Error setting parameter $cle: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Get email template from database by identifier
+ * @param string $identifiant Template identifier
+ * @return array|false Template data or false if not found
+ */
+function getEmailTemplate($identifiant) {
+    global $pdo;
+    
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM email_templates WHERE identifiant = ? AND actif = 1");
+        $stmt->execute([$identifiant]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log("Error getting email template $identifiant: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Replace template variables with actual values
+ * @param string $template Template string with {{variable}} placeholders
+ * @param array $data Associative array of variable => value pairs
+ * @return string Processed template
+ */
+function replaceTemplateVariables($template, $data) {
+    foreach ($data as $key => $value) {
+        $placeholder = '{{' . $key . '}}';
+        // Ensure value is a string
+        $value = $value !== null ? (string)$value : '';
+        $template = str_replace($placeholder, htmlspecialchars($value, ENT_QUOTES, 'UTF-8'), $template);
+    }
+    
+    // Log warning if there are unreplaced variables
+    if (preg_match_all('/\{\{([^}]+)\}\}/', $template, $matches)) {
+        error_log("Warning: Unreplaced variables in template: " . implode(', ', $matches[1]));
+    }
+    
+    return $template;
+}
+
+/**
+ * Send email using database template
+ * @param string $templateId Template identifier
+ * @param string $to Recipient email
+ * @param array $variables Variables to replace in template
+ * @param string|null $attachmentPath Optional attachment path
+ * @param bool $isAdminEmail Whether this is an admin email (for CC to secondary admin)
+ * @return bool Success status
+ */
+function sendTemplatedEmail($templateId, $to, $variables = [], $attachmentPath = null, $isAdminEmail = false) {
+    $template = getEmailTemplate($templateId);
+    
+    if (!$template) {
+        error_log("Email template not found: $templateId");
+        return false;
+    }
+    
+    // Replace variables in subject and body
+    $subject = replaceTemplateVariables($template['sujet'], $variables);
+    $body = replaceTemplateVariables($template['corps_html'], $variables);
+    
+    // Send email using the existing sendEmail function
+    return sendEmail($to, $subject, $body, $attachmentPath, true, $isAdminEmail);
+}

@@ -108,9 +108,10 @@ MY Invest Immobilier
  * @param string $body Corps de l'email (peut être HTML ou texte)
  * @param string|null $attachmentPath Chemin vers une pièce jointe (optionnel)
  * @param bool $isHtml Si true, le corps sera traité comme HTML (par défaut: true)
+ * @param bool $isAdminEmail Si true, envoie aussi à l'adresse secondaire si configurée
  * @return bool True si l'email a été envoyé avec succès
  */
-function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true) {
+function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true, $isAdminEmail = false) {
     global $config;
     $mail = new PHPMailer(true);
     
@@ -134,8 +135,13 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true)
         $mail->setFrom($config['MAIL_FROM'], $config['MAIL_FROM_NAME']);
         $mail->addReplyTo($config['MAIL_FROM'], $config['MAIL_FROM_NAME']);
         
-        // Destinataire
+        // Destinataire principal
         $mail->addAddress($to);
+        
+        // Si c'est un email admin et qu'une adresse secondaire est configurée
+        if ($isAdminEmail && !empty($config['ADMIN_EMAIL_SECONDARY'])) {
+            $mail->addCC($config['ADMIN_EMAIL_SECONDARY']);
+        }
         
         // Contenu
         $mail->isHTML($isHtml);

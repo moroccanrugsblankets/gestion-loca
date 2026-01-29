@@ -18,8 +18,9 @@ return [
     'ADMIN_EMAIL' => 'admin@myinvest-immobilier.com',
     
     // Email secondaire de l'administrateur (optionnel)
-    // Tous les emails destinés aux administrateurs seront envoyés aux deux adresses
-    'ADMIN_EMAIL_SECONDARY' => 'admin2@myinvest-immobilier.com',
+    // Tous les emails destinés aux administrateurs seront également envoyés à cette adresse
+    // Laissez vide ('') pour désactiver
+    'ADMIN_EMAIL_SECONDARY' => '',
     
     // =====================================================
     // CONFIGURATION SMTP
