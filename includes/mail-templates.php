@@ -499,3 +499,144 @@ function getStatusChangeEmailHTML($nom_complet, $statut, $commentaire = '') {
     
     return $html;
 }
+
+/**
+ * Envoyer un email aux administrateurs (emails principal et secondaire)
+ * @param string $subject Sujet de l'email
+ * @param string $body Corps de l'email (peut être HTML ou texte)
+ * @param string|null $attachmentPath Chemin vers une pièce jointe (optionnel)
+ * @param bool $isHtml Si true, le corps sera traité comme HTML (par défaut: true)
+ * @return array ['success' => bool, 'sent_to' => array, 'errors' => array]
+ */
+function sendEmailToAdmins($subject, $body, $attachmentPath = null, $isHtml = true) {
+    global $config;
+    
+    $results = [
+        'success' => false,
+        'sent_to' => [],
+        'errors' => []
+    ];
+    
+    // Liste des emails administrateurs
+    $adminEmails = [];
+    
+    // Email principal
+    if (!empty($config['ADMIN_EMAIL'])) {
+        $adminEmails[] = $config['ADMIN_EMAIL'];
+    }
+    
+    // Email secondaire (si configuré)
+    if (!empty($config['ADMIN_EMAIL_SECONDARY'])) {
+        $adminEmails[] = $config['ADMIN_EMAIL_SECONDARY'];
+    }
+    
+    // Si aucun email admin configuré, utiliser l'email de la société
+    if (empty($adminEmails) && !empty($config['COMPANY_EMAIL'])) {
+        $adminEmails[] = $config['COMPANY_EMAIL'];
+    }
+    
+    // Envoyer à chaque administrateur
+    foreach ($adminEmails as $adminEmail) {
+        try {
+            $sent = sendEmail($adminEmail, $subject, $body, $attachmentPath, $isHtml);
+            if ($sent) {
+                $results['sent_to'][] = $adminEmail;
+                $results['success'] = true; // Au moins un email envoyé
+            } else {
+                $results['errors'][] = "Échec d'envoi à $adminEmail";
+            }
+        } catch (Exception $e) {
+            $results['errors'][] = "Exception lors de l'envoi à $adminEmail: " . $e->getMessage();
+            error_log("Erreur sendEmailToAdmins pour $adminEmail: " . $e->getMessage());
+        }
+    }
+    
+    return $results;
+}
+
+/**
+ * Template HTML pour notification admin - Nouvelle candidature reçue
+ * @param array $candidature Données de la candidature
+ * @param array $logement Informations du logement
+ * @param int $nb_documents Nombre de documents uploadés
+ * @return string HTML de l'email
+ */
+function getAdminNewCandidatureEmailHTML($candidature, $logement, $nb_documents) {
+    global $config;
+    
+    $html = '
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: #ffffff; padding: 30px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .content { padding: 30px 20px; }
+        .info-box { background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .info-box h3 { margin-top: 0; color: #28a745; font-size: 16px; }
+        .info-item { margin: 8px 0; }
+        .info-item strong { color: #555; display: inline-block; width: 180px; }
+        .btn { display: inline-block; padding: 12px 24px; background: #28a745; color: #ffffff !important; text-decoration: none; border-radius: 4px; margin: 20px 0; }
+        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔔 Nouvelle Candidature Reçue</h1>
+        </div>
+        <div class="content">
+            <p><strong>Une nouvelle candidature vient d\'être soumise.</strong></p>
+            
+            <div class="info-box">
+                <h3>👤 Informations du Candidat</h3>
+                <div class="info-item"><strong>Nom :</strong> ' . htmlspecialchars($candidature['nom'] . ' ' . $candidature['prenom']) . '</div>
+                <div class="info-item"><strong>Email :</strong> <a href="mailto:' . htmlspecialchars($candidature['email']) . '">' . htmlspecialchars($candidature['email']) . '</a></div>
+                <div class="info-item"><strong>Téléphone :</strong> ' . htmlspecialchars($candidature['telephone']) . '</div>
+                <div class="info-item"><strong>Référence :</strong> ' . htmlspecialchars($candidature['reference']) . '</div>
+            </div>
+            
+            <div class="info-box">
+                <h3>🏠 Logement</h3>
+                <div class="info-item"><strong>Référence :</strong> ' . htmlspecialchars($logement['reference']) . '</div>
+                <div class="info-item"><strong>Type :</strong> ' . htmlspecialchars($logement['type']) . '</div>
+                <div class="info-item"><strong>Adresse :</strong> ' . htmlspecialchars($logement['adresse']) . '</div>
+                <div class="info-item"><strong>Loyer :</strong> ' . htmlspecialchars($logement['loyer']) . ' €/mois</div>
+            </div>
+            
+            <div class="info-box">
+                <h3>💼 Situation Professionnelle</h3>
+                <div class="info-item"><strong>Statut :</strong> ' . htmlspecialchars($candidature['statut_professionnel']) . '</div>
+                <div class="info-item"><strong>Période d\'essai :</strong> ' . htmlspecialchars($candidature['periode_essai']) . '</div>
+                <div class="info-item"><strong>Revenus mensuels :</strong> ' . htmlspecialchars($candidature['revenus_mensuels']) . '</div>
+                <div class="info-item"><strong>Type de revenus :</strong> ' . htmlspecialchars($candidature['type_revenus']) . '</div>
+            </div>
+            
+            <div class="info-box">
+                <h3>📎 Documents</h3>
+                <div class="info-item"><strong>Nombre de pièces :</strong> ' . $nb_documents . ' document(s)</div>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="' . $config['SITE_URL'] . '/admin-v2/candidature-detail.php?id=' . $candidature['id'] . '" class="btn">
+                    Voir la Candidature
+                </a>
+            </div>
+            
+            <p style="margin-top: 30px; font-size: 12px; color: #666;">
+                Cette notification a été envoyée automatiquement suite à la soumission d\'une nouvelle candidature.
+            </p>
+        </div>
+        <div class="footer">
+            <p>© ' . date('Y') . ' MY Invest Immobilier - Système de Gestion des Candidatures</p>
+        </div>
+    </div>
+</body>
+</html>';
+    
+    return $html;
+}
