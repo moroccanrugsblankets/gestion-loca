@@ -191,6 +191,11 @@ foreach ($allParams as $param) {
                     <i class="bi bi-envelope"></i> Templates d'Email
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link" href="etats-lieux.php">
+                    <i class="bi bi-clipboard-check"></i> États des lieux
+                </a>
+            </li>
         </ul>
         <a href="logout.php" class="btn btn-outline-light logout-btn">
             <i class="bi bi-box-arrow-right"></i> Déconnexion
@@ -230,7 +235,8 @@ foreach ($allParams as $param) {
                         $groupeTitles = [
                             'workflow' => 'Workflow et Délais',
                             'criteres' => 'Critères d\'Acceptation',
-                            'general' => 'Général'
+                            'general' => 'Général',
+                            'email' => 'Configuration Email'
                         ];
                         echo $groupeTitles[$groupe] ?? ucfirst($groupe);
                         ?>
@@ -248,7 +254,8 @@ foreach ($allParams as $param) {
                                     'statuts_pro_acceptes' => 'Statuts professionnels acceptés',
                                     'type_revenus_accepte' => 'Type de revenus accepté',
                                     'nb_occupants_acceptes' => 'Nombres d\'occupants acceptés',
-                                    'garantie_visale_requise' => 'Garantie Visale requise'
+                                    'garantie_visale_requise' => 'Garantie Visale requise',
+                                    'email_signature' => 'Signature des emails'
                                 ];
                                 echo $labels[$param['cle']] ?? $param['cle'];
                                 ?>
@@ -274,6 +281,20 @@ foreach ($allParams as $param) {
                                           rows="2"
                                           required><?php echo htmlspecialchars($param['valeur']); ?></textarea>
                                 <small class="text-muted">Format JSON, ex: ["CDI", "CDD"]</small>
+                            <?php elseif ($param['cle'] === 'email_signature'): ?>
+                                <textarea name="parametres[<?php echo $param['cle']; ?>]" 
+                                          class="form-control" 
+                                          rows="6"
+                                          required><?php echo htmlspecialchars($param['valeur']); ?></textarea>
+                                <small class="text-muted">Code HTML pour la signature qui sera ajoutée à tous les emails</small>
+                                <?php if (!empty($param['valeur'])): ?>
+                                <div class="mt-2">
+                                    <strong>Aperçu:</strong>
+                                    <div class="border p-3 mt-2" style="background: #f8f9fa;">
+                                        <?php echo $param['valeur']; ?>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
                             <?php else: ?>
                                 <input type="text" 
                                        name="parametres[<?php echo $param['cle']; ?>]" 

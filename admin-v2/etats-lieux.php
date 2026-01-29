@@ -5,7 +5,7 @@ require_once '../includes/db.php';
 
 // Get all etats des lieux
 $stmt = $pdo->query("
-    SELECT edl.*, c.reference as contrat_ref, 
+    SELECT edl.*, c.reference_unique as contrat_ref, 
            CONCAT(cand.prenom, ' ', cand.nom) as locataire,
            l.adresse
     FROM etats_lieux edl
@@ -266,9 +266,9 @@ $etats_lieux = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <select name="contrat_id" class="form-select" required>
                                 <option value="">-- Sélectionner un contrat --</option>
                                 <?php
-                                $stmt = $pdo->query("SELECT id, reference FROM contrats WHERE statut = 'signe' ORDER BY reference");
+                                $stmt = $pdo->query("SELECT id, reference_unique FROM contrats WHERE statut = 'signe' ORDER BY reference_unique");
                                 while ($contrat = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                                    echo "<option value='{$contrat['id']}'>{$contrat['reference']}</option>";
+                                    echo "<option value='{$contrat['id']}'>{$contrat['reference_unique']}</option>";
                                 }
                                 ?>
                             </select>

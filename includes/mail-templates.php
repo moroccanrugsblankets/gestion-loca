@@ -114,10 +114,26 @@ MY Invest Immobilier
  * @return bool True si l'email a été envoyé avec succès
  */
 function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true, $isAdminEmail = false, $replyTo = null, $replyToName = null) {
-    global $config;
+    global $config, $pdo;
     $mail = new PHPMailer(true);
     
     try {
+        // Get email signature from parametres if HTML email
+        $signature = '';
+        if ($isHtml && $pdo) {
+            try {
+                $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'email_signature' LIMIT 1");
+                $stmt->execute();
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($result && !empty($result['valeur'])) {
+                    $signature = $result['valeur'];
+                }
+            } catch (Exception $e) {
+                // Silently fail if parametres table doesn't exist yet
+                error_log("Could not fetch email signature: " . $e->getMessage());
+            }
+        }
+        
         // Configuration du serveur SMTP
         if ($config['SMTP_AUTH']) {
             $mail->isSMTP();
@@ -157,14 +173,20 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
             $mail->addBCC($config['ADMIN_EMAIL_BCC']);
         }
         
+        // Append signature to body if HTML and signature exists
+        $finalBody = $body;
+        if ($isHtml && !empty($signature)) {
+            $finalBody = $body . '<br><br>' . $signature;
+        }
+        
         // Contenu
         $mail->isHTML($isHtml);
         $mail->Subject = $subject;
-        $mail->Body    = $body;
+        $mail->Body    = $finalBody;
         
         // Si le contenu est HTML, générer une version texte alternative
         if ($isHtml) {
-            $mail->AltBody = strip_tags($body);
+            $mail->AltBody = strip_tags($finalBody);
         }
         
         // Pièces jointes - supporter un seul fichier ou un array de fichiers

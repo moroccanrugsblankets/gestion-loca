@@ -1,0 +1,57 @@
+<?php
+/**
+ * Unified menu for all admin-v2 pages
+ * My Invest Immobilier
+ */
+
+// Get the current page to highlight active menu item
+$current_page = basename($_SERVER['PHP_SELF']);
+?>
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="logo">
+        <i class="bi bi-building" style="font-size: 2rem;"></i>
+        <h4>MY Invest</h4>
+        <small>Immobilier</small>
+    </div>
+    <ul class="nav flex-column mt-4">
+        <li class="nav-item">
+            <a class="nav-link <?php echo $current_page === 'index.php' ? 'active' : ''; ?>" href="index.php">
+                <i class="bi bi-speedometer2"></i> Tableau de bord
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link <?php echo $current_page === 'candidatures.php' ? 'active' : ''; ?>" href="candidatures.php">
+                <i class="bi bi-file-earmark-text"></i> Candidatures
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link <?php echo $current_page === 'logements.php' ? 'active' : ''; ?>" href="logements.php">
+                <i class="bi bi-house-door"></i> Logements
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link <?php echo $current_page === 'contrats.php' ? 'active' : ''; ?>" href="contrats.php">
+                <i class="bi bi-file-earmark-check"></i> Contrats
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link <?php echo $current_page === 'parametres.php' ? 'active' : ''; ?>" href="parametres.php">
+                <i class="bi bi-gear"></i> Paramètres
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link <?php echo $current_page === 'email-templates.php' ? 'active' : ''; ?>" href="email-templates.php">
+                <i class="bi bi-envelope"></i> Templates d'Email
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link <?php echo $current_page === 'etats-lieux.php' ? 'active' : ''; ?>" href="etats-lieux.php">
+                <i class="bi bi-clipboard-check"></i> États des lieux
+            </a>
+        </li>
+    </ul>
+    <a href="logout.php" class="btn btn-outline-light logout-btn">
+        <i class="bi bi-box-arrow-right"></i> Déconnexion
+    </a>
+</div>
