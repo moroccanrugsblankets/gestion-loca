@@ -93,20 +93,29 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!uploadZone || !fileInput || !fileList) return;
         
         // Drag & Drop
-        uploadZone.addEventListener('dragover', (e) => {
+        let dragCounter = 0;
+        
+        uploadZone.addEventListener('dragenter', (e) => {
             e.preventDefault();
+            dragCounter++;
             uploadZone.classList.add('drag-over');
         });
         
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+        
         uploadZone.addEventListener('dragleave', (e) => {
-            // Only remove if we're actually leaving the upload zone
-            if (e.target === uploadZone) {
+            e.preventDefault();
+            dragCounter--;
+            if (dragCounter === 0) {
                 uploadZone.classList.remove('drag-over');
             }
         });
         
         uploadZone.addEventListener('drop', (e) => {
             e.preventDefault();
+            dragCounter = 0;
             uploadZone.classList.remove('drag-over');
             const droppedFiles = e.dataTransfer.files;
             if (droppedFiles.length > 0) {
@@ -173,6 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const fileItem = document.createElement('div');
         fileItem.className = 'file-list-item';
         fileItem.setAttribute('data-filename', file.name);
+        fileItem.setAttribute('data-doc-type', docType);
         
         // Determine file icon based on type
         const isPDF = file.type === 'application/pdf';
@@ -186,13 +196,55 @@ document.addEventListener('DOMContentLoaded', function() {
                     <span class="file-size">${formatFileSize(file.size)}</span>
                 </div>
             </div>
-            <i class="bi bi-trash-fill btn-remove-file" title="Supprimer ce fichier" onclick="removeFile('${docType}', '${escapeForAttribute(file.name)}')"></i>
+            <button type="button" class="btn-remove-file" title="Supprimer ce fichier" aria-label="Supprimer ${escapeHtml(file.name)}">
+                <i class="bi bi-trash-fill"></i>
+            </button>
         `;
+        
+        // Add click event listener for remove button
+        const removeBtn = fileItem.querySelector('.btn-remove-file');
+        removeBtn.addEventListener('click', () => {
+            removeFileFromList(docType, file.name);
+        });
         
         fileList.appendChild(fileItem);
         
         // Add success indicator to upload zone
         showUploadSuccess(docType);
+    }
+    
+    function removeFileFromList(docType, fileName) {
+        // Find and remove from array
+        documentsByType[docType] = documentsByType[docType].filter(f => f.name !== fileName);
+        
+        // Find and animate removal from display
+        const fileList = document.querySelector(`.file-list[data-doc-type="${docType}"]`);
+        if (!fileList) return;
+        
+        const items = fileList.querySelectorAll('.file-list-item');
+        items.forEach(item => {
+            if (item.getAttribute('data-filename') === fileName) {
+                // Animate removal
+                item.style.transition = 'all 0.3s ease';
+                item.style.opacity = '0';
+                item.style.transform = 'translateX(-20px)';
+                setTimeout(() => {
+                    item.remove();
+                    
+                    // Show feedback if no more files
+                    if (documentsByType[docType].length === 0) {
+                        const uploadZone = document.querySelector(`.document-upload-zone[data-doc-type="${docType}"]`);
+                        if (uploadZone) {
+                            const indicator = uploadZone.querySelector('.file-upload-success');
+                            if (indicator) indicator.remove();
+                        }
+                    }
+                }, 300);
+            }
+        });
+        
+        // Update required badge and file count badge
+        updateRequiredBadge(docType);
     }
     
     function escapeHtml(text) {
@@ -206,13 +258,62 @@ document.addEventListener('DOMContentLoaded', function() {
         return text.replace(/[&<>"']/g, m => map[m]);
     }
     
-    function escapeForAttribute(text) {
-        return text.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    let uploadTimeouts = {};
+    let successTimeouts = {};
+    
+    function handleFiles(files, docType) {
+        if (!files || files.length === 0) return;
+        
+        const uploadZone = document.querySelector(`.document-upload-zone[data-doc-type="${docType}"]`);
+        
+        Array.from(files).forEach(file => {
+            // Vérifier la taille du fichier (max 5 Mo)
+            if (file.size > 5 * 1024 * 1024) {
+                alert(`Le fichier "${file.name}" dépasse la taille maximale de 5 Mo.`);
+                return;
+            }
+            
+            // Vérifier le format
+            const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+            if (!validTypes.includes(file.type)) {
+                alert(`Le fichier "${file.name}" n'est pas au bon format. Formats acceptés : PDF, JPG, PNG.`);
+                return;
+            }
+            
+            // Ajouter une animation visuelle à la zone d'upload
+            if (uploadZone) {
+                // Clear any existing animation timeout
+                if (uploadTimeouts[docType]) {
+                    clearTimeout(uploadTimeouts[docType]);
+                }
+                
+                uploadZone.style.borderColor = '#198754';
+                uploadZone.style.backgroundColor = '#d1e7dd';
+                uploadTimeouts[docType] = setTimeout(() => {
+                    uploadZone.style.borderColor = '';
+                    uploadZone.style.backgroundColor = '';
+                    delete uploadTimeouts[docType];
+                }, 500);
+            }
+            
+            // Ajouter à la liste du type de document correspondant
+            documentsByType[docType].push(file);
+            displayFile(file, docType);
+        });
+        
+        // Mettre à jour le badge requis
+        updateRequiredBadge(docType);
     }
     
     function showUploadSuccess(docType) {
         const uploadZone = document.querySelector(`.document-upload-zone[data-doc-type="${docType}"]`);
         if (!uploadZone) return;
+        
+        // Clear any existing success timeout
+        if (successTimeouts[docType]) {
+            clearTimeout(successTimeouts[docType]);
+            delete successTimeouts[docType];
+        }
         
         // Remove any existing success indicator
         const existingIndicator = uploadZone.querySelector('.file-upload-success');
@@ -227,10 +328,15 @@ document.addEventListener('DOMContentLoaded', function() {
         uploadZone.appendChild(successIndicator);
         
         // Remove indicator after 3 seconds
-        setTimeout(() => {
+        successTimeouts[docType] = setTimeout(() => {
             if (successIndicator.parentNode) {
                 successIndicator.style.opacity = '0';
-                setTimeout(() => successIndicator.remove(), 300);
+                setTimeout(() => {
+                    if (successIndicator.parentNode) {
+                        successIndicator.remove();
+                    }
+                    delete successTimeouts[docType];
+                }, 300);
             }
         }, 3000);
     }
@@ -263,70 +369,17 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!badge) {
                 badge = document.createElement('div');
                 badge.className = 'file-count-badge';
-                badge.style.cssText = `
-                    position: absolute;
-                    top: 10px;
-                    right: 10px;
-                    background-color: #198754;
-                    color: white;
-                    border-radius: 50%;
-                    width: 28px;
-                    height: 28px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-weight: bold;
-                    font-size: 0.875rem;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                    animation: scaleIn 0.3s ease-out;
-                `;
-                uploadZone.style.position = 'relative';
+                badge.setAttribute('aria-label', `${fileCount} fichier(s) téléchargé(s)`);
                 uploadZone.appendChild(badge);
             }
             badge.textContent = fileCount;
+            badge.setAttribute('aria-label', `${fileCount} fichier(s) téléchargé(s)`);
         } else if (badge) {
             badge.remove();
         }
     }
 });
 
-function removeFile(docType, fileName) {
-    // Find and remove from array
-    documentsByType[docType] = documentsByType[docType].filter(f => f.name !== fileName);
-    
-    // Find and animate removal from display
-    const fileList = document.querySelector(`.file-list[data-doc-type="${docType}"]`);
-    if (!fileList) return;
-    
-    const items = fileList.querySelectorAll('.file-list-item');
-    items.forEach(item => {
-        if (item.getAttribute('data-filename') === fileName) {
-            // Animate removal
-            item.style.opacity = '0';
-            item.style.transform = 'translateX(-20px)';
-            setTimeout(() => {
-                item.remove();
-                
-                // Show feedback if no more files
-                if (documentsByType[docType].length === 0) {
-                    const uploadZone = document.querySelector(`.document-upload-zone[data-doc-type="${docType}"]`);
-                    if (uploadZone) {
-                        const indicator = uploadZone.querySelector('.file-upload-success');
-                        if (indicator) indicator.remove();
-                    }
-                }
-            }, 300);
-        }
-    });
-    
-    // Mettre à jour le badge requis
-    const fileInput = document.querySelector(`.document-input[data-doc-type="${docType}"]`);
-    if (fileInput) {
-        if (documentsByType[docType].length === 0) {
-            fileInput.setAttribute('required', 'required');
-        }
-    }
-}
 
 function generateRecapitulatif() {
     const form = document.getElementById('candidatureForm');

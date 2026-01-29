@@ -60,6 +60,7 @@ try {
             text-decoration: underline;
         }
         .document-upload-zone {
+            position: relative;
             border: 2px dashed #dee2e6;
             border-radius: 0.375rem;
             padding: 2rem;
@@ -125,6 +126,8 @@ try {
             color: #6c757d;
         }
         .btn-remove-file {
+            background: none;
+            border: none;
             color: #dc3545;
             cursor: pointer;
             font-size: 1.25rem;
@@ -136,6 +139,27 @@ try {
             background-color: #dc3545;
             color: white;
             transform: scale(1.1);
+        }
+        .btn-remove-file:focus {
+            outline: 2px solid #dc3545;
+            outline-offset: 2px;
+        }
+        .file-count-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #198754;
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.875rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            animation: scaleIn 0.3s ease-out;
         }
         .file-upload-success {
             display: inline-block;
