@@ -244,6 +244,21 @@ function getStatusBadge($status) {
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link" href="parametres.php">
+                    <i class="bi bi-gear"></i> Paramètres
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="email-templates.php">
+                    <i class="bi bi-envelope"></i> Templates d'Email
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="etats-lieux.php">
+                    <i class="bi bi-clipboard-check"></i> États des lieux
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" href="logout.php">
                     <i class="bi bi-box-arrow-right"></i> Déconnexion
                 </a>
@@ -468,6 +483,68 @@ function getStatusBadge($status) {
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
                         <button type="submit" class="btn btn-primary">Confirmer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Send Email Modal -->
+    <div class="modal fade" id="sendEmailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Envoyer un Email</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="send-email-candidature.php" method="POST">
+                    <div class="modal-body">
+                        <input type="hidden" name="candidature_id" value="<?php echo $id; ?>">
+                        <div class="mb-3">
+                            <label class="form-label">Destinataire:</label>
+                            <input type="email" class="form-control" value="<?php echo htmlspecialchars($candidature['email']); ?>" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Sujet:</label>
+                            <input type="text" name="sujet" class="form-control" required placeholder="Objet de l'email">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Message:</label>
+                            <textarea name="message" class="form-control" rows="8" required placeholder="Votre message..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-send"></i> Envoyer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Note Modal -->
+    <div class="modal fade" id="addNoteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ajouter une Note</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="add-note-candidature.php" method="POST">
+                    <div class="modal-body">
+                        <input type="hidden" name="candidature_id" value="<?php echo $id; ?>">
+                        <div class="mb-3">
+                            <label class="form-label">Note:</label>
+                            <textarea name="note" class="form-control" rows="5" required placeholder="Entrez votre note ici..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Enregistrer
+                        </button>
                     </div>
                 </form>
             </div>
