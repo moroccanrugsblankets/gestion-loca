@@ -250,6 +250,33 @@ try {
         logDebug("Email de confirmation envoyé", ['email' => $email]);
     }
     
+    // Envoyer une notification aux administrateurs
+    $adminSubject = 'Nouvelle candidature reçue - ' . $reference_unique;
+    $candidatureData = [
+        'id' => $candidature_id,
+        'reference' => $reference_unique,
+        'nom' => $nom,
+        'prenom' => $prenom,
+        'email' => $email,
+        'telephone' => $telephone,
+        'statut_professionnel' => $_POST['statut_professionnel'],
+        'periode_essai' => $_POST['periode_essai'],
+        'revenus_mensuels' => $_POST['revenus_mensuels'],
+        'type_revenus' => $_POST['type_revenus']
+    ];
+    $adminHtmlBody = getAdminNewCandidatureEmailHTML($candidatureData, $logement, $total_uploaded);
+    
+    $adminEmailResult = sendEmailToAdmins($adminSubject, $adminHtmlBody, null, true);
+    if ($adminEmailResult['success']) {
+        logDebug("Notification admin envoyée", ['sent_to' => $adminEmailResult['sent_to']]);
+        // Log warning if partial success
+        if (!empty($adminEmailResult['partial_success'])) {
+            logDebug("Attention: Notification partielle", ['errors' => $adminEmailResult['errors']]);
+        }
+    } else {
+        logDebug("Erreur notification admin", ['errors' => $adminEmailResult['errors']]);
+    }
+    
     // Retourner le succès
     logDebug("Candidature traitée avec succès", ['id' => $candidature_id, 'documents' => $total_uploaded]);
     echo json_encode([
