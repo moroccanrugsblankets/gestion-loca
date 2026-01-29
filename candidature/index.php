@@ -75,18 +75,102 @@ try {
             border-color: #0d6efd;
             background-color: #cfe2ff;
         }
+        .file-list {
+            min-height: 0;
+            transition: all 0.3s ease;
+        }
         .file-list-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0.5rem;
+            padding: 0.75rem;
             margin-bottom: 0.5rem;
             background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
             border-radius: 0.375rem;
+            animation: slideIn 0.3s ease-out;
+            transition: all 0.2s ease;
+        }
+        .file-list-item:hover {
+            background-color: #e9ecef;
+            border-color: #dee2e6;
+            transform: translateX(2px);
+        }
+        .file-list-item .file-info {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+        .file-list-item .file-icon {
+            font-size: 1.5rem;
+            margin-right: 0.75rem;
+        }
+        .file-list-item .file-icon.pdf {
+            color: #dc3545;
+        }
+        .file-list-item .file-icon.image {
+            color: #0d6efd;
+        }
+        .file-list-item .file-details {
+            display: flex;
+            flex-direction: column;
+        }
+        .file-list-item .file-name {
+            font-weight: 500;
+            color: #212529;
+            word-break: break-word;
+        }
+        .file-list-item .file-size {
+            font-size: 0.875rem;
+            color: #6c757d;
         }
         .btn-remove-file {
             color: #dc3545;
             cursor: pointer;
+            font-size: 1.25rem;
+            padding: 0.25rem;
+            transition: all 0.2s ease;
+            border-radius: 0.25rem;
+        }
+        .btn-remove-file:hover {
+            background-color: #dc3545;
+            color: white;
+            transform: scale(1.1);
+        }
+        .file-upload-success {
+            display: inline-block;
+            color: #198754;
+            font-size: 0.875rem;
+            margin-left: 0.5rem;
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
     </style>
 </head>

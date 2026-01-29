@@ -98,23 +98,38 @@ document.addEventListener('DOMContentLoaded', function() {
             uploadZone.classList.add('drag-over');
         });
         
-        uploadZone.addEventListener('dragleave', () => {
-            uploadZone.classList.remove('drag-over');
+        uploadZone.addEventListener('dragleave', (e) => {
+            // Only remove if we're actually leaving the upload zone
+            if (e.target === uploadZone) {
+                uploadZone.classList.remove('drag-over');
+            }
         });
         
         uploadZone.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadZone.classList.remove('drag-over');
-            handleFiles(e.dataTransfer.files, docType);
+            const droppedFiles = e.dataTransfer.files;
+            if (droppedFiles.length > 0) {
+                handleFiles(droppedFiles, docType);
+            }
         });
         
         // Click pour parcourir
         fileInput.addEventListener('change', (e) => {
-            handleFiles(e.target.files, docType);
+            const selectedFiles = e.target.files;
+            if (selectedFiles.length > 0) {
+                handleFiles(selectedFiles, docType);
+            }
+            // Reset input to allow re-selecting the same file if needed
+            e.target.value = '';
         });
     });
     
     function handleFiles(files, docType) {
+        if (!files || files.length === 0) return;
+        
+        const uploadZone = document.querySelector(`.document-upload-zone[data-doc-type="${docType}"]`);
+        
         Array.from(files).forEach(file => {
             // Vérifier la taille du fichier (max 5 Mo)
             if (file.size > 5 * 1024 * 1024) {
@@ -129,6 +144,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            // Ajouter une animation visuelle à la zone d'upload
+            if (uploadZone) {
+                uploadZone.style.borderColor = '#198754';
+                uploadZone.style.backgroundColor = '#d1e7dd';
+                setTimeout(() => {
+                    uploadZone.style.borderColor = '';
+                    uploadZone.style.backgroundColor = '';
+                }, 500);
+            }
+            
             // Ajouter à la liste du type de document correspondant
             documentsByType[docType].push(file);
             displayFile(file, docType);
@@ -140,18 +165,74 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function displayFile(file, docType) {
         const fileList = document.querySelector(`.file-list[data-doc-type="${docType}"]`);
+        if (!fileList) {
+            console.error(`File list not found for doc type: ${docType}`);
+            return;
+        }
+        
         const fileItem = document.createElement('div');
         fileItem.className = 'file-list-item';
         fileItem.setAttribute('data-filename', file.name);
+        
+        // Determine file icon based on type
+        const isPDF = file.type === 'application/pdf';
+        const iconClass = isPDF ? 'bi-file-earmark-pdf-fill pdf' : 'bi-file-earmark-image-fill image';
+        
         fileItem.innerHTML = `
-            <div>
-                <i class="bi bi-file-earmark-text me-2"></i>
-                <span>${file.name}</span>
-                <small class="text-muted ms-2">(${formatFileSize(file.size)})</small>
+            <div class="file-info">
+                <i class="bi ${iconClass} file-icon"></i>
+                <div class="file-details">
+                    <span class="file-name">${escapeHtml(file.name)}</span>
+                    <span class="file-size">${formatFileSize(file.size)}</span>
+                </div>
             </div>
-            <i class="bi bi-trash btn-remove-file" onclick="removeFile('${docType}', '${file.name.replace(/'/g, "\\'")}')"></i>
+            <i class="bi bi-trash-fill btn-remove-file" title="Supprimer ce fichier" onclick="removeFile('${docType}', '${escapeForAttribute(file.name)}')"></i>
         `;
+        
         fileList.appendChild(fileItem);
+        
+        // Add success indicator to upload zone
+        showUploadSuccess(docType);
+    }
+    
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+    
+    function escapeForAttribute(text) {
+        return text.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    }
+    
+    function showUploadSuccess(docType) {
+        const uploadZone = document.querySelector(`.document-upload-zone[data-doc-type="${docType}"]`);
+        if (!uploadZone) return;
+        
+        // Remove any existing success indicator
+        const existingIndicator = uploadZone.querySelector('.file-upload-success');
+        if (existingIndicator) {
+            existingIndicator.remove();
+        }
+        
+        // Add success indicator
+        const successIndicator = document.createElement('div');
+        successIndicator.className = 'file-upload-success';
+        successIndicator.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Fichier ajouté !';
+        uploadZone.appendChild(successIndicator);
+        
+        // Remove indicator after 3 seconds
+        setTimeout(() => {
+            if (successIndicator.parentNode) {
+                successIndicator.style.opacity = '0';
+                setTimeout(() => successIndicator.remove(), 300);
+            }
+        }, 3000);
     }
     
     function formatFileSize(bytes) {
@@ -162,31 +243,88 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function updateRequiredBadge(docType) {
         const fileInput = document.querySelector(`.document-input[data-doc-type="${docType}"]`);
-        if (documentsByType[docType].length > 0) {
+        const uploadZone = document.querySelector(`.document-upload-zone[data-doc-type="${docType}"]`);
+        
+        if (!fileInput || !uploadZone) return;
+        
+        const fileCount = documentsByType[docType].length;
+        
+        // Update required attribute
+        if (fileCount > 0) {
             fileInput.removeAttribute('required');
             fileInput.classList.remove('is-invalid');
         } else {
             fileInput.setAttribute('required', 'required');
         }
+        
+        // Add/update file count badge
+        let badge = uploadZone.querySelector('.file-count-badge');
+        if (fileCount > 0) {
+            if (!badge) {
+                badge = document.createElement('div');
+                badge.className = 'file-count-badge';
+                badge.style.cssText = `
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    background-color: #198754;
+                    color: white;
+                    border-radius: 50%;
+                    width: 28px;
+                    height: 28px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                    font-size: 0.875rem;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                    animation: scaleIn 0.3s ease-out;
+                `;
+                uploadZone.style.position = 'relative';
+                uploadZone.appendChild(badge);
+            }
+            badge.textContent = fileCount;
+        } else if (badge) {
+            badge.remove();
+        }
     }
 });
 
 function removeFile(docType, fileName) {
+    // Find and remove from array
     documentsByType[docType] = documentsByType[docType].filter(f => f.name !== fileName);
     
-    // Mettre à jour l'affichage
+    // Find and animate removal from display
     const fileList = document.querySelector(`.file-list[data-doc-type="${docType}"]`);
+    if (!fileList) return;
+    
     const items = fileList.querySelectorAll('.file-list-item');
     items.forEach(item => {
         if (item.getAttribute('data-filename') === fileName) {
-            item.remove();
+            // Animate removal
+            item.style.opacity = '0';
+            item.style.transform = 'translateX(-20px)';
+            setTimeout(() => {
+                item.remove();
+                
+                // Show feedback if no more files
+                if (documentsByType[docType].length === 0) {
+                    const uploadZone = document.querySelector(`.document-upload-zone[data-doc-type="${docType}"]`);
+                    if (uploadZone) {
+                        const indicator = uploadZone.querySelector('.file-upload-success');
+                        if (indicator) indicator.remove();
+                    }
+                }
+            }, 300);
         }
     });
     
     // Mettre à jour le badge requis
     const fileInput = document.querySelector(`.document-input[data-doc-type="${docType}"]`);
-    if (documentsByType[docType].length === 0) {
-        fileInput.setAttribute('required', 'required');
+    if (fileInput) {
+        if (documentsByType[docType].length === 0) {
+            fileInput.setAttribute('required', 'required');
+        }
     }
 }
 
