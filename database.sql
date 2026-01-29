@@ -106,7 +106,7 @@ CREATE TABLE IF NOT EXISTS candidatures (
 CREATE TABLE IF NOT EXISTS candidature_documents (
     id INT AUTO_INCREMENT PRIMARY KEY,
     candidature_id INT NOT NULL,
-    type_document ENUM('piece_identite', 'justificatif_revenus', 'justificatif_domicile', 'autre') NOT NULL,
+    type_document ENUM('piece_identite', 'bulletins_salaire', 'contrat_travail', 'avis_imposition', 'quittances_loyer', 'justificatif_revenus', 'justificatif_domicile', 'autre') NOT NULL,
     nom_fichier VARCHAR(255) NOT NULL,
     nom_original VARCHAR(255) NOT NULL,
     chemin_fichier VARCHAR(500) NOT NULL,

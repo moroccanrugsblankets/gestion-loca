@@ -358,24 +358,105 @@ try {
                                 <h5 class="mb-0"><i class="bi bi-file-earmark-text-fill me-2"></i>Pièces Justificatives</h5>
                             </div>
                             <div class="card-body">
-                                <p class="text-muted mb-3">
+                                <p class="text-muted mb-4">
                                     <i class="bi bi-info-circle"></i> 
-                                    Merci de joindre vos documents administratifs (pièce d'identité, justificatifs de revenus, etc.)
+                                    Tous les documents ci-dessous sont obligatoires. Formats acceptés : PDF, JPG, PNG (max 5 Mo par fichier)
                                 </p>
 
-                                <div class="document-upload-zone" id="uploadZone">
-                                    <i class="bi bi-cloud-upload fs-1 text-muted"></i>
-                                    <p class="mb-2">Glissez-déposez vos fichiers ici</p>
-                                    <p class="text-muted small">ou</p>
-                                    <label for="documents" class="btn btn-outline-primary">
-                                        <i class="bi bi-folder2-open"></i> Parcourir les fichiers
+                                <!-- Pièce d'identité -->
+                                <div class="mb-4">
+                                    <label class="form-label required-field">
+                                        <i class="bi bi-person-vcard me-2"></i>
+                                        Pièce d'identité ou passeport en cours de validité
                                     </label>
-                                    <input type="file" class="d-none" id="documents" name="documents[]" multiple 
-                                           accept=".pdf,.jpg,.jpeg,.png" required>
-                                    <p class="text-muted small mt-2">Formats acceptés : PDF, JPG, PNG (max 5 Mo par fichier)</p>
+                                    <div class="document-upload-zone" data-doc-type="piece_identite">
+                                        <i class="bi bi-cloud-upload fs-3 text-muted"></i>
+                                        <p class="mb-2">Glissez-déposez vos fichiers ici ou</p>
+                                        <label class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-folder2-open"></i> Parcourir
+                                            <input type="file" class="d-none document-input" name="piece_identite[]" 
+                                                   accept=".pdf,.jpg,.jpeg,.png" multiple required 
+                                                   data-doc-type="piece_identite">
+                                        </label>
+                                    </div>
+                                    <div class="file-list mt-2" data-doc-type="piece_identite"></div>
                                 </div>
 
-                                <div id="fileList" class="mt-3"></div>
+                                <!-- Bulletins de salaire -->
+                                <div class="mb-4">
+                                    <label class="form-label required-field">
+                                        <i class="bi bi-file-earmark-text me-2"></i>
+                                        3 derniers bulletins de salaire
+                                    </label>
+                                    <div class="document-upload-zone" data-doc-type="bulletins_salaire">
+                                        <i class="bi bi-cloud-upload fs-3 text-muted"></i>
+                                        <p class="mb-2">Glissez-déposez vos fichiers ici ou</p>
+                                        <label class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-folder2-open"></i> Parcourir
+                                            <input type="file" class="d-none document-input" name="bulletins_salaire[]" 
+                                                   accept=".pdf,.jpg,.jpeg,.png" multiple required 
+                                                   data-doc-type="bulletins_salaire">
+                                        </label>
+                                    </div>
+                                    <div class="file-list mt-2" data-doc-type="bulletins_salaire"></div>
+                                </div>
+
+                                <!-- Contrat de travail -->
+                                <div class="mb-4">
+                                    <label class="form-label required-field">
+                                        <i class="bi bi-file-earmark-check me-2"></i>
+                                        Contrat de travail
+                                    </label>
+                                    <div class="document-upload-zone" data-doc-type="contrat_travail">
+                                        <i class="bi bi-cloud-upload fs-3 text-muted"></i>
+                                        <p class="mb-2">Glissez-déposez vos fichiers ici ou</p>
+                                        <label class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-folder2-open"></i> Parcourir
+                                            <input type="file" class="d-none document-input" name="contrat_travail[]" 
+                                                   accept=".pdf,.jpg,.jpeg,.png" multiple required 
+                                                   data-doc-type="contrat_travail">
+                                        </label>
+                                    </div>
+                                    <div class="file-list mt-2" data-doc-type="contrat_travail"></div>
+                                </div>
+
+                                <!-- Avis d'imposition -->
+                                <div class="mb-4">
+                                    <label class="form-label required-field">
+                                        <i class="bi bi-file-earmark-ruled me-2"></i>
+                                        Dernier avis d'imposition
+                                    </label>
+                                    <div class="document-upload-zone" data-doc-type="avis_imposition">
+                                        <i class="bi bi-cloud-upload fs-3 text-muted"></i>
+                                        <p class="mb-2">Glissez-déposez vos fichiers ici ou</p>
+                                        <label class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-folder2-open"></i> Parcourir
+                                            <input type="file" class="d-none document-input" name="avis_imposition[]" 
+                                                   accept=".pdf,.jpg,.jpeg,.png" multiple required 
+                                                   data-doc-type="avis_imposition">
+                                        </label>
+                                    </div>
+                                    <div class="file-list mt-2" data-doc-type="avis_imposition"></div>
+                                </div>
+
+                                <!-- Quittances de loyer -->
+                                <div class="mb-4">
+                                    <label class="form-label required-field">
+                                        <i class="bi bi-receipt me-2"></i>
+                                        3 dernières quittances de loyer
+                                    </label>
+                                    <div class="document-upload-zone" data-doc-type="quittances_loyer">
+                                        <i class="bi bi-cloud-upload fs-3 text-muted"></i>
+                                        <p class="mb-2">Glissez-déposez vos fichiers ici ou</p>
+                                        <label class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-folder2-open"></i> Parcourir
+                                            <input type="file" class="d-none document-input" name="quittances_loyer[]" 
+                                                   accept=".pdf,.jpg,.jpeg,.png" multiple required 
+                                                   data-doc-type="quittances_loyer">
+                                        </label>
+                                    </div>
+                                    <div class="file-list mt-2" data-doc-type="quittances_loyer"></div>
+                                </div>
                             </div>
                         </div>
 

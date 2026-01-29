@@ -208,7 +208,7 @@ $recent_candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <tbody>
                             <?php foreach ($recent_candidatures as $cand): ?>
                             <tr>
-                                <td><code><?php echo htmlspecialchars($cand['reference_candidature']); ?></code></td>
+                                <td><code><?php echo htmlspecialchars($cand['reference_unique'] ?? 'N/A'); ?></code></td>
                                 <td><?php echo htmlspecialchars($cand['prenom'] . ' ' . $cand['nom']); ?></td>
                                 <td><?php echo htmlspecialchars($cand['email']); ?></td>
                                 <td><?php echo htmlspecialchars($cand['telephone']); ?></td>

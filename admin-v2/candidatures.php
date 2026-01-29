@@ -17,7 +17,7 @@ if ($filter_statut) {
 }
 
 if ($filter_search) {
-    $where[] = "(c.nom LIKE ? OR c.prenom LIKE ? OR c.email LIKE ? OR c.reference_candidature LIKE ?)";
+    $where[] = "(c.nom LIKE ? OR c.prenom LIKE ? OR c.email LIKE ? OR c.reference_unique LIKE ?)";
     $searchTerm = "%$filter_search%";
     $params[] = $searchTerm;
     $params[] = $searchTerm;
@@ -183,7 +183,7 @@ $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <tbody>
                             <?php foreach ($candidatures as $cand): ?>
                             <tr>
-                                <td><code><?php echo htmlspecialchars($cand['reference_candidature']); ?></code></td>
+                                <td><code><?php echo htmlspecialchars($cand['reference_unique'] ?? 'N/A'); ?></code></td>
                                 <td>
                                     <strong><?php echo htmlspecialchars($cand['prenom'] . ' ' . $cand['nom']); ?></strong>
                                 </td>
@@ -194,7 +194,7 @@ $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     </small>
                                 </td>
                                 <td><small><?php echo htmlspecialchars($cand['statut_professionnel']); ?></small></td>
-                                <td><small><?php echo htmlspecialchars($cand['revenus_nets_mensuels']); ?></small></td>
+                                <td><small><?php echo htmlspecialchars($cand['revenus_mensuels'] ?? 'N/A'); ?></small></td>
                                 <td>
                                     <?php if ($cand['logement_ref']): ?>
                                         <small><?php echo htmlspecialchars($cand['logement_ref']); ?></small>
