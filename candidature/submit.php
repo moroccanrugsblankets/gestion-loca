@@ -269,6 +269,10 @@ try {
     $adminEmailResult = sendEmailToAdmins($adminSubject, $adminHtmlBody, null, true);
     if ($adminEmailResult['success']) {
         logDebug("Notification admin envoyée", ['sent_to' => $adminEmailResult['sent_to']]);
+        // Log warning if partial success
+        if (!empty($adminEmailResult['partial_success'])) {
+            logDebug("Attention: Notification partielle", ['errors' => $adminEmailResult['errors']]);
+        }
     } else {
         logDebug("Erreur notification admin", ['errors' => $adminEmailResult['errors']]);
     }

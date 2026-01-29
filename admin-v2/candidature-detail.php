@@ -33,6 +33,7 @@ if (!$candidature) {
 // Fetch action history
 // Try to fetch logs using candidature_id first (if column exists)
 // Fallback to using type_entite and entite_id (polymorphic structure)
+$logs = [];
 try {
     $stmt = $pdo->prepare("
         SELECT * FROM logs 
@@ -43,13 +44,19 @@ try {
     $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     // If candidature_id column doesn't exist, use polymorphic structure
-    $stmt = $pdo->prepare("
-        SELECT * FROM logs 
-        WHERE type_entite = 'candidature' AND entite_id = ? 
-        ORDER BY created_at DESC
-    ");
-    $stmt->execute([$id]);
-    $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    try {
+        $stmt = $pdo->prepare("
+            SELECT * FROM logs 
+            WHERE type_entite = 'candidature' AND entite_id = ? 
+            ORDER BY created_at DESC
+        ");
+        $stmt->execute([$id]);
+        $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e2) {
+        // If both queries fail, log the error and continue with empty logs
+        error_log("Error fetching logs for candidature #$id: " . $e2->getMessage());
+        $logs = [];
+    }
 }
 
 // Process documents

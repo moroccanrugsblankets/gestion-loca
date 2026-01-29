@@ -522,18 +522,35 @@ function sendEmailToAdmins($subject, $body, $attachmentPath = null, $isHtml = tr
     
     // Email principal
     if (!empty($config['ADMIN_EMAIL'])) {
-        $adminEmails[] = $config['ADMIN_EMAIL'];
+        // Validate email format
+        if (filter_var($config['ADMIN_EMAIL'], FILTER_VALIDATE_EMAIL)) {
+            $adminEmails[] = $config['ADMIN_EMAIL'];
+        } else {
+            $results['errors'][] = "Invalid ADMIN_EMAIL format: " . $config['ADMIN_EMAIL'];
+            error_log("Invalid ADMIN_EMAIL configured: " . $config['ADMIN_EMAIL']);
+        }
     }
     
     // Email secondaire (si configuré)
     if (!empty($config['ADMIN_EMAIL_SECONDARY'])) {
-        $adminEmails[] = $config['ADMIN_EMAIL_SECONDARY'];
+        // Validate email format
+        if (filter_var($config['ADMIN_EMAIL_SECONDARY'], FILTER_VALIDATE_EMAIL)) {
+            $adminEmails[] = $config['ADMIN_EMAIL_SECONDARY'];
+        } else {
+            $results['errors'][] = "Invalid ADMIN_EMAIL_SECONDARY format: " . $config['ADMIN_EMAIL_SECONDARY'];
+            error_log("Invalid ADMIN_EMAIL_SECONDARY configured: " . $config['ADMIN_EMAIL_SECONDARY']);
+        }
     }
     
     // Si aucun email admin configuré, utiliser l'email de la société
     if (empty($adminEmails) && !empty($config['COMPANY_EMAIL'])) {
-        $adminEmails[] = $config['COMPANY_EMAIL'];
+        if (filter_var($config['COMPANY_EMAIL'], FILTER_VALIDATE_EMAIL)) {
+            $adminEmails[] = $config['COMPANY_EMAIL'];
+        }
     }
+    
+    // Count configured emails for partial success detection
+    $totalConfigured = count($adminEmails);
     
     // Envoyer à chaque administrateur
     foreach ($adminEmails as $adminEmail) {
@@ -549,6 +566,13 @@ function sendEmailToAdmins($subject, $body, $attachmentPath = null, $isHtml = tr
             $results['errors'][] = "Exception lors de l'envoi à $adminEmail: " . $e->getMessage();
             error_log("Erreur sendEmailToAdmins pour $adminEmail: " . $e->getMessage());
         }
+    }
+    
+    // Log warning if partial success (some but not all emails sent)
+    if ($results['success'] && count($results['sent_to']) < $totalConfigured) {
+        $partialMessage = "Partial success: " . count($results['sent_to']) . " of $totalConfigured admin emails sent";
+        error_log("WARNING: $partialMessage");
+        $results['partial_success'] = true;
     }
     
     return $results;
@@ -594,7 +618,7 @@ function getAdminNewCandidatureEmailHTML($candidature, $logement, $nb_documents)
             
             <div class="info-box">
                 <h3>👤 Informations du Candidat</h3>
-                <div class="info-item"><strong>Nom :</strong> ' . htmlspecialchars($candidature['nom'] . ' ' . $candidature['prenom']) . '</div>
+                <div class="info-item"><strong>Nom :</strong> ' . htmlspecialchars($candidature['nom']) . ' ' . htmlspecialchars($candidature['prenom']) . '</div>
                 <div class="info-item"><strong>Email :</strong> <a href="mailto:' . htmlspecialchars($candidature['email']) . '">' . htmlspecialchars($candidature['email']) . '</a></div>
                 <div class="info-item"><strong>Téléphone :</strong> ' . htmlspecialchars($candidature['telephone']) . '</div>
                 <div class="info-item"><strong>Référence :</strong> ' . htmlspecialchars($candidature['reference']) . '</div>
