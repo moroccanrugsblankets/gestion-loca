@@ -19,17 +19,16 @@ function splitSqlStatements($sql) {
     $inString = false;
     $stringChar = null;
     $escaped = false;
-    $inComment = false;
     $length = strlen($sql);
     
     for ($i = 0; $i < $length; $i++) {
         $char = $sql[$i];
         $nextChar = ($i + 1 < $length) ? $sql[$i + 1] : null;
-        $prevChar = ($i > 0) ? $sql[$i - 1] : null;
         
         // Handle line comments
         if (!$inString && $char === '-' && $nextChar === '-') {
-            // Skip until end of line
+            // Add newline to preserve token boundaries, then skip until end of line
+            $currentStatement .= "\n";
             while ($i < $length && $sql[$i] !== "\n") {
                 $i++;
             }
