@@ -109,9 +109,13 @@ try {
     echo "Found " . count($trackedMigrations) . " tracked migration(s)\n\n";
     
     // Define mapping of migrations to their expected tables
+    // NOTE: When adding new migrations that create tables, update this mapping
+    // to enable automatic verification and fixing
     $migrationToTable = [
         '002_create_parametres_table.sql' => 'parametres',
         '003_create_email_templates_table.sql' => 'email_templates',
+        // Add new table-creating migrations here in the format:
+        // 'migration_filename.sql' => 'table_name',
     ];
     
     $toRerun = [];

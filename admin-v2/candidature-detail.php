@@ -2,6 +2,7 @@
 require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
+require_once '../includes/document-types.php';
 
 // Get application ID and validate
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -67,16 +68,6 @@ try {
 
 // Process documents and group by type
 $documentsByType = [];
-$documentTypeLabels = [
-    'piece_identite' => 'Pièce d\'identité',
-    'bulletins_salaire' => 'Bulletins de salaire',
-    'contrat_travail' => 'Contrat de travail',
-    'avis_imposition' => 'Avis d\'imposition',
-    'quittances_loyer' => 'Quittances de loyer',
-    'justificatif_revenus' => 'Justificatif de revenus',
-    'justificatif_domicile' => 'Justificatif de domicile',
-    'autre' => 'Autre document'
-];
 
 foreach ($allDocuments as $doc) {
     $type = $doc['type_document'];
@@ -375,16 +366,7 @@ function getStatusBadge($status) {
                             <div class="document-type-section">
                                 <div class="document-type-header">
                                     <i class="bi bi-folder"></i> 
-                                    <?php 
-                                    if (isset($documentTypeLabels[$type])) {
-                                        echo htmlspecialchars($documentTypeLabels[$type]);
-                                    } else {
-                                        // Log unexpected document type
-                                        error_log("Unexpected document type: $type for candidature #$id");
-                                        // Display formatted fallback
-                                        echo htmlspecialchars(ucfirst(str_replace('_', ' ', $type)));
-                                    }
-                                    ?>
+                                    <?php echo htmlspecialchars(getDocumentTypeLabel($type)); ?>
                                 </div>
                                 <?php foreach ($docs as $doc): ?>
                                     <div class="document-item">
