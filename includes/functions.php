@@ -122,7 +122,14 @@ function getContractByToken($token) {
  * @return bool
  */
 function isContractValid($contract) {
-    if (!$contract || $contract['statut'] !== 'en_attente') {
+    if (!$contract) {
+        return false;
+    }
+    
+    // Accept both 'en_attente' and 'contrat_envoye' statuses
+    // 'contrat_envoye' is set when signature link is sent via envoyer-signature.php
+    $validStatuses = ['en_attente', 'contrat_envoye'];
+    if (!in_array($contract['statut'], $validStatuses)) {
         return false;
     }
     
@@ -173,12 +180,32 @@ function createTenant($contratId, $ordre, $data) {
  * @return bool
  */
 function updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve) {
+    // Validate signature data size (LONGTEXT max is ~4GB, but we set a reasonable limit)
+    // Canvas PNG data URLs are typically 100-500KB
+    $maxSize = 2 * 1024 * 1024; // 2MB limit
+    if (strlen($signatureData) > $maxSize) {
+        error_log("Signature data too large: " . strlen($signatureData) . " bytes for locataire ID: $locataireId");
+        return false;
+    }
+    
+    // Validate that signature data is a valid data URL
+    if (!preg_match('/^data:image\/(png|jpeg|jpg);base64,/', $signatureData)) {
+        error_log("Invalid signature data format for locataire ID: $locataireId");
+        return false;
+    }
+    
     $sql = "UPDATE locataires 
             SET signature_data = ?, signature_ip = ?, signature_timestamp = NOW(), mention_lu_approuve = ?
             WHERE id = ?";
     
     $stmt = executeQuery($sql, [$signatureData, getClientIp(), $mentionLuApprouve, $locataireId]);
-    return $stmt !== false;
+    
+    if ($stmt === false) {
+        error_log("Failed to update signature for locataire ID: $locataireId");
+        return false;
+    }
+    
+    return true;
 }
 
 /**

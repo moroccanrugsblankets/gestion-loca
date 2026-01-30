@@ -342,7 +342,7 @@ try {
                     <div class="form-section" data-section="3">
                         <div class="card shadow-sm">
                             <div class="card-header bg-primary text-white">
-                                <h5 class="mb-0"><i class="bi bi-cash-stack me-2"></i>Revenus & Solvabilité</h5>
+                                <h5 class="mb-0"><i class="bi bi-cash-stack me-2"></i>Revenus</h5>
                             </div>
                             <div class="card-body">
                                 <div class="mb-3">
@@ -382,7 +382,7 @@ try {
                     <div class="form-section" data-section="4">
                         <div class="card shadow-sm">
                             <div class="card-header bg-primary text-white">
-                                <h5 class="mb-0"><i class="bi bi-house-fill me-2"></i>Situation de Logement Actuelle</h5>
+                                <h5 class="mb-0"><i class="bi bi-house-fill me-2"></i>Logement Actuel</h5>
                             </div>
                             <div class="card-body">
                                 <div class="mb-3">
@@ -422,7 +422,7 @@ try {
                     <div class="form-section" data-section="5">
                         <div class="card shadow-sm">
                             <div class="card-header bg-primary text-white">
-                                <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>Occupation & Garanties</h5>
+                                <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>Occupation</h5>
                             </div>
                             <div class="card-body">
                                 <div class="mb-3">
@@ -466,7 +466,7 @@ try {
                     <div class="form-section" data-section="6">
                         <div class="card shadow-sm">
                             <div class="card-header bg-primary text-white">
-                                <h5 class="mb-0"><i class="bi bi-file-earmark-text-fill me-2"></i>Pièces Justificatives</h5>
+                                <h5 class="mb-0"><i class="bi bi-file-earmark-text-fill me-2"></i>Documents</h5>
                             </div>
                             <div class="card-body">
                                 <p class="text-muted mb-4">
