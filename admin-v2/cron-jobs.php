@@ -108,6 +108,30 @@ $stmt = $pdo->query("
 ");
 $pending_responses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Get recently auto-refused candidatures (created in last 7 days)
+$stmt = $pdo->query("
+    SELECT 
+        c.id,
+        c.reference_unique,
+        c.nom,
+        c.prenom,
+        c.email,
+        c.created_at,
+        c.statut,
+        c.reponse_automatique,
+        c.motif_refus,
+        l.reference as logement_reference
+    FROM candidatures c
+    LEFT JOIN logements l ON c.logement_id = l.id
+    WHERE c.statut = 'refuse' 
+    AND c.reponse_automatique = 'refuse'
+    AND c.motif_refus IS NOT NULL
+    AND c.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    ORDER BY c.created_at DESC
+    LIMIT 50
+");
+$auto_refused = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 // Calculate expected response date for each candidature
 $delaiValeur = (int)getParameter('delai_reponse_valeur', 4);
 $delaiUnite = getParameter('delai_reponse_unite', 'jours');
@@ -314,6 +338,86 @@ $delaiUnite = getParameter('delai_reponse_unite', 'jours');
                         <i class="bi bi-exclamation-triangle"></i> 
                         <strong>Note:</strong> Le traitement automatique s'exécute quotidiennement à 9h00. 
                         Les candidatures marquées "Prêt à traiter" seront traitées lors de la prochaine exécution du cron.
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Recently Auto-Refused Candidatures Section -->
+        <div class="card mb-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-x-circle"></i> Candidatures Auto-Refusées Récemment
+                </h5>
+                <small>Candidatures automatiquement refusées lors de la soumission (derniers 7 jours)</small>
+            </div>
+            <div class="card-body">
+                <?php if (empty($auto_refused)): ?>
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle"></i> Aucune candidature auto-refusée récemment.
+                    </div>
+                <?php else: ?>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> 
+                        <strong>Info:</strong> Ces candidatures ont été automatiquement refusées à la soumission car elles ne répondaient pas aux critères minimums.
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Référence</th>
+                                    <th>Candidat</th>
+                                    <th>Email</th>
+                                    <th>Logement</th>
+                                    <th>Date Soumission</th>
+                                    <th>Motif Refus</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($auto_refused as $refused): ?>
+                                <tr>
+                                    <td>
+                                        <code><?php echo htmlspecialchars($refused['reference_unique']); ?></code>
+                                    </td>
+                                    <td>
+                                        <strong><?php echo htmlspecialchars($refused['prenom'] . ' ' . $refused['nom']); ?></strong>
+                                    </td>
+                                    <td>
+                                        <small><?php echo htmlspecialchars($refused['email']); ?></small>
+                                    </td>
+                                    <td>
+                                        <?php echo htmlspecialchars($refused['logement_reference'] ?? 'N/A'); ?>
+                                    </td>
+                                    <td>
+                                        <small><?php echo date('d/m/Y H:i', strtotime($refused['created_at'])); ?></small>
+                                    </td>
+                                    <td>
+                                        <small class="text-danger">
+                                            <?php 
+                                            $motif = $refused['motif_refus'];
+                                            echo htmlspecialchars(strlen($motif) > 50 ? substr($motif, 0, 50) . '...' : $motif); 
+                                            ?>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <a href="candidature-detail.php?id=<?php echo $refused['id']; ?>" 
+                                           class="btn btn-sm btn-outline-primary" 
+                                           title="Voir détails">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        <strong>Note:</strong> Ces candidatures ont reçu un email de refus immédiatement lors de la soumission. 
+                        Elles ne nécessitent pas de traitement automatique supplémentaire.
                     </div>
                 <?php endif; ?>
             </div>

@@ -85,7 +85,13 @@ try {
     
     echo "\n=== Migration Complete ===\n";
     echo "Fixed $fixed_count candidatures.\n";
-    echo "These candidatures are now correctly marked as automatically processed (reponse_automatique='refuse').\n";
+    echo "These candidatures are now correctly marked as automatically processed (reponse_automatique='refuse').\n\n";
+    echo "IMPORTANT:\n";
+    echo "- These candidatures will NOT appear in 'Réponses Automatiques Programmées' on the cron-jobs page.\n";
+    echo "- This is correct behavior: they were automatically refused at creation and are already processed.\n";
+    echo "- They appear in the candidatures list with statut='refuse'.\n";
+    echo "- Only candidatures with statut='en_cours' appear in 'Réponses Automatiques Programmées'.\n";
+    echo "- A new section 'Candidatures Auto-Refusées Récemment' has been added to show recent auto-refused candidatures.\n";
     
 } catch (Exception $e) {
     if ($pdo->inTransaction()) {
