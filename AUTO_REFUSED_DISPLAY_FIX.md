@@ -6,7 +6,7 @@
 ## Problem Statement
 
 After running the migration script `php migrations/fix_auto_refused_candidatures.php`, users saw the message:
-> "J'ai executé php migrations/fix_auto_refused_candidatures.php mais toujours aucune Réponses Automatiques Programmées : Aucune candidature en attente de réponse automatique."
+> "J'ai exécuté php migrations/fix_auto_refused_candidatures.php mais toujours aucune Réponses Automatiques Programmées : Aucune candidature en attente de réponse automatique."
 
 **Translation:** "I executed the migration script but still no Scheduled Automatic Responses: No candidature waiting for automatic response."
 

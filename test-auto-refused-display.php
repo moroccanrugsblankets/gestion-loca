@@ -3,9 +3,10 @@
  * Test script to verify auto-refused candidatures display
  * 
  * This script tests:
- * 1. Query for recently auto-refused candidatures works
- * 2. The data is correctly structured
- * 3. The cron-jobs.php page will display them correctly
+ * 1. Query for pending automatic responses works
+ * 2. Query for recently auto-refused candidatures works
+ * 3. The data is correctly structured
+ * 4. The cron-jobs.php page will display them correctly
  */
 
 require_once __DIR__ . '/includes/config.php';
@@ -71,7 +72,7 @@ try {
         WHERE statut = 'refuse'
         AND reponse_automatique = 'en_attente'
     ");
-    $mismatched_count = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+    $mismatched_count = (int)$stmt->fetch(PDO::FETCH_ASSOC)['count'];
     
     if ($mismatched_count === 0) {
         echo "  ✓ No mismatched candidatures found (correct!)\n\n";

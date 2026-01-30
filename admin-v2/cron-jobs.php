@@ -402,7 +402,7 @@ $delaiUnite = getParameter('delai_reponse_unite', 'jours');
                                         </small>
                                     </td>
                                     <td>
-                                        <a href="candidature-detail.php?id=<?php echo $refused['id']; ?>" 
+                                        <a href="candidature-detail.php?id=<?php echo (int)$refused['id']; ?>" 
                                            class="btn btn-sm btn-outline-primary" 
                                            title="Voir détails">
                                             <i class="bi bi-eye"></i>
