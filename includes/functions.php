@@ -548,3 +548,88 @@ function formatRevenus($revenus) {
     // Return raw value for any unexpected values
     return $revenus;
 }
+
+/**
+ * Format statut value for display
+ * @param string|null $statut Raw enum value from database
+ * @return string Formatted display value
+ */
+function formatStatut($statut) {
+    if ($statut === null || $statut === '') {
+        return 'N/A';
+    }
+    
+    $mapping = [
+        'en_cours' => 'En cours',
+        'refuse' => 'Refusé',
+        'accepte' => 'Accepté',
+        'visite_planifiee' => 'Visite planifiée',
+        'contrat_envoye' => 'Contrat envoyé',
+        'contrat_signe' => 'Contrat signé'
+    ];
+    
+    return $mapping[$statut] ?? ucfirst(str_replace('_', ' ', $statut));
+}
+
+/**
+ * Evaluate if a candidature should be accepted based on STRICTER criteria
+ * Returns array with 'accepted' (bool) and 'motif' (string) keys
+ * 
+ * @param array $candidature Candidature data from database
+ * @return array ['accepted' => bool, 'motif' => string, 'statut' => string]
+ */
+function evaluateCandidature($candidature) {
+    // Get parameters from database
+    $revenusMinRequis = getParameter('revenus_min_requis', 3000);
+    $statutsProAcceptes = getParameter('statuts_pro_acceptes', ['CDI', 'CDD']);
+    $typeRevenusAccepte = getParameter('type_revenus_accepte', 'Salaires');
+    $nbOccupantsAcceptes = getParameter('nb_occupants_acceptes', ['1', '2']);
+    $garantieVisaleRequise = getParameter('garantie_visale_requise', true);
+    
+    $motifs = [];
+    
+    // RULE 1: Professional situation - must be CDI or CDD
+    if (!in_array($candidature['statut_professionnel'], $statutsProAcceptes)) {
+        $motifs[] = "Statut professionnel non accepté (doit être CDI ou CDD)";
+    }
+    
+    // RULE 2: Monthly net income - must be >= 3000€
+    // Convert enum values to numeric for comparison
+    $revenus = $candidature['revenus_mensuels'];
+    if ($revenus === '< 2300' || $revenus === '2300-3000') {
+        $motifs[] = "Revenus nets mensuels insuffisants (minimum 3000€ requis)";
+    }
+    
+    // RULE 3: Income type - must be Salaires
+    if ($candidature['type_revenus'] !== $typeRevenusAccepte) {
+        $motifs[] = "Type de revenus non accepté (doit être: $typeRevenusAccepte)";
+    }
+    
+    // RULE 4: Number of occupants - must be 1 or 2 (not "Autre")
+    if (!in_array($candidature['nb_occupants'], $nbOccupantsAcceptes)) {
+        $motifs[] = "Nombre d'occupants non accepté (doit être 1 ou 2)";
+    }
+    
+    // RULE 5: Visale guarantee - must be "Oui"
+    if ($garantieVisaleRequise && $candidature['garantie_visale'] !== 'Oui') {
+        $motifs[] = "Garantie Visale requise";
+    }
+    
+    // RULE 6: If CDI, trial period must be passed
+    if ($candidature['statut_professionnel'] === 'CDI' && $candidature['periode_essai'] === 'En cours') {
+        $motifs[] = "Période d'essai en cours";
+    }
+    
+    // All criteria must be met for acceptance
+    $accepted = empty($motifs);
+    $motif = $accepted ? '' : implode(', ', $motifs);
+    
+    // Determine the status value to use
+    $statut = $accepted ? 'en_cours' : 'refuse';
+    
+    return [
+        'accepted' => $accepted,
+        'motif' => $motif,
+        'statut' => $statut
+    ];
+}
