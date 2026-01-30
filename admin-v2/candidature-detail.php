@@ -106,7 +106,7 @@ function getStatusBadge($status) {
         'Contrat signé' => 'bg-dark'
     ];
     $class = $badges[$displayStatus] ?? 'bg-secondary';
-    return "<span class='badge $class'>$displayStatus</span>";
+    return "<span class='badge $class'>" . htmlspecialchars($displayStatus) . "</span>";
 }
 ?>
 <!DOCTYPE html>
@@ -392,9 +392,15 @@ function getStatusBadge($status) {
                         <div class="info-label">Réponse automatique:</div>
                         <div class="info-value">
                             <?php 
-                            $reponse = htmlspecialchars($candidature['reponse_automatique']);
+                            $reponse = $candidature['reponse_automatique'];
+                            $reponseMap = [
+                                'accepte' => 'Accepté',
+                                'refuse' => 'Refusé',
+                                'en_attente' => 'En attente'
+                            ];
+                            $reponseDisplay = $reponseMap[$reponse] ?? htmlspecialchars($reponse);
                             $color = $reponse === 'accepte' ? 'success' : ($reponse === 'refuse' ? 'danger' : 'warning');
-                            echo "<span class='badge bg-$color'>$reponse</span>";
+                            echo "<span class='badge bg-$color'>$reponseDisplay</span>";
                             ?>
                         </div>
                     </div>
@@ -425,7 +431,7 @@ function getStatusBadge($status) {
                 </div>
 
                 <!-- Visit Information -->
-                <?php if (!empty($candidature['date_visite']) || !empty($candidature['notes_visite']) || $candidature['visite_confirmee']): ?>
+                <?php if (!empty($candidature['date_visite']) || !empty($candidature['notes_visite']) || !empty($candidature['visite_confirmee'])): ?>
                 <div class="info-card">
                     <h5 class="mb-3"><i class="bi bi-calendar-check"></i> Informations de Visite</h5>
                     <?php if (!empty($candidature['date_visite'])): ?>
@@ -440,8 +446,8 @@ function getStatusBadge($status) {
                         <div class="info-label">Visite confirmée:</div>
                         <div class="info-value">
                             <?php 
-                            $confirmed = $candidature['visite_confirmee'] ? 'Oui' : 'Non';
-                            $color = $candidature['visite_confirmee'] ? 'success' : 'secondary';
+                            $confirmed = !empty($candidature['visite_confirmee']) ? 'Oui' : 'Non';
+                            $color = !empty($candidature['visite_confirmee']) ? 'success' : 'secondary';
                             echo "<span class='badge bg-$color'>$confirmed</span>";
                             ?>
                         </div>
@@ -537,8 +543,8 @@ function getStatusBadge($status) {
                     <div class="modal-body">
                         <input type="hidden" name="candidature_id" value="<?php echo $id; ?>">
                         <div class="mb-3">
-                            <label class="form-label">Nouveau statut:</label>
-                            <select name="nouveau_statut" class="form-select" required>
+                            <label class="form-label" for="nouveau_statut">Nouveau statut:</label>
+                            <select name="nouveau_statut" id="nouveau_statut" class="form-select" required>
                                 <option value="">-- Sélectionner --</option>
                                 <option value="en_cours" <?php echo $candidature['statut'] === 'en_cours' ? 'selected' : ''; ?>>En cours</option>
                                 <option value="accepte" <?php echo $candidature['statut'] === 'accepte' ? 'selected' : ''; ?>>Accepté</option>
@@ -549,8 +555,8 @@ function getStatusBadge($status) {
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Commentaire (optionnel):</label>
-                            <textarea name="commentaire" class="form-control" rows="3"></textarea>
+                            <label class="form-label" for="commentaire">Commentaire (optionnel):</label>
+                            <textarea name="commentaire" id="commentaire" class="form-control" rows="3"></textarea>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="send_email" id="sendEmail" checked>
