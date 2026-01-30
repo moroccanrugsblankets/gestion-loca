@@ -176,7 +176,7 @@ CREATE TABLE IF NOT EXISTS locataires (
     telephone VARCHAR(20),
     
     -- Signature
-    signature_data TEXT,
+    signature_data LONGTEXT,
     signature_ip VARCHAR(45),
     signature_timestamp TIMESTAMP NULL,
     mention_lu_approuve TEXT,
