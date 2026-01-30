@@ -22,15 +22,16 @@ The email signature feature was partially implemented but not applied consistent
 - **Caching**: Uses static variable to avoid repeated database queries
 - **Logic**: Appends signature with `$body . '<br><br>' . $signature`
 
-#### `sendEmailFallback()` Function (NEW)
-- **Updated**: Added signature support to fallback function
+#### `sendEmailFallback()` Function (UPDATED)
+- **Status**: Updated to include signature support with caching
 - **Lines 242-296**: Now fetches and appends signature just like main function
+- **Caching**: Uses static variable `$signatureFallbackCache` to avoid repeated database queries
 - **Why**: This fallback is used when PHPMailer fails, so it needs signature too
 - **Implementation**:
   ```php
-  // Get email signature from parametres if HTML email
-  $signature = '';
-  if ($isHtml && $pdo) {
+  // Get email signature from parametres if HTML email (with caching)
+  static $signatureFallbackCache = null;
+  if ($isHtml && $pdo && $signatureFallbackCache === null) {
       // Fetch from database
       // Append: $finalBody = $body . '<br><br>' . $signature;
   }
@@ -153,7 +154,9 @@ Test 4: Checking main sendEmail function...
 1. **HTML Emails Only**: Signature is only appended to HTML emails (`$isHtml = true`)
 2. **Database Required**: Signature fetching requires database connection
 3. **Graceful Fallback**: If signature fetch fails, email still sends without signature
-4. **Caching**: Signature is cached in static variable to avoid repeated DB queries
+4. **Caching**: Signature is cached in both main and fallback functions using static variables:
+   - `sendEmail()` uses `$signatureCache`
+   - `sendEmailFallback()` uses `$signatureFallbackCache`
 5. **Error Handling**: All signature fetch errors are logged but don't block email sending
 
 ## Migration

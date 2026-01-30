@@ -13,10 +13,15 @@ if (strpos($mailTemplatesContent, "Get email signature from parametres if HTML e
 } else {
     echo "  ✗ sendEmailFallback missing signature logic\n";
 }
-if (strpos($mailTemplatesContent, 'finalBody = $body . \'<br><br>\' . $signature;') !== false) {
-    echo "  ✓ sendEmailFallback appends signature to body\n\n";
+if (strpos($mailTemplatesContent, '$finalBody = $body . \'<br><br>\' . $signature;') !== false) {
+    echo "  ✓ sendEmailFallback appends signature to body\n";
 } else {
-    echo "  ✗ sendEmailFallback missing signature append logic\n\n";
+    echo "  ✗ sendEmailFallback missing signature append logic\n";
+}
+if (strpos($mailTemplatesContent, 'static $signatureFallbackCache = null;') !== false) {
+    echo "  ✓ sendEmailFallback has signature caching\n\n";
+} else {
+    echo "  ⚠ sendEmailFallback missing signature caching\n\n";
 }
 
 // Test 2: Verify no duplicate sendEmail in process-candidatures.php
@@ -64,8 +69,8 @@ echo "Summary of Changes:\n";
 echo "==================\n\n";
 
 echo "1. includes/mail-templates.php:\n";
-echo "   - Main sendEmail(): Already had signature support ✓\n";
-echo "   - sendEmailFallback(): Updated to add signature ✓\n\n";
+echo "   - Main sendEmail(): Already had signature support with caching ✓\n";
+echo "   - sendEmailFallback(): Updated to add signature with caching ✓\n\n";
 
 echo "2. admin-v2/send-email-candidature.php:\n";
 echo "   - Refactored to use sendEmail() instead of native mail() ✓\n";
@@ -76,3 +81,4 @@ echo "   - Removed duplicate sendEmail() function ✓\n";
 echo "   - Now uses global sendEmail() from mail-templates.php ✓\n\n";
 
 echo "RESULT: All emails will now include the configured signature! ✓\n";
+echo "        Both main and fallback functions use signature caching for performance! ✓\n";

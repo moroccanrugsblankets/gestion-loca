@@ -242,19 +242,23 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
 function sendEmailFallback($to, $subject, $body, $attachmentPath = null, $isHtml = true) {
     global $config, $pdo;
     try {
-        // Get email signature from parametres if HTML email
+        // Get email signature from parametres if HTML email (with caching)
+        static $signatureFallbackCache = null;
         $signature = '';
-        if ($isHtml && $pdo) {
+        if ($isHtml && $pdo && $signatureFallbackCache === null) {
             try {
                 $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'email_signature' LIMIT 1");
                 $stmt->execute();
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                $signature = ($result && !empty($result['valeur'])) ? $result['valeur'] : '';
+                $signatureFallbackCache = ($result && !empty($result['valeur'])) ? $result['valeur'] : '';
             } catch (Exception $e) {
                 // Silently fail if parametres table doesn't exist yet
                 error_log("Could not fetch email signature in fallback: " . $e->getMessage());
-                $signature = '';
+                $signatureFallbackCache = '';
             }
+        }
+        if ($isHtml && $signatureFallbackCache !== null) {
+            $signature = $signatureFallbackCache;
         }
         
         // Append signature to body if HTML and signature exists
