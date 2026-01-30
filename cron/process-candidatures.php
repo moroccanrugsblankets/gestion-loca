@@ -69,6 +69,7 @@ try {
         $email = $candidature['email'];
         $nom = $candidature['nom'];
         $prenom = $candidature['prenom'];
+        $reference = $candidature['reference_unique'] ?? $candidature['reference_candidature'] ?? '';
         
         logMessage("Processing application #$id for $prenom $nom");
         
@@ -78,16 +79,26 @@ try {
         $motifRefus = $result['motif'];
         
         if ($accepted) {
-            // Send acceptance email
-            $subject = "Candidature acceptée - MyInvest Immobilier";
-            $message = getAcceptanceEmailTemplate($prenom, $nom, $candidature['reference_candidature']);
+            // Send acceptance email using database template
+            $logement = isset($candidature['logement_reference']) ? $candidature['logement_reference'] : 'Logement';
+            $confirmUrl = $config['SITE_URL'] . "/candidature/confirmer-interet.php?ref=" . urlencode($reference);
+            
+            $variables = [
+                'nom' => $nom,
+                'prenom' => $prenom,
+                'email' => $email,
+                'logement' => $logement,
+                'reference' => $reference,
+                'date' => date('d/m/Y'),
+                'lien_confirmation' => $confirmUrl
+            ];
             
             // Update status to "Accepté"
             $updateStmt = $pdo->prepare("UPDATE candidatures SET statut = 'accepte', reponse_automatique = 'accepte', date_reponse_auto = NOW(), date_reponse_envoyee = NOW() WHERE id = ?");
             $updateStmt->execute([$id]);
             
-            // Send email
-            if (sendEmail($email, $subject, $message)) {
+            // Send email using template
+            if (sendTemplatedEmail('candidature_acceptee', $email, $variables)) {
                 logMessage("Acceptance email sent to $email for application #$id");
                 
                 // Log the action
@@ -98,16 +109,19 @@ try {
             }
             
         } else {
-            // Send rejection email
-            $subject = "Candidature - MyInvest Immobilier";
-            $message = getRejectionEmailTemplate($prenom, $nom);
+            // Send rejection email using database template
+            $variables = [
+                'nom' => $nom,
+                'prenom' => $prenom,
+                'email' => $email
+            ];
             
             // Update status to "Refusé" with rejection reason
             $updateStmt = $pdo->prepare("UPDATE candidatures SET statut = 'refuse', reponse_automatique = 'refuse', motif_refus = ?, date_reponse_auto = NOW(), date_reponse_envoyee = NOW() WHERE id = ?");
             $updateStmt->execute([$motifRefus, $id]);
             
-            // Send email
-            if (sendEmail($email, $subject, $message)) {
+            // Send email using template
+            if (sendTemplatedEmail('candidature_refusee', $email, $variables)) {
                 logMessage("Rejection email sent to $email for application #$id. Reason: $motifRefus");
                 
                 // Log the action
@@ -180,112 +194,5 @@ function evaluateCandidature($candidature) {
         'accepted' => $accepted,
         'motif' => $motif
     ];
-}
-
-/**
- * Get acceptance email template
- */
-function getAcceptanceEmailTemplate($prenom, $nom, $reference) {
-    global $config;
-    $confirmUrl = $config['SITE_URL'] . "/candidature/confirmer-interet.php?ref=" . urlencode($reference);
-    
-    return <<<HTML
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #2c3e50; color: white; padding: 20px; text-align: center; }
-        .content { background: #f8f9fa; padding: 30px; }
-        .button { display: inline-block; padding: 12px 30px; background: #28a745; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-        .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>MY Invest Immobilier</h1>
-        </div>
-        <div class="content">
-            <h2>Bonjour $prenom $nom,</h2>
-            
-            <p>Nous avons le plaisir de vous informer que votre candidature locative a été acceptée.</p>
-            
-            <p><strong>Prochaines étapes :</strong></p>
-            <ol>
-                <li>Confirmez votre intérêt en cliquant sur le bouton ci-dessous</li>
-                <li>Nous vous contacterons via WhatsApp pour organiser une visite du logement</li>
-                <li>Si la visite est concluante, nous vous enverrons le contrat de bail à signer</li>
-            </ol>
-            
-            <p style="text-align: center;">
-                <a href="$confirmUrl" class="button">Confirmer mon intérêt</a>
-            </p>
-            
-            <p><em>Ce lien est valable 48 heures. Passé ce délai, votre candidature sera automatiquement archivée.</em></p>
-            
-            <p>Nous restons à votre disposition pour toute question.</p>
-            
-            <p>Cordialement,<br>
-            <strong>MY Invest Immobilier</strong><br>
-            contact@myinvest-immobilier.com</p>
-        </div>
-        <div class="footer">
-            <p>Référence de candidature: $reference</p>
-        </div>
-    </div>
-</body>
-</html>
-HTML;
-}
-
-/**
- * Get rejection email template
- */
-function getRejectionEmailTemplate($prenom, $nom) {
-    return <<<HTML
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #2c3e50; color: white; padding: 20px; text-align: center; }
-        .content { background: #f8f9fa; padding: 30px; }
-        .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>MY Invest Immobilier</h1>
-        </div>
-        <div class="content">
-            <h2>Bonjour $prenom $nom,</h2>
-            
-            <p>Nous vous remercions de l'intérêt que vous avez porté à nos logements.</p>
-            
-            <p>Après étude de votre dossier, nous sommes au regret de vous informer que nous ne pouvons donner suite à votre candidature pour le moment.</p>
-            
-            <p>Cette décision ne remet pas en cause vos qualités en tant que locataire, mais résulte de critères spécifiques liés au logement proposé.</p>
-            
-            <p>Nous vous encourageons à postuler à nouveau si votre situation évolue ou pour d'autres opportunités.</p>
-            
-            <p>Nous vous souhaitons bonne chance dans vos recherches.</p>
-            
-            <p>Cordialement,<br>
-            <strong>MY Invest Immobilier</strong><br>
-            contact@myinvest-immobilier.com</p>
-        </div>
-        <div class="footer">
-            <p>MY Invest Immobilier - Gestion locative professionnelle</p>
-        </div>
-    </div>
-</body>
-</html>
-HTML;
 }
 ?>
