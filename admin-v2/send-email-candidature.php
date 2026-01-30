@@ -84,10 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 " . $safe_message . "
             </div>
             <hr style='border: none; border-top: 1px solid #dee2e6; margin: 20px 0;'>
-            <p style='color: #6c757d; font-size: 0.9em;'>
-                Cordialement,<br>
-                L'équipe MY Invest Immobilier
-            </p>
+            {{signature}}
         </div>
     </body>
     </html>
