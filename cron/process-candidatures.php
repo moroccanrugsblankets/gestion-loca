@@ -38,35 +38,29 @@ try {
     
     logMessage("Using automatic response delay: $delaiValeur $delaiUnite");
     
-    // Convert delay to appropriate format based on unit
-    $candidatures = [];
-    
+    // Get all candidatures pending automatic response
+    // Calculate the delay in hours based on the unit
+    $hoursDelay = 0;
     if ($delaiUnite === 'jours') {
-        // Use business days logic (existing behavior)
-        $query = "SELECT * FROM v_candidatures_a_traiter WHERE jours_ouvres_ecoules >= ?";
-        $stmt = $pdo->prepare($query);
-        $stmt->execute([$delaiValeur]);
-        $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } else {
-        // Use hours or minutes logic (calculate from created_at)
-        $hoursDelay = 0;
-        if ($delaiUnite === 'heures') {
-            $hoursDelay = $delaiValeur;
-        } elseif ($delaiUnite === 'minutes') {
-            $hoursDelay = $delaiValeur / 60;
-        }
-        
-        $query = "
-            SELECT c.* 
-            FROM candidatures c
-            WHERE c.statut = 'en_cours'
-            AND c.reponse_automatique = 'en_attente'
-            AND TIMESTAMPDIFF(HOUR, c.created_at, NOW()) >= ?
-        ";
-        $stmt = $pdo->prepare($query);
-        $stmt->execute([$hoursDelay]);
-        $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // For business days, we'll use a simple calculation
+        // Each business day = ~8 hours (or we can use 24 hours for simplicity)
+        $hoursDelay = $delaiValeur * 24;
+    } elseif ($delaiUnite === 'heures') {
+        $hoursDelay = $delaiValeur;
+    } elseif ($delaiUnite === 'minutes') {
+        $hoursDelay = $delaiValeur / 60;
     }
+    
+    $query = "
+        SELECT c.* 
+        FROM candidatures c
+        WHERE c.reponse_automatique = 'en_attente'
+        AND TIMESTAMPDIFF(HOUR, c.created_at, NOW()) >= ?
+        ORDER BY c.created_at ASC
+    ";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute([$hoursDelay]);
+    $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     logMessage("Found " . count($candidatures) . " applications to process");
     
