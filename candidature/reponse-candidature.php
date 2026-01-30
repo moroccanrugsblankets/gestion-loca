@@ -41,9 +41,9 @@ try {
         // Déterminer le nouveau statut
         $newStatus = ($action === 'positive') ? 'accepte' : 'refuse';
         
-        // Mettre à jour le statut
-        $stmt = $pdo->prepare("UPDATE candidatures SET statut = ?, date_reponse_envoyee = NOW() WHERE id = ?");
-        $stmt->execute([$newStatus, $candidature['id']]);
+        // Mettre à jour le statut et reponse_automatique pour éviter le double traitement
+        $stmt = $pdo->prepare("UPDATE candidatures SET statut = ?, reponse_automatique = ?, date_reponse_envoyee = NOW(), date_reponse_auto = NOW() WHERE id = ?");
+        $stmt->execute([$newStatus, $newStatus, $candidature['id']]);
         
         // Logger l'action
         $actionLog = ($action === 'positive') ? 'Candidature acceptée via email' : 'Candidature refusée via email';

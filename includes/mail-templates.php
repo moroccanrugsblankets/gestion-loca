@@ -578,14 +578,27 @@ function getStatusChangeEmailHTML($nom_complet, $statut, $commentaire = '') {
  * @param string|null $replyToName Nom pour l'email de réponse (optionnel)
  * @return array ['success' => bool, 'sent_to' => array, 'errors' => array]
  */
-function sendEmailToAdmins($subject, $body, $attachmentPath = null, $isHtml = true, $replyTo = null, $replyToName = null) {
-    global $config;
+function sendEmailToAdmins($subject, $body, $attachmentPath = null, $isHtml = true, $replyTo = null, $replyToName = null, $templateVariables = null) {
+    global $config, $pdo;
     
     $results = [
         'success' => false,
         'sent_to' => [],
         'errors' => []
     ];
+    
+    // If templateVariables is provided, use template-based email
+    if ($templateVariables !== null) {
+        // Use the admin_nouvelle_candidature template
+        $template = getEmailTemplate('admin_nouvelle_candidature');
+        if ($template) {
+            // Replace variables in subject and body
+            $subject = replaceTemplateVariables($template['sujet'], $templateVariables);
+            $body = replaceTemplateVariables($template['corps_html'], $templateVariables);
+        } else {
+            error_log("Warning: admin_nouvelle_candidature template not found, falling back to provided body");
+        }
+    }
     
     // Liste des emails administrateurs
     $adminEmails = [];
@@ -609,6 +622,18 @@ function sendEmailToAdmins($subject, $body, $attachmentPath = null, $isHtml = tr
         } else {
             $results['errors'][] = "Invalid ADMIN_EMAIL_SECONDARY format: " . $config['ADMIN_EMAIL_SECONDARY'];
             error_log("Invalid ADMIN_EMAIL_SECONDARY configured: " . $config['ADMIN_EMAIL_SECONDARY']);
+        }
+    }
+    
+    // Email candidature additionnel (si configuré dans parametres)
+    if ($pdo) {
+        try {
+            $emailAdminCand = getParameter('email_admin_candidature', '');
+            if (!empty($emailAdminCand) && filter_var($emailAdminCand, FILTER_VALIDATE_EMAIL)) {
+                $adminEmails[] = $emailAdminCand;
+            }
+        } catch (Exception $e) {
+            error_log("Could not fetch email_admin_candidature parameter: " . $e->getMessage());
         }
     }
     

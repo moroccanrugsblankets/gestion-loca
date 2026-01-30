@@ -33,9 +33,16 @@ if (!$candidature) {
 
 $ancien_statut = $candidature['statut'];
 
-// Update status
-$stmt = $pdo->prepare("UPDATE candidatures SET statut = ? WHERE id = ?");
-$stmt->execute([$nouveau_statut, $candidature_id]);
+// Update status and reponse_automatique field when manually changing to accepted or refused
+if ($nouveau_statut === 'accepte' || $nouveau_statut === 'refuse') {
+    // Set reponse_automatique to match the new status to prevent duplicate automatic processing
+    $stmt = $pdo->prepare("UPDATE candidatures SET statut = ?, reponse_automatique = ?, date_reponse_auto = NOW() WHERE id = ?");
+    $stmt->execute([$nouveau_statut, $nouveau_statut, $candidature_id]);
+} else {
+    // For other statuses, only update the status field
+    $stmt = $pdo->prepare("UPDATE candidatures SET statut = ? WHERE id = ?");
+    $stmt->execute([$nouveau_statut, $candidature_id]);
+}
 
 // Log the action
 $action = "Changement de statut: $ancien_statut → $nouveau_statut";
