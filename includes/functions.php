@@ -518,3 +518,20 @@ function sendTemplatedEmail($templateId, $to, $variables = [], $attachmentPath =
     // Send email using the existing sendEmail function
     return sendEmail($to, $subject, $body, $attachmentPath, true, $isAdminEmail);
 }
+
+/**
+ * Format revenus_mensuels value for display
+ * @param string|null $revenus Raw enum value from database
+ * @return string Formatted display value
+ */
+function formatRevenus($revenus) {
+    if ($revenus === '< 2300') {
+        return '< 2300 €';
+    } elseif ($revenus === '2300-3000') {
+        return '2300-3000 €';
+    } elseif ($revenus === '3000+') {
+        return '3000 € et +';
+    } else {
+        return $revenus ?? 'N/A';
+    }
+}

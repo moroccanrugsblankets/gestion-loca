@@ -2,6 +2,7 @@
 require_once 'auth.php';
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/functions.php';
 
 // Handle filters
 $filter_statut = $_GET['statut'] ?? '';
@@ -143,18 +144,7 @@ $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     </small>
                                 </td>
                                 <td><small><?php echo htmlspecialchars($cand['statut_professionnel']); ?></small></td>
-                                <td><small><?php 
-                                    $revenus = $cand['revenus_mensuels'] ?? 'N/A';
-                                    if ($revenus === '< 2300') {
-                                        echo '< 2300 €';
-                                    } elseif ($revenus === '2300-3000') {
-                                        echo '2300-3000 €';
-                                    } elseif ($revenus === '3000+') {
-                                        echo '3000 € et +';
-                                    } else {
-                                        echo htmlspecialchars($revenus);
-                                    }
-                                ?></small></td>
+                                <td><small><?php echo formatRevenus($cand['revenus_mensuels'] ?? null); ?></small></td>
                                 <td>
                                     <?php if ($cand['logement_ref']): ?>
                                         <small><?php echo htmlspecialchars($cand['logement_ref']); ?></small>

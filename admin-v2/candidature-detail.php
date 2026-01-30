@@ -3,6 +3,7 @@ require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
 require_once '../includes/document-types.php';
+require_once '../includes/functions.php';
 
 // Get application ID and validate
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -309,21 +310,7 @@ function getStatusBadge($status) {
                     <div class="info-row">
                         <div class="info-label">Revenus nets mensuels:</div>
                         <div class="info-value">
-                            <strong>
-                                <?php 
-                                $revenus = $candidature['revenus_mensuels'] ?? 'N/A';
-                                // Format the revenue value for better display
-                                if ($revenus === '< 2300') {
-                                    echo '< 2300 €';
-                                } elseif ($revenus === '2300-3000') {
-                                    echo '2300-3000 €';
-                                } elseif ($revenus === '3000+') {
-                                    echo '3000 € et +';
-                                } else {
-                                    echo htmlspecialchars($revenus);
-                                }
-                                ?>
-                            </strong>
+                            <strong><?php echo formatRevenus($candidature['revenus_mensuels'] ?? null); ?></strong>
                         </div>
                     </div>
                     <div class="info-row">

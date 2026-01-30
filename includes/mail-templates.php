@@ -746,7 +746,7 @@ function getAdminNewCandidatureEmailHTML($candidature, $logement, $nb_documents)
                 <h3>💼 Situation Professionnelle</h3>
                 <div class="info-item"><strong>Statut :</strong> ' . htmlspecialchars($candidature['statut_professionnel']) . '</div>
                 <div class="info-item"><strong>Période d\'essai :</strong> ' . htmlspecialchars($candidature['periode_essai']) . '</div>
-                <div class="info-item"><strong>Revenus mensuels :</strong> ' . htmlspecialchars($candidature['revenus_mensuels']) . '</div>
+                <div class="info-item"><strong>Revenus mensuels :</strong> ' . formatRevenus($candidature['revenus_mensuels'] ?? null) . '</div>
                 <div class="info-item"><strong>Type de revenus :</strong> ' . htmlspecialchars($candidature['type_revenus']) . '</div>
             </div>
             
