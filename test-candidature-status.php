@@ -7,7 +7,7 @@
 // Mock getParameter function to avoid database dependency
 function getParameter($cle, $default = null) {
     $params = [
-        'revenus_min_requis' => 3000,
+        'revenus_min_requis' => 3000,  // This parameter represents the desired minimum income threshold
         'statuts_pro_acceptes' => ['CDI', 'CDD'],
         'type_revenus_accepte' => 'Salaires',
         'nb_occupants_acceptes' => ['1', '2'],
@@ -34,7 +34,9 @@ function evaluateCandidature($candidature) {
     }
     
     // RULE 2: Monthly net income - must be >= 3000€
-    // Convert enum values to numeric for comparison
+    // Note: The validation uses predefined income bracket enums (< 2300, 2300-3000, 3000+)
+    // rather than directly comparing against the numeric threshold parameter.
+    // This design allows for clear income categories in the database schema.
     $revenus = $candidature['revenus_mensuels'];
     if ($revenus === '< 2300' || $revenus === '2300-3000') {
         $motifs[] = "Revenus nets mensuels insuffisants (minimum 3000€ requis)";
