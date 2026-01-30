@@ -319,12 +319,17 @@ try {
     $pdo->commit();
     logDebug("Transaction validée");
     
-    // Envoyer un email de confirmation au candidat
-    $subject = 'Candidature locative reçue - MY Invest Immobilier';
-    $htmlBody = getCandidatureRecueEmailHTML($prenom, $nom, $logement, $total_uploaded);
+    // Envoyer un email de confirmation au candidat en utilisant le template de la base de données
+    $candidateVariables = [
+        'nom' => $nom,
+        'prenom' => $prenom,
+        'email' => $email,
+        'logement' => $logement['reference'],
+        'reference' => $reference_unique,
+        'date' => date('d/m/Y H:i')
+    ];
     
-    // Envoyer l'email avec PHPMailer (format HTML)
-    $emailSent = sendEmail($email, $subject, $htmlBody, null, true);
+    $emailSent = sendTemplatedEmail('candidature_recue', $email, $candidateVariables);
     
     if (!$emailSent) {
         logDebug("Avertissement: Email de confirmation non envoyé", ['email' => $email]);
@@ -332,25 +337,22 @@ try {
         logDebug("Email de confirmation envoyé", ['email' => $email]);
     }
     
-    // Envoyer une notification aux administrateurs
-    $adminSubject = 'Nouvelle candidature reçue - ' . $reference_unique;
-    $candidatureData = [
-        'id' => $candidature_id,
+    // Envoyer une notification aux administrateurs en utilisant le template de la base de données
+    $adminVariables = [
         'reference' => $reference_unique,
-        'response_token' => $response_token,  // Ajouter le token pour les liens de réponse
         'nom' => $nom,
         'prenom' => $prenom,
         'email' => $email,
         'telephone' => $telephone,
-        'statut_professionnel' => $_POST['statut_professionnel'],
-        'periode_essai' => $_POST['periode_essai'],
-        'revenus_mensuels' => $_POST['revenus_mensuels'],
-        'type_revenus' => $_POST['type_revenus']
+        'logement' => $logement['reference'] . ' - ' . $logement['type'],
+        'revenus' => formatRevenus($_POST['revenus_mensuels']),
+        'statut_pro' => $_POST['statut_professionnel'],
+        'date' => date('d/m/Y H:i'),
+        'lien_admin' => $config['SITE_URL'] . '/admin-v2/candidature-detail.php?id=' . $candidature_id
     ];
-    $adminHtmlBody = getAdminNewCandidatureEmailHTML($candidatureData, $logement, $total_uploaded);
     
     // Envoyer avec les fichiers en pièces jointes et le candidat en reply-to
-    $adminEmailResult = sendEmailToAdmins($adminSubject, $adminHtmlBody, $uploaded_files, true, $email, $nom . ' ' . $prenom);
+    $adminEmailResult = sendEmailToAdmins('Nouvelle candidature reçue - ' . $reference_unique, '', $uploaded_files, true, $email, $nom . ' ' . $prenom, $adminVariables);
     if ($adminEmailResult['success']) {
         logDebug("Notification admin envoyée", ['sent_to' => $adminEmailResult['sent_to']]);
         // Log warning if partial success

@@ -47,6 +47,99 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\SMTP;
 
+// Define getEmailTemplate helper function if not already defined
+if (!function_exists('getEmailTemplate')) {
+    /**
+     * Get email template from database
+     * @param string $identifiant Template identifier
+     * @return array|false Template data or false if not found
+     */
+    function getEmailTemplate($identifiant) {
+        global $pdo;
+        
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM email_templates WHERE identifiant = ? AND actif = 1");
+            $stmt->execute([$identifiant]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error getting email template $identifiant: " . $e->getMessage());
+            return false;
+        }
+    }
+}
+
+// Define replaceTemplateVariables helper function if not already defined
+if (!function_exists('replaceTemplateVariables')) {
+    /**
+     * Replace template variables with actual values
+     * @param string $template Template string with {{variable}} placeholders
+     * @param array $data Associative array of variable => value pairs
+     * @return string Processed template
+     */
+    function replaceTemplateVariables($template, $data) {
+        foreach ($data as $key => $value) {
+            $placeholder = '{{' . $key . '}}';
+            // Ensure value is a string
+            $value = $value !== null ? (string)$value : '';
+            // Don't escape HTML for 'signature' variable since it contains HTML
+            if ($key === 'signature') {
+                $template = str_replace($placeholder, $value, $template);
+            } else {
+                $template = str_replace($placeholder, htmlspecialchars($value, ENT_QUOTES, 'UTF-8'), $template);
+            }
+        }
+        
+        // Log warning if there are unreplaced variables (but ignore {{signature}} as it's handled in sendEmail)
+        if (preg_match_all('/\{\{([^}]+)\}\}/', $template, $matches)) {
+            $unreplaced = array_diff($matches[1], ['signature']);
+            if (!empty($unreplaced)) {
+                error_log("Warning: Unreplaced variables in template: " . implode(', ', $unreplaced));
+            }
+        }
+        
+        return $template;
+    }
+}
+
+// Define getParameter helper function if not already defined
+if (!function_exists('getParameter')) {
+    /**
+     * Get parameter value from database
+     * @param string $cle Parameter key
+     * @param mixed $default Default value if not found
+     * @return mixed Parameter value or default
+     */
+    function getParameter($cle, $default = null) {
+        global $pdo;
+        
+        try {
+            $stmt = $pdo->prepare("SELECT valeur, type FROM parametres WHERE cle = ?");
+            $stmt->execute([$cle]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($result) {
+                $value = $result['valeur'];
+                
+                // Convert value based on type
+                if ($result['type'] === 'boolean') {
+                    return filter_var($value, FILTER_VALIDATE_BOOLEAN);
+                } elseif ($result['type'] === 'integer') {
+                    return (int)$value;
+                } elseif ($result['type'] === 'array') {
+                    return json_decode($value, true) ?: [];
+                }
+                
+                return $value;
+            }
+            
+            return $default;
+        } catch (PDOException $e) {
+            error_log("Error getting parameter $cle: " . $e->getMessage());
+            return $default;
+        }
+    }
+}
+
 /**
  * Template email d'invitation à signer le bail
  * @param string $signatureLink
@@ -578,14 +671,27 @@ function getStatusChangeEmailHTML($nom_complet, $statut, $commentaire = '') {
  * @param string|null $replyToName Nom pour l'email de réponse (optionnel)
  * @return array ['success' => bool, 'sent_to' => array, 'errors' => array]
  */
-function sendEmailToAdmins($subject, $body, $attachmentPath = null, $isHtml = true, $replyTo = null, $replyToName = null) {
-    global $config;
+function sendEmailToAdmins($subject, $body, $attachmentPath = null, $isHtml = true, $replyTo = null, $replyToName = null, $templateVariables = null) {
+    global $config, $pdo;
     
     $results = [
         'success' => false,
         'sent_to' => [],
         'errors' => []
     ];
+    
+    // If templateVariables is provided, use template-based email
+    if ($templateVariables !== null) {
+        // Use the admin_nouvelle_candidature template
+        $template = getEmailTemplate('admin_nouvelle_candidature');
+        if ($template) {
+            // Replace variables in subject and body
+            $subject = replaceTemplateVariables($template['sujet'], $templateVariables);
+            $body = replaceTemplateVariables($template['corps_html'], $templateVariables);
+        } else {
+            error_log("Warning: admin_nouvelle_candidature template not found, falling back to provided body");
+        }
+    }
     
     // Liste des emails administrateurs
     $adminEmails = [];
@@ -609,6 +715,18 @@ function sendEmailToAdmins($subject, $body, $attachmentPath = null, $isHtml = tr
         } else {
             $results['errors'][] = "Invalid ADMIN_EMAIL_SECONDARY format: " . $config['ADMIN_EMAIL_SECONDARY'];
             error_log("Invalid ADMIN_EMAIL_SECONDARY configured: " . $config['ADMIN_EMAIL_SECONDARY']);
+        }
+    }
+    
+    // Email candidature additionnel (si configuré dans parametres)
+    if ($pdo) {
+        try {
+            $emailAdminCand = getParameter('email_admin_candidature', '');
+            if (!empty($emailAdminCand) && filter_var($emailAdminCand, FILTER_VALIDATE_EMAIL)) {
+                $adminEmails[] = $emailAdminCand;
+            }
+        } catch (Exception $e) {
+            error_log("Could not fetch email_admin_candidature parameter: " . $e->getMessage());
         }
     }
     
