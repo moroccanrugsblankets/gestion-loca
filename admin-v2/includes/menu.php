@@ -55,6 +55,11 @@ $active_menu = $page_to_menu_map[$current_page] ?? $current_page;
             </a>
         </li>
         <li class="nav-item">
+            <a class="nav-link <?php echo $active_menu === 'cron-jobs.php' ? 'active' : ''; ?>" href="cron-jobs.php">
+                <i class="bi bi-clock-history"></i> Tâches Automatisées
+            </a>
+        </li>
+        <li class="nav-item">
             <a class="nav-link <?php echo $active_menu === 'email-templates.php' ? 'active' : ''; ?>" href="email-templates.php">
                 <i class="bi bi-envelope"></i> Templates d'Email
             </a>
