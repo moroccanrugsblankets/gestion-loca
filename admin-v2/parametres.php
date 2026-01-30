@@ -139,13 +139,57 @@ foreach ($allParams as $param) {
                         ?>
                     </h5>
 
-                    <?php foreach ($params as $param): ?>
+                    <?php 
+                    // Group delay parameters together
+                    $delayParamsKeys = ['delai_reponse_valeur', 'delai_reponse_unite'];
+                    $delayParams = [];
+                    $otherParams = [];
+                    foreach ($params as $param) {
+                        if (in_array($param['cle'], $delayParamsKeys)) {
+                            $delayParams[$param['cle']] = $param;
+                        } else {
+                            $otherParams[] = $param;
+                        }
+                    }
+                    
+                    // Display delay parameters together if both exist
+                    if (count($delayParams) === 2): ?>
+                        <div class="param-item">
+                            <label class="param-label">
+                                Délai de réponse automatique
+                            </label>
+                            <div class="param-description">
+                                Délai avant l'envoi automatique de la réponse aux candidatures
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Valeur</label>
+                                    <input type="number" 
+                                           name="parametres[delai_reponse_valeur]" 
+                                           class="form-control" 
+                                           value="<?php echo htmlspecialchars($delayParams['delai_reponse_valeur']['valeur']); ?>"
+                                           min="1"
+                                           required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Unité</label>
+                                    <select name="parametres[delai_reponse_unite]" class="form-select">
+                                        <option value="minutes" <?php echo $delayParams['delai_reponse_unite']['valeur'] === 'minutes' ? 'selected' : ''; ?>>Minutes</option>
+                                        <option value="heures" <?php echo $delayParams['delai_reponse_unite']['valeur'] === 'heures' ? 'selected' : ''; ?>>Heures</option>
+                                        <option value="jours" <?php echo $delayParams['delai_reponse_unite']['valeur'] === 'jours' ? 'selected' : ''; ?>>Jours (ouvrés)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php foreach ($otherParams as $param): ?>
                         <div class="param-item">
                             <label class="param-label">
                                 <?php 
                                 $labels = [
-                                    'delai_reponse_jours' => 'Délai de réponse automatique (jours ouvrés)',
-                                    'delai_refus_auto_heures' => 'Délai d\'envoi automatique de refus (heures)',
+                                    'delai_reponse_jours' => 'Délai de réponse automatique (jours ouvrés) - ANCIEN',
+                                    'delai_refus_auto_heures' => 'Délai d\'envoi automatique de refus (heures) - ANCIEN',
                                     'jours_ouvres_debut' => 'Premier jour ouvré (1 = Lundi)',
                                     'jours_ouvres_fin' => 'Dernier jour ouvré (5 = Vendredi)',
                                     'revenus_min_requis' => 'Revenus nets mensuels minimum requis (€)',

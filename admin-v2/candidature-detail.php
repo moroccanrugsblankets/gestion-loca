@@ -13,10 +13,12 @@ if (!$id || $id < 1) {
     exit;
 }
 
-// Fetch application details
+// Fetch application details with logement information
 $stmt = $pdo->prepare("
-    SELECT c.*
+    SELECT c.*, l.reference as logement_reference, l.adresse as logement_adresse, 
+           l.type as logement_type, l.loyer as logement_loyer, l.charges as logement_charges
     FROM candidatures c
+    LEFT JOIN logements l ON c.logement_id = l.id
     WHERE c.id = ?
 ");
 $stmt->execute([$id]);
@@ -83,6 +85,18 @@ foreach ($allDocuments as $doc) {
 
 // Status badge helper
 function getStatusBadge($status) {
+    // Map database values to display values
+    $statusMap = [
+        'en_cours' => 'En cours',
+        'accepte' => 'Accepté',
+        'refuse' => 'Refusé',
+        'visite_planifiee' => 'Visite planifiée',
+        'contrat_envoye' => 'Contrat envoyé',
+        'contrat_signe' => 'Contrat signé'
+    ];
+    
+    $displayStatus = $statusMap[$status] ?? $status;
+    
     $badges = [
         'En cours' => 'bg-primary',
         'Accepté' => 'bg-success',
@@ -91,8 +105,8 @@ function getStatusBadge($status) {
         'Contrat envoyé' => 'bg-warning',
         'Contrat signé' => 'bg-dark'
     ];
-    $class = $badges[$status] ?? 'bg-secondary';
-    return "<span class='badge $class'>$status</span>";
+    $class = $badges[$displayStatus] ?? 'bg-secondary';
+    return "<span class='badge $class'>" . htmlspecialchars($displayStatus) . "</span>";
 }
 ?>
 <!DOCTYPE html>
@@ -199,7 +213,7 @@ function getStatusBadge($status) {
     <div class="main-content">
         <div class="header d-flex justify-content-between align-items-center">
             <div>
-                <h4>Détail de la Candidature #<?php echo $candidature['reference']; ?></h4>
+                <h4>Détail de la Candidature #<?php echo htmlspecialchars($candidature['reference_unique']); ?></h4>
                 <p class="text-muted mb-0">
                     <i class="bi bi-calendar"></i> Soumise le <?php echo date('d/m/Y à H:i', strtotime($candidature['created_at'])); ?>
                 </p>
@@ -215,6 +229,40 @@ function getStatusBadge($status) {
         <div class="row">
             <!-- Left Column -->
             <div class="col-lg-8">
+                <!-- Logement Information -->
+                <?php if ($candidature['logement_id']): ?>
+                <div class="info-card">
+                    <h5 class="mb-3"><i class="bi bi-building"></i> Logement Demandé</h5>
+                    <div class="info-row">
+                        <div class="info-label">Référence:</div>
+                        <div class="info-value"><strong><?php echo htmlspecialchars($candidature['logement_reference'] ?? 'N/A'); ?></strong></div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Adresse:</div>
+                        <div class="info-value"><?php echo htmlspecialchars($candidature['logement_adresse'] ?? 'N/A'); ?></div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Type:</div>
+                        <div class="info-value"><?php echo htmlspecialchars($candidature['logement_type'] ?? 'N/A'); ?></div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Loyer:</div>
+                        <div class="info-value">
+                            <?php 
+                            if (isset($candidature['logement_loyer'])) {
+                                echo number_format($candidature['logement_loyer'], 2, ',', ' ') . ' €';
+                                if (isset($candidature['logement_charges'])) {
+                                    echo ' + ' . number_format($candidature['logement_charges'], 2, ',', ' ') . ' € de charges';
+                                }
+                            } else {
+                                echo 'N/A';
+                            }
+                            ?>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <!-- Personal Information -->
                 <div class="info-card">
                     <h5 class="mb-3"><i class="bi bi-person-circle"></i> Informations Personnelles</h5>
@@ -283,7 +331,14 @@ function getStatusBadge($status) {
                     </div>
                     <div class="info-row">
                         <div class="info-label">Nombre d'occupants:</div>
-                        <div class="info-value"><?php echo htmlspecialchars($candidature['nb_occupants']); ?></div>
+                        <div class="info-value">
+                            <?php 
+                            echo htmlspecialchars($candidature['nb_occupants']);
+                            if ($candidature['nb_occupants'] === 'Autre' && !empty($candidature['nb_occupants_autre'])) {
+                                echo ' (' . htmlspecialchars($candidature['nb_occupants_autre']) . ')';
+                            }
+                            ?>
+                        </div>
                     </div>
                 </div>
 
@@ -329,6 +384,107 @@ function getStatusBadge($status) {
                         <p class="text-muted">Aucun document uploadé</p>
                     <?php endif; ?>
                 </div>
+
+                <!-- Workflow / Response Information -->
+                <div class="info-card">
+                    <h5 class="mb-3"><i class="bi bi-diagram-3"></i> Informations de Traitement</h5>
+                    <div class="info-row">
+                        <div class="info-label">Réponse automatique:</div>
+                        <div class="info-value">
+                            <?php 
+                            $reponse = $candidature['reponse_automatique'];
+                            $reponseMap = [
+                                'accepte' => 'Accepté',
+                                'refuse' => 'Refusé',
+                                'en_attente' => 'En attente'
+                            ];
+                            $reponseDisplay = $reponseMap[$reponse] ?? htmlspecialchars($reponse);
+                            $color = $reponse === 'accepte' ? 'success' : ($reponse === 'refuse' ? 'danger' : 'warning');
+                            echo "<span class='badge bg-$color'>$reponseDisplay</span>";
+                            ?>
+                        </div>
+                    </div>
+                    <?php if (!empty($candidature['date_soumission'])): ?>
+                    <div class="info-row">
+                        <div class="info-label">Date de soumission:</div>
+                        <div class="info-value"><?php echo date('d/m/Y à H:i', strtotime($candidature['date_soumission'])); ?></div>
+                    </div>
+                    <?php endif; ?>
+                    <?php if (!empty($candidature['date_reponse_auto'])): ?>
+                    <div class="info-row">
+                        <div class="info-label">Date réponse auto:</div>
+                        <div class="info-value"><?php echo date('d/m/Y à H:i', strtotime($candidature['date_reponse_auto'])); ?></div>
+                    </div>
+                    <?php endif; ?>
+                    <?php if (!empty($candidature['date_reponse_envoyee'])): ?>
+                    <div class="info-row">
+                        <div class="info-label">Date réponse envoyée:</div>
+                        <div class="info-value"><?php echo date('d/m/Y à H:i', strtotime($candidature['date_reponse_envoyee'])); ?></div>
+                    </div>
+                    <?php endif; ?>
+                    <?php if (!empty($candidature['motif_refus'])): ?>
+                    <div class="info-row">
+                        <div class="info-label">Motif de refus:</div>
+                        <div class="info-value"><span class="text-danger"><?php echo nl2br(htmlspecialchars($candidature['motif_refus'])); ?></span></div>
+                    </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Visit Information -->
+                <?php if (!empty($candidature['date_visite']) || !empty($candidature['notes_visite']) || !empty($candidature['visite_confirmee'])): ?>
+                <div class="info-card">
+                    <h5 class="mb-3"><i class="bi bi-calendar-check"></i> Informations de Visite</h5>
+                    <?php if (!empty($candidature['date_visite'])): ?>
+                    <div class="info-row">
+                        <div class="info-label">Date de visite:</div>
+                        <div class="info-value">
+                            <strong><?php echo date('d/m/Y à H:i', strtotime($candidature['date_visite'])); ?></strong>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    <div class="info-row">
+                        <div class="info-label">Visite confirmée:</div>
+                        <div class="info-value">
+                            <?php 
+                            $confirmed = !empty($candidature['visite_confirmee']) ? 'Oui' : 'Non';
+                            $color = !empty($candidature['visite_confirmee']) ? 'success' : 'secondary';
+                            echo "<span class='badge bg-$color'>$confirmed</span>";
+                            ?>
+                        </div>
+                    </div>
+                    <?php if (!empty($candidature['notes_visite'])): ?>
+                    <div class="info-row">
+                        <div class="info-label">Notes de visite:</div>
+                        <div class="info-value"><?php echo nl2br(htmlspecialchars($candidature['notes_visite'])); ?></div>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+
+                <!-- Admin Information -->
+                <div class="info-card">
+                    <h5 class="mb-3"><i class="bi bi-gear"></i> Informations Administratives</h5>
+                    <div class="info-row">
+                        <div class="info-label">Référence unique:</div>
+                        <div class="info-value"><code><?php echo htmlspecialchars($candidature['reference_unique']); ?></code></div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Priorité:</div>
+                        <div class="info-value">
+                            <?php 
+                            $priorite = (int)$candidature['priorite'];
+                            $color = $priorite > 5 ? 'danger' : ($priorite > 0 ? 'warning' : 'secondary');
+                            echo "<span class='badge bg-$color'>$priorite</span>";
+                            ?>
+                        </div>
+                    </div>
+                    <?php if (!empty($candidature['notes_admin'])): ?>
+                    <div class="info-row">
+                        <div class="info-label">Notes admin:</div>
+                        <div class="info-value"><?php echo nl2br(htmlspecialchars($candidature['notes_admin'])); ?></div>
+                    </div>
+                    <?php endif; ?>
+                </div>
             </div>
 
             <!-- Right Column -->
@@ -337,7 +493,7 @@ function getStatusBadge($status) {
                 <div class="info-card">
                     <h5 class="mb-3"><i class="bi bi-lightning"></i> Actions Rapides</h5>
                     <div class="d-grid gap-2">
-                        <?php if ($candidature['statut'] === 'Accepté' || $candidature['statut'] === 'Visite planifiée'): ?>
+                        <?php if ($candidature['statut'] === 'accepte' || $candidature['statut'] === 'visite_planifiee'): ?>
                             <a href="generer-contrat.php?candidature_id=<?php echo $id; ?>" class="btn btn-success">
                                 <i class="bi bi-file-earmark-plus"></i> Générer le contrat
                             </a>
@@ -387,20 +543,20 @@ function getStatusBadge($status) {
                     <div class="modal-body">
                         <input type="hidden" name="candidature_id" value="<?php echo $id; ?>">
                         <div class="mb-3">
-                            <label class="form-label">Nouveau statut:</label>
-                            <select name="nouveau_statut" class="form-select" required>
+                            <label class="form-label" for="nouveau_statut">Nouveau statut:</label>
+                            <select name="nouveau_statut" id="nouveau_statut" class="form-select" required>
                                 <option value="">-- Sélectionner --</option>
-                                <option value="En cours" <?php echo $candidature['statut'] === 'En cours' ? 'selected' : ''; ?>>En cours</option>
-                                <option value="Accepté" <?php echo $candidature['statut'] === 'Accepté' ? 'selected' : ''; ?>>Accepté</option>
-                                <option value="Refusé" <?php echo $candidature['statut'] === 'Refusé' ? 'selected' : ''; ?>>Refusé</option>
-                                <option value="Visite planifiée" <?php echo $candidature['statut'] === 'Visite planifiée' ? 'selected' : ''; ?>>Visite planifiée</option>
-                                <option value="Contrat envoyé" <?php echo $candidature['statut'] === 'Contrat envoyé' ? 'selected' : ''; ?>>Contrat envoyé</option>
-                                <option value="Contrat signé" <?php echo $candidature['statut'] === 'Contrat signé' ? 'selected' : ''; ?>>Contrat signé</option>
+                                <option value="en_cours" <?php echo $candidature['statut'] === 'en_cours' ? 'selected' : ''; ?>>En cours</option>
+                                <option value="accepte" <?php echo $candidature['statut'] === 'accepte' ? 'selected' : ''; ?>>Accepté</option>
+                                <option value="refuse" <?php echo $candidature['statut'] === 'refuse' ? 'selected' : ''; ?>>Refusé</option>
+                                <option value="visite_planifiee" <?php echo $candidature['statut'] === 'visite_planifiee' ? 'selected' : ''; ?>>Visite planifiée</option>
+                                <option value="contrat_envoye" <?php echo $candidature['statut'] === 'contrat_envoye' ? 'selected' : ''; ?>>Contrat envoyé</option>
+                                <option value="contrat_signe" <?php echo $candidature['statut'] === 'contrat_signe' ? 'selected' : ''; ?>>Contrat signé</option>
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Commentaire (optionnel):</label>
-                            <textarea name="commentaire" class="form-control" rows="3"></textarea>
+                            <label class="form-label" for="commentaire">Commentaire (optionnel):</label>
+                            <textarea name="commentaire" id="commentaire" class="form-control" rows="3"></textarea>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="send_email" id="sendEmail" checked>

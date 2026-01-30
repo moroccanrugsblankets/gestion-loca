@@ -2,6 +2,7 @@
 require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
+require_once '../includes/mail-templates.php';
 
 // Helper function to log candidature actions
 function logCandidatureAction($pdo, $candidature_id, $action, $details = '') {
@@ -64,15 +65,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
     
-    // Send email using PHPMailer or mail function
-    // For now, we'll use PHP's mail() function (should be replaced with PHPMailer in production)
+    // Prepare email content
     $to = $candidature['email'];
-    $headers = "From: " . SMTP_FROM_EMAIL . "\r\n";
-    $headers .= "Reply-To: " . SMTP_FROM_EMAIL . "\r\n";
-    $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
     
-    // Sanitize message content
-    $safe_message = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
+    // Sanitize message content and convert line breaks to HTML
+    $safe_message = nl2br(htmlspecialchars($message, ENT_QUOTES, 'UTF-8'));
     
     $html_message = "
     <!DOCTYPE html>
@@ -84,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
             <h2 style='color: #2c3e50;'>Bonjour " . htmlspecialchars($candidature['prenom'], ENT_QUOTES, 'UTF-8') . " " . htmlspecialchars($candidature['nom'], ENT_QUOTES, 'UTF-8') . ",</h2>
             <div style='background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;'>
-                " . nl2br($safe_message) . "
+                " . $safe_message . "
             </div>
             <hr style='border: none; border-top: 1px solid #dee2e6; margin: 20px 0;'>
             <p style='color: #6c757d; font-size: 0.9em;'>
@@ -97,8 +94,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ";
     
     try {
-        // Use mail() function (should be replaced with PHPMailer in production)
-        $result = mail($to, $sujet, $html_message, $headers);
+        // Use sendEmail function from mail-templates.php which will add the signature
+        $result = sendEmail($to, $sujet, $html_message, null, true);
         
         if ($result) {
             // Log the action - helper function to avoid code duplication

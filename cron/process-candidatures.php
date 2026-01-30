@@ -26,15 +26,41 @@ function logMessage($message) {
 logMessage("=== Starting candidature processing ===");
 
 try {
-    // Get delay parameter from database (defaults to 4 if not set)
-    $delaiReponse = getParameter('delai_reponse_jours', 4);
-    logMessage("Using automatic response delay: $delaiReponse business days");
+    // Get flexible delay parameters from database
+    $delaiValeur = (int)getParameter('delai_reponse_valeur', 4);
+    $delaiUnite = getParameter('delai_reponse_unite', 'jours');
     
-    // Get applications that are ready to be processed
-    $query = "SELECT * FROM v_candidatures_a_traiter WHERE jours_ouvres_ecoules >= ?";
-    $stmt = $pdo->prepare($query);
-    $stmt->execute([$delaiReponse]);
-    $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    logMessage("Using automatic response delay: $delaiValeur $delaiUnite");
+    
+    // Convert delay to appropriate format based on unit
+    $candidatures = [];
+    
+    if ($delaiUnite === 'jours') {
+        // Use business days logic (existing behavior)
+        $query = "SELECT * FROM v_candidatures_a_traiter WHERE jours_ouvres_ecoules >= ?";
+        $stmt = $pdo->prepare($query);
+        $stmt->execute([$delaiValeur]);
+        $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } else {
+        // Use hours or minutes logic (calculate from created_at)
+        $hoursDelay = 0;
+        if ($delaiUnite === 'heures') {
+            $hoursDelay = $delaiValeur;
+        } elseif ($delaiUnite === 'minutes') {
+            $hoursDelay = $delaiValeur / 60;
+        }
+        
+        $query = "
+            SELECT c.* 
+            FROM candidatures c
+            WHERE c.statut = 'en_cours'
+            AND c.reponse_automatique = 'en_attente'
+            AND TIMESTAMPDIFF(HOUR, c.created_at, NOW()) >= ?
+        ";
+        $stmt = $pdo->prepare($query);
+        $stmt->execute([$hoursDelay]);
+        $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
     
     logMessage("Found " . count($candidatures) . " applications to process");
     
@@ -154,18 +180,6 @@ function evaluateCandidature($candidature) {
         'accepted' => $accepted,
         'motif' => $motif
     ];
-}
-
-/**
- * Send email using PHP mail function
- */
-function sendEmail($to, $subject, $htmlMessage) {
-    global $config;
-    $headers = "MIME-Version: 1.0" . "\r\n";
-    $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-    $headers .= "From: MY Invest Immobilier <" . $config['MAIL_FROM'] . ">" . "\r\n";
-    
-    return mail($to, $subject, $htmlMessage, $headers);
 }
 
 /**
