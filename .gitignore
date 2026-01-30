@@ -50,3 +50,6 @@ demo-emails/
 test-db-connection.php
 test-refactoring.php
 test-upload.html
+test-candidature-evaluation.php
+test-candidature-evaluation-standalone.php
+test-cron-output.php
