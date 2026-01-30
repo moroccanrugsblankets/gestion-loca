@@ -127,32 +127,8 @@ $stats = [
     <title>Gestion des Logements - Admin MyInvest</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <?php require_once __DIR__ . '/includes/sidebar-styles.php'; ?>
     <style>
-        body { background: #f8f9fa; }
-        .sidebar {
-            position: fixed;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            width: 250px;
-            background: #2c3e50;
-            padding: 20px 0;
-            overflow-y: auto;
-        }
-        .sidebar .nav-link {
-            color: #ecf0f1;
-            padding: 12px 20px;
-            margin: 2px 0;
-        }
-        .sidebar .nav-link:hover,
-        .sidebar .nav-link.active {
-            background: #34495e;
-            color: white;
-        }
-        .main-content {
-            margin-left: 250px;
-            padding: 20px;
-        }
         .header {
             background: white;
             padding: 20px;
@@ -191,49 +167,7 @@ $stats = [
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="text-center mb-4">
-            <h5 class="text-white">MyInvest Admin</h5>
-        </div>
-        <ul class="nav flex-column">
-            <li class="nav-item">
-                <a class="nav-link" href="index.php">
-                    <i class="bi bi-speedometer2"></i> Dashboard
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="candidatures.php">
-                    <i class="bi bi-file-earmark-text"></i> Candidatures
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link active" href="logements.php">
-                    <i class="bi bi-building"></i> Logements
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="contrats.php">
-                    <i class="bi bi-file-earmark-check"></i> Contrats
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="parametres.php">
-                    <i class="bi bi-gear"></i> Paramètres
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="email-templates.php">
-                    <i class="bi bi-envelope"></i> Templates d'Email
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="logout.php">
-                    <i class="bi bi-box-arrow-right"></i> Déconnexion
-                </a>
-            </li>
-        </ul>
-    </div>
+    <?php require_once __DIR__ . '/includes/menu.php'; ?>
 
     <!-- Main Content -->
     <div class="main-content">

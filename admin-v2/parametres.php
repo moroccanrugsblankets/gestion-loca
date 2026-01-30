@@ -52,58 +52,8 @@ foreach ($allParams as $param) {
     <title>Paramètres - My Invest Immobilier</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <?php require_once __DIR__ . '/includes/sidebar-styles.php'; ?>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f5f5;
-        }
-        .sidebar {
-            background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
-            min-height: 100vh;
-            padding: 0;
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 250px;
-            color: white;
-        }
-        .sidebar .logo {
-            padding: 20px;
-            text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        .sidebar .logo h4 {
-            margin: 10px 0 5px 0;
-            font-size: 18px;
-            font-weight: 600;
-        }
-        .sidebar .logo small {
-            color: #bdc3c7;
-        }
-        .sidebar .nav-link {
-            color: rgba(255,255,255,0.8);
-            padding: 12px 20px;
-            transition: all 0.3s;
-            border-left: 3px solid transparent;
-        }
-        .sidebar .nav-link:hover {
-            background-color: rgba(255,255,255,0.1);
-            color: white;
-            border-left-color: #3498db;
-        }
-        .sidebar .nav-link.active {
-            background-color: rgba(52, 152, 219, 0.2);
-            color: white;
-            border-left-color: #3498db;
-        }
-        .sidebar .nav-link i {
-            margin-right: 10px;
-            width: 20px;
-        }
-        .main-content {
-            margin-left: 250px;
-            padding: 30px;
-        }
         .header {
             background: white;
             padding: 20px 30px;
@@ -144,58 +94,10 @@ foreach ($allParams as $param) {
             color: #7f8c8d;
             margin-bottom: 10px;
         }
-        .logout-btn {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-        }
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="logo">
-            <i class="bi bi-building" style="font-size: 2rem;"></i>
-            <h4>MY Invest</h4>
-            <small>Immobilier</small>
-        </div>
-        <ul class="nav flex-column mt-4">
-            <li class="nav-item">
-                <a class="nav-link" href="index.php">
-                    <i class="bi bi-speedometer2"></i> Dashboard
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="candidatures.php">
-                    <i class="bi bi-file-earmark-text"></i> Candidatures
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="logements.php">
-                    <i class="bi bi-house-door"></i> Logements
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="contrats.php">
-                    <i class="bi bi-file-earmark-check"></i> Contrats
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link active" href="parametres.php">
-                    <i class="bi bi-gear"></i> Paramètres
-                </a>
-            </li>
-                    <li class="nav-item">
-                <a class="nav-link" href="email-templates.php">
-                    <i class="bi bi-envelope"></i> Templates d'Email
-                </a>
-            </li>
-        </ul>
-        <a href="logout.php" class="btn btn-outline-light logout-btn">
-            <i class="bi bi-box-arrow-right"></i> Déconnexion
-        </a>
-    </div>
+    <?php require_once __DIR__ . '/includes/menu.php'; ?>
 
     <!-- Main Content -->
     <div class="main-content">
@@ -230,7 +132,8 @@ foreach ($allParams as $param) {
                         $groupeTitles = [
                             'workflow' => 'Workflow et Délais',
                             'criteres' => 'Critères d\'Acceptation',
-                            'general' => 'Général'
+                            'general' => 'Général',
+                            'email' => 'Configuration Email'
                         ];
                         echo $groupeTitles[$groupe] ?? ucfirst($groupe);
                         ?>
@@ -248,7 +151,8 @@ foreach ($allParams as $param) {
                                     'statuts_pro_acceptes' => 'Statuts professionnels acceptés',
                                     'type_revenus_accepte' => 'Type de revenus accepté',
                                     'nb_occupants_acceptes' => 'Nombres d\'occupants acceptés',
-                                    'garantie_visale_requise' => 'Garantie Visale requise'
+                                    'garantie_visale_requise' => 'Garantie Visale requise',
+                                    'email_signature' => 'Signature des emails'
                                 ];
                                 echo $labels[$param['cle']] ?? $param['cle'];
                                 ?>
@@ -274,6 +178,22 @@ foreach ($allParams as $param) {
                                           rows="2"
                                           required><?php echo htmlspecialchars($param['valeur']); ?></textarea>
                                 <small class="text-muted">Format JSON, ex: ["CDI", "CDD"]</small>
+                            <?php elseif ($param['cle'] === 'email_signature'): ?>
+                                <textarea name="parametres[<?php echo $param['cle']; ?>]" 
+                                          class="form-control" 
+                                          rows="6"
+                                          required><?php echo htmlspecialchars($param['valeur']); ?></textarea>
+                                <small class="text-muted">Code HTML pour la signature qui sera ajoutée à tous les emails</small>
+                                <?php if (!empty($param['valeur'])): ?>
+                                <div class="mt-2">
+                                    <strong>Aperçu:</strong>
+                                    <div class="border p-3 mt-2" style="background: #f8f9fa;">
+                                        <iframe srcdoc="<?php echo htmlspecialchars($param['valeur']); ?>" 
+                                                style="border: none; width: 100%; min-height: 150px;"
+                                                sandbox="allow-same-origin"></iframe>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
                             <?php else: ?>
                                 <input type="text" 
                                        name="parametres[<?php echo $param['cle']; ?>]" 

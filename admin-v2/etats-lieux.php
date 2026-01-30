@@ -5,7 +5,7 @@ require_once '../includes/db.php';
 
 // Get all etats des lieux
 $stmt = $pdo->query("
-    SELECT edl.*, c.reference as contrat_ref, 
+    SELECT edl.*, c.reference_unique as contrat_ref, 
            CONCAT(cand.prenom, ' ', cand.nom) as locataire,
            l.adresse
     FROM etats_lieux edl
@@ -24,70 +24,14 @@ $etats_lieux = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <title>États des lieux - My Invest Immobilier</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <?php require_once __DIR__ . '/includes/sidebar-styles.php'; ?>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f5f5;
-        }
-        .sidebar {
-            background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
-            min-height: 100vh;
-            padding: 0;
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 250px;
-            color: white;
-        }
-        .sidebar .logo {
-            padding: 20px;
-            text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        .sidebar .logo h4 {
-            margin: 10px 0 5px 0;
-            font-size: 18px;
-            font-weight: 600;
-        }
-        .sidebar .logo small {
-            color: #bdc3c7;
-        }
-        .sidebar .nav-link {
-            color: rgba(255,255,255,0.8);
-            padding: 12px 20px;
-            transition: all 0.3s;
-            border-left: 3px solid transparent;
-        }
-        .sidebar .nav-link:hover {
-            background-color: rgba(255,255,255,0.1);
-            color: white;
-            border-left-color: #3498db;
-        }
-        .sidebar .nav-link.active {
-            background-color: rgba(52, 152, 219, 0.2);
-            color: white;
-            border-left-color: #3498db;
-        }
-        .sidebar .nav-link i {
-            margin-right: 10px;
-            width: 20px;
-        }
-        .main-content {
-            margin-left: 250px;
-            padding: 30px;
-        }
         .header {
             background: white;
             padding: 20px 30px;
             border-radius: 10px;
             margin-bottom: 30px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .logout-btn {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
         }
         .etat-card {
             background: white;
@@ -104,54 +48,7 @@ $etats_lieux = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="logo">
-            <i class="bi bi-building" style="font-size: 2rem;"></i>
-            <h4>MY Invest</h4>
-            <small>Immobilier</small>
-        </div>
-        <ul class="nav flex-column mt-4">
-            <li class="nav-item">
-                <a class="nav-link" href="index.php">
-                    <i class="bi bi-speedometer2"></i> Dashboard
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="candidatures.php">
-                    <i class="bi bi-file-earmark-text"></i> Candidatures
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="logements.php">
-                    <i class="bi bi-house-door"></i> Logements
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="contrats.php">
-                    <i class="bi bi-file-earmark-check"></i> Contrats
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="parametres.php">
-                    <i class="bi bi-gear"></i> Paramètres
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="email-templates.php">
-                    <i class="bi bi-envelope"></i> Templates d'Email
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link active" href="etats-lieux.php">
-                    <i class="bi bi-clipboard-check"></i> États des lieux
-                </a>
-            </li>
-        </ul>
-        <a href="logout.php" class="btn btn-outline-light logout-btn">
-            <i class="bi bi-box-arrow-right"></i> Déconnexion
-        </a>
-    </div>
+    <?php require_once __DIR__ . '/includes/menu.php'; ?>
 
     <!-- Main Content -->
     <div class="main-content">
@@ -266,9 +163,9 @@ $etats_lieux = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <select name="contrat_id" class="form-select" required>
                                 <option value="">-- Sélectionner un contrat --</option>
                                 <?php
-                                $stmt = $pdo->query("SELECT id, reference FROM contrats WHERE statut = 'signe' ORDER BY reference");
+                                $stmt = $pdo->query("SELECT id, reference_unique FROM contrats WHERE statut = 'signe' ORDER BY reference_unique");
                                 while ($contrat = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                                    echo "<option value='{$contrat['id']}'>{$contrat['reference']}</option>";
+                                    echo "<option value='{$contrat['id']}'>{$contrat['reference_unique']}</option>";
                                 }
                                 ?>
                             </select>
