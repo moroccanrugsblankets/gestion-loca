@@ -171,10 +171,15 @@ try {
     $initialStatut = $evaluation['statut'];
     $motifRefus = $evaluation['motif'];
     
+    // Set reponse_automatique based on evaluation result
+    // If automatically refused, mark as processed; otherwise, pending automatic response
+    $reponseAutomatique = ($initialStatut === 'refuse') ? 'refuse' : 'en_attente';
+    
     logDebug("Candidature évaluée", [
         'accepted' => $evaluation['accepted'],
         'statut' => $initialStatut,
-        'motif' => $motifRefus
+        'motif' => $motifRefus,
+        'reponse_automatique' => $reponseAutomatique
     ]);
     
     // Insérer la candidature avec le statut déterminé
@@ -185,8 +190,8 @@ try {
             revenus_mensuels, type_revenus,
             situation_logement, preavis_donne,
             nb_occupants, garantie_visale,
-            statut, motif_refus, date_soumission
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+            statut, motif_refus, reponse_automatique, date_soumission
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     ");
     
     $stmt->execute([
@@ -206,7 +211,8 @@ try {
         $_POST['nb_occupants'],
         $_POST['garantie_visale'],
         $initialStatut,
-        $motifRefus ?: null
+        $motifRefus ?: null,
+        $reponseAutomatique
     ]);
     
     $candidature_id = $pdo->lastInsertId();
