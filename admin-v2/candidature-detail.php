@@ -487,7 +487,7 @@ function getStatusBadge($status) {
                 <div class="info-card">
                     <h5 class="mb-3"><i class="bi bi-lightning"></i> Actions Rapides</h5>
                     <div class="d-grid gap-2">
-                        <?php if ($candidature['statut'] === 'Accepté' || $candidature['statut'] === 'Visite planifiée'): ?>
+                        <?php if ($candidature['statut'] === 'accepte' || $candidature['statut'] === 'visite_planifiee'): ?>
                             <a href="generer-contrat.php?candidature_id=<?php echo $id; ?>" class="btn btn-success">
                                 <i class="bi bi-file-earmark-plus"></i> Générer le contrat
                             </a>
@@ -540,12 +540,12 @@ function getStatusBadge($status) {
                             <label class="form-label">Nouveau statut:</label>
                             <select name="nouveau_statut" class="form-select" required>
                                 <option value="">-- Sélectionner --</option>
-                                <option value="En cours" <?php echo $candidature['statut'] === 'En cours' ? 'selected' : ''; ?>>En cours</option>
-                                <option value="Accepté" <?php echo $candidature['statut'] === 'Accepté' ? 'selected' : ''; ?>>Accepté</option>
-                                <option value="Refusé" <?php echo $candidature['statut'] === 'Refusé' ? 'selected' : ''; ?>>Refusé</option>
-                                <option value="Visite planifiée" <?php echo $candidature['statut'] === 'Visite planifiée' ? 'selected' : ''; ?>>Visite planifiée</option>
-                                <option value="Contrat envoyé" <?php echo $candidature['statut'] === 'Contrat envoyé' ? 'selected' : ''; ?>>Contrat envoyé</option>
-                                <option value="Contrat signé" <?php echo $candidature['statut'] === 'Contrat signé' ? 'selected' : ''; ?>>Contrat signé</option>
+                                <option value="en_cours" <?php echo $candidature['statut'] === 'en_cours' ? 'selected' : ''; ?>>En cours</option>
+                                <option value="accepte" <?php echo $candidature['statut'] === 'accepte' ? 'selected' : ''; ?>>Accepté</option>
+                                <option value="refuse" <?php echo $candidature['statut'] === 'refuse' ? 'selected' : ''; ?>>Refusé</option>
+                                <option value="visite_planifiee" <?php echo $candidature['statut'] === 'visite_planifiee' ? 'selected' : ''; ?>>Visite planifiée</option>
+                                <option value="contrat_envoye" <?php echo $candidature['statut'] === 'contrat_envoye' ? 'selected' : ''; ?>>Contrat envoyé</option>
+                                <option value="contrat_signe" <?php echo $candidature['statut'] === 'contrat_signe' ? 'selected' : ''; ?>>Contrat signé</option>
                             </select>
                         </div>
                         <div class="mb-3">
