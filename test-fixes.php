@@ -6,23 +6,37 @@
  * 3. Revenue field display
  */
 
+$failCount = 0;
+$passCount = 0;
+
+function testResult($condition, $passMsg, $failMsg) {
+    global $failCount, $passCount;
+    if ($condition) {
+        echo "   ✓ PASS: $passMsg\n";
+        $passCount++;
+    } else {
+        echo "   ✗ FAIL: $failMsg\n";
+        $failCount++;
+    }
+}
+
 echo "=== Test des Corrections ===\n\n";
 
 // Test 1: Email Signature in Templates
 echo "1. Test de la signature email dans send-email-candidature.php\n";
 $sendEmailContent = file_get_contents(__DIR__ . '/admin-v2/send-email-candidature.php');
-if (strpos($sendEmailContent, '{{signature}}') !== false) {
-    echo "   ✓ PASS: Template utilise le placeholder {{signature}}\n";
-} else {
-    echo "   ✗ FAIL: Template n'utilise PAS le placeholder {{signature}}\n";
-}
+testResult(
+    strpos($sendEmailContent, '{{signature}}') !== false,
+    "Template utilise le placeholder {{signature}}",
+    "Template n'utilise PAS le placeholder {{signature}}"
+);
 
-if (strpos($sendEmailContent, 'Cordialement,<br>') !== false || 
-    strpos($sendEmailContent, 'L\'équipe MY Invest Immobilier') !== false) {
-    echo "   ✗ FAIL: Template contient encore une signature hardcodée\n";
-} else {
-    echo "   ✓ PASS: Pas de signature hardcodée trouvée\n";
-}
+testResult(
+    strpos($sendEmailContent, 'Cordialement,<br>') === false && 
+    strpos($sendEmailContent, 'L\'équipe MY Invest Immobilier') === false,
+    "Pas de signature hardcodée trouvée",
+    "Template contient encore une signature hardcodée"
+);
 
 echo "\n";
 
@@ -151,9 +165,15 @@ if (strpos($parametresContent, 'textarea') !== false && strpos($parametresConten
 }
 
 echo "\n=== Résumé des Tests ===\n";
-echo "Tous les tests de structure de code sont passés!\n";
-echo "Les modifications suivantes ont été validées:\n";
-echo "  - Signature email centralisée avec {{signature}}\n";
-echo "  - Amélioration de la gestion des erreurs de téléchargement\n";
-echo "  - Champ 'Revenus nets mensuels' correctement labellisé\n";
+if ($failCount > 0) {
+    echo "❌ ÉCHEC: $failCount test(s) échoué(s), $passCount test(s) réussi(s)\n";
+    echo "Veuillez corriger les problèmes ci-dessus avant de déployer.\n";
+    exit(1);
+} else {
+    echo "✅ SUCCÈS: Tous les $passCount tests de structure de code sont passés!\n";
+    echo "\nLes modifications suivantes ont été validées:\n";
+    echo "  - Signature email centralisée avec {{signature}}\n";
+    echo "  - Amélioration de la gestion des erreurs de téléchargement\n";
+    echo "  - Champ 'Revenus nets mensuels' correctement labellisé\n";
+}
 echo "\nNote: Tests fonctionnels nécessitent une base de données active.\n";

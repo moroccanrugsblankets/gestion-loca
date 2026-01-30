@@ -228,7 +228,7 @@ mysql -u user -p database_name < migrations/005_add_email_signature.sql
 
 ### Pour la signature email
 1. **Prévisualisation :** L'interface admin affiche déjà un aperçu de la signature
-2. **Versionning :** Considérer l'ajout d'un historique des modifications de signature
+2. **Versionnage :** Considérer l'ajout d'un historique des modifications de signature
 3. **Variables supplémentaires :** Ajouter `{{nom_agence}}`, `{{telephone}}`, etc.
 
 ### Pour les revenus
