@@ -352,6 +352,7 @@ try {
     ];
     
     // Envoyer avec les fichiers en pièces jointes et le candidat en reply-to
+    // Le body est vide car on utilise le template via $adminVariables
     $adminEmailResult = sendEmailToAdmins('Nouvelle candidature reçue - ' . $reference_unique, '', $uploaded_files, true, $email, $nom . ' ' . $prenom, $adminVariables);
     if ($adminEmailResult['success']) {
         logDebug("Notification admin envoyée", ['sent_to' => $adminEmailResult['sent_to']]);
