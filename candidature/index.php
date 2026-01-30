@@ -349,9 +349,9 @@ try {
                                     <label for="revenus_mensuels" class="form-label required-field">Revenus nets mensuels</label>
                                     <select class="form-select" id="revenus_mensuels" name="revenus_mensuels" required>
                                         <option value="">-- Sélectionnez --</option>
-                                        <option value="< 2300 €">< 2300 €</option>
-                                        <option value="2300-3000 €">2300-3000 €</option>
-                                        <option value="3000 € et +">3000 € et +</option>
+                                        <option value="< 2300">< 2300 €</option>
+                                        <option value="2300-3000">2300-3000 €</option>
+                                        <option value="3000+">3000 € et +</option>
                                     </select>
                                 </div>
 
