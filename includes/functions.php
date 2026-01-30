@@ -572,7 +572,14 @@ function formatStatut($statut) {
 }
 
 /**
- * Evaluate if a candidature should be accepted based on STRICTER criteria
+ * Evaluate if a candidature should be accepted based on defined criteria
+ * 
+ * Accepted candidatures receive status 'en_cours' (awaiting further processing)
+ * Rejected candidatures receive status 'refuse' with a detailed rejection reason
+ * 
+ * Expected enum values for revenus_mensuels: '< 2300', '2300-3000', '3000+'
+ * If database enum changes, this function must be updated accordingly.
+ * 
  * Returns array with 'accepted' (bool) and 'motif' (string) keys
  * 
  * @param array $candidature Candidature data from database
@@ -616,7 +623,9 @@ function evaluateCandidature($candidature) {
     }
     
     // RULE 6: If CDI, trial period must be passed
-    if ($candidature['statut_professionnel'] === 'CDI' && $candidature['periode_essai'] === 'En cours') {
+    if ($candidature['statut_professionnel'] === 'CDI' && 
+        isset($candidature['periode_essai']) && 
+        $candidature['periode_essai'] === 'En cours') {
         $motifs[] = "Période d'essai en cours";
     }
     

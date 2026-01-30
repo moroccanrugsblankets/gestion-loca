@@ -1,7 +1,7 @@
 <?php
 /**
  * Traitement de soumission de candidature locative
- * Enregistre la candidature et les documents, puis marque le statut "En cours"
+ * Enregistre la candidature et les documents, puis évalue et définit le statut selon les critères
  */
 
 session_start();

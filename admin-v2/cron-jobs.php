@@ -243,7 +243,7 @@ $delaiUnite = getParameter('delai_reponse_unite', 'jours');
                                     <th>Réponse Prévue</th>
                                     <th>Statut</th>
                                     <th>Action</th>
-                                 </tr>
+                                </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($pending_responses as $resp): 
@@ -485,7 +485,8 @@ $delaiUnite = getParameter('delai_reponse_unite', 'jours');
 0 9 * * * /usr/bin/php <?php echo htmlspecialchars(realpath(__DIR__ . '/../cron/process-candidatures.php')); ?>
 
 # Vérifier que les emails cron sont envoyés à votre adresse
-MAILTO=admin@example.com</pre>
+# IMPORTANT: Remplacez your-email@example.com par votre vraie adresse email
+MAILTO=your-email@example.com</pre>
                     
                     <h6 class="mt-3">Vérification:</h6>
                     <p>Après avoir configuré le cron, vous pouvez vérifier qu'il fonctionne en:</p>
