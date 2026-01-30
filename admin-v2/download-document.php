@@ -17,8 +17,11 @@ if ($candidatureId < 1) {
     die('ID de candidature invalide.');
 }
 
-// Validate document path (security check - must not contain .. or absolute paths)
-if (empty($documentPath) || strpos($documentPath, '..') !== false || strpos($documentPath, '/') === 0) {
+// Validate document path (security check - must not contain .., backslashes, or absolute paths)
+if (empty($documentPath) || 
+    strpos($documentPath, '..') !== false || 
+    strpos($documentPath, '\\') !== false || 
+    strpos($documentPath, '/') === 0) {
     die('Chemin de document invalide.');
 }
 
@@ -43,7 +46,16 @@ $fullPath = $uploadsDir . $documentPath;
 $realUploadsDir = realpath($uploadsDir);
 $realFilePath = realpath($fullPath);
 
-if (!$realFilePath || strpos($realFilePath, $realUploadsDir) !== 0) {
+// Normalize paths for cross-platform comparison
+if (!$realFilePath || !$realUploadsDir) {
+    die('Chemin de fichier invalide.');
+}
+
+// Use DIRECTORY_SEPARATOR for cross-platform compatibility and ensure trailing separator
+$normalizedUploadsDir = rtrim($realUploadsDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+$normalizedFilePath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $realFilePath);
+
+if (stripos($normalizedFilePath, $normalizedUploadsDir) !== 0) {
     die('Chemin de fichier invalide.');
 }
 
@@ -56,6 +68,12 @@ if (!file_exists($fullPath)) {
 $filename = $document['nom_fichier'];
 $filesize = filesize($fullPath);
 $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+// Sanitize filename for Content-Disposition header (prevent header injection)
+// Remove or replace potentially dangerous characters
+$safeFilename = preg_replace('/[^\w\s\-\.àâäéèêëïîôöùûüÿçÀÂÄÉÈÊËÏÎÔÖÙÛÜŸÇ]/u', '_', $filename);
+// Remove any newlines or carriage returns
+$safeFilename = str_replace(["\r", "\n"], '', $safeFilename);
 
 // Determine MIME type
 $mimeTypes = [
@@ -76,7 +94,7 @@ $mimeType = isset($mimeTypes[$extension]) ? $mimeTypes[$extension] : 'applicatio
 
 // Send headers to force download
 header('Content-Type: ' . $mimeType);
-header('Content-Disposition: attachment; filename="' . $filename . '"');
+header('Content-Disposition: attachment; filename="' . $safeFilename . '"');
 header('Content-Length: ' . $filesize);
 header('Cache-Control: no-cache, must-revalidate');
 header('Pragma: no-cache');
