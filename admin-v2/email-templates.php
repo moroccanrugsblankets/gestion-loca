@@ -145,6 +145,8 @@ $templates = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             endforeach;
                         endif;
                         ?>
+                        <span class="variable-tag" style="background: #27ae60;">{{signature}}</span>
+                        <p class="mt-2 mb-0 small"><strong>Note:</strong> La variable <code>{{signature}}</code> insère la signature email configurée dans les paramètres. Elle est disponible pour tous les templates.</p>
                     </div>
 
                     <form method="POST" action="email-templates.php">

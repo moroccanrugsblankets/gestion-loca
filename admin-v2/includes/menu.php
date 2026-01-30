@@ -10,6 +10,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 // Map detail pages to their parent menu items
 $page_to_menu_map = [
     'candidature-detail.php' => 'candidatures.php',
+    'candidature-actions.php' => 'candidatures.php',
     'add-note-candidature.php' => 'candidatures.php',
     'send-email-candidature.php' => 'candidatures.php',
     'change-status.php' => 'candidatures.php',

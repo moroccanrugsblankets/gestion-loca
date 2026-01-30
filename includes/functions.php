@@ -483,12 +483,20 @@ function replaceTemplateVariables($template, $data) {
         $placeholder = '{{' . $key . '}}';
         // Ensure value is a string
         $value = $value !== null ? (string)$value : '';
-        $template = str_replace($placeholder, htmlspecialchars($value, ENT_QUOTES, 'UTF-8'), $template);
+        // Don't escape HTML for 'signature' variable since it contains HTML
+        if ($key === 'signature') {
+            $template = str_replace($placeholder, $value, $template);
+        } else {
+            $template = str_replace($placeholder, htmlspecialchars($value, ENT_QUOTES, 'UTF-8'), $template);
+        }
     }
     
-    // Log warning if there are unreplaced variables
+    // Log warning if there are unreplaced variables (but ignore {{signature}} as it's handled in sendEmail)
     if (preg_match_all('/\{\{([^}]+)\}\}/', $template, $matches)) {
-        error_log("Warning: Unreplaced variables in template: " . implode(', ', $matches[1]));
+        $unreplaced = array_diff($matches[1], ['signature']);
+        if (!empty($unreplaced)) {
+            error_log("Warning: Unreplaced variables in template: " . implode(', ', $unreplaced));
+        }
     }
     
     return $template;

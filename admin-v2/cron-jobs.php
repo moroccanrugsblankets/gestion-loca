@@ -79,9 +79,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Get all cron jobs
-$stmt = $pdo->query("SELECT * FROM cron_jobs ORDER BY id");
+// Get all cron jobs (excluding the main process-candidatures.php)
+$stmt = $pdo->query("
+    SELECT * FROM cron_jobs 
+    WHERE fichier != 'cron/process-candidatures.php'
+    ORDER BY id
+");
 $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Get pending automatic candidature responses
+$stmt = $pdo->query("
+    SELECT 
+        c.id,
+        c.reference_unique,
+        c.nom,
+        c.prenom,
+        c.email,
+        c.created_at,
+        c.statut,
+        c.reponse_automatique,
+        l.reference as logement_reference
+    FROM candidatures c
+    LEFT JOIN logements l ON c.logement_id = l.id
+    WHERE c.statut = 'en_cours' 
+    AND c.reponse_automatique = 'en_attente'
+    ORDER BY c.created_at ASC
+    LIMIT 50
+");
+$pending_responses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Calculate expected response date for each candidature
+$delaiValeur = (int)getParameter('delai_reponse_valeur', 4);
+$delaiUnite = getParameter('delai_reponse_unite', 'jours');
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -183,11 +212,121 @@ $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         <?php endif; ?>
 
-        <?php if (empty($jobs)): ?>
-            <div class="alert alert-info">
-                <i class="bi bi-info-circle"></i> Aucune tâche automatisée configurée.
+        <!-- Pending Automatic Candidature Responses Section -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history"></i> Réponses Automatiques Programmées
+                </h5>
+                <small>Candidatures qui recevront une réponse automatique (acceptation ou refus)</small>
             </div>
-        <?php else: ?>
+            <div class="card-body">
+                <?php if (empty($pending_responses)): ?>
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle"></i> Aucune candidature en attente de réponse automatique.
+                    </div>
+                <?php else: ?>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> 
+                        <strong>Délai configuré:</strong> <?php echo $delaiValeur; ?> <?php echo $delaiUnite; ?>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Référence</th>
+                                    <th>Candidat</th>
+                                    <th>Email</th>
+                                    <th>Logement</th>
+                                    <th>Date Soumission</th>
+                                    <th>Réponse Prévue</th>
+                                    <th>Statut</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($pending_responses as $resp): 
+                                    // Calculate expected response date
+                                    $created = new DateTime($resp['created_at']);
+                                    $expectedDate = clone $created;
+                                    
+                                    if ($delaiUnite === 'jours') {
+                                        // Add business days
+                                        $daysAdded = 0;
+                                        while ($daysAdded < $delaiValeur) {
+                                            $expectedDate->modify('+1 day');
+                                            // Skip weekends (Saturday = 6, Sunday = 0)
+                                            if ($expectedDate->format('N') < 6) {
+                                                $daysAdded++;
+                                            }
+                                        }
+                                    } elseif ($delaiUnite === 'heures') {
+                                        $expectedDate->modify("+{$delaiValeur} hours");
+                                    } elseif ($delaiUnite === 'minutes') {
+                                        $expectedDate->modify("+{$delaiValeur} minutes");
+                                    }
+                                    
+                                    $now = new DateTime();
+                                    $isPast = $expectedDate <= $now;
+                                ?>
+                                <tr class="<?php echo $isPast ? 'table-warning' : ''; ?>">
+                                    <td>
+                                        <code><?php echo htmlspecialchars($resp['reference_unique']); ?></code>
+                                    </td>
+                                    <td>
+                                        <strong><?php echo htmlspecialchars($resp['prenom'] . ' ' . $resp['nom']); ?></strong>
+                                    </td>
+                                    <td>
+                                        <small><?php echo htmlspecialchars($resp['email']); ?></small>
+                                    </td>
+                                    <td>
+                                        <?php echo htmlspecialchars($resp['logement_reference'] ?? 'N/A'); ?>
+                                    </td>
+                                    <td>
+                                        <small><?php echo date('d/m/Y H:i', strtotime($resp['created_at'])); ?></small>
+                                    </td>
+                                    <td>
+                                        <small>
+                                            <?php echo $expectedDate->format('d/m/Y H:i'); ?>
+                                            <?php if ($isPast): ?>
+                                                <br><span class="badge bg-warning text-dark">Prêt à traiter</span>
+                                            <?php endif; ?>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info"><?php echo htmlspecialchars($resp['statut']); ?></span>
+                                    </td>
+                                    <td>
+                                        <a href="candidature-detail.php?id=<?php echo $resp['id']; ?>" 
+                                           class="btn btn-sm btn-outline-primary" 
+                                           title="Voir détails">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        <strong>Note:</strong> Le traitement automatique s'exécute quotidiennement à 9h00. 
+                        Les candidatures marquées "Prêt à traiter" seront traitées lors de la prochaine exécution du cron.
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <?php if (!empty($jobs)): ?>
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-gear"></i> Autres Tâches Automatisées
+                </h5>
+            </div>
+            <div class="card-body p-0">
             <?php foreach ($jobs as $job): ?>
                 <div class="job-card">
                     <div class="job-header">
@@ -287,6 +426,10 @@ $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     </div>
                 </div>
             <?php endforeach; ?>
+            </div>
+        </div>
+        <?php else: ?>
+            <!-- No other cron jobs configured -->
         <?php endif; ?>
 
         <div class="alert alert-info mt-4">

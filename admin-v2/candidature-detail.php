@@ -304,11 +304,11 @@ function getStatusBadge($status) {
                     </div>
                 </div>
 
-                <!-- Financial Situation -->
+                <!-- Revenus -->
                 <div class="info-card">
-                    <h5 class="mb-3"><i class="bi bi-cash-stack"></i> Situation Financière</h5>
+                    <h5 class="mb-3"><i class="bi bi-cash-stack"></i> Revenus</h5>
                     <div class="info-row">
-                        <div class="info-label">Revenus nets mensuels:</div>
+                        <div class="info-label">Revenus mensuels:</div>
                         <div class="info-value">
                             <strong><?php echo htmlspecialchars(formatRevenus($candidature['revenus_mensuels'] ?? null)); ?></strong>
                         </div>
@@ -319,17 +319,22 @@ function getStatusBadge($status) {
                     </div>
                 </div>
 
-                <!-- Housing Situation -->
+                <!-- Logement Actuel -->
                 <div class="info-card">
-                    <h5 class="mb-3"><i class="bi bi-house"></i> Situation de Logement</h5>
+                    <h5 class="mb-3"><i class="bi bi-house"></i> Logement Actuel</h5>
                     <div class="info-row">
-                        <div class="info-label">Situation actuelle:</div>
+                        <div class="info-label">Situation:</div>
                         <div class="info-value"><?php echo htmlspecialchars($candidature['situation_logement']); ?></div>
                     </div>
                     <div class="info-row">
                         <div class="info-label">Préavis donné:</div>
                         <div class="info-value"><?php echo htmlspecialchars($candidature['preavis_donne']); ?></div>
                     </div>
+                </div>
+
+                <!-- Occupation -->
+                <div class="info-card">
+                    <h5 class="mb-3"><i class="bi bi-people-fill"></i> Occupation</h5>
                     <div class="info-row">
                         <div class="info-label">Nombre d'occupants:</div>
                         <div class="info-value">
@@ -341,11 +346,6 @@ function getStatusBadge($status) {
                             ?>
                         </div>
                     </div>
-                </div>
-
-                <!-- Guarantees -->
-                <div class="info-card">
-                    <h5 class="mb-3"><i class="bi bi-shield-check"></i> Garanties</h5>
                     <div class="info-row">
                         <div class="info-label">Garantie Visale:</div>
                         <div class="info-value">
