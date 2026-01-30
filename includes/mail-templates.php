@@ -74,11 +74,7 @@ La prise d'effet du bail ainsi que la remise des clés interviendront uniquement
 
 Pour accéder au contrat de bail : $signatureLink
 
-Nous restons à votre disposition en cas de question.
-
-Cordialement,
-MY Invest Immobilier
-" . $config['COMPANY_EMAIL'];
+Nous restons à votre disposition en cas de question.";
     
     return [
         'subject' => $subject,
@@ -115,11 +111,7 @@ BIC : CMCIFRA
 
 Dès réception du règlement, nous vous confirmerons la prise d'effet du bail ainsi que les modalités de remise des clés.
 
-Nous restons à votre disposition pour toute question.
-
-Cordialement,
-MY Invest Immobilier
-" . $config['COMPANY_EMAIL'];
+Nous restons à votre disposition pour toute question.";
     
     return [
         'subject' => $subject,
@@ -395,24 +387,6 @@ function getCandidatureRecueEmailHTML($prenom, $nom, $logement, $uploaded_count)
             </div>
             
             <p>Il est actuellement en cours d\'étude. Une réponse vous sera apportée sous 1 à 4 jours ouvrés.</p>
-            
-            <p style="margin-top: 30px;">Sincères salutations</p>
-            <br><br>
-            <table style="border-collapse: collapse;">
-                <tbody>
-                    <tr>
-                        <td style="vertical-align: middle;">
-                            <img src="https://www.myinvest-immobilier.com/images/logo.png" alt="MY Invest Immobilier" style="max-width: 150px; height: auto;">
-                        </td>
-                        <td style="width: 20px;">&nbsp;</td>
-                        <td style="vertical-align: middle;">
-                            <h3 style="margin: 0; font-size: 18px; color: #333;">
-                                MY INVEST IMMOBILIER
-                            </h3>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
         </div>
         <div class="footer">
             <p>© ' . date('Y') . ' MY Invest Immobilier - Tous droits réservés</p>
@@ -488,12 +462,6 @@ function getInvitationSignatureEmailHTML($signatureLink, $adresse, $nb_locataire
             </div>
             
             <p>Nous restons à votre disposition en cas de question.</p>
-            
-            <p style="margin-top: 30px;">
-                Cordialement,<br>
-                <strong>MY Invest Immobilier</strong><br>
-                <a href="mailto:' . $config['COMPANY_EMAIL'] . '">' . $config['COMPANY_EMAIL'] . '</a>
-            </p>
         </div>
         <div class="footer">
             <p>© ' . date('Y') . ' MY Invest Immobilier - Tous droits réservés</p>
@@ -597,11 +565,6 @@ function getStatusChangeEmailHTML($nom_complet, $statut, $commentaire = '') {
     }
     
     $html .= '
-            <div class="signature">
-                <p>Sincères salutations<br>
-                Le Bureau<br>
-                <strong>MY Invest Immobilier</strong></p>
-            </div>
         </div>
         <div class="footer">
             <p>MY Invest Immobilier - Gestion locative professionnelle</p>
@@ -788,24 +751,6 @@ function getAdminNewCandidatureEmailHTML($candidature, $logement, $nb_documents)
                     Voir la Candidature
                 </a>
             </div>
-            
-            <p style="margin-top: 30px;">Sincères salutations</p>
-            <br><br>
-            <table style="border-collapse: collapse;">
-                <tbody>
-                    <tr>
-                        <td style="vertical-align: middle;">
-                            <img src="https://www.myinvest-immobilier.com/images/logo.png" alt="MY Invest Immobilier" style="max-width: 150px; height: auto;">
-                        </td>
-                        <td style="width: 20px;">&nbsp;</td>
-                        <td style="vertical-align: middle;">
-                            <h3 style="margin: 0; font-size: 18px; color: #333;">
-                                MY INVEST IMMOBILIER
-                            </h3>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
         </div>
         <div class="footer">
             <p>© ' . date('Y') . ' MY Invest Immobilier - Système de Gestion des Candidatures</p>
