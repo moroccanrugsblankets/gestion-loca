@@ -310,7 +310,7 @@ function getStatusBadge($status) {
                     <div class="info-row">
                         <div class="info-label">Revenus nets mensuels:</div>
                         <div class="info-value">
-                            <strong><?php echo formatRevenus($candidature['revenus_mensuels'] ?? null); ?></strong>
+                            <strong><?php echo htmlspecialchars(formatRevenus($candidature['revenus_mensuels'] ?? null)); ?></strong>
                         </div>
                     </div>
                     <div class="info-row">

@@ -525,13 +525,18 @@ function sendTemplatedEmail($templateId, $to, $variables = [], $attachmentPath =
  * @return string Formatted display value
  */
 function formatRevenus($revenus) {
+    if ($revenus === null || $revenus === '') {
+        return 'N/A';
+    }
+    
     if ($revenus === '< 2300') {
         return '< 2300 €';
     } elseif ($revenus === '2300-3000') {
         return '2300-3000 €';
     } elseif ($revenus === '3000+') {
         return '3000 € et +';
-    } else {
-        return $revenus ?? 'N/A';
     }
+    
+    // Return raw value for any unexpected values
+    return $revenus;
 }

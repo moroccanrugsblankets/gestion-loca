@@ -4,6 +4,32 @@
  * My Invest Immobilier
  */
 
+// Define formatRevenus helper function if not already defined
+// This allows mail-templates.php to work independently
+if (!function_exists('formatRevenus')) {
+    /**
+     * Format revenus_mensuels value for display
+     * @param string|null $revenus Raw enum value from database
+     * @return string Formatted display value
+     */
+    function formatRevenus($revenus) {
+        if ($revenus === null || $revenus === '') {
+            return 'N/A';
+        }
+        
+        if ($revenus === '< 2300') {
+            return '< 2300 €';
+        } elseif ($revenus === '2300-3000') {
+            return '2300-3000 €';
+        } elseif ($revenus === '3000+') {
+            return '3000 € et +';
+        }
+        
+        // Return raw value for any unexpected values
+        return $revenus;
+    }
+}
+
 // Charger PHPMailer
 // Si installé via Composer, utiliser l'autoload standard
 if (file_exists(dirname(__DIR__) . '/vendor/autoload.php')) {

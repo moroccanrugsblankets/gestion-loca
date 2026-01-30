@@ -144,7 +144,7 @@ $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     </small>
                                 </td>
                                 <td><small><?php echo htmlspecialchars($cand['statut_professionnel']); ?></small></td>
-                                <td><small><?php echo formatRevenus($cand['revenus_mensuels'] ?? null); ?></small></td>
+                                <td><small><?php echo htmlspecialchars(formatRevenus($cand['revenus_mensuels'] ?? null)); ?></small></td>
                                 <td>
                                     <?php if ($cand['logement_ref']): ?>
                                         <small><?php echo htmlspecialchars($cand['logement_ref']); ?></small>
