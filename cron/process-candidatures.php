@@ -42,8 +42,8 @@ try {
     // Calculate the delay in hours based on the unit
     $hoursDelay = 0;
     if ($delaiUnite === 'jours') {
-        // For business days, we'll use a simple calculation
-        // Each business day = ~8 hours (or we can use 24 hours for simplicity)
+        // For days, we use calendar days (24 hours each)
+        // This is simpler and more predictable than business days
         $hoursDelay = $delaiValeur * 24;
     } elseif ($delaiUnite === 'heures') {
         $hoursDelay = $delaiValeur;
