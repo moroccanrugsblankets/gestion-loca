@@ -469,18 +469,22 @@ function getStatusChangeEmailHTML($nom_complet, $statut, $commentaire = '') {
     
     switch ($statut) {
         case 'Accepté':
-            $title = '✓ Candidature Acceptée';
-            $message = 'Nous avons le plaisir de vous informer que votre candidature a été acceptée.';
-            $message .= '<br><br>Nous vous contacterons prochainement pour organiser une visite du logement.';
-            $color = '#28a745';
+        case 'Accepte':
+        case 'accepte':
+            $title = 'Suite à votre candidature';
+            $message = 'Nous vous remercions pour l\'intérêt que vous portez à notre logement et pour votre candidature.';
+            $message .= '<br><br>Après une première analyse de votre dossier, nous avons le plaisir de vous informer qu\'il a été retenu pour la suite du processus.<br>';
+            $message .= 'Nous reviendrons vers vous prochainement afin de convenir ensemble d\'une date de visite.';
+            $message .= '<br><br>Nous vous remercions encore pour votre démarche et restons à votre disposition pour toute information complémentaire.';
             break;
             
         case 'Refusé':
-            $title = 'Suite à votre candidature';
-            $message = 'Nous vous remercions pour l\'intérêt que vous portez à nos logements.';
-            $message .= '<br><br>Malheureusement, nous ne pouvons pas donner suite à votre candidature à ce stade.';
-            $message .= '<br><br>Nous vous souhaitons bonne continuation dans vos recherches.';
-            $color = '#dc3545';
+        case 'Refuse':
+        case 'refuse':
+            $title = 'Réponse à votre candidature';
+            $message = 'Nous vous remercions pour l\'intérêt que vous portez à notre logement et pour le temps consacré à votre candidature.';
+            $message .= '<br><br>Après étude de l\'ensemble des dossiers reçus, nous vous informons que nous ne donnerons pas suite à votre demande pour ce logement.';
+            $message .= '<br><br>Nous vous remercions pour votre démarche et vous souhaitons pleine réussite dans vos recherches.';
             break;
             
         case 'Visite planifiée':
@@ -518,43 +522,38 @@ function getStatusChangeEmailHTML($nom_complet, $statut, $commentaire = '') {
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
         .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, ' . $color . ' 0%, ' . $color . 'dd 100%); color: #ffffff; padding: 30px 20px; text-align: center; }
-        .header h1 { margin: 0; font-size: 24px; }
-        .content { padding: 30px 20px; }
-        .message-box { background: #f8f9fa; border-left: 4px solid ' . $color . '; padding: 15px; margin: 20px 0; border-radius: 4px; }
-        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; padding: 30px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 28px; }
+        .content { padding: 30px; }
+        .content p { margin: 15px 0; }
+        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e9ecef; }
+        .signature { margin-top: 30px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>' . $title . '</h1>
+            <h1>MY Invest Immobilier</h1>
         </div>
         <div class="content">
-            <p>Bonjour <strong>' . htmlspecialchars($nom_complet) . '</strong>,</p>
+            <p>Bonjour,</p>
             
-            <div class="message-box">
-                <p>' . $message . '</p>
-            </div>';
+            <p>' . $message . '</p>';
     
     if ($commentaire) {
         $html .= '
-            <div class="message-box" style="border-left-color: #6c757d;">
-                <p><strong>Note :</strong> ' . nl2br(htmlspecialchars($commentaire)) . '</p>
-            </div>';
+            <p><strong>Note :</strong> ' . nl2br(htmlspecialchars($commentaire)) . '</p>';
     }
     
     $html .= '
-            <p>Nous restons à votre disposition pour toute question.</p>
-            
-            <p style="margin-top: 30px;">
-                Cordialement,<br>
-                <strong>MY Invest Immobilier</strong><br>
-                <a href="mailto:' . $config['COMPANY_EMAIL'] . '">' . $config['COMPANY_EMAIL'] . '</a>
-            </p>
+            <div class="signature">
+                <p>Sincères salutations<br>
+                Le Bureau<br>
+                <strong>MY Invest Immobilier</strong></p>
+            </div>
         </div>
         <div class="footer">
-            <p>© ' . date('Y') . ' MY Invest Immobilier - Tous droits réservés</p>
+            <p>MY Invest Immobilier - Gestion locative professionnelle</p>
         </div>
     </div>
 </body>

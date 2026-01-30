@@ -58,8 +58,8 @@ try {
         // Envoyer un email de notification au candidat
         $nomComplet = $candidature['prenom'] . ' ' . $candidature['nom'];
         $emailSubject = ($action === 'positive') 
-            ? 'Candidature acceptée - MY Invest Immobilier'
-            : 'Suite à votre candidature - MY Invest Immobilier';
+            ? 'Suite à votre candidature'
+            : 'Réponse à votre candidature';
         
         $emailBody = getStatusChangeEmailHTML($nomComplet, ucfirst($newStatus), '');
         

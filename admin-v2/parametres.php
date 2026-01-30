@@ -145,6 +145,7 @@ foreach ($allParams as $param) {
                                 <?php 
                                 $labels = [
                                     'delai_reponse_jours' => 'Délai de réponse automatique (jours ouvrés)',
+                                    'delai_refus_auto_heures' => 'Délai d\'envoi automatique de refus (heures)',
                                     'jours_ouvres_debut' => 'Premier jour ouvré (1 = Lundi)',
                                     'jours_ouvres_fin' => 'Dernier jour ouvré (5 = Vendredi)',
                                     'revenus_min_requis' => 'Revenus nets mensuels minimum requis (€)',
