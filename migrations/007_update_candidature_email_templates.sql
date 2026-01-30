@@ -17,7 +17,6 @@ SET
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center; }
         .header h1 { margin: 0; font-size: 28px; }
         .content { padding: 30px; }
-        .content h2 { color: #28a745; margin-top: 0; }
         .content p { margin: 15px 0; }
         .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e9ecef; }
         .signature { margin-top: 30px; }
