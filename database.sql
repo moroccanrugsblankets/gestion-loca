@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS logements (
 CREATE TABLE IF NOT EXISTS candidatures (
     id INT AUTO_INCREMENT PRIMARY KEY,
     reference_unique VARCHAR(100) UNIQUE NOT NULL,
+    response_token VARCHAR(64) UNIQUE NULL COMMENT 'Token sécurisé pour réponses par email (accept/reject)',
     logement_id INT,
     
     -- Informations personnelles
@@ -93,6 +94,7 @@ CREATE TABLE IF NOT EXISTS candidatures (
     
     FOREIGN KEY (logement_id) REFERENCES logements(id) ON DELETE SET NULL,
     INDEX idx_reference (reference_unique),
+    INDEX idx_response_token (response_token),
     INDEX idx_statut (statut),
     INDEX idx_email (email),
     INDEX idx_date_soumission (date_soumission),
