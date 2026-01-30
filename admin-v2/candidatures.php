@@ -60,12 +60,12 @@ $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
             font-size: 12px;
             font-weight: 500;
         }
-        .status-en_cours { background: #ffc107; color: #000; }
-        .status-accepté { background: #28a745; color: white; }
-        .status-refusé { background: #dc3545; color: white; }
-        .status-visite_planifiée { background: #17a2b8; color: white; }
-        .status-contrat_envoyé { background: #6f42c1; color: white; }
-        .status-contrat_signé { background: #007bff; color: white; }
+        .status-en-cours { background: #ffc107; color: #000; }
+        .status-accepte { background: #28a745; color: white; }
+        .status-refuse { background: #dc3545; color: white; }
+        .status-visite-planifiee { background: #17a2b8; color: white; }
+        .status-contrat-envoye { background: #6f42c1; color: white; }
+        .status-contrat-signe { background: #007bff; color: white; }
     </style>
 </head>
 <body>
@@ -94,12 +94,12 @@ $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <label class="form-label">Statut</label>
                         <select name="statut" class="form-select">
                             <option value="">Tous</option>
-                            <option value="En cours" <?php echo $filter_statut === 'En cours' ? 'selected' : ''; ?>>En cours</option>
-                            <option value="Accepté" <?php echo $filter_statut === 'Accepté' ? 'selected' : ''; ?>>Accepté</option>
-                            <option value="Refusé" <?php echo $filter_statut === 'Refusé' ? 'selected' : ''; ?>>Refusé</option>
-                            <option value="Visite planifiée" <?php echo $filter_statut === 'Visite planifiée' ? 'selected' : ''; ?>>Visite planifiée</option>
-                            <option value="Contrat envoyé" <?php echo $filter_statut === 'Contrat envoyé' ? 'selected' : ''; ?>>Contrat envoyé</option>
-                            <option value="Contrat signé" <?php echo $filter_statut === 'Contrat signé' ? 'selected' : ''; ?>>Contrat signé</option>
+                            <option value="en_cours" <?php echo $filter_statut === 'en_cours' ? 'selected' : ''; ?>>En cours</option>
+                            <option value="refuse" <?php echo $filter_statut === 'refuse' ? 'selected' : ''; ?>>Refusé</option>
+                            <option value="accepte" <?php echo $filter_statut === 'accepte' ? 'selected' : ''; ?>>Accepté</option>
+                            <option value="visite_planifiee" <?php echo $filter_statut === 'visite_planifiee' ? 'selected' : ''; ?>>Visite planifiée</option>
+                            <option value="contrat_envoye" <?php echo $filter_statut === 'contrat_envoye' ? 'selected' : ''; ?>>Contrat envoyé</option>
+                            <option value="contrat_signe" <?php echo $filter_statut === 'contrat_signe' ? 'selected' : ''; ?>>Contrat signé</option>
                         </select>
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
@@ -154,9 +154,13 @@ $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 </td>
                                 <td><small><?php echo date('d/m/Y', strtotime($cand['date_soumission'])); ?></small></td>
                                 <td>
-                                    <span class="status-badge status-<?php echo strtolower(str_replace(' ', '_', $cand['statut'])); ?>">
-                                        <?php echo htmlspecialchars($cand['statut']); ?>
-                                    </span>
+                                    <?php if ($cand['statut']): ?>
+                                        <span class="status-badge status-<?php echo strtolower(str_replace('_', '-', $cand['statut'])); ?>">
+                                            <?php echo htmlspecialchars(formatStatut($cand['statut'])); ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="text-muted">-</span>
+                                    <?php endif; ?>
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">

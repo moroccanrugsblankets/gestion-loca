@@ -1,7 +1,7 @@
 <?php
 /**
  * Traitement de soumission de candidature locative
- * Enregistre la candidature et les documents, puis marque le statut "En cours"
+ * Enregistre la candidature et les documents, puis évalue et définit le statut selon les critères
  */
 
 session_start();
@@ -156,7 +156,28 @@ try {
     // Générer un token sécurisé pour les réponses par email
     $response_token = bin2hex(random_bytes(32));
     
-    // Insérer la candidature
+    // Prepare candidature data for evaluation
+    $candidatureData = [
+        'statut_professionnel' => $_POST['statut_professionnel'],
+        'periode_essai' => $_POST['periode_essai'],
+        'revenus_mensuels' => $_POST['revenus_mensuels'],
+        'type_revenus' => $_POST['type_revenus'],
+        'nb_occupants' => $_POST['nb_occupants'],
+        'garantie_visale' => $_POST['garantie_visale']
+    ];
+    
+    // Evaluate candidature immediately to determine initial status
+    $evaluation = evaluateCandidature($candidatureData);
+    $initialStatut = $evaluation['statut'];
+    $motifRefus = $evaluation['motif'];
+    
+    logDebug("Candidature évaluée", [
+        'accepted' => $evaluation['accepted'],
+        'statut' => $initialStatut,
+        'motif' => $motifRefus
+    ]);
+    
+    // Insérer la candidature avec le statut déterminé
     $stmt = $pdo->prepare("
         INSERT INTO candidatures (
             reference_unique, response_token, logement_id, nom, prenom, email, telephone,
@@ -164,8 +185,8 @@ try {
             revenus_mensuels, type_revenus,
             situation_logement, preavis_donne,
             nb_occupants, garantie_visale,
-            statut, date_soumission
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'En cours', NOW())
+            statut, motif_refus, date_soumission
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     ");
     
     $stmt->execute([
@@ -183,11 +204,18 @@ try {
         $_POST['situation_logement'],
         $_POST['preavis_donne'],
         $_POST['nb_occupants'],
-        $_POST['garantie_visale']
+        $_POST['garantie_visale'],
+        $initialStatut,
+        $motifRefus ?: null
     ]);
     
     $candidature_id = $pdo->lastInsertId();
-    logDebug("Candidature insérée", ['id' => $candidature_id, 'reference' => $reference_unique, 'token' => $response_token]);
+    logDebug("Candidature insérée", [
+        'id' => $candidature_id, 
+        'reference' => $reference_unique, 
+        'token' => $response_token,
+        'statut' => $initialStatut
+    ]);
     
     // Créer le dossier uploads pour cette candidature
     $upload_dir = __DIR__ . '/../uploads/candidatures/' . $candidature_id;

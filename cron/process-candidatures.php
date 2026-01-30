@@ -17,10 +17,16 @@ require_once __DIR__ . '/../includes/mail-templates.php';
 // Log file for cron execution
 $logFile = __DIR__ . '/cron-log.txt';
 
-function logMessage($message) {
+function logMessage($message, $echoMessage = true) {
     global $logFile;
     $timestamp = date('Y-m-d H:i:s');
-    file_put_contents($logFile, "[$timestamp] $message\n", FILE_APPEND);
+    $logLine = "[$timestamp] $message\n";
+    file_put_contents($logFile, $logLine, FILE_APPEND);
+    
+    // Also echo to stdout for cron job visibility
+    if ($echoMessage) {
+        echo $message . "\n";
+    }
 }
 
 logMessage("=== Starting candidature processing ===");
@@ -138,61 +144,5 @@ try {
 } catch (Exception $e) {
     logMessage("ERROR: " . $e->getMessage());
     error_log("Cron error: " . $e->getMessage());
-}
-
-/**
- * Evaluate if a candidature should be accepted based on NEW STRICTER criteria
- * Returns array with 'accepted' (bool) and 'motif' (string) keys
- */
-function evaluateCandidature($candidature) {
-    // Get parameters from database
-    $revenusMinRequis = getParameter('revenus_min_requis', 3000);
-    $statutsProAcceptes = getParameter('statuts_pro_acceptes', ['CDI', 'CDD']);
-    $typeRevenusAccepte = getParameter('type_revenus_accepte', 'Salaires');
-    $nbOccupantsAcceptes = getParameter('nb_occupants_acceptes', ['1', '2']);
-    $garantieVisaleRequise = getParameter('garantie_visale_requise', true);
-    
-    $motifs = [];
-    
-    // RULE 1: Professional situation - must be CDI or CDD
-    if (!in_array($candidature['statut_professionnel'], $statutsProAcceptes)) {
-        $motifs[] = "Statut professionnel non accepté (doit être CDI ou CDD)";
-    }
-    
-    // RULE 2: Monthly net income - must be >= 3000€
-    // Convert enum values to numeric for comparison
-    $revenus = $candidature['revenus_mensuels'];
-    if ($revenus === '< 2300' || $revenus === '2300-3000') {
-        $motifs[] = "Revenus nets mensuels insuffisants (minimum 3000€ requis)";
-    }
-    
-    // RULE 3: Income type - must be Salaires
-    if ($candidature['type_revenus'] !== $typeRevenusAccepte) {
-        $motifs[] = "Type de revenus non accepté (doit être: $typeRevenusAccepte)";
-    }
-    
-    // RULE 4: Number of occupants - must be 1 or 2 (not "Autre")
-    if (!in_array($candidature['nb_occupants'], $nbOccupantsAcceptes)) {
-        $motifs[] = "Nombre d'occupants non accepté (doit être 1 ou 2)";
-    }
-    
-    // RULE 5: Visale guarantee - must be "Oui"
-    if ($garantieVisaleRequise && $candidature['garantie_visale'] !== 'Oui') {
-        $motifs[] = "Garantie Visale requise";
-    }
-    
-    // RULE 6: If CDI, trial period must be passed
-    if ($candidature['statut_professionnel'] === 'CDI' && $candidature['periode_essai'] === 'En cours') {
-        $motifs[] = "Période d'essai en cours";
-    }
-    
-    // All criteria must be met for acceptance
-    $accepted = empty($motifs);
-    $motif = $accepted ? '' : implode(', ', $motifs);
-    
-    return [
-        'accepted' => $accepted,
-        'motif' => $motif
-    ];
 }
 ?>

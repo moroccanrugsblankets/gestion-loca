@@ -80,10 +80,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Get all cron jobs (excluding the main process-candidatures.php)
+// Get all cron jobs
 $stmt = $pdo->query("
     SELECT * FROM cron_jobs 
-    WHERE fichier != 'cron/process-candidatures.php'
     ORDER BY id
 ");
 $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -320,12 +319,14 @@ $delaiUnite = getParameter('delai_reponse_unite', 'jours');
             </div>
         </div>
 
+        <!-- Main Cron Jobs Section -->
         <?php if (!empty($jobs)): ?>
         <div class="card mb-4">
-            <div class="card-header bg-secondary text-white">
+            <div class="card-header bg-success text-white">
                 <h5 class="mb-0">
-                    <i class="bi bi-gear"></i> Autres Tâches Automatisées
+                    <i class="bi bi-gear-fill"></i> Tâches Planifiées Configurées
                 </h5>
+                <small>Configuration et gestion des tâches automatisées du système</small>
             </div>
             <div class="card-body p-0">
             <?php foreach ($jobs as $job): ?>
@@ -455,17 +456,45 @@ $delaiUnite = getParameter('delai_reponse_unite', 'jours');
                         <li>Tapez: <code>crontab -e</code></li>
                         <li>Ajoutez les lignes suivantes:</li>
                     </ol>
+                    
+                    <?php if (!empty($jobs)): ?>
                     <pre class="bg-light p-3 border rounded"><?php
                     foreach ($jobs as $job) {
                         if ($job['actif'] && $job['cron_expression']) {
                             $full_path = realpath(__DIR__ . '/../' . $job['fichier']);
-                            echo htmlspecialchars($job['cron_expression']) . ' /usr/bin/php ' . htmlspecialchars($full_path) . "\n";
+                            if ($full_path) {
+                                echo "# " . $job['nom'] . "\n";
+                                echo htmlspecialchars($job['cron_expression']) . ' /usr/bin/php ' . htmlspecialchars($full_path) . "\n\n";
+                            }
                         }
                     }
                     ?></pre>
-                    <p class="mb-0">
+                    <?php else: ?>
+                    <div class="alert alert-info">
+                        Aucune tâche cron active configurée.
+                    </div>
+                    <?php endif; ?>
+                    
+                    <div class="alert alert-info mt-3">
                         <strong>Note:</strong> Ajustez le chemin de PHP (<code>/usr/bin/php</code>) selon votre configuration serveur.
-                    </p>
+                        <br>Pour trouver le chemin PHP sur votre serveur, exécutez: <code>which php</code>
+                    </div>
+                    
+                    <h6 class="mt-3">Exemple de configuration complète:</h6>
+                    <pre class="bg-light p-3 border rounded"># Traitement des candidatures - tous les jours à 9h00
+0 9 * * * /usr/bin/php <?php echo htmlspecialchars(realpath(__DIR__ . '/../cron/process-candidatures.php')); ?>
+
+# Vérifier que les emails cron sont envoyés à votre adresse
+# IMPORTANT: Remplacez your-email@example.com par votre vraie adresse email
+MAILTO=your-email@example.com</pre>
+                    
+                    <h6 class="mt-3">Vérification:</h6>
+                    <p>Après avoir configuré le cron, vous pouvez vérifier qu'il fonctionne en:</p>
+                    <ul>
+                        <li>Consultant les logs du système: <code>tail -f /var/log/syslog | grep CRON</code></li>
+                        <li>Vérifiant le fichier de log: <code><?php echo htmlspecialchars(realpath(__DIR__ . '/../cron/cron-log.txt') ?: __DIR__ . '/../cron/cron-log.txt'); ?></code></li>
+                        <li>Exécutant manuellement la tâche depuis cette page avec le bouton "Exécuter maintenant"</li>
+                    </ul>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
