@@ -14,6 +14,11 @@
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 
+// Only allow CLI execution for safety
+if (php_sapi_name() !== 'cli') {
+    die("This script can only be run from the command line.\n");
+}
+
 echo "=== Candidature Status Mismatch Fix ===\n";
 echo "Date: " . date('Y-m-d H:i:s') . "\n\n";
 
@@ -41,18 +46,16 @@ try {
     
     echo "\n";
     
-    // Ask for confirmation
-    if (php_sapi_name() === 'cli') {
-        echo "Do you want to fix these records? (yes/no): ";
-        $handle = fopen("php://stdin", "r");
-        $line = fgets($handle);
-        $confirmation = trim(strtolower($line));
-        fclose($handle);
-        
-        if ($confirmation !== 'yes' && $confirmation !== 'y') {
-            echo "Operation cancelled.\n";
-            exit(0);
-        }
+    // Ask for confirmation (we're always in CLI mode)
+    echo "Do you want to fix these records? (yes/no): ";
+    $handle = fopen("php://stdin", "r");
+    $line = fgets($handle);
+    $confirmation = trim(strtolower($line));
+    fclose($handle);
+    
+    if ($confirmation !== 'yes' && $confirmation !== 'y') {
+        echo "Operation cancelled.\n";
+        exit(0);
     }
     
     echo "\nFixing records...\n";
