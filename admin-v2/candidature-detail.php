@@ -371,7 +371,7 @@ function getStatusBadge($status) {
                                     <div class="document-item">
                                         <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
                                         <span class="flex-grow-1"><?php echo htmlspecialchars($doc['name']); ?></span>
-                                        <a href="../<?php echo htmlspecialchars($doc['path']); ?>" 
+                                        <a href="../uploads/<?php echo htmlspecialchars($doc['path']); ?>" 
                                            class="btn btn-sm btn-outline-primary" 
                                            target="_blank">
                                             <i class="bi bi-download"></i> Télécharger
