@@ -309,7 +309,21 @@ function getStatusBadge($status) {
                     <div class="info-row">
                         <div class="info-label">Revenus nets mensuels:</div>
                         <div class="info-value">
-                            <strong><?php echo htmlspecialchars($candidature['revenus_mensuels']); ?></strong>
+                            <strong>
+                                <?php 
+                                $revenus = $candidature['revenus_mensuels'] ?? 'N/A';
+                                // Format the revenue value for better display
+                                if ($revenus === '< 2300') {
+                                    echo '< 2300 €';
+                                } elseif ($revenus === '2300-3000') {
+                                    echo '2300-3000 €';
+                                } elseif ($revenus === '3000+') {
+                                    echo '3000 € et +';
+                                } else {
+                                    echo htmlspecialchars($revenus);
+                                }
+                                ?>
+                            </strong>
                         </div>
                     </div>
                     <div class="info-row">
