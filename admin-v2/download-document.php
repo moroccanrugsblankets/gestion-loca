@@ -42,13 +42,20 @@ if (!$document) {
 $uploadsDir = dirname(__DIR__) . '/uploads/';
 $fullPath = $uploadsDir . $documentPath;
 
+// Check if file exists first (before realpath which returns false for non-existent files)
+if (!file_exists($fullPath)) {
+    error_log("File not found: $fullPath (Document path: $documentPath, Candidature ID: $candidatureId)");
+    die('Fichier non trouvé sur le serveur. Le fichier a peut-être été supprimé ou n\'a jamais été uploadé correctement.');
+}
+
 // Security check: ensure the file is within uploads directory (prevent directory traversal)
 $realUploadsDir = realpath($uploadsDir);
 $realFilePath = realpath($fullPath);
 
 // Normalize paths for cross-platform comparison
 if (!$realFilePath || !$realUploadsDir) {
-    die('Chemin de fichier invalide.');
+    error_log("Invalid path - realpath failed unexpectedly. Full path: $fullPath, Uploads dir: $uploadsDir");
+    die('Erreur lors de la vérification du chemin de fichier.');
 }
 
 // Use DIRECTORY_SEPARATOR for cross-platform compatibility and ensure trailing separator
@@ -56,12 +63,8 @@ $normalizedUploadsDir = rtrim($realUploadsDir, DIRECTORY_SEPARATOR) . DIRECTORY_
 $normalizedFilePath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $realFilePath);
 
 if (stripos($normalizedFilePath, $normalizedUploadsDir) !== 0) {
-    die('Chemin de fichier invalide.');
-}
-
-// Check if file exists
-if (!file_exists($fullPath)) {
-    die('Fichier non trouvé sur le serveur.');
+    error_log("Security: File path outside uploads directory. Normalized path: $normalizedFilePath, Uploads dir: $normalizedUploadsDir");
+    die('Chemin de fichier invalide - accès refusé pour des raisons de sécurité.');
 }
 
 // Get file info
