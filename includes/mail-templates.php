@@ -240,8 +240,29 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
  * Utilisée si PHPMailer échoue
  */
 function sendEmailFallback($to, $subject, $body, $attachmentPath = null, $isHtml = true) {
-    global $config;
+    global $config, $pdo;
     try {
+        // Get email signature from parametres if HTML email
+        $signature = '';
+        if ($isHtml && $pdo) {
+            try {
+                $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'email_signature' LIMIT 1");
+                $stmt->execute();
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                $signature = ($result && !empty($result['valeur'])) ? $result['valeur'] : '';
+            } catch (Exception $e) {
+                // Silently fail if parametres table doesn't exist yet
+                error_log("Could not fetch email signature in fallback: " . $e->getMessage());
+                $signature = '';
+            }
+        }
+        
+        // Append signature to body if HTML and signature exists
+        $finalBody = $body;
+        if ($isHtml && !empty($signature)) {
+            $finalBody = $body . '<br><br>' . $signature;
+        }
+        
         if ($attachmentPath && file_exists($attachmentPath)) {
             // Email avec pièce jointe
             $boundary = md5(time());
@@ -255,7 +276,7 @@ function sendEmailFallback($to, $subject, $body, $attachmentPath = null, $isHtml
             $message = "--$boundary\r\n";
             $message .= "Content-Type: $contentType; charset=UTF-8\r\n";
             $message .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
-            $message .= $body . "\r\n\r\n";
+            $message .= $finalBody . "\r\n\r\n";
             
             // Pièce jointe
             $filename = basename($attachmentPath);
@@ -281,7 +302,7 @@ function sendEmailFallback($to, $subject, $body, $attachmentPath = null, $isHtml
                 $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
             }
             
-            $result = mail($to, $subject, $body, $headers);
+            $result = mail($to, $subject, $finalBody, $headers);
         }
         
         if (!$result) {
