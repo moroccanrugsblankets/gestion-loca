@@ -469,22 +469,22 @@ function getStatusChangeEmailHTML($nom_complet, $statut, $commentaire = '') {
     
     switch ($statut) {
         case 'Accepté':
+        case 'Accepte':
         case 'accepte':
             $title = 'Suite à votre candidature';
             $message = 'Nous vous remercions pour l\'intérêt que vous portez à notre logement et pour votre candidature.';
             $message .= '<br><br>Après une première analyse de votre dossier, nous avons le plaisir de vous informer qu\'il a été retenu pour la suite du processus.<br>';
             $message .= 'Nous reviendrons vers vous prochainement afin de convenir ensemble d\'une date de visite.';
             $message .= '<br><br>Nous vous remercions encore pour votre démarche et restons à votre disposition pour toute information complémentaire.';
-            $color = '#28a745';
             break;
             
         case 'Refusé':
+        case 'Refuse':
         case 'refuse':
             $title = 'Réponse à votre candidature';
             $message = 'Nous vous remercions pour l\'intérêt que vous portez à notre logement et pour le temps consacré à votre candidature.';
             $message .= '<br><br>Après étude de l\'ensemble des dossiers reçus, nous vous informons que nous ne donnerons pas suite à votre demande pour ce logement.';
             $message .= '<br><br>Nous vous remercions pour votre démarche et vous souhaitons pleine réussite dans vos recherches.';
-            $color = '#667eea';
             break;
             
         case 'Visite planifiée':
