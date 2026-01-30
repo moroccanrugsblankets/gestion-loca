@@ -120,7 +120,7 @@ function getStatusBadge($status) {
                 </div>
                 <div>
                     <?php echo getStatusBadge($candidature['statut']); ?>
-                    <a href="candidature-detail.php?id=<?php echo $id; ?>" class="btn btn-outline-primary ms-2">
+                    <a href="candidature-detail.php?id=<?php echo htmlspecialchars($id); ?>" class="btn btn-outline-primary ms-2">
                         <i class="bi bi-eye"></i> Voir détails complets
                     </a>
                 </div>
@@ -211,7 +211,7 @@ function getStatusBadge($status) {
                     <i class="bi bi-file-earmark-plus action-icon text-warning"></i>
                     <h5>Générer le contrat</h5>
                     <p class="text-muted">Créer le contrat de bail</p>
-                    <a href="generer-contrat.php?candidature_id=<?php echo $id; ?>" class="btn btn-warning">
+                    <a href="generer-contrat.php?candidature_id=<?php echo htmlspecialchars($id); ?>" class="btn btn-warning">
                         <i class="bi bi-file-earmark-plus"></i> Générer
                     </a>
                 </div>
@@ -224,7 +224,7 @@ function getStatusBadge($status) {
                     <i class="bi bi-list-ul action-icon text-secondary"></i>
                     <h5>Détails complets</h5>
                     <p class="text-muted">Voir toutes les informations</p>
-                    <a href="candidature-detail.php?id=<?php echo $id; ?>" class="btn btn-secondary">
+                    <a href="candidature-detail.php?id=<?php echo htmlspecialchars($id); ?>" class="btn btn-secondary">
                         <i class="bi bi-eye"></i> Voir tout
                     </a>
                 </div>
@@ -254,7 +254,7 @@ function getStatusBadge($status) {
                 </div>
                 <form action="change-status.php" method="POST">
                     <div class="modal-body">
-                        <input type="hidden" name="candidature_id" value="<?php echo $id; ?>">
+                        <input type="hidden" name="candidature_id" value="<?php echo htmlspecialchars($id); ?>">
                         <div class="mb-3">
                             <label class="form-label" for="nouveau_statut">Nouveau statut:</label>
                             <select name="nouveau_statut" id="nouveau_statut" class="form-select" required>
@@ -297,7 +297,7 @@ function getStatusBadge($status) {
                 </div>
                 <form action="send-email-candidature.php" method="POST">
                     <div class="modal-body">
-                        <input type="hidden" name="candidature_id" value="<?php echo $id; ?>">
+                        <input type="hidden" name="candidature_id" value="<?php echo htmlspecialchars($id); ?>">
                         <div class="mb-3">
                             <label class="form-label">Destinataire:</label>
                             <input type="email" class="form-control" value="<?php echo htmlspecialchars($candidature['email']); ?>" readonly>
@@ -332,7 +332,7 @@ function getStatusBadge($status) {
                 </div>
                 <form action="add-note-candidature.php" method="POST">
                     <div class="modal-body">
-                        <input type="hidden" name="candidature_id" value="<?php echo $id; ?>">
+                        <input type="hidden" name="candidature_id" value="<?php echo htmlspecialchars($id); ?>">
                         <div class="mb-3">
                             <label class="form-label">Note:</label>
                             <textarea name="note" class="form-control" rows="5" required placeholder="Entrez votre note ici..."></textarea>
