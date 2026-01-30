@@ -166,19 +166,13 @@ try {
         'garantie_visale' => $_POST['garantie_visale']
     ];
     
-    // Evaluate candidature immediately to determine initial status
-    $evaluation = evaluateCandidature($candidatureData);
-    $initialStatut = $evaluation['statut'];
-    $motifRefus = $evaluation['motif'];
+    // All candidatures start as 'en_cours' with 'en_attente' for automatic response
+    // The cron job will evaluate them after the configured delay and send appropriate emails
+    $initialStatut = 'en_cours';
+    $reponseAutomatique = 'en_attente';
     
-    // Set reponse_automatique based on evaluation result
-    // If automatically refused, mark as processed; otherwise, pending automatic response
-    $reponseAutomatique = ($initialStatut === 'refuse') ? 'refuse' : 'en_attente';
-    
-    logDebug("Candidature évaluée", [
-        'accepted' => $evaluation['accepted'],
+    logDebug("Candidature will be evaluated by cron job", [
         'statut' => $initialStatut,
-        'motif' => $motifRefus,
         'reponse_automatique' => $reponseAutomatique
     ]);
     
@@ -211,7 +205,7 @@ try {
         $_POST['nb_occupants'],
         $_POST['garantie_visale'],
         $initialStatut,
-        $motifRefus ?: null,
+        null, // motif_refus will be set by cron job
         $reponseAutomatique
     ]);
     
