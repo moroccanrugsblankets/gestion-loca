@@ -136,25 +136,6 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
     $mail = new PHPMailer(true);
     
     try {
-        // Get email signature from parametres if HTML email (with caching)
-        static $signatureCache = null;
-        $signature = '';
-        if ($isHtml && $pdo && $signatureCache === null) {
-            try {
-                $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'email_signature' LIMIT 1");
-                $stmt->execute();
-                $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                $signatureCache = ($result && !empty($result['valeur'])) ? $result['valeur'] : '';
-            } catch (Exception $e) {
-                // Silently fail if parametres table doesn't exist yet
-                error_log("Could not fetch email signature: " . $e->getMessage());
-                $signatureCache = '';
-            }
-        }
-        if ($isHtml && $signatureCache !== null) {
-            $signature = $signatureCache;
-        }
-        
         // Configuration du serveur SMTP
         if ($config['SMTP_AUTH']) {
             $mail->isSMTP();
@@ -194,10 +175,25 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
             $mail->addBCC($config['ADMIN_EMAIL_BCC']);
         }
         
-        // Append signature to body if HTML and signature exists
+        // Replace {{signature}} placeholder if present in body
         $finalBody = $body;
-        if ($isHtml && !empty($signature)) {
-            $finalBody = $body . '<br><br>' . $signature;
+        if ($isHtml && strpos($body, '{{signature}}') !== false) {
+            // Get email signature from parametres (with caching)
+            static $signatureCache = null;
+            if ($pdo && $signatureCache === null) {
+                try {
+                    $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'email_signature' LIMIT 1");
+                    $stmt->execute();
+                    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $signatureCache = ($result && !empty($result['valeur'])) ? $result['valeur'] : '';
+                } catch (Exception $e) {
+                    // Silently fail if parametres table doesn't exist yet
+                    error_log("Could not fetch email signature: " . $e->getMessage());
+                    $signatureCache = '';
+                }
+            }
+            $signature = $signatureCache !== null ? $signatureCache : '';
+            $finalBody = str_replace('{{signature}}', $signature, $body);
         }
         
         // Contenu
@@ -260,29 +256,25 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
 function sendEmailFallback($to, $subject, $body, $attachmentPath = null, $isHtml = true) {
     global $config, $pdo;
     try {
-        // Get email signature from parametres if HTML email (with caching)
-        static $signatureFallbackCache = null;
-        $signature = '';
-        if ($isHtml && $pdo && $signatureFallbackCache === null) {
-            try {
-                $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'email_signature' LIMIT 1");
-                $stmt->execute();
-                $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                $signatureFallbackCache = ($result && !empty($result['valeur'])) ? $result['valeur'] : '';
-            } catch (Exception $e) {
-                // Silently fail if parametres table doesn't exist yet
-                error_log("Could not fetch email signature in fallback: " . $e->getMessage());
-                $signatureFallbackCache = '';
-            }
-        }
-        if ($isHtml && $signatureFallbackCache !== null) {
-            $signature = $signatureFallbackCache;
-        }
-        
-        // Append signature to body if HTML and signature exists
+        // Replace {{signature}} placeholder if present in body
         $finalBody = $body;
-        if ($isHtml && !empty($signature)) {
-            $finalBody = $body . '<br><br>' . $signature;
+        if ($isHtml && strpos($body, '{{signature}}') !== false) {
+            // Get email signature from parametres (with caching)
+            static $signatureFallbackCache = null;
+            if ($pdo && $signatureFallbackCache === null) {
+                try {
+                    $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'email_signature' LIMIT 1");
+                    $stmt->execute();
+                    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $signatureFallbackCache = ($result && !empty($result['valeur'])) ? $result['valeur'] : '';
+                } catch (Exception $e) {
+                    // Silently fail if parametres table doesn't exist yet
+                    error_log("Could not fetch email signature in fallback: " . $e->getMessage());
+                    $signatureFallbackCache = '';
+                }
+            }
+            $signature = $signatureFallbackCache !== null ? $signatureFallbackCache : '';
+            $finalBody = str_replace('{{signature}}', $signature, $body);
         }
         
         if ($attachmentPath && file_exists($attachmentPath)) {
