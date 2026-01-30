@@ -304,11 +304,11 @@ function getStatusBadge($status) {
                     </div>
                 </div>
 
-                <!-- Revenus -->
+                <!-- Revenus & Solvabilité -->
                 <div class="info-card">
-                    <h5 class="mb-3"><i class="bi bi-cash-stack"></i> Revenus</h5>
+                    <h5 class="mb-3"><i class="bi bi-cash-stack"></i> Revenus & Solvabilité</h5>
                     <div class="info-row">
-                        <div class="info-label">Revenus mensuels:</div>
+                        <div class="info-label">Revenus nets mensuels:</div>
                         <div class="info-value">
                             <strong><?php echo htmlspecialchars(formatRevenus($candidature['revenus_mensuels'] ?? null)); ?></strong>
                         </div>
