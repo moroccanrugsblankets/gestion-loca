@@ -87,6 +87,33 @@ $stmt = $pdo->query("
 ");
 $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Get candidatures with failed email attempts that will be retried
+$stmt = $pdo->query("
+    SELECT 
+        c.id,
+        c.reference_unique,
+        c.nom,
+        c.prenom,
+        c.email,
+        c.created_at,
+        c.statut,
+        c.reponse_automatique,
+        l.reference as logement_reference,
+        COUNT(lg.id) as error_count,
+        MAX(lg.created_at) as last_error
+    FROM candidatures c
+    LEFT JOIN logements l ON c.logement_id = l.id
+    LEFT JOIN logs lg ON lg.entite_id = c.id 
+        AND lg.type_entite = 'candidature' 
+        AND lg.action = 'email_error'
+    WHERE c.reponse_automatique = 'en_attente'
+    GROUP BY c.id
+    HAVING error_count > 0
+    ORDER BY last_error DESC
+    LIMIT 20
+");
+$failed_emails = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 // Get pending automatic candidature responses (only refused and not yet sent)
 $stmt = $pdo->query("
     SELECT 
@@ -240,6 +267,81 @@ $pending_responses = $filtered_responses;
                 <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
+        <?php endif; ?>
+
+        <!-- Failed Email Attempts Section - High Priority Alert -->
+        <?php if (!empty($failed_emails)): ?>
+        <div class="card mb-4 border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Échecs d'envoi d'emails (<?php echo count($failed_emails); ?>)
+                </h5>
+                <small>Ces candidatures ont eu des erreurs d'envoi d'email et seront automatiquement retentées au prochain passage du cron</small>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-info-circle"></i> 
+                    <strong>Important:</strong> Ces emails seront automatiquement retentés lors de la prochaine exécution du cron. 
+                    Si les erreurs persistent, vérifiez la configuration SMTP dans le fichier config.php.
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Référence</th>
+                                <th>Candidat</th>
+                                <th>Email</th>
+                                <th>Date Soumission</th>
+                                <th>Statut</th>
+                                <th>Tentatives échouées</th>
+                                <th>Dernière erreur</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($failed_emails as $failed): ?>
+                            <tr class="table-danger">
+                                <td>
+                                    <code><?php echo htmlspecialchars($failed['reference_unique']); ?></code>
+                                </td>
+                                <td>
+                                    <strong><?php echo htmlspecialchars($failed['prenom'] . ' ' . $failed['nom']); ?></strong>
+                                </td>
+                                <td>
+                                    <small><?php echo htmlspecialchars($failed['email']); ?></small>
+                                </td>
+                                <td>
+                                    <small><?php echo date('d/m/Y H:i', strtotime($failed['created_at'])); ?></small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-<?php echo $failed['statut'] === 'refuse' ? 'danger' : 'info'; ?>">
+                                        <?php echo htmlspecialchars($failed['statut']); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-danger">
+                                        <?php echo $failed['error_count']; ?> 
+                                        <?php echo $failed['error_count'] > 1 ? 'échecs' : 'échec'; ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <small><?php echo date('d/m/Y H:i', strtotime($failed['last_error'])); ?></small>
+                                </td>
+                                <td>
+                                    <a href="candidature-detail.php?id=<?php echo $failed['id']; ?>" 
+                                       class="btn btn-sm btn-outline-primary" 
+                                       title="Voir détails">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
         <?php endif; ?>
 
         <!-- Pending Automatic Candidature Responses Section -->

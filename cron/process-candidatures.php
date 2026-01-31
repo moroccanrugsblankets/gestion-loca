@@ -93,19 +93,24 @@ try {
                 'lien_confirmation' => $confirmUrl
             ];
             
-            // Update status to "Accepté"
-            $updateStmt = $pdo->prepare("UPDATE candidatures SET statut = 'accepte', reponse_automatique = 'accepte', date_reponse_auto = NOW(), date_reponse_envoyee = NOW() WHERE id = ?");
-            $updateStmt->execute([$id]);
-            
-            // Send email using template
+            // Send email using template BEFORE updating status
             if (sendTemplatedEmail('candidature_acceptee', $email, $variables)) {
+                // Only update status if email was sent successfully
+                $updateStmt = $pdo->prepare("UPDATE candidatures SET statut = 'accepte', reponse_automatique = 'accepte', date_reponse_auto = NOW(), date_reponse_envoyee = NOW() WHERE id = ?");
+                $updateStmt->execute([$id]);
+                
                 logMessage("Acceptance email sent to $email for application #$id");
                 
                 // Log the action
                 $logStmt = $pdo->prepare("INSERT INTO logs (type_entite, entite_id, action, details) VALUES (?, ?, ?, ?)");
                 $logStmt->execute(['candidature', $id, 'email_acceptation', "Email d'acceptation envoyé à $email"]);
             } else {
-                logMessage("ERROR: Failed to send acceptance email to $email");
+                logMessage("ERROR: Failed to send acceptance email to $email - candidature #$id will be retried in next cron run");
+                logMessage("Check SMTP configuration in config.php or review logs table for details");
+                
+                // Log the failure
+                $logStmt = $pdo->prepare("INSERT INTO logs (type_entite, entite_id, action, details) VALUES (?, ?, ?, ?)");
+                $logStmt->execute(['candidature', $id, 'email_error', "Échec de l'envoi de l'email d'acceptation à $email"]);
             }
             
         } else {
@@ -116,19 +121,24 @@ try {
                 'email' => $email
             ];
             
-            // Update status to "Refusé" with rejection reason
-            $updateStmt = $pdo->prepare("UPDATE candidatures SET statut = 'refuse', reponse_automatique = 'refuse', motif_refus = ?, date_reponse_auto = NOW(), date_reponse_envoyee = NOW() WHERE id = ?");
-            $updateStmt->execute([$motifRefus, $id]);
-            
-            // Send email using template
+            // Send email using template BEFORE updating status
             if (sendTemplatedEmail('candidature_refusee', $email, $variables)) {
+                // Only update status if email was sent successfully
+                $updateStmt = $pdo->prepare("UPDATE candidatures SET statut = 'refuse', reponse_automatique = 'refuse', motif_refus = ?, date_reponse_auto = NOW(), date_reponse_envoyee = NOW() WHERE id = ?");
+                $updateStmt->execute([$motifRefus, $id]);
+                
                 logMessage("Rejection email sent to $email for application #$id. Reason: $motifRefus");
                 
                 // Log the action
                 $logStmt = $pdo->prepare("INSERT INTO logs (type_entite, entite_id, action, details) VALUES (?, ?, ?, ?)");
                 $logStmt->execute(['candidature', $id, 'email_refus', "Email de refus envoyé à $email. Motif: $motifRefus"]);
             } else {
-                logMessage("ERROR: Failed to send rejection email to $email");
+                logMessage("ERROR: Failed to send rejection email to $email - candidature #$id will be retried in next cron run");
+                logMessage("Check SMTP configuration in config.php or review logs table for details");
+                
+                // Log the failure
+                $logStmt = $pdo->prepare("INSERT INTO logs (type_entite, entite_id, action, details) VALUES (?, ?, ?, ?)");
+                $logStmt->execute(['candidature', $id, 'email_error', "Échec de l'envoi de l'email de refus à $email. Motif: $motifRefus"]);
             }
         }
     }
