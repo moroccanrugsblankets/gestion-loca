@@ -42,8 +42,18 @@ try {
         $newStatus = ($action === 'positive') ? 'accepte' : 'refuse';
         
         // Mettre à jour le statut et reponse_automatique pour éviter le double traitement
-        $stmt = $pdo->prepare("UPDATE candidatures SET statut = ?, reponse_automatique = ?, date_reponse_envoyee = NOW(), date_reponse_auto = NOW() WHERE id = ?");
-        $stmt->execute([$newStatus, $newStatus, $candidature['id']]);
+        if ($newStatus === 'refuse') {
+            // Calculate and store the scheduled response date for refused candidatures
+            $createdDate = new DateTime($candidature['created_at']);
+            $scheduledDate = calculateScheduledResponseDate($createdDate);
+            $scheduledDateStr = $scheduledDate->format('Y-m-d H:i:s');
+            
+            $stmt = $pdo->prepare("UPDATE candidatures SET statut = ?, reponse_automatique = ?, date_reponse_envoyee = NOW(), date_reponse_auto = NOW(), scheduled_response_date = ? WHERE id = ?");
+            $stmt->execute([$newStatus, $newStatus, $scheduledDateStr, $candidature['id']]);
+        } else {
+            $stmt = $pdo->prepare("UPDATE candidatures SET statut = ?, reponse_automatique = ?, date_reponse_envoyee = NOW(), date_reponse_auto = NOW() WHERE id = ?");
+            $stmt->execute([$newStatus, $newStatus, $candidature['id']]);
+        }
         
         // Logger l'action
         $actionLog = ($action === 'positive') ? 'Candidature acceptée via email' : 'Candidature refusée via email';
