@@ -36,7 +36,7 @@ if ($candidature_id) {
 }
 
 // Get all available properties
-$stmt = $pdo->query("SELECT * FROM logements WHERE statut IN ('disponible', 'en_location') ORDER BY reference");
+$stmt = $pdo->query("SELECT * FROM logements WHERE statut = 'disponible' ORDER BY reference");
 $logements = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Get applications that can have contracts
@@ -69,38 +69,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute([$reference_unique, $candidature_id, $logement_id, $date_expiration, $date_prise_effet, $nb_locataires]);
     $contrat_id = $pdo->lastInsertId();
     
-    // Update property status
-    $stmt = $pdo->prepare("UPDATE logements SET statut = 'en_location' WHERE id = ?");
-    $stmt->execute([$logement_id]);
+    // Note: Property status will be updated when contract is signed/active, not here
+    // For now, we keep it as is since the contract is still 'en_attente'
     
     // Update candidature status
     $stmt = $pdo->prepare("UPDATE candidatures SET statut = 'contrat_envoye', logement_id = ? WHERE id = ?");
     $stmt->execute([$logement_id, $candidature_id]);
     
-    // Log action - Check if table has candidature_id/contrat_id columns or uses polymorphic structure
-    try {
-        $stmt = $pdo->prepare("
-            INSERT INTO logs (candidature_id, contrat_id, action, details, ip_address, created_at)
-            VALUES (?, ?, 'Contrat généré', ?, ?, NOW())
-        ");
-        $stmt->execute([
-            $candidature_id,
-            $contrat_id,
-            "Contrat $reference_unique créé pour logement ID $logement_id",
-            $_SERVER['REMOTE_ADDR']
-        ]);
-    } catch (PDOException $e) {
-        // If above fails, try polymorphic structure
-        $stmt = $pdo->prepare("
-            INSERT INTO logs (type_entite, entite_id, action, details, ip_address, created_at)
-            VALUES ('contrat', ?, 'Contrat généré', ?, ?, NOW())
-        ");
-        $stmt->execute([
-            $contrat_id,
-            "Contrat $reference_unique créé pour candidature ID $candidature_id et logement ID $logement_id",
-            $_SERVER['REMOTE_ADDR']
-        ]);
-    }
+    // Log action using polymorphic structure
+    $stmt = $pdo->prepare("
+        INSERT INTO logs (type_entite, entite_id, action, details, ip_address, created_at)
+        VALUES ('contrat', ?, 'Contrat généré', ?, ?, NOW())
+    ");
+    $stmt->execute([
+        $contrat_id,
+        "Contrat $reference_unique créé pour candidature ID $candidature_id et logement ID $logement_id",
+        $_SERVER['REMOTE_ADDR']
+    ]);
     
     // Generate signature link
     $token = bin2hex(random_bytes(32));
@@ -218,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </option>
                                 <?php endforeach; ?>
                             </select>
-                            <small class="form-text text-muted">Logements disponibles ou réservés</small>
+                            <small class="form-text text-muted">Logements disponibles</small>
                         </div>
                     <?php endif; ?>
 
@@ -245,7 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <li>Un lien de signature valide 24h sera généré</li>
                                 <li>Le locataire recevra un email avec les instructions</li>
                                 <li>Le statut de la candidature passera à "Contrat envoyé"</li>
-                                <li>Le logement sera marqué comme "Réservé"</li>
+                                <li>Le logement sera marqué comme "En location" une fois le contrat signé</li>
                             </ul>
                         </div>
                     </div>
