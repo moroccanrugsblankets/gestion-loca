@@ -106,6 +106,7 @@ try {
                 $logStmt->execute(['candidature', $id, 'email_acceptation', "Email d'acceptation envoyé à $email"]);
             } else {
                 logMessage("ERROR: Failed to send acceptance email to $email - candidature #$id will be retried in next cron run");
+                logMessage("Check SMTP configuration in config.php or review logs table for details");
                 
                 // Log the failure
                 $logStmt = $pdo->prepare("INSERT INTO logs (type_entite, entite_id, action, details) VALUES (?, ?, ?, ?)");
@@ -133,6 +134,7 @@ try {
                 $logStmt->execute(['candidature', $id, 'email_refus', "Email de refus envoyé à $email. Motif: $motifRefus"]);
             } else {
                 logMessage("ERROR: Failed to send rejection email to $email - candidature #$id will be retried in next cron run");
+                logMessage("Check SMTP configuration in config.php or review logs table for details");
                 
                 // Log the failure
                 $logStmt = $pdo->prepare("INSERT INTO logs (type_entite, entite_id, action, details) VALUES (?, ?, ?, ?)");

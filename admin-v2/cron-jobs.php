@@ -320,7 +320,10 @@ $pending_responses = $filtered_responses;
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="badge bg-danger"><?php echo $failed['error_count']; ?> échec(s)</span>
+                                    <span class="badge bg-danger">
+                                        <?php echo $failed['error_count']; ?> 
+                                        <?php echo $failed['error_count'] > 1 ? 'échecs' : 'échec'; ?>
+                                    </span>
                                 </td>
                                 <td>
                                     <small><?php echo date('d/m/Y H:i', strtotime($failed['last_error'])); ?></small>
