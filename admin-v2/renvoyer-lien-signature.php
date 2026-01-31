@@ -39,8 +39,8 @@ try {
         exit;
     }
     
-    // Only allow resending for contracts in 'en_attente' or 'contrat_envoye' status
-    if (!in_array($contrat['statut'], ['en_attente', 'contrat_envoye'])) {
+    // Only allow resending for contracts in 'en_attente' status
+    if ($contrat['statut'] !== 'en_attente') {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Le contrat n\'est plus en attente de signature']);
         exit;

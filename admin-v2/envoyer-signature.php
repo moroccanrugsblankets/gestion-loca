@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             SET reference_unique = ?, 
                 date_expiration = ?,
                 nb_locataires = ?,
-                statut = 'contrat_envoye'
+                statut = 'en_attente'
             WHERE id = ?
         ");
         $stmt->execute([$token, $date_expiration, $nb_locataires, $contrat_id]);
