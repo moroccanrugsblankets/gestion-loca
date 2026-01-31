@@ -2,6 +2,7 @@
 require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
+require_once '../includes/functions.php';
 require_once '../includes/mail-templates.php';
 
 // Ensure this is a POST request
@@ -71,12 +72,17 @@ try {
     // Create signature link
     $signature_link = $config['SITE_URL'] . '/signature/index.php?token=' . $token;
     
-    // Send email with signature link
-    $subject = "Contrat de bail à signer – Action immédiate requise";
-    $htmlBody = getInvitationSignatureEmailHTML($signature_link, $contrat['adresse'], $contrat['nb_locataires']);
+    // Préparer les variables pour le template
+    $variables = [
+        'nom' => $contrat['nom'],
+        'prenom' => $contrat['prenom'],
+        'email' => $contrat['email'],
+        'adresse' => $contrat['adresse'],
+        'lien_signature' => $signature_link
+    ];
     
-    // Send email to client and CC to all active administrators (last parameter = true)
-    $emailSent = sendEmail($contrat['email'], $subject, $htmlBody, null, true, true);
+    // Envoyer l'email d'invitation avec le template de la base de données
+    $emailSent = sendTemplatedEmail('contrat_signature', $contrat['email'], $variables, null, true);
     
     if ($emailSent) {
         // Log the action
