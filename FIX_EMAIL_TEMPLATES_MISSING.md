@@ -22,6 +22,11 @@ Un script d'initialisation a été créé pour créer les templates par défaut 
    php init-email-templates.php
    ```
 
+   Pour réinitialiser tous les templates aux valeurs par défaut:
+   ```bash
+   php init-email-templates.php --reset
+   ```
+
 2. **Vérifier que les templates ont été créés:**
    - Ouvrir `/admin-v2/email-templates.php` dans un navigateur
    - Vous devriez voir 4 templates:
@@ -85,6 +90,7 @@ Pour vérifier que les templates fonctionnent correctement:
 - La variable `{{signature}}` est remplacée lors de l'envoi par la fonction `sendEmail()`
 - Les templates sont marqués comme "actifs" par défaut
 - Si vous modifiez un template, les modifications s'appliquent immédiatement aux prochains emails envoyés
+- **Option --reset**: Utilisez `php init-email-templates.php --reset` pour réinitialiser tous les templates aux valeurs par défaut (écrase les modifications personnalisées)
 
 ## Support
 

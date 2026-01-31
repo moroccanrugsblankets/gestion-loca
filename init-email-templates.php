@@ -3,12 +3,25 @@
  * Initialize Email Templates
  * This script creates default email templates if they don't exist
  * Run this script if email templates are missing from the database
+ * 
+ * Usage:
+ *   php init-email-templates.php          - Create missing templates
+ *   php init-email-templates.php --reset  - Reset all templates to defaults
  */
 
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 
-echo "=== Initialisation des templates d'email ===\n\n";
+// Check for reset flag
+$reset = in_array('--reset', $argv ?? []);
+
+echo "=== Initialisation des templates d'email ===\n";
+if ($reset) {
+    echo "MODE: Réinitialisation complète des templates\n";
+} else {
+    echo "MODE: Création des templates manquants uniquement\n";
+}
+echo "\n";
 
 // Check if email_templates table exists
 try {
@@ -247,8 +260,28 @@ foreach ($templates as $template) {
         $existing = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($existing) {
-            echo "⊘ Template '{$template['identifiant']}' existe déjà (ID: {$existing['id']})\n";
-            $skipped++;
+            if ($reset) {
+                // Update existing template
+                $stmt = $pdo->prepare("
+                    UPDATE email_templates 
+                    SET nom = ?, sujet = ?, corps_html = ?, variables_disponibles = ?, 
+                        description = ?, actif = 1, updated_at = NOW()
+                    WHERE identifiant = ?
+                ");
+                $stmt->execute([
+                    $template['nom'],
+                    $template['sujet'],
+                    $template['corps_html'],
+                    $template['variables_disponibles'],
+                    $template['description'],
+                    $template['identifiant']
+                ]);
+                echo "↻ Template '{$template['identifiant']}' réinitialisé (ID: {$existing['id']})\n";
+                $updated++;
+            } else {
+                echo "⊘ Template '{$template['identifiant']}' existe déjà (ID: {$existing['id']})\n";
+                $skipped++;
+            }
         } else {
             // Insert new template
             $stmt = $pdo->prepare("
@@ -268,19 +301,26 @@ foreach ($templates as $template) {
             $created++;
         }
     } catch (PDOException $e) {
-        echo "❌ Erreur lors de la création du template '{$template['identifiant']}': " . $e->getMessage() . "\n";
+        echo "❌ Erreur lors du traitement du template '{$template['identifiant']}': " . $e->getMessage() . "\n";
     }
 }
 
 echo "\n=== Résumé ===\n";
 echo "Templates créés: $created\n";
+if ($reset) {
+    echo "Templates réinitialisés: $updated\n";
+}
 echo "Templates existants (ignorés): $skipped\n";
 
-if ($created > 0) {
+if ($created > 0 || $updated > 0) {
     echo "\n✓ Templates d'email initialisés avec succès!\n";
     echo "Vous pouvez maintenant les voir et les modifier dans /admin-v2/email-templates.php\n";
 } else {
     echo "\nℹ Tous les templates existent déjà.\n";
+    if (!$reset) {
+        echo "Pour réinitialiser les templates aux valeurs par défaut, utilisez:\n";
+        echo "  php init-email-templates.php --reset\n";
+    }
 }
 
 echo "\n=== Test des templates ===\n";
