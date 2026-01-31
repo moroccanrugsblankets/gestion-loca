@@ -112,7 +112,7 @@ function getContractByToken($token) {
     $sql = "SELECT c.*, l.* 
             FROM contrats c 
             INNER JOIN logements l ON c.logement_id = l.id 
-            WHERE c.reference_unique = ?";
+            WHERE c.token_signature = ?";
     return fetchOne($sql, [$token]);
 }
 
@@ -126,9 +126,8 @@ function isContractValid($contract) {
         return false;
     }
     
-    // Accept both 'en_attente' and 'contrat_envoye' statuses
-    // 'contrat_envoye' is set when signature link is sent via envoyer-signature.php
-    $validStatuses = ['en_attente', 'contrat_envoye'];
+    // Only 'en_attente' status is valid for unsigned contracts
+    $validStatuses = ['en_attente'];
     if (!in_array($contract['statut'], $validStatuses)) {
         return false;
     }

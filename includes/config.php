@@ -146,6 +146,9 @@ if (file_exists(__DIR__ . '/config.local.php')) {
     }
 }
 
+// Normalize SITE_URL to remove trailing slash to prevent double slashes in URLs
+$config['SITE_URL'] = rtrim($config['SITE_URL'], '/');
+
 // Répertoires (computed values after local config is loaded)
 $config['UPLOAD_DIR'] = dirname(__DIR__) . '/uploads/';
 $config['PDF_DIR'] = dirname(__DIR__) . '/pdf/';
