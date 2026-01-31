@@ -165,7 +165,24 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
         // Destinataire principal
         $mail->addAddress($to);
         
-        // Si c'est un email admin et qu'une adresse secondaire est configurée
+        // Si c'est un email admin, ajouter les administrateurs actifs en copie
+        if ($isAdminEmail && $pdo) {
+            try {
+                $stmt = $pdo->prepare("SELECT email FROM administrateurs WHERE actif = TRUE");
+                $stmt->execute();
+                $admins = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                foreach ($admins as $admin) {
+                    if (!empty($admin['email']) && filter_var($admin['email'], FILTER_VALIDATE_EMAIL)) {
+                        $mail->addCC($admin['email']);
+                    }
+                }
+            } catch (Exception $e) {
+                error_log("Could not fetch admin emails for CC: " . $e->getMessage());
+            }
+        }
+        
+        // Fallback: Si c'est un email admin et qu'une adresse secondaire est configurée
         if ($isAdminEmail && !empty($config['ADMIN_EMAIL_SECONDARY'])) {
             $mail->addCC($config['ADMIN_EMAIL_SECONDARY']);
         }

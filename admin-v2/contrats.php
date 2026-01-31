@@ -114,6 +114,20 @@ $stats = [
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
+        
+        <?php if (isset($_SESSION['warning'])): ?>
+            <div class="alert alert-warning alert-dismissible fade show">
+                <?php echo $_SESSION['warning']; unset($_SESSION['warning']); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
+        
+        <?php if (isset($_SESSION['error'])): ?>
+            <div class="alert alert-danger alert-dismissible fade show">
+                <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
 
         <!-- Statistics -->
         <div class="row mb-4">
@@ -264,6 +278,9 @@ $stats = [
                                             <i class="bi bi-envelope"></i>
                                         </button>
                                     <?php endif; ?>
+                                    <button class="btn btn-outline-danger" title="Supprimer" onclick="deleteContract(<?php echo $contrat['id']; ?>, '<?php echo htmlspecialchars($contrat['reference_unique'], ENT_QUOTES); ?>')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -288,6 +305,24 @@ $stats = [
             if (confirm('Voulez-vous renvoyer le lien de signature ?')) {
                 // TODO: Implement resend link functionality
                 alert('Fonctionnalité à implémenter: renvoyer le lien');
+            }
+        }
+        
+        function deleteContract(contractId, reference) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer le contrat ' + reference + ' ?\n\nCette action est irréversible et supprimera :\n- Le contrat de la base de données\n- Les fichiers PDF associés\n- Les documents des locataires\n\nLe logement sera remis en disponibilité.')) {
+                // Create a form and submit it
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = 'supprimer-contrat.php';
+                
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'contrat_id';
+                input.value = contractId;
+                
+                form.appendChild(input);
+                document.body.appendChild(form);
+                form.submit();
             }
         }
     </script>

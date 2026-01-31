@@ -105,7 +105,9 @@ if ($send_email) {
         $htmlBody = getStatusChangeEmailHTML($nom_complet, $nouveau_statut, $commentaire);
         
         // Envoyer l'email avec PHPMailer
-        $emailSent = sendEmail($to, $subject, $htmlBody, null, true);
+        // Set isAdminEmail to true for refuse status to CC administrators
+        $isAdminEmail = ($nouveau_statut === 'refuse');
+        $emailSent = sendEmail($to, $subject, $htmlBody, null, true, $isAdminEmail);
         
         if ($emailSent) {
             // Log email sent
