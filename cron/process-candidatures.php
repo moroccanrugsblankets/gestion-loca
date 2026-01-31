@@ -32,18 +32,30 @@ function logMessage($message, $echoMessage = true) {
 logMessage("=== Starting candidature processing ===");
 
 try {
-    // Get flexible delay parameters from database
+    // Get flexible delay parameters from database (used for candidatures without scheduled_response_date)
     $delaiValeur = (int)getParameter('delai_reponse_valeur', 4);
     $delaiUnite = getParameter('delai_reponse_unite', 'jours');
     
     logMessage("Using automatic response delay: $delaiValeur $delaiUnite");
     
     // Get all candidatures pending automatic response
-    // Calculate the delay in hours based on the unit
+    // New behavior: Use scheduled_response_date if available, otherwise calculate from created_at
+    // This query handles both old candidatures (no scheduled_response_date) and new ones
+    $query = "
+        SELECT c.* 
+        FROM candidatures c
+        WHERE c.reponse_automatique = 'en_attente'
+        AND (
+            (c.scheduled_response_date IS NOT NULL AND c.scheduled_response_date <= NOW())
+            OR (c.scheduled_response_date IS NULL AND TIMESTAMPDIFF(HOUR, c.created_at, NOW()) >= ?)
+        )
+        ORDER BY c.created_at ASC
+    ";
+    
+    // Calculate the delay in hours based on the unit (for backward compatibility)
     $hoursDelay = 0;
     if ($delaiUnite === 'jours') {
         // For days, we use calendar days (24 hours each)
-        // This is simpler and more predictable than business days
         $hoursDelay = $delaiValeur * 24;
     } elseif ($delaiUnite === 'heures') {
         $hoursDelay = $delaiValeur;
@@ -51,13 +63,6 @@ try {
         $hoursDelay = $delaiValeur / 60;
     }
     
-    $query = "
-        SELECT c.* 
-        FROM candidatures c
-        WHERE c.reponse_automatique = 'en_attente'
-        AND TIMESTAMPDIFF(HOUR, c.created_at, NOW()) >= ?
-        ORDER BY c.created_at ASC
-    ";
     $stmt = $pdo->prepare($query);
     $stmt->execute([$hoursDelay]);
     $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);

@@ -642,3 +642,34 @@ function evaluateCandidature($candidature) {
         'statut' => $statut
     ];
 }
+
+/**
+ * Calculate scheduled response date based on current delay parameters
+ * @param DateTime $fromDate The starting date (usually candidature creation date)
+ * @return DateTime The calculated scheduled response date
+ */
+function calculateScheduledResponseDate($fromDate) {
+    $delaiValeur = (int)getParameter('delai_reponse_valeur', 4);
+    $delaiUnite = getParameter('delai_reponse_unite', 'jours');
+    
+    $scheduledDate = clone $fromDate;
+    
+    if ($delaiUnite === 'jours') {
+        // Add business days (skip weekends)
+        $daysAdded = 0;
+        while ($daysAdded < $delaiValeur) {
+            $scheduledDate->modify('+1 day');
+            // Skip weekends (Saturday = 6, Sunday = 7)
+            if ($scheduledDate->format('N') < 6) {
+                $daysAdded++;
+            }
+        }
+    } elseif ($delaiUnite === 'heures') {
+        $scheduledDate->modify("+{$delaiValeur} hours");
+    } elseif ($delaiUnite === 'minutes') {
+        $scheduledDate->modify("+{$delaiValeur} minutes");
+    }
+    
+    return $scheduledDate;
+}
+

@@ -142,9 +142,15 @@ foreach ($allParams as $param) {
                     <?php 
                     // Group delay parameters together
                     $delayParamsKeys = ['delai_reponse_valeur', 'delai_reponse_unite'];
+                    $obsoleteParams = ['delai_reponse_jours', 'delai_refus_auto_heures']; // Parameters to hide
                     $delayParams = [];
                     $otherParams = [];
                     foreach ($params as $param) {
+                        // Skip obsolete parameters
+                        if (in_array($param['cle'], $obsoleteParams)) {
+                            continue;
+                        }
+                        
                         if (in_array($param['cle'], $delayParamsKeys)) {
                             $delayParams[$param['cle']] = $param;
                         } else {
@@ -188,8 +194,6 @@ foreach ($allParams as $param) {
                             <label class="param-label">
                                 <?php 
                                 $labels = [
-                                    'delai_reponse_jours' => 'Délai de réponse automatique (jours ouvrés) - ANCIEN',
-                                    'delai_refus_auto_heures' => 'Délai d\'envoi automatique de refus (heures) - ANCIEN',
                                     'jours_ouvres_debut' => 'Premier jour ouvré (1 = Lundi)',
                                     'jours_ouvres_fin' => 'Dernier jour ouvré (5 = Vendredi)',
                                     'revenus_min_requis' => 'Revenus nets mensuels minimum requis (€)',
