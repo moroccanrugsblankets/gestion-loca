@@ -38,6 +38,11 @@ try {
     // Start transaction
     $pdo->beginTransaction();
     
+    // Get locataire documents BEFORE deleting the contract (cascade will delete locataires)
+    $stmt = $pdo->prepare("SELECT piece_identite_recto, piece_identite_verso FROM locataires WHERE contrat_id = ?");
+    $stmt->execute([$contrat_id]);
+    $locataires = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
     // Log the deletion action before deleting
     $stmt = $pdo->prepare("
         INSERT INTO logs (type_entite, entite_id, action, details, ip_address, created_at)
@@ -60,11 +65,7 @@ try {
         unlink($pdf_path);
     }
     
-    // Delete locataire identity documents if they exist
-    $stmt = $pdo->prepare("SELECT piece_identite_recto, piece_identite_verso FROM locataires WHERE contrat_id = ?");
-    $stmt->execute([$contrat_id]);
-    $locataires = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+    // Delete locataire identity documents that were retrieved earlier
     foreach ($locataires as $locataire) {
         if ($locataire['piece_identite_recto'] && file_exists($locataire['piece_identite_recto'])) {
             unlink($locataire['piece_identite_recto']);

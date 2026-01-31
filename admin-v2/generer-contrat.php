@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $subject = "Contrat de bail à signer – Action immédiate requise";
         $htmlBody = getInvitationSignatureEmailHTML($signature_link, $logement_info['adresse'], $nb_locataires);
         
-        // Send email to client and CC to admins (isAdminEmail = true)
+        // Send email to client and CC to all active administrators (last parameter = true)
         $emailSent = sendEmail($candidature_info['email'], $subject, $htmlBody, null, true, true);
         
         if ($emailSent) {
