@@ -87,7 +87,7 @@ $stmt = $pdo->query("
 ");
 $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Get pending automatic candidature responses (all waiting for automatic response)
+// Get pending automatic candidature responses (only refused and not yet sent)
 $stmt = $pdo->query("
     SELECT 
         c.id,
@@ -102,6 +102,7 @@ $stmt = $pdo->query("
     FROM candidatures c
     LEFT JOIN logements l ON c.logement_id = l.id
     WHERE c.reponse_automatique = 'en_attente'
+    AND c.statut = 'refuse'
     ORDER BY c.created_at ASC
     LIMIT 50
 ");
@@ -110,6 +111,36 @@ $pending_responses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // Calculate expected response date for each candidature
 $delaiValeur = (int)getParameter('delai_reponse_valeur', 4);
 $delaiUnite = getParameter('delai_reponse_unite', 'jours');
+
+// Filter out responses where the expected date has passed
+$filtered_responses = [];
+$now = new DateTime();
+foreach ($pending_responses as $resp) {
+    $created = new DateTime($resp['created_at']);
+    $expectedDate = clone $created;
+    
+    if ($delaiUnite === 'jours') {
+        // Add business days
+        $daysAdded = 0;
+        while ($daysAdded < $delaiValeur) {
+            $expectedDate->modify('+1 day');
+            // Skip weekends (Saturday = 6, Sunday = 0)
+            if ($expectedDate->format('N') < 6) {
+                $daysAdded++;
+            }
+        }
+    } elseif ($delaiUnite === 'heures') {
+        $expectedDate->modify("+{$delaiValeur} hours");
+    } elseif ($delaiUnite === 'minutes') {
+        $expectedDate->modify("+{$delaiValeur} minutes");
+    }
+    
+    // Only include if the expected date has not passed yet
+    if ($expectedDate > $now) {
+        $filtered_responses[] = $resp;
+    }
+}
+$pending_responses = $filtered_responses;
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -215,9 +246,9 @@ $delaiUnite = getParameter('delai_reponse_unite', 'jours');
         <div class="card mb-4">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0">
-                    <i class="bi bi-clock-history"></i> Réponses Automatiques Programmées
+                    <i class="bi bi-clock-history"></i> Réponses Automatiques Programmées (Refusées)
                 </h5>
-                <small>Candidatures en attente d'envoi automatique de mail de réponse (après le délai configuré)</small>
+                <small>Candidatures refusées en attente d'envoi automatique de mail de réponse (après le délai configuré et avant l'expiration)</small>
             </div>
             <div class="card-body">
                 <?php if (empty($pending_responses)): ?>
