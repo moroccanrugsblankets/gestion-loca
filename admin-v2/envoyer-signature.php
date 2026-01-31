@@ -83,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
         
         // Mettre à jour le statut de la candidature si elle existe
-        if ($contrat['candidature_id']) {
+        if (!empty($contrat['candidature_id'])) {
             $stmt = $pdo->prepare("UPDATE candidatures SET statut = 'contrat_envoye' WHERE id = ?");
             $stmt->execute([$contrat['candidature_id']]);
         }
