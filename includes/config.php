@@ -37,6 +37,7 @@ $config = [
     'MAIL_FROM_NAME' => 'MY Invest Immobilier',
     
     // Configuration SMTP pour PHPMailer
+    // ⚠️ IMPORTANT: Les emails ne seront PAS envoyés tant que SMTP_PASSWORD n'est pas configuré!
     // Note: Configurez ces valeurs selon votre serveur SMTP
     // IMPORTANT: Ne commitez JAMAIS de vrais mots de passe dans Git
     // Utilisez includes/config.local.php pour vos credentials (voir PHPMAILER_CONFIGURATION.md)
@@ -45,7 +46,7 @@ $config = [
     'SMTP_SECURE' => 'tls', // 'tls' ou 'ssl'
     'SMTP_AUTH' => true, // Authentification SMTP
     'SMTP_USERNAME' => 'contact@myinvest-immobilier.com', // Votre email SMTP
-    'SMTP_PASSWORD' => '', // CONFIGUREZ CECI dans includes/config.local.php
+    'SMTP_PASSWORD' => '', // ⚠️ CONFIGUREZ CECI dans includes/config.local.php - OBLIGATOIRE POUR ENVOYER DES EMAILS!
     'SMTP_DEBUG' => 0, // 0 = off, 1 = client, 2 = client et serveur
     
     // =====================================================
