@@ -167,7 +167,10 @@ $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <a href="candidature-detail.php?id=<?php echo $cand['id']; ?>" class="btn btn-outline-primary" title="Voir détails">
                                             <i class="bi bi-eye"></i>
                                         </a>
-                                        <a href="candidature-actions.php?id=<?php echo $cand['id']; ?>" class="btn btn-outline-success" title="Actions">
+                                        <a href="generer-contrat.php?candidature_id=<?php echo $cand['id']; ?>" class="btn btn-outline-success" title="Générer le contrat">
+                                            <i class="bi bi-file-earmark-plus"></i>
+                                        </a>
+                                        <a href="candidature-actions.php?id=<?php echo $cand['id']; ?>" class="btn btn-outline-secondary" title="Actions">
                                             <i class="bi bi-gear"></i>
                                         </a>
                                     </div>

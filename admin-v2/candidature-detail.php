@@ -502,11 +502,9 @@ function getStatusBadge($status) {
                 <div class="info-card">
                     <h5 class="mb-3"><i class="bi bi-lightning"></i> Actions Rapides</h5>
                     <div class="d-grid gap-2">
-                        <?php if ($candidature['statut'] === 'accepte' || $candidature['statut'] === 'visite_planifiee'): ?>
-                            <a href="generer-contrat.php?candidature_id=<?php echo $id; ?>" class="btn btn-success">
-                                <i class="bi bi-file-earmark-plus"></i> Générer le contrat
-                            </a>
-                        <?php endif; ?>
+                        <a href="generer-contrat.php?candidature_id=<?php echo $id; ?>" class="btn btn-success">
+                            <i class="bi bi-file-earmark-plus"></i> Générer le contrat
+                        </a>
                         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sendEmailModal">
                             <i class="bi bi-envelope"></i> Envoyer un email
                         </button>
