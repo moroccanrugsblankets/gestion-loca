@@ -308,12 +308,6 @@ $delaiUnite = getParameter('delai_reponse_unite', 'jours');
                             </tbody>
                         </table>
                     </div>
-                    
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle"></i> 
-                        <strong>Note:</strong> Le traitement automatique s'exécute quotidiennement à 9h00. 
-                        Les candidatures marquées "Prêt à traiter" seront traitées lors de la prochaine exécution du cron.
-                    </div>
                 <?php endif; ?>
             </div>
         </div>
