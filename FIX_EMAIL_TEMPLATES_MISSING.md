@@ -35,8 +35,6 @@ Ce script vérifiera:
 
 ### Étape 2: Correction
 
-### Étape 2: Correction
-
 Si le diagnostic détecte des templates manquants, exécutez le script d'initialisation:
 
 ```bash
@@ -49,7 +47,6 @@ Pour réinitialiser tous les templates aux valeurs par défaut:
 php init-email-templates.php --reset
 ```
 
-### Étape 3: Vérification
 ### Étape 3: Vérification
 
 Vérifiez que les templates ont été créés:
