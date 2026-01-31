@@ -19,7 +19,7 @@ $logements = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Get applications that can have contracts
 $stmt = $pdo->query("
-    SELECT id, reference, nom, prenom, email, statut
+    SELECT id, reference_unique, nom, prenom, email, statut
     FROM candidatures 
     WHERE statut IN ('Accepté', 'Visite planifiée')
     ORDER BY created_at DESC
@@ -123,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?php foreach ($candidatures as $cand): ?>
                                 <option value="<?php echo $cand['id']; ?>" 
                                         <?php echo ($candidature && $candidature['id'] == $cand['id']) ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($cand['reference'] . ' - ' . $cand['prenom'] . ' ' . $cand['nom']); ?>
+                                    <?php echo htmlspecialchars($cand['reference_unique'] . ' - ' . $cand['prenom'] . ' ' . $cand['nom']); ?>
                                     (<?php echo htmlspecialchars($cand['statut']); ?>)
                                 </option>
                             <?php endforeach; ?>
