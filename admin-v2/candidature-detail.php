@@ -416,6 +416,15 @@ function getStatusBadge($status) {
                         <div class="info-value"><?php echo date('d/m/Y à H:i', strtotime($candidature['date_reponse_auto'])); ?></div>
                     </div>
                     <?php endif; ?>
+                    <?php if (!empty($candidature['scheduled_response_date'])): ?>
+                    <div class="info-row">
+                        <div class="info-label">Réponse prévue le:</div>
+                        <div class="info-value">
+                            <?php echo date('d/m/Y à H:i', strtotime($candidature['scheduled_response_date'])); ?>
+                            <small class="text-muted">(Date fixe calculée lors du refus)</small>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                     <?php if (!empty($candidature['date_reponse_envoyee'])): ?>
                     <div class="info-row">
                         <div class="info-label">Date réponse envoyée:</div>

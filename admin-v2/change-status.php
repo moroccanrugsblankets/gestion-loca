@@ -2,6 +2,7 @@
 require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
+require_once '../includes/functions.php';
 require_once '../includes/mail-templates.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -36,8 +37,18 @@ $ancien_statut = $candidature['statut'];
 // Update status and reponse_automatique field when manually changing to accepted or refused
 if ($nouveau_statut === 'accepte' || $nouveau_statut === 'refuse') {
     // Set reponse_automatique to match the new status to prevent duplicate automatic processing
-    $stmt = $pdo->prepare("UPDATE candidatures SET statut = ?, reponse_automatique = ?, date_reponse_auto = NOW() WHERE id = ?");
-    $stmt->execute([$nouveau_statut, $nouveau_statut, $candidature_id]);
+    if ($nouveau_statut === 'refuse') {
+        // Calculate and store the scheduled response date for refused candidatures
+        $createdDate = new DateTime($candidature['created_at']);
+        $scheduledDate = calculateScheduledResponseDate($createdDate);
+        $scheduledDateStr = $scheduledDate->format('Y-m-d H:i:s');
+        
+        $stmt = $pdo->prepare("UPDATE candidatures SET statut = ?, reponse_automatique = ?, date_reponse_auto = NOW(), scheduled_response_date = ? WHERE id = ?");
+        $stmt->execute([$nouveau_statut, $nouveau_statut, $scheduledDateStr, $candidature_id]);
+    } else {
+        $stmt = $pdo->prepare("UPDATE candidatures SET statut = ?, reponse_automatique = ?, date_reponse_auto = NOW() WHERE id = ?");
+        $stmt->execute([$nouveau_statut, $nouveau_statut, $candidature_id]);
+    }
 } else {
     // For other statuses, only update the status field
     $stmt = $pdo->prepare("UPDATE candidatures SET statut = ? WHERE id = ?");

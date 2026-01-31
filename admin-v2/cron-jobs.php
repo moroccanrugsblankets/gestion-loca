@@ -115,6 +115,7 @@ $stmt = $pdo->query("
 $failed_emails = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Get pending automatic candidature responses (only refused and not yet sent)
+// This includes both candidatures ready to send and those still waiting
 $stmt = $pdo->query("
     SELECT 
         c.id,
@@ -125,6 +126,7 @@ $stmt = $pdo->query("
         c.created_at,
         c.statut,
         c.reponse_automatique,
+        c.scheduled_response_date,
         l.reference as logement_reference
     FROM candidatures c
     LEFT JOIN logements l ON c.logement_id = l.id
@@ -135,39 +137,9 @@ $stmt = $pdo->query("
 ");
 $pending_responses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Calculate expected response date for each candidature
+// Get current delay parameters (for display purposes only)
 $delaiValeur = (int)getParameter('delai_reponse_valeur', 4);
 $delaiUnite = getParameter('delai_reponse_unite', 'jours');
-
-// Filter out responses where the expected date has passed
-$filtered_responses = [];
-$now = new DateTime();
-foreach ($pending_responses as $resp) {
-    $created = new DateTime($resp['created_at']);
-    $expectedDate = clone $created;
-    
-    if ($delaiUnite === 'jours') {
-        // Add business days
-        $daysAdded = 0;
-        while ($daysAdded < $delaiValeur) {
-            $expectedDate->modify('+1 day');
-            // Skip weekends (Saturday = 6, Sunday = 0)
-            if ($expectedDate->format('N') < 6) {
-                $daysAdded++;
-            }
-        }
-    } elseif ($delaiUnite === 'heures') {
-        $expectedDate->modify("+{$delaiValeur} hours");
-    } elseif ($delaiUnite === 'minutes') {
-        $expectedDate->modify("+{$delaiValeur} minutes");
-    }
-    
-    // Only include if the expected date has not passed yet
-    if ($expectedDate > $now) {
-        $filtered_responses[] = $resp;
-    }
-}
-$pending_responses = $filtered_responses;
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -350,7 +322,7 @@ $pending_responses = $filtered_responses;
                 <h5 class="mb-0">
                     <i class="bi bi-clock-history"></i> Réponses Automatiques Programmées (Refusées)
                 </h5>
-                <small>Candidatures refusées en attente d'envoi automatique de mail de réponse (après le délai configuré et avant l'expiration)</small>
+                <small>Candidatures refusées en attente d'envoi automatique de mail de réponse. Les candidatures marquées "Prêt à traiter" seront envoyées au prochain passage du cron.</small>
             </div>
             <div class="card-body">
                 <?php if (empty($pending_responses)): ?>
@@ -380,24 +352,13 @@ $pending_responses = $filtered_responses;
                             </thead>
                             <tbody>
                                 <?php foreach ($pending_responses as $resp): 
-                                    // Calculate expected response date
-                                    $created = new DateTime($resp['created_at']);
-                                    $expectedDate = clone $created;
-                                    
-                                    if ($delaiUnite === 'jours') {
-                                        // Add business days
-                                        $daysAdded = 0;
-                                        while ($daysAdded < $delaiValeur) {
-                                            $expectedDate->modify('+1 day');
-                                            // Skip weekends (Saturday = 6, Sunday = 0)
-                                            if ($expectedDate->format('N') < 6) {
-                                                $daysAdded++;
-                                            }
-                                        }
-                                    } elseif ($delaiUnite === 'heures') {
-                                        $expectedDate->modify("+{$delaiValeur} hours");
-                                    } elseif ($delaiUnite === 'minutes') {
-                                        $expectedDate->modify("+{$delaiValeur} minutes");
+                                    // Use stored scheduled_response_date if available, otherwise calculate it
+                                    if (!empty($resp['scheduled_response_date'])) {
+                                        $expectedDate = new DateTime($resp['scheduled_response_date']);
+                                    } else {
+                                        // Backward compatibility: calculate for old candidatures
+                                        $created = new DateTime($resp['created_at']);
+                                        $expectedDate = calculateScheduledResponseDate($created);
                                     }
                                     
                                     $now = new DateTime();
