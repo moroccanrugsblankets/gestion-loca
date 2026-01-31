@@ -135,7 +135,7 @@ CREATE TABLE IF NOT EXISTS contrats (
     date_prise_effet DATE NULL,
     date_fin_prevue DATE NULL,
     date_signature TIMESTAMP NULL,
-    date_expiration_lien TIMESTAMP NULL,
+    date_expiration TIMESTAMP NULL,
     
     -- Statut
     statut ENUM('en_attente', 'signe', 'expire', 'annule', 'actif', 'termine') DEFAULT 'en_attente',
