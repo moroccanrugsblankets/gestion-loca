@@ -57,8 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $subject = "Contrat de bail à signer – Action immédiate requise";
         $htmlBody = getInvitationSignatureEmailHTML($signature_link, $contrat['adresse'], $nb_locataires);
         
-        // Envoyer avec PHPMailer (format HTML)
-        $emailSent = sendEmail($email_principal, $subject, $htmlBody, null, true);
+        // Envoyer avec PHPMailer (format HTML) - send to client and CC to all active administrators
+        $emailSent = sendEmail($email_principal, $subject, $htmlBody, null, true, true);
         
         if (!$emailSent) {
             error_log("Erreur lors de l'envoi de l'email de signature à $email_principal");
