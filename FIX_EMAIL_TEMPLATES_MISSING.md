@@ -13,21 +13,53 @@ Les templates d'email ne sont pas présents dans la table `email_templates` de l
 
 ## Solution
 
-Un script d'initialisation a été créé pour créer les templates par défaut : `init-email-templates.php`
+Deux scripts ont été créés pour diagnostiquer et corriger le problème:
 
-### Utilisation
+1. **diagnostic-email-system.php** - Script de diagnostic pour identifier les problèmes
+2. **init-email-templates.php** - Script pour créer/réinitialiser les templates
 
-1. **Exécuter le script d'initialisation:**
+### Étape 1: Diagnostic
+
+Exécutez d'abord le script de diagnostic pour identifier les problèmes:
+
+```bash
+php diagnostic-email-system.php
+```
+
+Ce script vérifiera:
+- La connexion à la base de données
+- L'existence de la table `email_templates`
+- La présence des 4 templates requis
+- La configuration SMTP
+- Le paramètre `email_signature`
+
+### Étape 2: Correction
+
+### Étape 2: Correction
+
+Si le diagnostic détecte des templates manquants, exécutez le script d'initialisation:
+
+```bash
+php init-email-templates.php
+```
+
+Pour réinitialiser tous les templates aux valeurs par défaut:
+
+```bash
+php init-email-templates.php --reset
+```
+
+### Étape 3: Vérification
+### Étape 3: Vérification
+
+Vérifiez que les templates ont été créés:
+
+1. **Via le script de diagnostic:**
    ```bash
-   php init-email-templates.php
+   php diagnostic-email-system.php
    ```
 
-   Pour réinitialiser tous les templates aux valeurs par défaut:
-   ```bash
-   php init-email-templates.php --reset
-   ```
-
-2. **Vérifier que les templates ont été créés:**
+2. **Via l'interface admin:**
    - Ouvrir `/admin-v2/email-templates.php` dans un navigateur
    - Vous devriez voir 4 templates:
      - Accusé de réception de candidature
