@@ -1,0 +1,276 @@
+<?php
+/**
+ * Génération du PDF du contrat de bail - Format MY INVEST IMMOBILIER
+ * Utilise TCPDF pour une mise en page professionnelle
+ * Format: 1 page, style original conforme au modèle
+ */
+
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/db.php';
+
+use TCPDF;
+
+/**
+ * Générer le PDF du contrat de bail
+ * @param int $contratId ID du contrat
+ * @return string|false Chemin du fichier PDF généré ou false en cas d'erreur
+ */
+function generateContratPDF($contratId) {
+    global $config, $pdo;
+    
+    try {
+        // Récupérer les données du contrat
+        $stmt = $pdo->prepare("
+            SELECT c.*, l.*, 
+                   ca.nom as candidat_nom, ca.prenom as candidat_prenom, ca.email as candidat_email
+            FROM contrats c
+            INNER JOIN logements l ON c.logement_id = l.id
+            LEFT JOIN candidatures ca ON c.candidature_id = ca.id
+            WHERE c.id = ?
+        ");
+        $stmt->execute([$contratId]);
+        $contrat = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$contrat) {
+            error_log("Contrat #$contratId non trouvé");
+            return false;
+        }
+        
+        // Récupérer les locataires
+        $stmt = $pdo->prepare("
+            SELECT * FROM locataires 
+            WHERE contrat_id = ? 
+            ORDER BY ordre ASC
+        ");
+        $stmt->execute([$contratId]);
+        $locataires = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        if (empty($locataires)) {
+            error_log("Aucun locataire trouvé pour le contrat #$contratId");
+            return false;
+        }
+        
+        // Créer le PDF
+        $pdf = new ContratBailPDF();
+        $pdf->SetCreator('MY INVEST IMMOBILIER');
+        $pdf->SetAuthor('MY INVEST IMMOBILIER');
+        $pdf->SetTitle('Contrat de Bail - ' . $contrat['reference_unique']);
+        $pdf->SetSubject('Contrat de Location Meublée');
+        
+        // Configuration
+        $pdf->SetMargins(15, 15, 15);
+        $pdf->SetAutoPageBreak(true, 15);
+        $pdf->AddPage();
+        
+        // Générer le contenu
+        $pdf->generateContrat($contrat, $locataires);
+        
+        // Sauvegarder le PDF
+        $filename = 'bail-' . $contrat['reference_unique'] . '.pdf';
+        $pdfDir = dirname(__DIR__) . '/pdf/contrats/';
+        
+        if (!is_dir($pdfDir)) {
+            mkdir($pdfDir, 0755, true);
+        }
+        
+        $filepath = $pdfDir . $filename;
+        $pdf->Output($filepath, 'F');
+        
+        return $filepath;
+        
+    } catch (Exception $e) {
+        error_log("Erreur génération PDF contrat #$contratId: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Classe personnalisée pour le PDF du contrat de bail
+ */
+class ContratBailPDF extends TCPDF {
+    
+    /**
+     * En-tête du document
+     */
+    public function Header() {
+        // Logo et titre
+        $this->SetFont('helvetica', 'B', 16);
+        $this->SetTextColor(0, 51, 102); // Bleu foncé
+        $this->Cell(0, 10, 'MY INVEST IMMOBILIER', 0, 1, 'C');
+        
+        $this->SetFont('helvetica', '', 10);
+        $this->SetTextColor(0, 0, 0);
+        $this->Cell(0, 5, 'CONTRAT DE BAIL', 0, 1, 'C');
+        $this->Cell(0, 5, '(Location meublée - résidence principale)', 0, 1, 'C');
+        $this->Ln(3);
+    }
+    
+    /**
+     * Pied de page
+     */
+    public function Footer() {
+        $this->SetY(-15);
+        $this->SetFont('helvetica', 'I', 8);
+        $this->SetTextColor(128, 128, 128);
+        $this->Cell(0, 5, 'MY INVEST IMMOBILIER - contact@myinvest-immobilier.com', 0, 0, 'C');
+    }
+    
+    /**
+     * Générer le contenu du contrat
+     */
+    public function generateContrat($contrat, $locataires) {
+        // Utiliser une taille de police réduite pour tenir sur 1 page
+        $this->SetFont('helvetica', '', 9);
+        
+        // 1. Parties
+        $this->addSection('1. Parties');
+        $this->addSubSection('Bailleur');
+        $this->addText('MY INVEST IMMOBILIER (SCI)');
+        $this->addText('Représenté par : Maxime ALEXANDRE');
+        $this->addText('Email : contact@myinvest-immobilier.com');
+        
+        $this->addSubSection('Locataire' . (count($locataires) > 1 ? 's' : ''));
+        foreach ($locataires as $i => $loc) {
+            $dateNaissance = isset($loc['date_naissance']) ? date('d/m/Y', strtotime($loc['date_naissance'])) : 'N/A';
+            $this->addText($loc['prenom'] . ' ' . $loc['nom'] . ', né(e) le ' . $dateNaissance);
+            $this->addText('Email : ' . $loc['email']);
+        }
+        
+        // 2. Désignation du logement
+        $this->addSection('2. Désignation du logement');
+        $this->addText('Adresse : ' . $contrat['adresse']);
+        if (!empty($contrat['appartement'])) {
+            $this->addText('Appartement : ' . $contrat['appartement']);
+        }
+        $this->addText('Type : ' . $contrat['type'] . ' - Logement meublé');
+        $this->addText('Surface habitable : ~ ' . $contrat['surface'] . ' m²');
+        $this->addText('Usage : Résidence principale');
+        $this->addCheckbox('Parking : ' . $contrat['parking'], true);
+        $this->addCheckbox('Mobilier conforme à la réglementation', true);
+        $this->addCheckbox('Cuisine équipée', true);
+        
+        // 3. Durée
+        $this->addSection('3. Durée');
+        $datePriseEffet = isset($contrat['date_prise_effet']) && $contrat['date_prise_effet'] 
+            ? date('d/m/Y', strtotime($contrat['date_prise_effet'])) 
+            : date('d/m/Y');
+        $this->addText('Durée : 1 an, à compter du ' . $datePriseEffet);
+        $this->addText('Renouvelable par tacite reconduction.');
+        
+        // 4. Conditions financières
+        $this->addSection('4. Conditions financières');
+        $loyer = number_format($contrat['loyer'], 2, ',', ' ');
+        $charges = number_format($contrat['charges'], 2, ',', ' ');
+        $total = number_format($contrat['loyer'] + $contrat['charges'], 2, ',', ' ');
+        $depot = number_format($contrat['depot_garantie'], 2, ',', ' ');
+        
+        $this->addText('Loyer mensuel HC : ' . $loyer . ' €');
+        $this->addText('Charges mensuelles : ' . $charges . ' €');
+        $this->addText('Total mensuel : ' . $total . ' €');
+        $this->addText('Paiement : mensuel, avant le 5 de chaque mois');
+        $this->addText('Modalité : Virement bancaire');
+        
+        // 5. Dépôt de garantie
+        $this->addSection('5. Dépôt de garantie');
+        $this->addText('Montant : ' . $depot . ' € (2 mois de loyer HC)');
+        $this->addText('Condition suspensive : Le contrat prend effet à réception du dépôt.');
+        
+        // 6. Charges
+        $this->addSection('6. Charges');
+        $this->addCheckbox('Provisionnelles avec régularisation annuelle', true);
+        $this->addText('Incluses : eau, électricité, ordures ménagères, internet');
+        
+        // 7. État des lieux
+        $this->addSection('7. État des lieux');
+        $this->addText('Établi contradictoirement à l\'entrée et à la sortie.');
+        
+        // 8. Obligations du locataire
+        $this->addSection('8. Obligations');
+        $this->addText('Le locataire s\'engage à user paisiblement du logement, le maintenir en bon état,');
+        $this->addText('répondre des dégradations et être assuré pour les risques locatifs.');
+        
+        // 9. Clause résolutoire
+        $this->addSection('9. Clause résolutoire');
+        $this->addText('Résiliation de plein droit en cas de non-paiement ou défaut d\'assurance.');
+        
+        // 10. Interdictions
+        $this->addSection('10. Interdictions');
+        $this->addCheckbox('Sous-location interdite sans accord écrit', true);
+        $this->addText('Animaux tolérés sous conditions (aucune nuisance/dégradation).');
+        
+        // 11. Résiliation
+        $this->addSection('11. Résiliation');
+        $this->addText('Par le locataire : préavis 1 mois (LRE obligatoire via AR24).');
+        $this->addText('Par le bailleur : conditions légales.');
+        
+        // 12. DPE
+        $this->addSection('12. DPE');
+        $this->addText('Classe énergie : D | Classe climat : B | Validité : 01/06/2035');
+        
+        // 13. Informations bancaires
+        $this->addSection('13. Coordonnées bancaires');
+        $iban = isset($config['IBAN']) ? $config['IBAN'] : 'FR76 1027 8021 6000 0206 1834 585';
+        $bic = isset($config['BIC']) ? $config['BIC'] : 'CMCIFRA';
+        $this->addText('IBAN : ' . $iban);
+        $this->addText('BIC : ' . $bic);
+        $this->addText('Titulaire : MY INVEST IMMOBILIER');
+        
+        // 14. Signatures
+        $this->addSection('14. Signatures');
+        $dateSignature = isset($contrat['date_signature']) && $contrat['date_signature']
+            ? date('d/m/Y', strtotime($contrat['date_signature']))
+            : date('d/m/Y');
+        $this->addText('Fait à Annemasse, le ' . $dateSignature);
+        
+        $this->Ln(2);
+        $this->SetFont('helvetica', 'B', 9);
+        $this->Cell(90, 5, 'Le bailleur', 0, 0, 'L');
+        $this->Cell(90, 5, 'Le(s) locataire(s)', 0, 1, 'L');
+        $this->SetFont('helvetica', '', 8);
+        $this->Cell(90, 4, 'MY INVEST IMMOBILIER', 0, 0, 'L');
+        
+        // Signatures des locataires
+        $locNames = array_map(function($l) { 
+            return $l['prenom'] . ' ' . $l['nom']; 
+        }, $locataires);
+        $this->Cell(90, 4, implode(', ', $locNames), 0, 1, 'L');
+        
+        $this->Cell(90, 4, 'Représenté par M. ALEXANDRE', 0, 0, 'L');
+        $this->Cell(90, 4, 'Lu et approuvé', 0, 1, 'L');
+    }
+    
+    /**
+     * Ajouter une section (titre principal)
+     */
+    private function addSection($title) {
+        $this->Ln(2);
+        $this->SetFont('helvetica', 'B', 9);
+        $this->Cell(0, 5, $title, 0, 1, 'L');
+        $this->SetFont('helvetica', '', 9);
+    }
+    
+    /**
+     * Ajouter une sous-section
+     */
+    private function addSubSection($title) {
+        $this->SetFont('helvetica', 'B', 9);
+        $this->Cell(0, 4, $title, 0, 1, 'L');
+        $this->SetFont('helvetica', '', 9);
+    }
+    
+    /**
+     * Ajouter du texte
+     */
+    private function addText($text) {
+        $this->MultiCell(0, 4, $text, 0, 'L');
+    }
+    
+    /**
+     * Ajouter une case à cocher
+     */
+    private function addCheckbox($text, $checked = true) {
+        $checkbox = $checked ? '☒' : '☐';
+        $this->MultiCell(0, 4, $checkbox . ' ' . $text, 0, 'L');
+    }
+}

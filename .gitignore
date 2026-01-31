@@ -5,6 +5,7 @@ uploads/*
 # PDF générés (contiennent des données personnelles)
 pdf/*
 !pdf/generate-bail.php
+!pdf/generate-contrat-pdf.php
 !pdf/download.php
 
 # Configuration locale (peut contenir des credentials)

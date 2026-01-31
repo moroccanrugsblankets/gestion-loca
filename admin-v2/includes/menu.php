@@ -16,7 +16,9 @@ $page_to_menu_map = [
     'change-status.php' => 'candidatures.php',
     'generer-contrat.php' => 'contrats.php',
     'envoyer-signature.php' => 'contrats.php',
+    'supprimer-contrat.php' => 'contrats.php',
     'create-etat-lieux.php' => 'etats-lieux.php',
+    'administrateurs-actions.php' => 'administrateurs.php',
 ];
 
 // Check if current page is a detail page, if so use parent menu
@@ -68,6 +70,11 @@ $active_menu = $page_to_menu_map[$current_page] ?? $current_page;
         <li class="nav-item">
             <a class="nav-link <?php echo $active_menu === 'etats-lieux.php' ? 'active' : ''; ?>" href="etats-lieux.php">
                 <i class="bi bi-clipboard-check"></i> États des lieux
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link <?php echo $active_menu === 'administrateurs.php' ? 'active' : ''; ?>" href="administrateurs.php">
+                <i class="bi bi-shield-lock"></i> Comptes Administrateurs
             </a>
         </li>
     </ul>

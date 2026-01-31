@@ -2,6 +2,7 @@
 require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
+require_once '../includes/mail-templates.php';
 
 // Get candidature ID if provided
 $candidature_id = isset($_GET['candidature_id']) ? (int)$_GET['candidature_id'] : 0;
@@ -87,13 +88,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SERVER['REMOTE_ADDR']
     ]);
     
-    // Generate signature link
-    $token = bin2hex(random_bytes(32));
+    // Generate signature token
+    $token_signature = bin2hex(random_bytes(32));
     
-    // TODO: Store token and send signature email
-    // For now, just redirect to contracts list
+    // Store token in contract
+    $stmt = $pdo->prepare("UPDATE contrats SET token_signature = ? WHERE id = ?");
+    $stmt->execute([$token_signature, $contrat_id]);
     
-    $_SESSION['success'] = "Contrat généré avec succès. Référence: $reference_unique";
+    // Get candidature email for sending
+    $stmt = $pdo->prepare("SELECT email, nom, prenom FROM candidatures WHERE id = ?");
+    $stmt->execute([$candidature_id]);
+    $candidature_info = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // Get logement info for email
+    $stmt = $pdo->prepare("SELECT adresse FROM logements WHERE id = ?");
+    $stmt->execute([$logement_id]);
+    $logement_info = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($candidature_info && $candidature_info['email'] && $logement_info) {
+        // Create signature link
+        $signature_link = $config['SITE_URL'] . '/signature/index.php?token=' . $token_signature;
+        
+        // Send email with signature link
+        $subject = "Contrat de bail à signer – Action immédiate requise";
+        $htmlBody = getInvitationSignatureEmailHTML($signature_link, $logement_info['adresse'], $nb_locataires);
+        
+        // Send email to client and CC to all active administrators (last parameter = true)
+        $emailSent = sendEmail($candidature_info['email'], $subject, $htmlBody, null, true, true);
+        
+        if ($emailSent) {
+            // Log email sending success
+            $stmt = $pdo->prepare("
+                INSERT INTO logs (type_entite, entite_id, action, details, ip_address, created_at)
+                VALUES ('contrat', ?, 'Email envoyé', ?, ?, NOW())
+            ");
+            $stmt->execute([
+                $contrat_id,
+                "Email de signature envoyé à " . $candidature_info['email'],
+                $_SERVER['REMOTE_ADDR']
+            ]);
+            
+            $_SESSION['success'] = "Contrat généré avec succès et email envoyé à {$candidature_info['email']}. Référence: $reference_unique";
+        } else {
+            error_log("Erreur lors de l'envoi de l'email de signature à {$candidature_info['email']}");
+            $_SESSION['warning'] = "Contrat généré mais l'email n'a pas pu être envoyé. Référence: $reference_unique";
+        }
+    } else {
+        $_SESSION['warning'] = "Contrat généré mais aucun email trouvé pour la candidature. Référence: $reference_unique";
+    }
+    
     header('Location: contrats.php');
     exit;
 }
