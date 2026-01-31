@@ -3,12 +3,12 @@
  * Génération du PDF du bail signé
  * My Invest Immobilier
  * 
- * Note: Cette implémentation utilise FPDF. Pour une version production, 
- * il est recommandé d'utiliser TCPDF ou mPDF pour plus de fonctionnalités.
+ * Utilise TCPDF pour générer un PDF professionnel conforme au modèle MY INVEST IMMOBILIER
  */
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/generate-contrat-pdf.php';
 
 /**
  * Générer le PDF du bail
@@ -16,52 +16,8 @@ require_once __DIR__ . '/../includes/functions.php';
  * @return string|false Chemin du fichier PDF généré
  */
 function generateBailPDF($contratId) {
-    global $config;
-    
-    // Récupérer les données du contrat
-    $contrat = fetchOne("SELECT c.*, l.* FROM contrats c INNER JOIN logements l ON c.logement_id = l.id WHERE c.id = ?", [$contratId]);
-    
-    if (!$contrat) {
-        return false;
-    }
-    
-    $locataires = getTenantsByContract($contratId);
-    
-    if (empty($locataires)) {
-        return false;
-    }
-    
-    // Créer le contenu HTML du PDF
-    $html = generateBailHTML($contrat, $locataires);
-    
-    // Nom du fichier PDF
-    $filename = 'bail_' . $contrat['reference'] . '_' . date('Ymd_His') . '.pdf';
-    $filepath = $config['PDF_DIR'] . $filename;
-    
-    // Créer le dossier PDF s'il n'existe pas
-    if (!is_dir($config['PDF_DIR'])) {
-        mkdir($config['PDF_DIR'], 0755, true);
-    }
-    
-    // Pour une implémentation simple, on sauvegarde en HTML
-    // En production, utiliser TCPDF, mPDF ou wkhtmltopdf
-    $htmlFilepath = $config['PDF_DIR'] . 'bail_' . $contrat['reference'] . '_' . date('Ymd_His') . '.html';
-    file_put_contents($htmlFilepath, $html);
-    
-    // Si wkhtmltopdf est installé, on peut générer le PDF
-    if (commandExists('wkhtmltopdf')) {
-        $command = "wkhtmltopdf --page-size A4 --margin-top 20mm --margin-bottom 20mm " . 
-                   escapeshellarg($htmlFilepath) . " " . escapeshellarg($filepath);
-        exec($command, $output, $returnCode);
-        
-        if ($returnCode === 0 && file_exists($filepath)) {
-            unlink($htmlFilepath); // Supprimer le fichier HTML temporaire
-            return $filepath;
-        }
-    }
-    
-    // Retourner le fichier HTML comme fallback
-    return $htmlFilepath;
+    // Utiliser la nouvelle fonction de génération PDF avec TCPDF
+    return generateContratPDF($contratId);
 }
 
 /**

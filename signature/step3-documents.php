@@ -75,11 +75,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 require_once __DIR__ . '/../pdf/generate-bail.php';
                                 $pdfPath = generateBailPDF($contratId);
                                 
-                                // Envoyer l'email de finalisation
+                                // Envoyer l'email de finalisation aux locataires
                                 $locataires = getTenantsByContract($contratId);
                                 foreach ($locataires as $locataire) {
                                     $emailData = getFinalisationEmailTemplate($contrat, $contrat, $locataires);
-                                    sendEmail($locataire['email'], $emailData['subject'], $emailData['body'], $pdfPath);
+                                    // Send with PDF attachment
+                                    sendEmail($locataire['email'], $emailData['subject'], $emailData['body'], $pdfPath, true, false);
+                                }
+                                
+                                // Envoyer une copie aux administrateurs avec le PDF
+                                if ($pdfPath && file_exists($pdfPath)) {
+                                    $adminEmailData = getFinalisationEmailTemplate($contrat, $contrat, $locataires);
+                                    $adminSubject = "[ADMIN] Contrat signé - " . $contrat['reference_unique'];
+                                    $adminBody = "Un contrat a été signé.\n\n" . $adminEmailData['body'];
+                                    
+                                    // Send to first locataire with admin CC (isAdminEmail = true)
+                                    if (!empty($locataires)) {
+                                        sendEmail($locataires[0]['email'], $adminSubject, $adminBody, $pdfPath, true, true);
+                                    }
                                 }
                                 
                                 logAction($contratId, 'finalisation_contrat', 'Contrat finalisé et emails envoyés');
