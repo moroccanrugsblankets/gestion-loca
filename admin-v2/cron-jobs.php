@@ -217,7 +217,7 @@ $delaiUnite = getParameter('delai_reponse_unite', 'jours');
                 <h5 class="mb-0">
                     <i class="bi bi-clock-history"></i> Réponses Automatiques Programmées
                 </h5>
-                <small>Candidatures en attente d'évaluation et d'envoi de réponse automatique (acceptation ou refus)</small>
+                <small>Candidatures en attente d'envoi automatique de mail de réponse (après le délai configuré)</small>
             </div>
             <div class="card-body">
                 <?php if (empty($pending_responses)): ?>
@@ -227,7 +227,8 @@ $delaiUnite = getParameter('delai_reponse_unite', 'jours');
                 <?php else: ?>
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle"></i> 
-                        <strong>Délai configuré:</strong> <?php echo $delaiValeur; ?> <?php echo $delaiUnite; ?>
+                        <strong>Délai configuré:</strong> <?php echo $delaiValeur; ?> <?php echo $delaiUnite; ?><br>
+                        <small>Les mails seront envoyés automatiquement <?php echo $delaiValeur; ?> <?php echo $delaiUnite; ?> après la soumission de la candidature.</small>
                     </div>
                     
                     <div class="table-responsive">
@@ -474,12 +475,26 @@ $delaiUnite = getParameter('delai_reponse_unite', 'jours');
                     </div>
                     
                     <h6 class="mt-3">Exemple de configuration complète:</h6>
-                    <pre class="bg-light p-3 border rounded"># Traitement des candidatures - tous les jours à 9h00
-0 9 * * * /usr/bin/php <?php echo htmlspecialchars(realpath(__DIR__ . '/../cron/process-candidatures.php')); ?>
+                    <pre class="bg-light p-3 border rounded"># Traitement des candidatures - toutes les 5 minutes (pour un délai de 10 minutes)
+*/5 * * * * /usr/bin/php <?php echo htmlspecialchars(realpath(__DIR__ . '/../cron/process-candidatures.php')); ?>
+
+# Alternative: Toutes les 10 minutes
+# */10 * * * * /usr/bin/php <?php echo htmlspecialchars(realpath(__DIR__ . '/../cron/process-candidatures.php')); ?>
+
+# Alternative: Toutes les heures (si délai en jours)
+# 0 * * * * /usr/bin/php <?php echo htmlspecialchars(realpath(__DIR__ . '/../cron/process-candidatures.php')); ?>
 
 # Vérifier que les emails cron sont envoyés à votre adresse
 # IMPORTANT: Remplacez your-email@example.com par votre vraie adresse email
 MAILTO=your-email@example.com</pre>
+                    
+                    <div class="alert alert-warning mt-2">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Important:</strong> Ajustez la fréquence du cron en fonction du délai configuré dans les paramètres.
+                        <br>• Pour un délai de <strong>10 minutes</strong> → Exécuter toutes les <strong>5 minutes</strong> (<code>*/5 * * * *</code>)
+                        <br>• Pour un délai en <strong>heures</strong> → Exécuter toutes les <strong>heures</strong> (<code>0 * * * *</code>)
+                        <br>• Pour un délai en <strong>jours</strong> → Exécuter <strong>quotidiennement</strong> (<code>0 9 * * *</code>)
+                    </div>
                     
                     <h6 class="mt-3">Vérification:</h6>
                     <p>Après avoir configuré le cron, vous pouvez vérifier qu'il fonctionne en:</p>

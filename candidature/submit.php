@@ -169,11 +169,11 @@ try {
     // Evaluate candidature immediately to determine initial status
     $evaluation = evaluateCandidature($candidatureData);
     
-    // If candidature is rejected (e.g., income < 2300€), set status to 'refuse'
-    // Otherwise, set to 'en_cours' and wait for cron job evaluation
+    // All candidatures are set to 'en_attente' for automatic response processing
+    // The cron job will send acceptance or rejection emails after the configured delay
     if (!$evaluation['accepted']) {
         $initialStatut = 'refuse';
-        $reponseAutomatique = 'refuse';
+        $reponseAutomatique = 'en_attente'; // Changed: schedule rejection email after delay
         $motifRefus = $evaluation['motif'];
     } else {
         $initialStatut = 'en_cours';
