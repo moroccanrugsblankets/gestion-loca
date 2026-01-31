@@ -64,7 +64,7 @@ try {
     }
     
     // Update expiration date to 24h from now
-    $date_expiration = date('Y-m-d H:i:s', strtotime('+24 hours'));
+    $date_expiration = (new DateTime())->modify('+24 hours')->format('Y-m-d H:i:s');
     $stmt = $pdo->prepare("UPDATE contrats SET date_expiration = ? WHERE id = ?");
     $stmt->execute([$date_expiration, $contrat_id]);
     
@@ -92,7 +92,7 @@ try {
         
         echo json_encode([
             'success' => true,
-            'message' => 'Le lien de signature a été renvoyé avec succès à ' . htmlspecialchars($contrat['email'])
+            'message' => 'Le lien de signature a été renvoyé avec succès à ' . $contrat['email']
         ]);
     } else {
         throw new Exception('Erreur lors de l\'envoi de l\'email');
