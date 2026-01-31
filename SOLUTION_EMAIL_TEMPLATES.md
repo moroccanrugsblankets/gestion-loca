@@ -18,11 +18,12 @@ Les templates d'email ne sont pas présents dans la table `email_templates` de l
 2. **init-email-templates.php**
    - Script pour créer les templates manquants
    - Option `--reset` pour réinitialiser tous les templates
-   - Crée 4 templates essentiels:
+   - Crée 5 templates essentiels:
      - `candidature_recue` - Accusé de réception
      - `candidature_acceptee` - Candidature acceptée
      - `candidature_refusee` - Candidature refusée
      - `admin_nouvelle_candidature` - Notification admin
+     - `contrat_signature` - Invitation à signer le contrat
 
 3. **FIX_EMAIL_TEMPLATES_MISSING.md**
    - Documentation complète de la solution
@@ -47,7 +48,7 @@ Ce script créera tous les templates manquants.
 
 ### Étape 3: Vérification
 - Ouvrir `/admin-v2/email-templates.php` dans le navigateur
-- Vérifier que les 4 templates sont visibles
+- Vérifier que les 5 templates sont visibles
 
 ## Caractéristiques des Templates
 
@@ -92,7 +93,8 @@ Si les templates ne s'affichent toujours pas:
 ## Résultat Attendu
 
 Après avoir exécuté le script d'initialisation:
-- 4 templates visibles dans `/admin-v2/email-templates.php`
+- 5 templates visibles dans `/admin-v2/email-templates.php`
 - Les emails de candidature fonctionnent automatiquement
 - Les notifications admin sont envoyées
+- Les emails d'invitation à signer le contrat fonctionnent
 - Le système d'email est pleinement opérationnel

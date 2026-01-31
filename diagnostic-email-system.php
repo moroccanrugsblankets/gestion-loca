@@ -43,7 +43,8 @@ $requiredTemplates = [
     'candidature_recue',
     'candidature_acceptee',
     'candidature_refusee',
-    'admin_nouvelle_candidature'
+    'admin_nouvelle_candidature',
+    'contrat_signature'
 ];
 
 $missingTemplates = [];
@@ -70,7 +71,7 @@ foreach ($requiredTemplates as $templateId) {
 }
 
 if (empty($missingTemplates)) {
-    $success[] = "Tous les templates requis sont présents (" . count($foundTemplates) . "/4)";
+    $success[] = "Tous les templates requis sont présents (" . count($foundTemplates) . "/5)";
 } else {
     $issues[] = "Templates manquants: " . implode(', ', $missingTemplates);
 }

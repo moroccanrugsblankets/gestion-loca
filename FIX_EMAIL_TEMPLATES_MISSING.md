@@ -58,20 +58,22 @@ Vérifiez que les templates ont été créés:
 
 2. **Via l'interface admin:**
    - Ouvrir `/admin-v2/email-templates.php` dans un navigateur
-   - Vous devriez voir 4 templates:
+   - Vous devriez voir 5 templates:
      - Accusé de réception de candidature
      - Candidature acceptée
      - Candidature non retenue
      - Notification admin - Nouvelle candidature
+     - Invitation à signer le contrat de bail
 
 ### Templates créés
 
-Le script crée automatiquement les 4 templates d'email suivants:
+Le script crée automatiquement les 5 templates d'email suivants:
 
 1. **candidature_recue** - Envoyé immédiatement au candidat lors de la soumission
 2. **candidature_acceptee** - Envoyé au candidat si sa candidature est acceptée
 3. **candidature_refusee** - Envoyé au candidat si sa candidature est refusée
 4. **admin_nouvelle_candidature** - Envoyé aux administrateurs pour chaque nouvelle candidature
+5. **contrat_signature** - Envoyé au locataire pour l'inviter à signer le contrat de bail
 
 ### Variables disponibles
 
