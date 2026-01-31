@@ -2,6 +2,7 @@
 require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
+require_once '../includes/functions.php';
 require_once '../includes/mail-templates.php';
 
 // Vérifier l'ID du contrat
@@ -53,12 +54,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Créer le lien de signature
         $signature_link = $config['SITE_URL'] . '/signature/index.php?token=' . $token;
         
-        // Envoyer l'email d'invitation avec PHPMailer
-        $subject = "Contrat de bail à signer – Action immédiate requise";
-        $htmlBody = getInvitationSignatureEmailHTML($signature_link, $contrat['adresse'], $nb_locataires);
+        // Préparer les variables pour le template
+        $variables = [
+            'nom' => $contrat['nom'],
+            'prenom' => $contrat['prenom'],
+            'email' => $email_principal,
+            'adresse' => $contrat['adresse'],
+            'lien_signature' => $signature_link
+        ];
         
-        // Envoyer avec PHPMailer (format HTML) - send to client and CC to all active administrators
-        $emailSent = sendEmail($email_principal, $subject, $htmlBody, null, true, true);
+        // Envoyer l'email d'invitation avec le template de la base de données
+        $emailSent = sendTemplatedEmail('contrat_signature', $email_principal, $variables, null, true);
         
         if (!$emailSent) {
             error_log("Erreur lors de l'envoi de l'email de signature à $email_principal");

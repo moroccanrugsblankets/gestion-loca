@@ -2,6 +2,7 @@
 require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
+require_once '../includes/functions.php';
 require_once '../includes/mail-templates.php';
 
 // Get candidature ID if provided
@@ -109,12 +110,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Create signature link
         $signature_link = $config['SITE_URL'] . '/signature/index.php?token=' . $token_signature;
         
-        // Send email with signature link
-        $subject = "Contrat de bail à signer – Action immédiate requise";
-        $htmlBody = getInvitationSignatureEmailHTML($signature_link, $logement_info['adresse'], $nb_locataires);
+        // Préparer les variables pour le template
+        $variables = [
+            'nom' => $candidature_info['nom'],
+            'prenom' => $candidature_info['prenom'],
+            'email' => $candidature_info['email'],
+            'adresse' => $logement_info['adresse'],
+            'lien_signature' => $signature_link
+        ];
         
-        // Send email to client and CC to all active administrators (last parameter = true)
-        $emailSent = sendEmail($candidature_info['email'], $subject, $htmlBody, null, true, true);
+        // Envoyer l'email d'invitation avec le template de la base de données
+        $emailSent = sendTemplatedEmail('contrat_signature', $candidature_info['email'], $variables, null, true);
         
         if ($emailSent) {
             // Log email sending success
