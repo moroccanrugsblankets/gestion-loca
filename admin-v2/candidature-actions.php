@@ -205,7 +205,6 @@ function getStatusBadge($status) {
             </div>
 
             <!-- Generate Contract -->
-            <?php if ($candidature['statut'] === 'accepte' || $candidature['statut'] === 'visite_planifiee'): ?>
             <div class="col-md-4 mb-4">
                 <div class="action-card text-center h-100">
                     <i class="bi bi-file-earmark-plus action-icon text-warning"></i>
@@ -216,7 +215,6 @@ function getStatusBadge($status) {
                     </a>
                 </div>
             </div>
-            <?php endif; ?>
 
             <!-- View All Details -->
             <div class="col-md-4 mb-4">
