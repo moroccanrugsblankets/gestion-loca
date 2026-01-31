@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Mettre à jour le contrat avec le token
         $stmt = $pdo->prepare("
             UPDATE contrats 
-            SET reference_unique = ?, 
+            SET token_signature = ?, 
                 date_expiration = ?,
                 nb_locataires = ?,
                 statut = 'en_attente'
@@ -81,6 +81,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "Lien de signature envoyé à $email_principal pour $nb_locataires locataire(s)",
             $_SERVER['REMOTE_ADDR']
         ]);
+        
+        // Mettre à jour le statut de la candidature si elle existe
+        if ($contrat['candidature_id']) {
+            $stmt = $pdo->prepare("UPDATE candidatures SET statut = 'contrat_envoye' WHERE id = ?");
+            $stmt->execute([$contrat['candidature_id']]);
+        }
         
         // Mettre à jour le statut du logement
         $stmt = $pdo->prepare("UPDATE logements SET statut = 'reserve' WHERE id = ?");
