@@ -53,9 +53,10 @@ try {
     ";
     
     // Calculate the delay in hours based on the unit (for backward compatibility)
+    // Note: For 'jours', we use calendar days (24 hours) for the fallback calculation
+    // New candidatures with scheduled_response_date will use business days (Mon-Fri)
     $hoursDelay = 0;
     if ($delaiUnite === 'jours') {
-        // For days, we use calendar days (24 hours each)
         $hoursDelay = $delaiValeur * 24;
     } elseif ($delaiUnite === 'heures') {
         $hoursDelay = $delaiValeur;

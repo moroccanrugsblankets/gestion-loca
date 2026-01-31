@@ -115,6 +115,7 @@ $stmt = $pdo->query("
 $failed_emails = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Get pending automatic candidature responses (only refused and not yet sent)
+// This includes both candidatures ready to send and those still waiting
 $stmt = $pdo->query("
     SELECT 
         c.id,
@@ -131,7 +132,6 @@ $stmt = $pdo->query("
     LEFT JOIN logements l ON c.logement_id = l.id
     WHERE c.reponse_automatique = 'en_attente'
     AND c.statut = 'refuse'
-    AND (c.scheduled_response_date IS NULL OR c.scheduled_response_date > NOW())
     ORDER BY c.created_at ASC
     LIMIT 50
 ");
@@ -322,7 +322,7 @@ $delaiUnite = getParameter('delai_reponse_unite', 'jours');
                 <h5 class="mb-0">
                     <i class="bi bi-clock-history"></i> Réponses Automatiques Programmées (Refusées)
                 </h5>
-                <small>Candidatures refusées en attente d'envoi automatique de mail de réponse (après le délai configuré et avant l'expiration)</small>
+                <small>Candidatures refusées en attente d'envoi automatique de mail de réponse. Les candidatures marquées "Prêt à traiter" seront envoyées au prochain passage du cron.</small>
             </div>
             <div class="card-body">
                 <?php if (empty($pending_responses)): ?>
