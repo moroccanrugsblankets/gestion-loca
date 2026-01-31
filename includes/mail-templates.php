@@ -133,6 +133,18 @@ Nous restons à votre disposition pour toute question.";
  */
 function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true, $isAdminEmail = false, $replyTo = null, $replyToName = null) {
     global $config, $pdo;
+    
+    // Validate SMTP configuration if SMTP auth is enabled
+    if ($config['SMTP_AUTH']) {
+        if (empty($config['SMTP_PASSWORD']) || empty($config['SMTP_USERNAME']) || empty($config['SMTP_HOST'])) {
+            error_log("ERREUR CRITIQUE: Configuration SMTP incomplète. Password: " . (empty($config['SMTP_PASSWORD']) ? 'VIDE' : 'défini') . 
+                     ", Username: " . (empty($config['SMTP_USERNAME']) ? 'VIDE' : 'défini') . 
+                     ", Host: " . (empty($config['SMTP_HOST']) ? 'VIDE' : 'défini'));
+            error_log("L'email à $to ne peut pas être envoyé. Veuillez configurer les paramètres SMTP dans includes/config.local.php");
+            return false;
+        }
+    }
+    
     $mail = new PHPMailer(true);
     
     try {
@@ -244,8 +256,12 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
         // Envoyer l'email
         $result = $mail->send();
         
-        // Logger le succès
-        error_log("Email envoyé avec succès à: $to - Sujet: $subject");
+        // Logger le succès seulement si vraiment envoyé
+        if ($result) {
+            error_log("Email envoyé avec succès à: $to - Sujet: $subject");
+        } else {
+            error_log("Échec de l'envoi d'email à: $to - Sujet: $subject (mail->send() returned false)");
+        }
         
         return $result;
         
@@ -256,7 +272,16 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
         }
         error_log("Exception lors de l'envoi d'email à $to: " . $e->getMessage());
         
-        // En cas d'échec SMTP, essayer avec la fonction mail() native en fallback
+        // En cas d'échec SMTP, ne PAS essayer le fallback si les credentials ne sont pas configurés
+        // Le fallback mail() retourne toujours true même si l'email n'est pas envoyé
+        // Note: Cette vérification est redondante avec la validation initiale (ligne 139-144)
+        // mais sert de filet de sécurité au cas où la config serait modifiée dynamiquement
+        if ($config['SMTP_AUTH'] && (empty($config['SMTP_PASSWORD']) || empty($config['SMTP_USERNAME']))) {
+            error_log("ATTENTION: Pas de fallback car les credentials SMTP ne sont pas configurés. L'email n'a PAS été envoyé.");
+            return false;
+        }
+        
+        // Sinon, essayer avec la fonction mail() native en fallback
         if ($config['SMTP_AUTH']) {
             error_log("Tentative de fallback avec mail() natif...");
             return sendEmailFallback($to, $subject, $body, $attachmentPath, $isHtml);

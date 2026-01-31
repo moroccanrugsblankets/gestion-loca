@@ -26,30 +26,51 @@ composer require phpmailer/phpmailer
 
 ## Configuration SMTP
 
-### 1. Éditer le fichier de configuration
+### ⚠️ IMPORTANT : Configuration obligatoire pour envoyer des emails
 
-Ouvrez le fichier `includes/config.php` et configurez les paramètres SMTP selon votre fournisseur d'email :
+**Les emails ne seront PAS envoyés tant que la configuration SMTP n'est pas complétée.**
 
-```php
-// Configuration SMTP pour PHPMailer
-define('SMTP_HOST', 'smtp.gmail.com');              // Serveur SMTP
-define('SMTP_PORT', 587);                            // Port SMTP (587 pour TLS, 465 pour SSL)
-define('SMTP_SECURE', 'tls');                        // 'tls' ou 'ssl'
-define('SMTP_AUTH', true);                           // Authentification SMTP
-define('SMTP_USERNAME', 'votre-email@example.com');  // Votre email SMTP
-define('SMTP_PASSWORD', 'votre-mot-de-passe');       // Votre mot de passe SMTP
-define('SMTP_DEBUG', 0);                             // 0 = off, 1 = client, 2 = client et serveur
+Avec la correction appliquée, si la configuration SMTP est incomplète, vous verrez un message d'avertissement clair indiquant que l'email n'a pas pu être envoyé, au lieu d'un faux message de succès.
+
+### 1. Créer le fichier de configuration local
+
+**ÉTAPE OBLIGATOIRE** : Copiez le fichier template et ajoutez vos credentials :
+
+```bash
+cp includes/config.local.php.template includes/config.local.php
 ```
 
-### 2. Exemples de configuration selon les fournisseurs
+### 2. Éditer le fichier de configuration locale
+
+Ouvrez le fichier `includes/config.local.php` et configurez les paramètres SMTP selon votre fournisseur d'email :
+
+```php
+<?php
+return [
+    // ⚠️ OBLIGATOIRE : Renseignez votre mot de passe SMTP
+    'SMTP_PASSWORD' => 'votre-mot-de-passe-ou-app-password',
+    
+    // Optionnel : Modifier si nécessaire
+    // 'SMTP_HOST' => 'smtp.gmail.com',
+    // 'SMTP_USERNAME' => 'votre-email@gmail.com',
+];
+```
+
+**Note** : Le fichier `config.local.php` est ignoré par Git pour des raisons de sécurité. Vos credentials ne seront jamais commitées.
+
+### 3. Exemples de configuration selon les fournisseurs
 
 #### Gmail
+Dans `includes/config.local.php` :
 ```php
-define('SMTP_HOST', 'smtp.gmail.com');
-define('SMTP_PORT', 587);
-define('SMTP_SECURE', 'tls');
-define('SMTP_USERNAME', 'votre-email@gmail.com');
-define('SMTP_PASSWORD', 'mot-de-passe-application'); // Utiliser un mot de passe d'application
+<?php
+return [
+    'SMTP_HOST' => 'smtp.gmail.com',
+    'SMTP_PORT' => 587,
+    'SMTP_SECURE' => 'tls',
+    'SMTP_USERNAME' => 'votre-email@gmail.com',
+    'SMTP_PASSWORD' => 'mot-de-passe-application', // Utiliser un mot de passe d'application
+];
 ```
 
 **Note :** Pour Gmail, vous devez créer un "mot de passe d'application" :
@@ -60,36 +81,48 @@ define('SMTP_PASSWORD', 'mot-de-passe-application'); // Utiliser un mot de passe
 
 #### Office 365 / Outlook
 ```php
-define('SMTP_HOST', 'smtp.office365.com');
-define('SMTP_PORT', 587);
-define('SMTP_SECURE', 'tls');
-define('SMTP_USERNAME', 'votre-email@outlook.com');
-define('SMTP_PASSWORD', 'votre-mot-de-passe');
+<?php
+return [
+    'SMTP_HOST' => 'smtp.office365.com',
+    'SMTP_PORT' => 587,
+    'SMTP_SECURE' => 'tls',
+    'SMTP_USERNAME' => 'votre-email@outlook.com',
+    'SMTP_PASSWORD' => 'votre-mot-de-passe',
+];
 ```
 
 #### OVH
 ```php
-define('SMTP_HOST', 'ssl0.ovh.net');
-define('SMTP_PORT', 587);
-define('SMTP_SECURE', 'tls');
-define('SMTP_USERNAME', 'votre-email@votredomaine.com');
-define('SMTP_PASSWORD', 'votre-mot-de-passe');
+<?php
+return [
+    'SMTP_HOST' => 'ssl0.ovh.net',
+    'SMTP_PORT' => 587,
+    'SMTP_SECURE' => 'tls',
+    'SMTP_USERNAME' => 'votre-email@votredomaine.com',
+    'SMTP_PASSWORD' => 'votre-mot-de-passe',
+];
 ```
 
 #### SendGrid
 ```php
-define('SMTP_HOST', 'smtp.sendgrid.net');
-define('SMTP_PORT', 587);
-define('SMTP_SECURE', 'tls');
-define('SMTP_USERNAME', 'apikey');
-define('SMTP_PASSWORD', 'votre-api-key-sendgrid');
+<?php
+return [
+    'SMTP_HOST' => 'smtp.sendgrid.net',
+    'SMTP_PORT' => 587,
+    'SMTP_SECURE' => 'tls',
+    'SMTP_USERNAME' => 'apikey',
+    'SMTP_PASSWORD' => 'votre-api-key-sendgrid',
+];
 ```
 
-### 3. Mode sans SMTP (fallback)
+### 4. Mode sans SMTP (fallback)
 
-Si vous ne souhaitez pas utiliser SMTP, définissez :
+Si vous ne souhaitez pas utiliser SMTP, définissez dans `config.local.php` :
 ```php
-define('SMTP_AUTH', false);
+<?php
+return [
+    'SMTP_AUTH' => false,
+];
 ```
 
 Dans ce cas, PHPMailer utilisera la fonction `mail()` native de PHP.
@@ -168,11 +201,29 @@ Ce script vérifie :
 
 ### L'email n'est pas envoyé
 
-1. **Vérifiez les logs d'erreur** dans `error.log`
-2. **Activez le mode debug** : `define('SMTP_DEBUG', 2);` dans `config.php`
-3. **Vérifiez vos credentials SMTP** (username, password)
-4. **Vérifiez le port et le protocole** (TLS/SSL)
-5. **Vérifiez que votre serveur autorise les connexions SMTP sortantes**
+**Symptôme** : Le message "Email envoyé avec succès" apparaît mais aucun email n'est reçu.
+
+**Solution** :
+1. **Vérifiez que `config.local.php` existe et contient SMTP_PASSWORD**
+   ```bash
+   cat includes/config.local.php
+   ```
+   Si le fichier n'existe pas, créez-le à partir du template (voir section Configuration ci-dessus)
+
+2. **Vérifiez les logs d'erreur** dans `error.log`
+   ```bash
+   tail -50 error.log
+   ```
+   Cherchez les messages contenant "ERREUR CRITIQUE: Configuration SMTP incomplète"
+
+3. **Activez le mode debug** dans `config.local.php` :
+   ```php
+   'SMTP_DEBUG' => 2,
+   ```
+
+4. **Vérifiez vos credentials SMTP** (username, password)
+5. **Vérifiez le port et le protocole** (TLS/SSL)
+6. **Vérifiez que votre serveur autorise les connexions SMTP sortantes**
 
 ### Les emails arrivent en spam
 
