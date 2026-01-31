@@ -30,7 +30,7 @@ composer require phpmailer/phpmailer
 
 **Les emails ne seront PAS envoyés tant que la configuration SMTP n'est pas complétée.**
 
-Si vous voyez un message "Email envoyé" mais ne recevez rien, c'est que la configuration SMTP n'est pas correcte.
+Avec la correction appliquée, si la configuration SMTP est incomplète, vous verrez un message d'avertissement clair indiquant que l'email n'a pas pu être envoyé, au lieu d'un faux message de succès.
 
 ### 1. Créer le fichier de configuration local
 

@@ -274,6 +274,8 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
         
         // En cas d'échec SMTP, ne PAS essayer le fallback si les credentials ne sont pas configurés
         // Le fallback mail() retourne toujours true même si l'email n'est pas envoyé
+        // Note: Cette vérification est redondante avec la validation initiale (ligne 139-144)
+        // mais sert de filet de sécurité au cas où la config serait modifiée dynamiquement
         if ($config['SMTP_AUTH'] && (empty($config['SMTP_PASSWORD']) || empty($config['SMTP_USERNAME']))) {
             error_log("ATTENTION: Pas de fallback car les credentials SMTP ne sont pas configurés. L'email n'a PAS été envoyé.");
             return false;
