@@ -133,7 +133,7 @@ foreach ($allParams as $param) {
                             'workflow' => 'Workflow et Délais',
                             'criteres' => 'Critères d\'Acceptation',
                             'general' => 'Général',
-                            'email' => 'Configuration Email'
+                            'email' => 'Signature Email'
                         ];
                         echo $groupeTitles[$groupe] ?? ucfirst($groupe);
                         ?>

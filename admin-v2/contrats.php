@@ -302,9 +302,28 @@ $stats = [
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function resendLink(contractId) {
-            if (confirm('Voulez-vous renvoyer le lien de signature ?')) {
-                // TODO: Implement resend link functionality
-                alert('Fonctionnalité à implémenter: renvoyer le lien');
+            if (confirm('Voulez-vous renvoyer le lien de signature ?\n\nUn email sera envoyé au client et aux administrateurs.')) {
+                // Send AJAX request to resend the link
+                fetch('renvoyer-lien-signature.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ contrat_id: contractId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('✓ ' + data.message);
+                        location.reload();
+                    } else {
+                        alert('Erreur: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Erreur lors de l\'envoi de la requête');
+                });
             }
         }
         
