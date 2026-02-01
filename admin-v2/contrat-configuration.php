@@ -71,10 +71,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $originalWidth = imagesx($sourceImage);
             $originalHeight = imagesy($sourceImage);
             
-            // Validate dimensions to prevent division by zero
-            if ($originalWidth <= 0 || $originalHeight <= 0) {
+            // Validate dimensions to prevent division by zero and ensure reasonable image size
+            // Minimum 10x10 pixels to avoid edge cases with extremely small images
+            if ($originalWidth < 10 || $originalHeight < 10) {
                 imagedestroy($sourceImage);
-                $_SESSION['error'] = "L'image téléchargée a des dimensions invalides.";
+                $_SESSION['error'] = "L'image téléchargée est trop petite. Taille minimum : 10x10 pixels.";
                 header('Location: contrat-configuration.php');
                 exit;
             }
@@ -108,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // Capture resized image as base64
             ob_start();
             if ($file['type'] === 'image/png') {
-                imagepng($resizedImage, null, 9); // Max compression for PNG
+                imagepng($resizedImage, null, 6); // Good compression balance (file size vs speed)
                 $mimeType = 'image/png';
             } else {
                 imagejpeg($resizedImage, null, 90); // High quality JPEG
