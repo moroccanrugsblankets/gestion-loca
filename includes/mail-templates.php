@@ -71,7 +71,7 @@ Merci de prendre connaissance de la procédure ci-dessous.
 
 Procédure de signature du bail
 
-Merci de compléter l'ensemble de la procédure dans un délai de 24 heures, à compter de la réception du présent message, incluant :
+Merci de compléter l'ensemble de la procédure avant la date d'expiration indiquée, incluant :
 	1.	La signature du contrat de bail en ligne
 	2.	La transmission d'une pièce d'identité en cours de validité (carte nationale d'identité ou passeport)
 	3.	Le règlement immédiat du dépôt de garantie, correspondant à deux mois de loyer, par virement bancaire instantané

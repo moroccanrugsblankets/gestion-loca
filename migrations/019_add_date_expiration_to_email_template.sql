@@ -35,11 +35,11 @@ SET
             
             <div class="alert-box">
                 <strong>⏰ Action immédiate requise</strong><br>
-                Délai de 24 heures à compter de la réception de ce message
+                Procédure à compléter avant la date limite indiquée ci-dessous
             </div>
             
             <h3>📋 Procédure de signature du bail</h3>
-            <p>Merci de compléter l''ensemble de la procédure dans un délai de 24 heures, incluant :</p>
+            <p>Merci de compléter l''ensemble de la procédure avant la date d''expiration, incluant :</p>
             <ol>
                 <li><strong>La signature du contrat de bail en ligne</strong></li>
                 <li><strong>La transmission d''une pièce d''identité</strong> en cours de validité (CNI ou passeport)</li>
