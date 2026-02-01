@@ -222,20 +222,70 @@ class ContratBailPDF extends TCPDF {
         $this->addText('Fait à Annemasse, le ' . $dateSignature);
         
         $this->Ln(2);
+        
+        // Signature du bailleur
         $this->SetFont('helvetica', 'B', 9);
-        $this->Cell(90, 5, 'Le bailleur', 0, 0, 'L');
-        $this->Cell(90, 5, 'Le(s) locataire(s)', 0, 1, 'L');
+        $this->Cell(0, 5, 'Le bailleur', 0, 1, 'L');
         $this->SetFont('helvetica', '', 8);
-        $this->Cell(90, 4, 'MY INVEST IMMOBILIER', 0, 0, 'L');
+        $this->Cell(0, 4, 'MY INVEST IMMOBILIER', 0, 1, 'L');
+        $this->Cell(0, 4, 'Représenté par M. ALEXANDRE', 0, 1, 'L');
+        $this->Cell(0, 4, 'Lu et approuvé', 0, 1, 'L');
+        
+        $this->Ln(3);
         
         // Signatures des locataires
-        $locNames = array_map(function($l) { 
-            return $l['prenom'] . ' ' . $l['nom']; 
-        }, $locataires);
-        $this->Cell(90, 4, implode(', ', $locNames), 0, 1, 'L');
-        
-        $this->Cell(90, 4, 'Représenté par M. ALEXANDRE', 0, 0, 'L');
-        $this->Cell(90, 4, 'Lu et approuvé', 0, 1, 'L');
+        foreach ($locataires as $i => $locataire) {
+            $this->SetFont('helvetica', 'B', 9);
+            $locataireLabel = count($locataires) > 1 ? 'Le locataire ' . ($i + 1) : 'Le locataire';
+            $this->Cell(0, 5, $locataireLabel, 0, 1, 'L');
+            $this->SetFont('helvetica', '', 8);
+            
+            // Nom du locataire
+            $this->Cell(0, 4, $locataire['prenom'] . ' ' . $locataire['nom'], 0, 1, 'L');
+            
+            // Mention "Lu et approuvé"
+            if (!empty($locataire['mention_lu_approuve'])) {
+                $this->Cell(0, 4, $locataire['mention_lu_approuve'], 0, 1, 'L');
+            } else {
+                $this->Cell(0, 4, 'Lu et approuvé', 0, 1, 'L');
+            }
+            
+            // Afficher la signature si disponible
+            if (!empty($locataire['signature_data'])) {
+                $this->Ln(1);
+                // Créer un fichier temporaire pour la signature
+                $imgData = $locataire['signature_data'];
+                // Vérifier que c'est un data URL base64
+                if (preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $imgData, $matches)) {
+                    $imageData = base64_decode($matches[2]);
+                    $tempFile = tempnam(sys_get_temp_dir(), 'sig_') . '.png';
+                    file_put_contents($tempFile, $imageData);
+                    
+                    // Insérer l'image de signature (max 40mm de largeur, hauteur proportionnelle)
+                    $this->Image($tempFile, $this->GetX(), $this->GetY(), 40, 0, 'PNG');
+                    
+                    // Supprimer le fichier temporaire
+                    unlink($tempFile);
+                    
+                    $this->Ln(20); // Espace après l'image
+                }
+            }
+            
+            // Horodatage et IP si disponibles
+            if (!empty($locataire['signature_timestamp']) || !empty($locataire['signature_ip'])) {
+                $this->SetFont('helvetica', 'I', 7);
+                if (!empty($locataire['signature_timestamp'])) {
+                    $timestamp = date('d/m/Y à H:i:s', strtotime($locataire['signature_timestamp']));
+                    $this->Cell(0, 3, 'Horodatage : ' . $timestamp, 0, 1, 'L');
+                }
+                if (!empty($locataire['signature_ip'])) {
+                    $this->Cell(0, 3, 'Adresse IP : ' . $locataire['signature_ip'], 0, 1, 'L');
+                }
+                $this->SetFont('helvetica', '', 8);
+            }
+            
+            $this->Ln(2);
+        }
     }
     
     /**
