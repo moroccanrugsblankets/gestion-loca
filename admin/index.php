@@ -2,11 +2,11 @@
 /**
  * Admin - Page d'accueil
  * My Invest Immobilier
+ * 
+ * DEPRECATED: This admin interface is obsolete.
+ * All users are redirected to the new admin-v2 interface.
  */
 
-require_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/functions.php';
-
-// Rediriger vers la génération de lien
-header('Location: generate-link.php');
+// Redirect to new admin-v2 interface
+header('Location: ../admin-v2/');
 exit;

@@ -265,7 +265,7 @@ $stats = [
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="../admin/contract-details.php?id=<?php echo $contrat['id']; ?>" class="btn btn-outline-primary" title="Voir détails">
+                                    <a href="contrat-detail.php?id=<?php echo $contrat['id']; ?>" class="btn btn-outline-primary" title="Voir détails">
                                         <i class="bi bi-eye"></i>
                                     </a>
                                     <?php if ($contrat['statut'] === 'signe'): ?>
