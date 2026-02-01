@@ -258,7 +258,6 @@ if ($contrat['validated_by']) {
         .signature-preview {
             max-width: 300px;
             max-height: 150px;
-            border: 1px solid #dee2e6;
             border-radius: 4px;
             padding: 10px;
             background: white;
@@ -360,7 +359,7 @@ if ($contrat['validated_by']) {
                             <?php endif; ?>
                         </div>
                     </div>
-                    <?php if ($contrat['date_validation']): ?>
+                    <?php if (isset($contrat['date_validation']) && $contrat['date_validation']): ?>
                     <div class="info-row">
                         <div class="info-label">Date de validation</div>
                         <div class="info-value">
@@ -377,13 +376,13 @@ if ($contrat['validated_by']) {
                         <div class="info-value"><?php echo date('d/m/Y', strtotime($contrat['date_prise_effet'])); ?></div>
                     </div>
                     <?php endif; ?>
-                    <?php if ($contrat['validation_notes']): ?>
+                    <?php if (isset($contrat['validation_notes']) && $contrat['validation_notes']): ?>
                     <div class="info-row">
                         <div class="info-label">Notes de validation</div>
                         <div class="info-value"><?php echo nl2br(htmlspecialchars($contrat['validation_notes'])); ?></div>
                     </div>
                     <?php endif; ?>
-                    <?php if ($contrat['motif_annulation']): ?>
+                    <?php if (isset($contrat['motif_annulation']) && $contrat['motif_annulation']): ?>
                     <div class="info-row">
                         <div class="info-label">Motif d'annulation</div>
                         <div class="info-value text-danger"><?php echo nl2br(htmlspecialchars($contrat['motif_annulation'])); ?></div>
