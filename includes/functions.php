@@ -112,7 +112,9 @@ function createContract($logementId, $nbLocataires = 1) {
  * @return array|false
  */
 function getContractByToken($token) {
-    $sql = "SELECT c.*, l.* 
+    // Note: Select l.* first, then c.* to ensure contract fields (especially statut) 
+    // take precedence over logement fields in case of column name collisions
+    $sql = "SELECT l.*, c.* 
             FROM contrats c 
             INNER JOIN logements l ON c.logement_id = l.id 
             WHERE c.token_signature = ?";
