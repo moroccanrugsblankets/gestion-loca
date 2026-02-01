@@ -49,7 +49,7 @@ DEALLOCATE PREPARE stmt;
 
 -- Add motif_annulation column if it doesn't exist
 SET @col_exists = (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = 'contrats' AND COLUMN_NAME = 'motif_annulation');
-SET @sql = IF(@col_exists = 0, 'ALTER TABLE contrats ADD COLUMN motif_annulation TEXT NULL COMMENT ''Raison de l''annulation du contrat''', 'SELECT "Column motif_annulation already exists" as message');
+SET @sql = IF(@col_exists = 0, 'ALTER TABLE contrats ADD COLUMN motif_annulation TEXT NULL COMMENT ''Raison de l''''annulation du contrat''', 'SELECT "Column motif_annulation already exists" as message');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;

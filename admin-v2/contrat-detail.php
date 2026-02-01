@@ -13,21 +13,46 @@ if ($contractId === 0) {
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    // Check which columns exist (used by both validate and cancel actions)
+    $existingColumns = [];
+    $result = $pdo->query("
+        SELECT COLUMN_NAME 
+        FROM information_schema.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'contrats' 
+        AND COLUMN_NAME IN ('validated_by', 'validation_notes', 'motif_annulation')
+    ");
+    while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
+        $existingColumns[$row['COLUMN_NAME']] = true;
+    }
+    
     if ($_POST['action'] === 'validate') {
         // Validate the contract and add company signature
         $notes = trim($_POST['validation_notes'] ?? '');
         $adminId = $_SESSION['admin_id'] ?? null;
         
-        // Update contract status to 'valide'
+        // Build UPDATE query based on existing columns
+        $updateFields = ['statut = ?', 'date_validation = NOW()'];
+        $params = ['valide'];
+        
+        if (isset($existingColumns['validation_notes'])) {
+            $updateFields[] = 'validation_notes = ?';
+            $params[] = $notes;
+        }
+        
+        if (isset($existingColumns['validated_by'])) {
+            $updateFields[] = 'validated_by = ?';
+            $params[] = $adminId;
+        }
+        
+        $params[] = $contractId;
+        
         $stmt = $pdo->prepare("
             UPDATE contrats 
-            SET statut = 'valide', 
-                date_validation = NOW(), 
-                validation_notes = ?,
-                validated_by = ?
+            SET " . implode(', ', $updateFields) . "
             WHERE id = ?
         ");
-        $stmt->execute([$notes, $adminId, $contractId]);
+        $stmt->execute($params);
         
         // Get contract and tenant details for emails
         $contrat = fetchOne("
@@ -89,16 +114,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             exit;
         }
         
-        // Update contract status to 'annule'
+        // Build UPDATE query based on existing columns
+        $updateFields = ['statut = ?', 'updated_at = NOW()'];
+        $params = ['annule'];
+        
+        if (isset($existingColumns['motif_annulation'])) {
+            $updateFields[] = 'motif_annulation = ?';
+            $params[] = $motif;
+        }
+        
+        if (isset($existingColumns['validated_by'])) {
+            $updateFields[] = 'validated_by = ?';
+            $params[] = $adminId;
+        }
+        
+        $params[] = $contractId;
+        
         $stmt = $pdo->prepare("
             UPDATE contrats 
-            SET statut = 'annule', 
-                motif_annulation = ?,
-                validated_by = ?,
-                updated_at = NOW()
+            SET " . implode(', ', $updateFields) . "
             WHERE id = ?
         ");
-        $stmt->execute([$motif, $adminId, $contractId]);
+        $stmt->execute($params);
         
         // Get contract and tenant details for emails
         $contrat = fetchOne("
