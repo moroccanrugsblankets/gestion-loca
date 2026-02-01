@@ -255,9 +255,9 @@ class ContratBailPDF extends TCPDF {
                 $this->Ln(1);
                 // Créer un fichier temporaire pour la signature
                 $imgData = $locataire['signature_data'];
-                // Vérifier que c'est un data URL base64
-                if (preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $imgData, $matches)) {
-                    $imageData = base64_decode($matches[2], true);
+                // Vérifier que c'est un data URL base64 PNG (seul format accepté)
+                if (preg_match('/^data:image\/png;base64,(.+)$/', $imgData, $matches)) {
+                    $imageData = base64_decode($matches[1], true);
                     
                     // Vérifier que le décodage a réussi et que les données ne sont pas vides
                     if ($imageData !== false && !empty($imageData)) {
@@ -277,8 +277,10 @@ class ContratBailPDF extends TCPDF {
                                 }
                                 
                                 // Supprimer le fichier temporaire
-                                if (file_exists($tempFile) && !@unlink($tempFile)) {
-                                    error_log("Impossible de supprimer le fichier temporaire: $tempFile");
+                                if (file_exists($tempFile)) {
+                                    if (!unlink($tempFile)) {
+                                        error_log("Impossible de supprimer le fichier temporaire: $tempFile");
+                                    }
                                 }
                             } else {
                                 error_log("Impossible d'écrire le fichier temporaire pour la signature");
@@ -296,8 +298,13 @@ class ContratBailPDF extends TCPDF {
             if (!empty($locataire['signature_timestamp']) || !empty($locataire['signature_ip'])) {
                 $this->SetFont('helvetica', 'I', 7);
                 if (!empty($locataire['signature_timestamp'])) {
-                    $timestamp = date('d/m/Y à H:i:s', strtotime($locataire['signature_timestamp']));
-                    $this->Cell(0, 3, 'Horodatage : ' . $timestamp, 0, 1, 'L');
+                    $timestampParsed = strtotime($locataire['signature_timestamp']);
+                    if ($timestampParsed !== false) {
+                        $timestamp = date('d/m/Y à H:i:s', $timestampParsed);
+                        $this->Cell(0, 3, 'Horodatage : ' . $timestamp, 0, 1, 'L');
+                    } else {
+                        error_log("Impossible de parser le timestamp de signature: " . $locataire['signature_timestamp']);
+                    }
                 }
                 if (!empty($locataire['signature_ip'])) {
                     $this->Cell(0, 3, 'Adresse IP : ' . $locataire['signature_ip'], 0, 1, 'L');
