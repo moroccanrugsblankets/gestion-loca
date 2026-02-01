@@ -2,6 +2,7 @@
 require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
+require_once '../includes/functions.php';
 
 $contractId = (int)($_GET['id'] ?? 0);
 
