@@ -268,9 +268,9 @@ function genererToken(): string {
 // CONSTANTES POUR COMPATIBILITÉ
 // =====================================================
 // Define constants for backward compatibility with code using constants instead of $config array
-if (!defined('BASE_URL')) {
+if (!defined('BASE_URL') && isset($config['SITE_URL'])) {
     define('BASE_URL', $config['SITE_URL']);
 }
-if (!defined('ADMIN_EMAIL')) {
+if (!defined('ADMIN_EMAIL') && isset($config['ADMIN_EMAIL'])) {
     define('ADMIN_EMAIL', $config['ADMIN_EMAIL']);
 }
