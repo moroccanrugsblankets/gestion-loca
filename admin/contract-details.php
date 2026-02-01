@@ -14,7 +14,7 @@ if ($contractId === 0) {
     exit;
 }
 
-$contrat = fetchOne("SELECT c.*, l.* FROM contrats c INNER JOIN logements l ON c.logement_id = l.id WHERE c.id = ?", [$contractId]);
+$contrat = fetchOne("SELECT l.*, c.* FROM contrats c INNER JOIN logements l ON c.logement_id = l.id WHERE c.id = ?", [$contractId]);
 
 if (!$contrat) {
     echo '<p class="text-danger">Contrat non trouvé.</p>';
