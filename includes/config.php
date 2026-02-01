@@ -263,3 +263,14 @@ function genererToken(): string {
         return hash('sha256', uniqid('', true) . microtime());
     }
 }
+
+// =====================================================
+// CONSTANTES POUR COMPATIBILITÉ
+// =====================================================
+// Define constants for backward compatibility with code using constants instead of $config array
+if (!defined('BASE_URL')) {
+    define('BASE_URL', $config['SITE_URL']);
+}
+if (!defined('ADMIN_EMAIL')) {
+    define('ADMIN_EMAIL', $config['ADMIN_EMAIL']);
+}
