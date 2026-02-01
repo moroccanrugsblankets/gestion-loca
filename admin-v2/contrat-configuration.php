@@ -25,6 +25,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         header('Location: contrat-configuration.php');
         exit;
     }
+    elseif ($_POST['action'] === 'upload_signature') {
+        // Handle signature image upload
+        if (isset($_FILES['signature_image']) && $_FILES['signature_image']['error'] === UPLOAD_ERR_OK) {
+            $file = $_FILES['signature_image'];
+            
+            // Validate file type
+            $allowed_types = ['image/png', 'image/jpeg', 'image/jpg'];
+            if (!in_array($file['type'], $allowed_types)) {
+                $_SESSION['error'] = "Format d'image non valide. Utilisez PNG ou JPEG.";
+                header('Location: contrat-configuration.php');
+                exit;
+            }
+            
+            // Validate file size (max 2MB)
+            if ($file['size'] > 2 * 1024 * 1024) {
+                $_SESSION['error'] = "La taille de l'image ne doit pas dépasser 2 MB.";
+                header('Location: contrat-configuration.php');
+                exit;
+            }
+            
+            // Read and encode image as base64
+            $imageData = file_get_contents($file['tmp_name']);
+            $base64Image = base64_encode($imageData);
+            $mimeType = $file['type'];
+            $dataUri = "data:$mimeType;base64,$base64Image";
+            
+            // Update or insert signature parameter
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM parametres WHERE cle = 'signature_societe_image'");
+            $stmt->execute();
+            $exists = $stmt->fetchColumn() > 0;
+            
+            if ($exists) {
+                $stmt = $pdo->prepare("UPDATE parametres SET valeur = ?, updated_at = NOW() WHERE cle = 'signature_societe_image'");
+                $stmt->execute([$dataUri]);
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO parametres (cle, valeur, type, groupe, description) VALUES ('signature_societe_image', ?, 'string', 'contrats', 'Image de la signature électronique de la société (base64)')");
+                $stmt->execute([$dataUri]);
+            }
+            
+            // Update enabled status
+            $enabled = isset($_POST['signature_enabled']) ? 'true' : 'false';
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM parametres WHERE cle = 'signature_societe_enabled'");
+            $stmt->execute();
+            $exists = $stmt->fetchColumn() > 0;
+            
+            if ($exists) {
+                $stmt = $pdo->prepare("UPDATE parametres SET valeur = ?, updated_at = NOW() WHERE cle = 'signature_societe_enabled'");
+                $stmt->execute([$enabled]);
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO parametres (cle, valeur, type, groupe, description) VALUES ('signature_societe_enabled', ?, 'boolean', 'contrats', 'Activer l''ajout automatique de la signature société')");
+                $stmt->execute([$enabled]);
+            }
+            
+            $_SESSION['success'] = "Signature de la société mise à jour avec succès";
+        } else {
+            $_SESSION['error'] = "Erreur lors du téléchargement de l'image";
+        }
+        header('Location: contrat-configuration.php');
+        exit;
+    }
+    elseif ($_POST['action'] === 'delete_signature') {
+        // Delete signature image
+        $stmt = $pdo->prepare("UPDATE parametres SET valeur = '', updated_at = NOW() WHERE cle = 'signature_societe_image'");
+        $stmt->execute();
+        
+        $_SESSION['success'] = "Signature supprimée avec succès";
+        header('Location: contrat-configuration.php');
+        exit;
+    }
 }
 
 // Get current template
@@ -36,6 +105,15 @@ $template = $stmt->fetchColumn();
 if (!$template) {
     $template = getDefaultContractTemplate();
 }
+
+// Get signature settings
+$stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_image'");
+$stmt->execute();
+$signatureImage = $stmt->fetchColumn() ?: '';
+
+$stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_enabled'");
+$stmt->execute();
+$signatureEnabled = $stmt->fetchColumn() === 'true';
 
 function getDefaultContractTemplate() {
     return <<<'HTML'
@@ -260,6 +338,84 @@ HTML;
             <?php unset($_SESSION['error']); ?>
         <?php endif; ?>
 
+        <!-- Signature Configuration Card -->
+        <div class="config-card">
+            <h5 class="mb-3"><i class="bi bi-pen"></i> Signature Électronique de la Société</h5>
+            <p class="text-muted">
+                Téléchargez l'image de la signature de la société qui sera automatiquement ajoutée aux contrats lors de la validation finale.
+            </p>
+            
+            <form method="POST" action="" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="upload_signature">
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="signature_image" class="form-label">
+                                <strong>Image de la signature</strong>
+                            </label>
+                            <input 
+                                type="file" 
+                                class="form-control" 
+                                id="signature_image" 
+                                name="signature_image" 
+                                accept="image/png,image/jpeg,image/jpg"
+                                <?php echo empty($signatureImage) ? 'required' : ''; ?>>
+                            <small class="form-text text-muted">
+                                Formats acceptés : PNG, JPEG. Taille maximum : 2 MB. Recommandation : fond transparent (PNG).
+                            </small>
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input 
+                                type="checkbox" 
+                                class="form-check-input" 
+                                id="signature_enabled" 
+                                name="signature_enabled"
+                                <?php echo $signatureEnabled ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="signature_enabled">
+                                Activer l'ajout automatique de la signature lors de la validation du contrat
+                            </label>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-upload"></i> Télécharger la signature
+                            </button>
+                            <?php if (!empty($signatureImage)): ?>
+                                <button type="button" class="btn btn-outline-danger" onclick="deleteSignature()">
+                                    <i class="bi bi-trash"></i> Supprimer
+                                </button>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <?php if (!empty($signatureImage)): ?>
+                            <div class="mb-3">
+                                <label class="form-label"><strong>Aperçu actuel</strong></label>
+                                <div class="border rounded p-3 bg-light text-center">
+                                    <img src="<?= htmlspecialchars($signatureImage) ?>" 
+                                         alt="Signature de la société" 
+                                         style="max-width: 100%; max-height: 200px; object-fit: contain;">
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="bi bi-info-circle"></i> Cette signature sera ajoutée automatiquement au PDF lors de la validation du contrat.
+                                </small>
+                            </div>
+                        <?php else: ?>
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle"></i> 
+                                <strong>Aucune signature configurée</strong><br>
+                                Téléchargez une image de signature pour l'utiliser lors de la validation des contrats.
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Template Configuration Card -->
         <div class="config-card">
             <div class="variables-info">
                 <h6><i class="bi bi-info-circle"></i> Variables disponibles</h6>
@@ -323,6 +479,23 @@ HTML;
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        function deleteSignature() {
+            if (confirm('Êtes-vous sûr de vouloir supprimer la signature de la société ?\n\nCette action ne peut pas être annulée.')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '';
+                
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = 'delete_signature';
+                
+                form.appendChild(actionInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+        
         function copyVariable(variable) {
             navigator.clipboard.writeText(variable).then(() => {
                 // Show temporary success message

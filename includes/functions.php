@@ -250,6 +250,36 @@ function finalizeContract($contratId) {
     
     if ($stmt) {
         logAction($contratId, 'signature_contrat', 'Contrat finalisé et signé');
+        
+        // Send email notification to administrators that contract is signed and needs verification
+        $contrat = fetchOne("
+            SELECT c.*, l.*, c.id as contrat_id, c.reference_unique as reference_contrat
+            FROM contrats c
+            INNER JOIN logements l ON c.logement_id = l.id
+            WHERE c.id = ?
+        ", [$contratId]);
+        
+        if ($contrat) {
+            $locataires = query("
+                SELECT * FROM locataires 
+                WHERE contrat_id = ? 
+                ORDER BY ordre
+            ", [$contratId]);
+            
+            $locatairesNames = array_map(function($loc) {
+                return $loc['prenom'] . ' ' . $loc['nom'];
+            }, $locataires);
+            
+            // Send email to administrators
+            sendTemplatedEmail('contrat_signe_client_admin', ADMIN_EMAIL, [
+                'reference' => $contrat['reference_contrat'],
+                'logement' => $contrat['reference'] . ' - ' . $contrat['adresse'],
+                'locataires' => implode(', ', $locatairesNames),
+                'date_signature' => date('d/m/Y H:i'),
+                'lien_admin' => BASE_URL . '/admin-v2/contrat-detail.php?id=' . $contratId
+            ]);
+        }
+        
         return true;
     }
     
@@ -689,5 +719,20 @@ function calculateScheduledResponseDate($fromDate) {
     }
     
     return $scheduledDate;
+}
+
+/**
+ * Get parameter value from parametres table
+ * @param string $cle Parameter key
+ * @return string|null Parameter value or null if not found
+ */
+function getParametreValue($cle) {
+    global $pdo;
+    
+    $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = ?");
+    $stmt->execute([$cle]);
+    $result = $stmt->fetchColumn();
+    
+    return $result !== false ? $result : null;
 }
 

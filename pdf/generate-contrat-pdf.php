@@ -231,6 +231,41 @@ class ContratBailPDF extends TCPDF {
         $this->Cell(0, 4, 'Représenté par M. ALEXANDRE', 0, 1, 'L');
         $this->Cell(0, 4, 'Lu et approuvé', 0, 1, 'L');
         
+        // Add company signature image if contract is validated and signature is enabled
+        if (isset($contrat['statut']) && $contrat['statut'] === 'valide') {
+            $signatureImage = getParametreValue('signature_societe_image');
+            $signatureEnabled = getParametreValue('signature_societe_enabled') === 'true';
+            
+            if ($signatureEnabled && !empty($signatureImage)) {
+                // Check if it's a data URI
+                if (strpos($signatureImage, 'data:image') === 0) {
+                    // Extract the base64 data
+                    $parts = explode(',', $signatureImage);
+                    if (count($parts) === 2) {
+                        $imgData = base64_decode($parts[1]);
+                        if ($imgData !== false) {
+                            // Create temporary file for signature
+                            $tempFile = tempnam(sys_get_temp_dir(), 'company_sig_');
+                            if ($tempFile !== false && file_put_contents($tempFile, $imgData) !== false) {
+                                try {
+                                    // Insert company signature image (max 40mm width, proportional height)
+                                    $this->Image($tempFile, $this->GetX(), $this->GetY(), 40, 0);
+                                    @unlink($tempFile);
+                                } catch (Exception $e) {
+                                    error_log("Error rendering company signature: " . $e->getMessage());
+                                    @unlink($tempFile);
+                                }
+                            } else {
+                                error_log("Could not create temporary file for company signature");
+                            }
+                        } else {
+                            error_log("Invalid base64 data for company signature");
+                        }
+                    }
+                }
+            }
+        }
+        
         $this->Ln(3);
         
         // Signatures des locataires
