@@ -13,8 +13,8 @@ if ($contratId === 0) {
     die('ID de contrat invalide.');
 }
 
-// Vérifier que le contrat existe et est signé
-$contrat = fetchOne("SELECT * FROM contrats WHERE id = ? AND statut = 'signe'", [$contratId]);
+// Vérifier que le contrat existe et est signé ou validé
+$contrat = fetchOne("SELECT * FROM contrats WHERE id = ? AND statut IN ('signe', 'valide')", [$contratId]);
 
 if (!$contrat) {
     die('Contrat non trouvé ou non signé.');

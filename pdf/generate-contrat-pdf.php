@@ -227,9 +227,13 @@ class ContratBailPDF extends TCPDF {
         $this->SetFont('helvetica', 'B', 9);
         $this->Cell(0, 5, 'Le bailleur', 0, 1, 'L');
         $this->SetFont('helvetica', '', 8);
-        $this->Cell(0, 4, 'MY INVEST IMMOBILIER', 0, 1, 'L');
-        $this->Cell(0, 4, 'Représenté par M. ALEXANDRE', 0, 1, 'L');
-        $this->Cell(0, 4, 'Lu et approuvé', 0, 1, 'L');
+        
+        // Only show full details and signature when contract is validated
+        if (isset($contrat['statut']) && $contrat['statut'] === 'valide') {
+            $this->Cell(0, 4, 'MY INVEST IMMOBILIER', 0, 1, 'L');
+            $this->Cell(0, 4, 'Représenté par M. ALEXANDRE', 0, 1, 'L');
+            $this->Cell(0, 4, 'Lu et approuvé', 0, 1, 'L');
+        }
         
         // Add company signature image if contract is validated and signature is enabled
         if (isset($contrat['statut']) && $contrat['statut'] === 'valide') {

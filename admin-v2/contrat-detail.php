@@ -13,21 +13,54 @@ if ($contractId === 0) {
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    // Check if validated_by column exists (used by both validate and cancel actions)
+    $validatedByColumnExists = $pdo->query("
+        SELECT COUNT(*) 
+        FROM information_schema.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'contrats' 
+        AND COLUMN_NAME = 'validated_by'
+    ")->fetchColumn() > 0;
+    
     if ($_POST['action'] === 'validate') {
         // Validate the contract and add company signature
         $notes = trim($_POST['validation_notes'] ?? '');
         $adminId = $_SESSION['admin_id'] ?? null;
         
         // Update contract status to 'valide'
-        $stmt = $pdo->prepare("
-            UPDATE contrats 
-            SET statut = 'valide', 
-                date_validation = NOW(), 
-                validation_notes = ?,
-                validated_by = ?
-            WHERE id = ?
-        ");
-        $stmt->execute([$notes, $adminId, $contractId]);
+        if ($validatedByColumnExists) {
+            $stmt = $pdo->prepare("
+                UPDATE contrats 
+                SET statut = 'valide', 
+                    date_validation = NOW(), 
+                    validation_notes = ?,
+                    validated_by = ?
+                WHERE id = ?
+            ");
+            $stmt->execute([$notes, $adminId, $contractId]);
+        } else {
+            // Fallback if column doesn't exist yet
+            $stmt = $pdo->prepare("
+                UPDATE contrats 
+                SET statut = 'valide', 
+                    date_validation = NOW()
+                WHERE id = ?
+            ");
+            $stmt->execute([$contractId]);
+            
+            // Store notes separately if validation_notes column exists
+            $notesColumnExists = $pdo->query("
+                SELECT COUNT(*) 
+                FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE() 
+                AND TABLE_NAME = 'contrats' 
+                AND COLUMN_NAME = 'validation_notes'
+            ")->fetchColumn() > 0;
+            
+            if ($notesColumnExists && !empty($notes)) {
+                $pdo->prepare("UPDATE contrats SET validation_notes = ? WHERE id = ?")->execute([$notes, $contractId]);
+            }
+        }
         
         // Get contract and tenant details for emails
         $contrat = fetchOne("
@@ -90,15 +123,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         // Update contract status to 'annule'
-        $stmt = $pdo->prepare("
-            UPDATE contrats 
-            SET statut = 'annule', 
-                motif_annulation = ?,
-                validated_by = ?,
-                updated_at = NOW()
-            WHERE id = ?
-        ");
-        $stmt->execute([$motif, $adminId, $contractId]);
+        if ($validatedByColumnExists) {
+            $stmt = $pdo->prepare("
+                UPDATE contrats 
+                SET statut = 'annule', 
+                    motif_annulation = ?,
+                    validated_by = ?,
+                    updated_at = NOW()
+                WHERE id = ?
+            ");
+            $stmt->execute([$motif, $adminId, $contractId]);
+        } else {
+            // Fallback if validated_by column doesn't exist yet
+            $stmt = $pdo->prepare("
+                UPDATE contrats 
+                SET statut = 'annule', 
+                    updated_at = NOW()
+                WHERE id = ?
+            ");
+            $stmt->execute([$contractId]);
+            
+            // Store motif separately if column exists
+            $motifColumnExists = $pdo->query("
+                SELECT COUNT(*) 
+                FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE() 
+                AND TABLE_NAME = 'contrats' 
+                AND COLUMN_NAME = 'motif_annulation'
+            ")->fetchColumn() > 0;
+            
+            if ($motifColumnExists && !empty($motif)) {
+                $pdo->prepare("UPDATE contrats SET motif_annulation = ? WHERE id = ?")->execute([$motif, $contractId]);
+            }
+        }
         
         // Get contract and tenant details for emails
         $contrat = fetchOne("
