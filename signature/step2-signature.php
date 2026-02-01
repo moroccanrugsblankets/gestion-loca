@@ -16,7 +16,7 @@ $contratId = $_SESSION['contrat_id'];
 $locataireId = $_SESSION['current_locataire_id'];
 $numeroLocataire = $_SESSION['current_locataire_numero'];
 
-$contrat = fetchOne("SELECT c.*, l.* FROM contrats c INNER JOIN logements l ON c.logement_id = l.id WHERE c.id = ?", [$contratId]);
+$contrat = fetchOne("SELECT l.*, c.* FROM contrats c INNER JOIN logements l ON c.logement_id = l.id WHERE c.id = ?", [$contratId]);
 
 if (!$contrat || !isContractValid($contrat)) {
     die('Contrat invalide ou expiré.');

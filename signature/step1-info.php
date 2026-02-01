@@ -13,7 +13,7 @@ if (!isset($_SESSION['signature_token']) || !isset($_SESSION['contrat_id'])) {
 }
 
 $contratId = $_SESSION['contrat_id'];
-$contrat = fetchOne("SELECT c.*, l.* FROM contrats c INNER JOIN logements l ON c.logement_id = l.id WHERE c.id = ?", [$contratId]);
+$contrat = fetchOne("SELECT l.*, c.* FROM contrats c INNER JOIN logements l ON c.logement_id = l.id WHERE c.id = ?", [$contratId]);
 
 if (!$contrat || !isContractValid($contrat)) {
     die('Contrat invalide ou expiré.');

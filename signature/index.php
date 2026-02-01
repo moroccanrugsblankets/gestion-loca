@@ -147,19 +147,19 @@ $csrfToken = generateCsrfToken();
                                 <div class="form-check mb-3">
                                     <input class="form-check-input" type="radio" name="choix" id="accepte" value="accepte" required>
                                     <label class="form-check-label" for="accepte">
-                                        ☐ J'accepte la procédure ci-dessus et m'engage à la compléter dans le délai de 24 heures.
+                                        J'accepte la procédure ci-dessus et m'engage à la compléter dans le délai de 24 heures.
                                     </label>
                                 </div>
                                 
                                 <div class="form-check mb-3">
                                     <input class="form-check-input" type="radio" name="choix" id="refuse" value="refuse">
                                     <label class="form-check-label" for="refuse">
-                                        ☐ Je refuse la procédure et renonce à la poursuite de la location du logement.
+                                        Je refuse la procédure et renonce à la poursuite de la location du logement.
                                     </label>
                                 </div>
                                 
                                 <div class="d-grid gap-2 mt-4">
-                                    <button type="submit" class="btn btn-lg" id="submitBtn">
+                                    <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
                                         Valider
                                     </button>
                                 </div>
