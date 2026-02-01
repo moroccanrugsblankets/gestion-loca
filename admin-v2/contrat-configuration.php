@@ -48,10 +48,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 exit;
             }
             
-            // Read and encode image as base64
-            $imageData = file_get_contents($file['tmp_name']);
+            // Read and resize image for optimal display
+            // Maximum width for signature image (in pixels)
+            $maxWidth = 600;
+            $maxHeight = 300;
+            
+            // Create image resource from uploaded file
+            $sourceImage = null;
+            if ($file['type'] === 'image/png') {
+                $sourceImage = @imagecreatefrompng($file['tmp_name']);
+            } elseif ($file['type'] === 'image/jpeg' || $file['type'] === 'image/jpg') {
+                $sourceImage = @imagecreatefromjpeg($file['tmp_name']);
+            }
+            
+            if (!$sourceImage) {
+                $_SESSION['error'] = "Impossible de traiter l'image. Veuillez réessayer avec un autre fichier.";
+                header('Location: contrat-configuration.php');
+                exit;
+            }
+            
+            // Get original dimensions
+            $originalWidth = imagesx($sourceImage);
+            $originalHeight = imagesy($sourceImage);
+            
+            // Calculate new dimensions maintaining aspect ratio
+            $ratio = min($maxWidth / $originalWidth, $maxHeight / $originalHeight);
+            
+            // Only resize if image is larger than max dimensions
+            if ($ratio < 1) {
+                $newWidth = round($originalWidth * $ratio);
+                $newHeight = round($originalHeight * $ratio);
+            } else {
+                $newWidth = $originalWidth;
+                $newHeight = $originalHeight;
+            }
+            
+            // Create new image with transparency support for PNG
+            $resizedImage = imagecreatetruecolor($newWidth, $newHeight);
+            
+            // Preserve transparency for PNG
+            if ($file['type'] === 'image/png') {
+                imagealphablending($resizedImage, false);
+                imagesavealpha($resizedImage, true);
+                $transparent = imagecolorallocatealpha($resizedImage, 255, 255, 255, 127);
+                imagefilledrectangle($resizedImage, 0, 0, $newWidth, $newHeight, $transparent);
+            }
+            
+            // Resize the image
+            imagecopyresampled($resizedImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $originalWidth, $originalHeight);
+            
+            // Capture resized image as base64
+            ob_start();
+            if ($file['type'] === 'image/png') {
+                imagepng($resizedImage, null, 9); // Max compression for PNG
+                $mimeType = 'image/png';
+            } else {
+                imagejpeg($resizedImage, null, 90); // High quality JPEG
+                $mimeType = 'image/jpeg';
+            }
+            $imageData = ob_get_clean();
+            
+            // Clean up resources
+            imagedestroy($sourceImage);
+            imagedestroy($resizedImage);
+            
+            // Encode as base64
             $base64Image = base64_encode($imageData);
-            $mimeType = $file['type'];
             $dataUri = "data:$mimeType;base64,$base64Image";
             
             // Update or insert signature parameter
@@ -397,10 +459,10 @@ HTML;
                         <?php if (!empty($signatureImage)): ?>
                             <div class="mb-3">
                                 <label class="form-label"><strong>Aperçu actuel</strong></label>
-                                <div class="border rounded p-3 bg-light text-center">
+                                <div class="border rounded p-3 bg-light text-center" style="min-height: 150px; display: flex; align-items: center; justify-content: center;">
                                     <img src="<?= htmlspecialchars($signatureImage) ?>" 
                                          alt="Signature de la société" 
-                                         style="max-width: 100%; max-height: 200px; object-fit: contain;">
+                                         style="max-width: 100%; max-height: 250px; width: auto; height: auto; object-fit: contain;">
                                 </div>
                                 <small class="text-muted d-block mt-2">
                                     <i class="bi bi-info-circle"></i> Cette signature sera ajoutée automatiquement au PDF lors de la validation du contrat.
