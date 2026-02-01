@@ -619,7 +619,7 @@ function getStatusChangeEmailHTML($nom_complet, $statut, $commentaire = '') {
 }
 
 /**
- * Envoyer un email aux administrateurs (emails principal et secondaire)
+ * Envoyer un email aux administrateurs (emails de config + tous les administrateurs actifs de la base de données)
  * @param string $subject Sujet de l'email
  * @param string $body Corps de l'email (peut être HTML ou texte)
  * @param string|array|null $attachmentPath Chemin(s) vers pièce(s) jointe(s) - peut être un string ou array
@@ -675,15 +675,20 @@ function sendEmailToAdmins($subject, $body, $attachmentPath = null, $isHtml = tr
         }
     }
     
-    // Email candidature additionnel (si configuré dans parametres)
+    // Récupérer tous les emails des administrateurs actifs depuis la base de données
     if ($pdo) {
         try {
-            $emailAdminCand = getParameter('email_admin_candidature', '');
-            if (!empty($emailAdminCand) && filter_var($emailAdminCand, FILTER_VALIDATE_EMAIL)) {
-                $adminEmails[] = $emailAdminCand;
+            $stmt = $pdo->query("SELECT email FROM administrateurs WHERE actif = TRUE AND email IS NOT NULL AND email != ''");
+            $adminUsers = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            
+            foreach ($adminUsers as $adminUserEmail) {
+                // Validate email format and avoid duplicates
+                if (filter_var($adminUserEmail, FILTER_VALIDATE_EMAIL) && !in_array($adminUserEmail, $adminEmails)) {
+                    $adminEmails[] = $adminUserEmail;
+                }
             }
         } catch (Exception $e) {
-            error_log("Could not fetch email_admin_candidature parameter: " . $e->getMessage());
+            error_log("Could not fetch administrators emails: " . $e->getMessage());
         }
     }
     
