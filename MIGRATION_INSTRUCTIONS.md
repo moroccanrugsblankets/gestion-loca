@@ -20,7 +20,7 @@ Avant d'appliquer toute migration, créez une sauvegarde complète de votre base
 mysqldump -u [username] -p [database_name] > backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
-**Note:** Remplacez `[database_name]` par le nom réel de votre base de données (par défaut: `bail_signature`)
+**Note:** Remplacez `[username]` par votre nom d'utilisateur MySQL et `[database_name]` par le nom de votre base de données (défini dans `includes/config.php`, par défaut: `bail_signature`).
 
 ### 2. Exécuter les Migrations
 
@@ -45,7 +45,7 @@ Si vous préférez exécuter la migration manuellement:
 mysql -u [username] -p [database_name] < migrations/020_add_contract_signature_and_workflow.sql
 ```
 
-**Note:** Remplacez `[database_name]` par le nom réel de votre base de données (par défaut: `bail_signature`)
+**Note:** Utilisez les mêmes valeurs que pour la sauvegarde ci-dessus.
 
 ### 3. Vérifier l'Application de la Migration
 
