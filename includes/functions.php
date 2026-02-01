@@ -136,7 +136,7 @@ function isContractValid($contract) {
     }
     
     $expiration = strtotime($contract['date_expiration']);
-    return time() < $expiration;
+    return time() <= $expiration;
 }
 
 /**
