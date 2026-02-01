@@ -2,10 +2,11 @@
 
 ## 📋 Résumé Exécutif
 
-Ce PR corrige deux problèmes critiques dans le système de gestion des contrats :
+Ce PR corrige trois problèmes critiques dans le système de gestion des contrats :
 
 1. **Erreur Fatale** lors de la validation d'un contrat (colonne 'validated_by' manquante)
 2. **Affichage Prématuré** des détails du bailleur dans le PDF avant validation
+3. **Erreur de Syntaxe SQL** dans la migration 020 (échappement incorrect des quotes)
 
 ## ✅ Problèmes Résolus
 
@@ -28,17 +29,33 @@ Column not found: 1054 Unknown column 'validated_by' in 'field list'
 - Quand le client signe (status='signe') : seulement "Le bailleur"
 - Quand l'admin valide (status='valide') : tous les détails + signature électronique
 
+### 3. Erreur de Syntaxe SQL dans Migration 020
+**Symptôme:**
+```
+SQLSTATE[42000]: Syntax error or access violation: 1064 
+You have an error in your SQL syntax near 'annulation du contrat''
+```
+
+**Solution:**
+- Correction de l'échappement des quotes dans le fichier de migration
+- `l''annulation` (incorrect, 3 quotes) → `l''''annulation` (correct, 4 quotes)
+- La migration s'exécute maintenant sans erreur
+
+Voir **FIX_MIGRATION_020_SYNTAX.md** pour les détails techniques.
+
 ## 📁 Fichiers Modifiés
 
-### Code (3 fichiers)
+### Code (4 fichiers)
 1. `admin-v2/contrat-detail.php` - Validation robuste avec vérification des colonnes
 2. `pdf/generate-contrat-pdf.php` - Affichage conditionnel de la signature
 3. `pdf/download.php` - Téléchargement pour statuts 'signe' et 'valide'
+4. `migrations/020_add_contract_signature_and_workflow.sql` - Correction syntaxe SQL
 
-### Documentation (3 fichiers)
-4. `RUN_MIGRATION_020.md` - Guide pour exécuter la migration en production
-5. `CORRECTIONS_CONTRAT.md` - Documentation technique complète
-6. `GUIDE_VISUEL_CORRECTIONS.md` - Guide visuel avant/après
+### Documentation (4 fichiers)
+5. `RUN_MIGRATION_020.md` - Guide pour exécuter la migration en production
+6. `CORRECTIONS_CONTRAT.md` - Documentation technique complète
+7. `GUIDE_VISUEL_CORRECTIONS.md` - Guide visuel avant/après
+8. `FIX_MIGRATION_020_SYNTAX.md` - Explication de l'erreur SQL et sa correction
 
 ## 🚀 Déploiement
 
@@ -63,7 +80,7 @@ git pull origin copilot/fix-validation-error-contract
 # 1. Déployez les fichiers
 git pull origin copilot/fix-validation-error-contract
 
-# 2. Exécutez la migration
+# 2. Exécutez la migration (maintenant corrigée)
 php run-migrations.php
 ```
 
@@ -71,9 +88,12 @@ php run-migrations.php
 - ✅ Traçabilité complète (validated_by)
 - ✅ Notes de validation enregistrées
 - ✅ Historique complet des actions
+- ✅ Migration 020 s'exécute sans erreur
 
 **Inconvénients:**
 - ⚠️ Nécessite l'accès à la base de données
+
+**Note importante:** La migration 020 a été corrigée pour résoudre l'erreur de syntaxe SQL. Elle devrait maintenant s'exécuter sans problème.
 
 Pour les instructions détaillées de migration, voir **RUN_MIGRATION_020.md**
 
