@@ -165,9 +165,10 @@ ini_set('display_errors', 1);
 ini_set('log_errors', 1);
 ini_set('error_log', dirname(__DIR__) . '/error.log');
 
-// Debug mode (set to false in production)
+// Debug mode (set to false in production to disable debug logging)
+// Can be overridden in config.local.php
 if (!defined('DEBUG_MODE')) {
-    define('DEBUG_MODE', true);
+    define('DEBUG_MODE', true); // true for development, false for production
 }
 
 // Gestion des erreurs pour éviter les 500

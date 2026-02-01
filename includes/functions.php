@@ -149,7 +149,8 @@ function isContractValid($contract) {
         return false;
     }
     
-    return time() <= $expiration;
+    // Contract is valid if current time is before expiration time
+    return time() < $expiration;
 }
 
 /**
