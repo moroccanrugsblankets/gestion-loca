@@ -17,8 +17,10 @@ Ce correctif résout les problèmes suivants sur la page `/admin-v2/contrat-deta
 Avant d'appliquer toute migration, créez une sauvegarde complète de votre base de données:
 
 ```bash
-mysqldump -u [username] -p bail_signature > backup_$(date +%Y%m%d_%H%M%S).sql
+mysqldump -u [username] -p [database_name] > backup_$(date +%Y%m%d_%H%M%S).sql
 ```
+
+**Note:** Remplacez `[database_name]` par le nom réel de votre base de données (par défaut: `bail_signature`)
 
 ### 2. Exécuter les Migrations
 
@@ -40,8 +42,10 @@ Ce script va:
 Si vous préférez exécuter la migration manuellement:
 
 ```bash
-mysql -u [username] -p bail_signature < migrations/020_add_contract_signature_and_workflow.sql
+mysql -u [username] -p [database_name] < migrations/020_add_contract_signature_and_workflow.sql
 ```
+
+**Note:** Remplacez `[database_name]` par le nom réel de votre base de données (par défaut: `bail_signature`)
 
 ### 3. Vérifier l'Application de la Migration
 
