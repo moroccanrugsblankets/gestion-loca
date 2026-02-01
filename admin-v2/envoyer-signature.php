@@ -38,7 +38,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Générer un token unique
         $token = bin2hex(random_bytes(32));
-        $date_expiration = date('Y-m-d H:i:s', strtotime('+24 hours'));
+        
+        // Get expiration delay from parameters table, fallback to 24 hours
+        $expiryHours = getParameter('delai_expiration_lien_contrat', 24);
+        $date_expiration = date('Y-m-d H:i:s', strtotime('+' . $expiryHours . ' hours'));
         
         // Mettre à jour le contrat avec le token
         $stmt = $pdo->prepare("
@@ -54,13 +57,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Créer le lien de signature
         $signature_link = $config['SITE_URL'] . '/signature/index.php?token=' . $token;
         
+        // Format expiration date for email (e.g., "02/02/2026 à 15:30")
+        $date_expiration_formatted = date('d/m/Y à H:i', strtotime($date_expiration));
+        
         // Préparer les variables pour le template
         $variables = [
             'nom' => $contrat['nom'],
             'prenom' => $contrat['prenom'],
             'email' => $email_principal,
             'adresse' => $contrat['adresse'],
-            'lien_signature' => $signature_link
+            'lien_signature' => $signature_link,
+            'date_expiration_lien_contrat' => $date_expiration_formatted
         ];
         
         // Envoyer l'email d'invitation avec le template de la base de données
