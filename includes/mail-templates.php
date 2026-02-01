@@ -619,7 +619,7 @@ function getStatusChangeEmailHTML($nom_complet, $statut, $commentaire = '') {
 }
 
 /**
- * Envoyer un email aux administrateurs (emails principal et secondaire)
+ * Envoyer un email aux administrateurs (emails de config + tous les administrateurs actifs de la base de données)
  * @param string $subject Sujet de l'email
  * @param string $body Corps de l'email (peut être HTML ou texte)
  * @param string|array|null $attachmentPath Chemin(s) vers pièce(s) jointe(s) - peut être un string ou array
@@ -650,14 +650,14 @@ function sendEmailToAdmins($subject, $body, $attachmentPath = null, $isHtml = tr
         }
     }
     
-    // Liste des emails administrateurs
-    $adminEmails = [];
+    // Liste des emails administrateurs (use associative array for O(1) duplicate checking)
+    $adminEmailsMap = [];
     
     // Email principal
     if (!empty($config['ADMIN_EMAIL'])) {
         // Validate email format
         if (filter_var($config['ADMIN_EMAIL'], FILTER_VALIDATE_EMAIL)) {
-            $adminEmails[] = $config['ADMIN_EMAIL'];
+            $adminEmailsMap[$config['ADMIN_EMAIL']] = true;
         } else {
             $results['errors'][] = "Invalid ADMIN_EMAIL format: " . $config['ADMIN_EMAIL'];
             error_log("Invalid ADMIN_EMAIL configured: " . $config['ADMIN_EMAIL']);
@@ -668,31 +668,39 @@ function sendEmailToAdmins($subject, $body, $attachmentPath = null, $isHtml = tr
     if (!empty($config['ADMIN_EMAIL_SECONDARY'])) {
         // Validate email format
         if (filter_var($config['ADMIN_EMAIL_SECONDARY'], FILTER_VALIDATE_EMAIL)) {
-            $adminEmails[] = $config['ADMIN_EMAIL_SECONDARY'];
+            $adminEmailsMap[$config['ADMIN_EMAIL_SECONDARY']] = true;
         } else {
             $results['errors'][] = "Invalid ADMIN_EMAIL_SECONDARY format: " . $config['ADMIN_EMAIL_SECONDARY'];
             error_log("Invalid ADMIN_EMAIL_SECONDARY configured: " . $config['ADMIN_EMAIL_SECONDARY']);
         }
     }
     
-    // Email candidature additionnel (si configuré dans parametres)
+    // Récupérer tous les emails des administrateurs actifs depuis la base de données
     if ($pdo) {
         try {
-            $emailAdminCand = getParameter('email_admin_candidature', '');
-            if (!empty($emailAdminCand) && filter_var($emailAdminCand, FILTER_VALIDATE_EMAIL)) {
-                $adminEmails[] = $emailAdminCand;
+            $stmt = $pdo->query("SELECT email FROM administrateurs WHERE actif = TRUE AND email IS NOT NULL AND email != ''");
+            $adminUsers = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            
+            foreach ($adminUsers as $adminUserEmail) {
+                // Validate email format and avoid duplicates using O(1) lookup
+                if (filter_var($adminUserEmail, FILTER_VALIDATE_EMAIL) && !isset($adminEmailsMap[$adminUserEmail])) {
+                    $adminEmailsMap[$adminUserEmail] = true;
+                }
             }
         } catch (Exception $e) {
-            error_log("Could not fetch email_admin_candidature parameter: " . $e->getMessage());
+            error_log("Could not fetch administrators emails: " . $e->getMessage());
         }
     }
     
     // Si aucun email admin configuré, utiliser l'email de la société
-    if (empty($adminEmails) && !empty($config['COMPANY_EMAIL'])) {
+    if (empty($adminEmailsMap) && !empty($config['COMPANY_EMAIL'])) {
         if (filter_var($config['COMPANY_EMAIL'], FILTER_VALIDATE_EMAIL)) {
-            $adminEmails[] = $config['COMPANY_EMAIL'];
+            $adminEmailsMap[$config['COMPANY_EMAIL']] = true;
         }
     }
+    
+    // Convert to array for iteration
+    $adminEmails = array_keys($adminEmailsMap);
     
     // Count configured emails for partial success detection
     $totalConfigured = count($adminEmails);
