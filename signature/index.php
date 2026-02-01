@@ -22,6 +22,16 @@ if (!$contrat) {
 }
 
 // Vérifier si le contrat est valide
+if (DEBUG_MODE) {
+    error_log("DEBUG: Validating contract expiration");
+    error_log("DEBUG: Contract ID: " . ($contrat['id'] ?? 'N/A'));
+    error_log("DEBUG: Contract status: " . ($contrat['statut'] ?? 'N/A'));
+    error_log("DEBUG: Expiration date: " . ($contrat['date_expiration'] ?? 'N/A'));
+    error_log("DEBUG: Current time: " . date('Y-m-d H:i:s'));
+    error_log("DEBUG: Expiration timestamp: " . (isset($contrat['date_expiration']) ? strtotime($contrat['date_expiration']) : 'N/A'));
+    error_log("DEBUG: Current timestamp: " . time());
+}
+
 if (!isContractValid($contrat)) {
     if ($contrat['statut'] === 'signe') {
         die('Ce contrat a déjà été signé.');

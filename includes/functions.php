@@ -135,7 +135,21 @@ function isContractValid($contract) {
         return false;
     }
     
+    // Check if date_expiration exists and is valid
+    if (!isset($contract['date_expiration']) || empty($contract['date_expiration'])) {
+        error_log("Contract expiration date is missing or empty for contract ID: " . ($contract['id'] ?? 'unknown'));
+        return false;
+    }
+    
     $expiration = strtotime($contract['date_expiration']);
+    
+    // Check if strtotime successfully parsed the date
+    if ($expiration === false || $expiration === -1) {
+        error_log("Failed to parse expiration date '{$contract['date_expiration']}' for contract ID: " . ($contract['id'] ?? 'unknown'));
+        return false;
+    }
+    
+    // Contract is valid if current time is before expiration time
     return time() < $expiration;
 }
 

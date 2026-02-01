@@ -165,6 +165,13 @@ ini_set('display_errors', 1);
 ini_set('log_errors', 1);
 ini_set('error_log', dirname(__DIR__) . '/error.log');
 
+// Debug mode (IMPORTANT: Set to true only in development environments)
+// MUST be false in production to prevent information disclosure
+// Can be overridden in config.local.php
+if (!defined('DEBUG_MODE')) {
+    define('DEBUG_MODE', false); // Default: false for security
+}
+
 // Gestion des erreurs pour éviter les 500
 set_error_handler(function($errno, $errstr, $errfile, $errline) {
     error_log("Error [$errno]: $errstr in $errfile on line $errline");

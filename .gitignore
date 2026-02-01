@@ -18,6 +18,8 @@ error.log
 
 # Fichiers temporaires
 *.tmp
+test-*.php
+/tmp/
 *.temp
 .DS_Store
 Thumbs.db
