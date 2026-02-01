@@ -58,11 +58,12 @@ body {
     
     #signatureCanvas {
         width: 100% !important;
-        height: 200px !important;
+        height: 150px !important;
     }
     
     .signature-container {
         width: 100%;
+        max-width: 300px;
     }
 }
 

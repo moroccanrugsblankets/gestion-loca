@@ -9,8 +9,6 @@ require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 
-use TCPDF;
-
 /**
  * Générer le PDF du contrat de bail
  * @param int $contratId ID du contrat
