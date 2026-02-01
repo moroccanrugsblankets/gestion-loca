@@ -257,17 +257,38 @@ class ContratBailPDF extends TCPDF {
                 $imgData = $locataire['signature_data'];
                 // Vérifier que c'est un data URL base64
                 if (preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $imgData, $matches)) {
-                    $imageData = base64_decode($matches[2]);
-                    $tempFile = tempnam(sys_get_temp_dir(), 'sig_') . '.png';
-                    file_put_contents($tempFile, $imageData);
+                    $imageData = base64_decode($matches[2], true);
                     
-                    // Insérer l'image de signature (max 40mm de largeur, hauteur proportionnelle)
-                    $this->Image($tempFile, $this->GetX(), $this->GetY(), 40, 0, 'PNG');
-                    
-                    // Supprimer le fichier temporaire
-                    unlink($tempFile);
-                    
-                    $this->Ln(20); // Espace après l'image
+                    // Vérifier que le décodage a réussi et que les données ne sont pas vides
+                    if ($imageData !== false && !empty($imageData)) {
+                        // Créer un fichier temporaire unique et sécurisé
+                        $tempFile = tempnam(sys_get_temp_dir(), 'sig_');
+                        
+                        if ($tempFile !== false) {
+                            // Écrire les données de l'image dans le fichier temporaire
+                            if (file_put_contents($tempFile, $imageData) !== false) {
+                                try {
+                                    // Insérer l'image de signature (max 40mm de largeur, hauteur proportionnelle)
+                                    $this->Image($tempFile, $this->GetX(), $this->GetY(), 40, 0, 'PNG');
+                                    $this->Ln(20); // Espace après l'image
+                                } catch (Exception $e) {
+                                    // Log l'erreur mais continue la génération du PDF
+                                    error_log("Erreur lors du rendu de la signature: " . $e->getMessage());
+                                }
+                                
+                                // Supprimer le fichier temporaire
+                                if (file_exists($tempFile) && !@unlink($tempFile)) {
+                                    error_log("Impossible de supprimer le fichier temporaire: $tempFile");
+                                }
+                            } else {
+                                error_log("Impossible d'écrire le fichier temporaire pour la signature");
+                            }
+                        } else {
+                            error_log("Impossible de créer le fichier temporaire pour la signature");
+                        }
+                    } else {
+                        error_log("Décodage base64 invalide pour la signature du locataire");
+                    }
                 }
             }
             
