@@ -127,7 +127,6 @@ function generateBailHTML($contrat, $locataires) {
         }
         .signature-image {
             max-width: 250px;
-            border: 1px solid #000;
             padding: 5px;
         }
         .footer {

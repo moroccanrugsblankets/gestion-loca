@@ -29,6 +29,23 @@ ADD COLUMN IF NOT EXISTS date_validation TIMESTAMP NULL COMMENT 'Date de validat
 ADD COLUMN IF NOT EXISTS validation_notes TEXT NULL COMMENT 'Notes de vérification/validation',
 ADD COLUMN IF NOT EXISTS motif_annulation TEXT NULL COMMENT 'Raison de l''annulation du contrat',
 ADD COLUMN IF NOT EXISTS verified_by INT NULL COMMENT 'Admin qui a vérifié',
-ADD COLUMN IF NOT EXISTS validated_by INT NULL COMMENT 'Admin qui a validé',
-ADD FOREIGN KEY (verified_by) REFERENCES administrateurs(id) ON DELETE SET NULL,
-ADD FOREIGN KEY (validated_by) REFERENCES administrateurs(id) ON DELETE SET NULL;
+ADD COLUMN IF NOT EXISTS validated_by INT NULL COMMENT 'Admin qui a validé';
+
+-- Add foreign keys if they don't already exist
+-- Note: MySQL doesn't support IF NOT EXISTS for foreign keys, so we use a procedure
+SET @dbname = DATABASE();
+SET @tablename = 'contrats';
+SET @fk1_exists = (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = @dbname AND TABLE_NAME = @tablename AND CONSTRAINT_NAME = 'contrats_ibfk_verified_by');
+SET @fk2_exists = (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = @dbname AND TABLE_NAME = @tablename AND CONSTRAINT_NAME = 'contrats_ibfk_validated_by');
+
+SET @sql1 = IF(@fk1_exists = 0, 'ALTER TABLE contrats ADD CONSTRAINT contrats_ibfk_verified_by FOREIGN KEY (verified_by) REFERENCES administrateurs(id) ON DELETE SET NULL', 'SELECT "FK verified_by already exists" as message');
+SET @sql2 = IF(@fk2_exists = 0, 'ALTER TABLE contrats ADD CONSTRAINT contrats_ibfk_validated_by FOREIGN KEY (validated_by) REFERENCES administrateurs(id) ON DELETE SET NULL', 'SELECT "FK validated_by already exists" as message');
+
+PREPARE stmt1 FROM @sql1;
+EXECUTE stmt1;
+DEALLOCATE PREPARE stmt1;
+
+PREPARE stmt2 FROM @sql2;
+EXECUTE stmt2;
+DEALLOCATE PREPARE stmt2;
+
