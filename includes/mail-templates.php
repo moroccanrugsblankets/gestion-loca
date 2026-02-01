@@ -51,7 +51,7 @@ use PHPMailer\PHPMailer\SMTP;
  * Template email d'invitation à signer le bail
  * @param string $signatureLink
  * @param array $logement
- * @param string|null $dateExpiration Date d'expiration du lien (format Y-m-d H:i:s)
+ * @param string|null $dateExpiration Date d'expiration du lien (format compatible strtotime, typically 'Y-m-d H:i:s')
  * @return array ['subject' => string, 'body' => string]
  */
 function getInvitationEmailTemplate($signatureLink, $logement, $dateExpiration = null) {
