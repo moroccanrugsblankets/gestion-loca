@@ -121,8 +121,10 @@ foreach ($files as $file) {
     try {
         $stmt = $pdo->prepare("SELECT id FROM migrations WHERE migration_file = ?");
         $stmt->execute([$filename]);
+        $result = $stmt->fetch();
+        $stmt->closeCursor(); // Close cursor to free resources
         
-        if ($stmt->fetch()) {
+        if ($result) {
             echo "⊘ Skipping (already executed): $filename\n";
             $skipped++;
             continue;
