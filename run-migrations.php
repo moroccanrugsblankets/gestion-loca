@@ -153,14 +153,13 @@ foreach ($files as $file) {
             }
             
             // Execute the statement and consume any result set
+            // query() always returns PDOStatement (or false on error)
             $result = $pdo->query($statement);
-            if ($result !== false) {
+            if ($result instanceof PDOStatement) {
                 // Fetch all results to consume the result set
                 // This prevents "Cannot execute queries while other unbuffered queries are active" errors
-                if ($result instanceof PDOStatement) {
-                    $result->fetchAll();
-                    $result->closeCursor();
-                }
+                $result->fetchAll();
+                $result->closeCursor();
             }
         }
         
