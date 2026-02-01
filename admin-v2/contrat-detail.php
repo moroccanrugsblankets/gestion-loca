@@ -59,6 +59,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         require_once __DIR__ . '/../pdf/generate-bail.php';
         $pdfPath = generateBailPDF($contractId);
         
+        // Check if PDF generation was successful
+        if (!$pdfPath || !file_exists($pdfPath)) {
+            error_log("Failed to regenerate PDF with company signature for contract ID: $contractId");
+            // Continue with the process but log the error
+        }
+        
         // Get contract and tenant details for emails
         $contrat = fetchOne("
             SELECT c.*, l.*, c.id as contrat_id, c.reference_unique as reference_contrat
