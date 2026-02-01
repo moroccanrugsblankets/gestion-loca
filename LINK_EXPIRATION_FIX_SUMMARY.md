@@ -112,7 +112,7 @@ If users continue to report expiration errors:
 
 3. **signature/index.php** (Lines 24-33)
    - Added conditional debug logging
-   - Wrappednamespace in `if (DEBUG_MODE)`
+   - Wrapped in `if (DEBUG_MODE)`
    - Logs contract details without tokens
 
 4. **.gitignore**
