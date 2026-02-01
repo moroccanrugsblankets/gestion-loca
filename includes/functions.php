@@ -260,7 +260,7 @@ function finalizeContract($contratId) {
         ", [$contratId]);
         
         if ($contrat) {
-            $locataires = query("
+            $locataires = fetchAll("
                 SELECT * FROM locataires 
                 WHERE contrat_id = ? 
                 ORDER BY ordre
