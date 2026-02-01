@@ -240,14 +240,12 @@ class ContratBailPDF extends TCPDF {
             $this->Cell(0, 5, $locataireLabel, 0, 1, 'L');
             $this->SetFont('helvetica', '', 8);
             
-            // Nom du locataire (sanitize for PDF output)
-            $nomComplet = htmlspecialchars($locataire['prenom'] . ' ' . $locataire['nom'], ENT_QUOTES, 'UTF-8');
-            $this->Cell(0, 4, $nomComplet, 0, 1, 'L');
+            // Nom du locataire
+            $this->Cell(0, 4, $locataire['prenom'] . ' ' . $locataire['nom'], 0, 1, 'L');
             
-            // Mention "Lu et approuvé" (sanitize user input)
+            // Mention "Lu et approuvé"
             if (!empty($locataire['mention_lu_approuve'])) {
-                $mentionSafe = htmlspecialchars($locataire['mention_lu_approuve'], ENT_QUOTES, 'UTF-8');
-                $this->Cell(0, 4, $mentionSafe, 0, 1, 'L');
+                $this->Cell(0, 4, $locataire['mention_lu_approuve'], 0, 1, 'L');
             } else {
                 $this->Cell(0, 4, 'Lu et approuvé', 0, 1, 'L');
             }
@@ -309,9 +307,7 @@ class ContratBailPDF extends TCPDF {
                     }
                 }
                 if (!empty($locataire['signature_ip'])) {
-                    // Sanitize IP address for PDF output
-                    $ipSafe = htmlspecialchars($locataire['signature_ip'], ENT_QUOTES, 'UTF-8');
-                    $this->Cell(0, 3, 'Adresse IP : ' . $ipSafe, 0, 1, 'L');
+                    $this->Cell(0, 3, 'Adresse IP : ' . $locataire['signature_ip'], 0, 1, 'L');
                 }
                 $this->SetFont('helvetica', '', 8);
             }
