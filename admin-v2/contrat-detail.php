@@ -60,9 +60,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $pdfPath = generateBailPDF($contractId);
         
         // Check if PDF generation was successful
-        if (!$pdfPath || !file_exists($pdfPath)) {
-            error_log("Failed to regenerate PDF with company signature for contract ID: $contractId");
-            // Continue with the process but log the error
+        if (!$pdfPath) {
+            error_log("PDF regeneration failed - generateBailPDF returned false for contract ID: $contractId");
+        } elseif (!file_exists($pdfPath)) {
+            error_log("PDF regeneration failed - file not found: $pdfPath for contract ID: $contractId");
         }
         
         // Get contract and tenant details for emails
