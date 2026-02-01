@@ -44,9 +44,9 @@ if ($pdo) {
         $adminUsers = $stmt->fetchAll(PDO::FETCH_COLUMN);
         
         foreach ($adminUsers as $adminUserEmail) {
-            // Validate email format and avoid duplicates
-            if (filter_var($adminUserEmail, FILTER_VALIDATE_EMAIL) && !in_array($adminUserEmail, $adminEmails)) {
-                $adminEmails[] = $adminUserEmail;
+            // Validate email format and avoid duplicates using O(1) lookup
+            if (filter_var($adminUserEmail, FILTER_VALIDATE_EMAIL) && !isset($adminEmailsMap[$adminUserEmail])) {
+                $adminEmailsMap[$adminUserEmail] = true;
             }
         }
     } catch (Exception $e) {
@@ -55,12 +55,15 @@ if ($pdo) {
 }
 ```
 
+**Note** : La fonction utilise un tableau associatif (`$adminEmailsMap`) pour la vérification des doublons, ce qui permet une complexité O(1) au lieu de O(n²) avec `in_array()`.
+
 ## Avantages de cette approche
 
 1. **Évolutivité** : Il n'y a plus de limitation sur le nombre d'administrateurs pouvant recevoir les notifications
 2. **Centralisation** : La gestion des administrateurs se fait via l'interface d'administration (`/admin-v2/administrateurs.php`)
 3. **Simplicité** : Pas besoin de paramètre de configuration séparé pour les emails
 4. **Sécurité** : Seuls les comptes actifs reçoivent les notifications
+5. **Performance** : Utilisation d'un tableau associatif pour une vérification de doublons en O(1) au lieu de O(n²)
 
 ## Comportement actuel
 
