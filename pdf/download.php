@@ -20,20 +20,15 @@ if (!$contrat) {
     die('Contrat non trouvé ou non signé.');
 }
 
-// Chercher le fichier PDF/HTML généré
-$pattern = $config['PDF_DIR'] . 'bail_' . $contrat['reference'] . '_*';
-$files = glob($pattern);
+// Chercher le fichier PDF généré (nouveau format avec reference_unique)
+$pdfDir = dirname(__DIR__) . '/pdf/contrats/';
+$filename = 'bail-' . $contrat['reference_unique'] . '.pdf';
+$filepath = $pdfDir . $filename;
 
-if (empty($files)) {
-    // Générer le PDF s'il n'existe pas
+// Si le fichier n'existe pas, le générer
+if (!file_exists($filepath)) {
     require_once __DIR__ . '/generate-bail.php';
     $filepath = generateBailPDF($contratId);
-} else {
-    // Prendre le fichier le plus récent
-    usort($files, function($a, $b) {
-        return filemtime($b) - filemtime($a);
-    });
-    $filepath = $files[0];
 }
 
 if (!$filepath || !file_exists($filepath)) {

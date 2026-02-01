@@ -17,6 +17,7 @@ $page_to_menu_map = [
     'generer-contrat.php' => 'contrats.php',
     'envoyer-signature.php' => 'contrats.php',
     'supprimer-contrat.php' => 'contrats.php',
+    'contrat-configuration.php' => 'contrats.php',
     'create-etat-lieux.php' => 'etats-lieux.php',
     'administrateurs-actions.php' => 'administrateurs.php',
 ];
@@ -51,6 +52,15 @@ $active_menu = $page_to_menu_map[$current_page] ?? $current_page;
             <a class="nav-link <?php echo $active_menu === 'contrats.php' ? 'active' : ''; ?>" href="contrats.php">
                 <i class="bi bi-file-earmark-check"></i> Contrats
             </a>
+            <?php if ($active_menu === 'contrats.php'): ?>
+            <ul class="nav flex-column ms-3">
+                <li class="nav-item">
+                    <a class="nav-link <?php echo $current_page === 'contrat-configuration.php' ? 'active' : ''; ?>" href="contrat-configuration.php" style="padding: 8px 20px; font-size: 0.9rem;">
+                        <i class="bi bi-gear"></i> Configuration
+                    </a>
+                </li>
+            </ul>
+            <?php endif; ?>
         </li>
         <li class="nav-item">
             <a class="nav-link <?php echo $active_menu === 'parametres.php' ? 'active' : ''; ?>" href="parametres.php">
