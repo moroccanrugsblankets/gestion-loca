@@ -3,6 +3,9 @@ require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
 
+// Constants for file upload limits
+define('MAX_SIGNATURE_SIZE', 2 * 1024 * 1024); // 2 MB
+
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'update_template') {
@@ -39,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             
             // Validate file size (max 2MB)
-            if ($file['size'] > 2 * 1024 * 1024) {
+            if ($file['size'] > MAX_SIGNATURE_SIZE) {
                 $_SESSION['error'] = "La taille de l'image ne doit pas dépasser 2 MB.";
                 header('Location: contrat-configuration.php');
                 exit;

@@ -39,7 +39,7 @@
                                 <p class="card-text text-muted mb-4">
                                     Interface de gestion pour générer des liens de signature et suivre les contrats.
                                 </p>
-                                <a href="admin/" class="btn btn-primary btn-lg">
+                                <a href="admin-v2/" class="btn btn-primary btn-lg">
                                     Accéder à l'administration
                                 </a>
                             </div>

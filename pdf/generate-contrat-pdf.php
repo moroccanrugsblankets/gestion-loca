@@ -244,9 +244,14 @@ class ContratBailPDF extends TCPDF {
                     if (count($parts) === 2) {
                         $imgData = base64_decode($parts[1]);
                         if ($imgData !== false) {
-                            // Create temporary file for signature
-                            $tempFile = tempnam(sys_get_temp_dir(), 'company_sig_');
-                            if ($tempFile !== false && file_put_contents($tempFile, $imgData) !== false) {
+                            // Create temporary file for signature in uploads directory for better security
+                            $uploadsDir = __DIR__ . '/../uploads/temp';
+                            if (!is_dir($uploadsDir)) {
+                                @mkdir($uploadsDir, 0755, true);
+                            }
+                            $tempFile = $uploadsDir . '/company_sig_' . uniqid() . '.png';
+                            
+                            if (file_put_contents($tempFile, $imgData) !== false) {
                                 try {
                                     // Insert company signature image (max 40mm width, proportional height)
                                     $this->Image($tempFile, $this->GetX(), $this->GetY(), 40, 0);
