@@ -374,7 +374,7 @@ HTML;
         }
 
         function resetToDefault() {
-            if (confirm('Êtes-vous sûr de vouloir réinitialiser le template à sa valeur par défaut? Toutes vos modifications seront perdues.')) {
+            if (confirm('Êtes-vous sûr de vouloir réinitialiser le template à sa valeur par défaut ? Toutes vos modifications seront perdues.')) {
                 location.href = '?reset=1';
             }
         }
