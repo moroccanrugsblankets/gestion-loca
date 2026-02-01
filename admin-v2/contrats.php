@@ -269,7 +269,7 @@ $stats = [
                                         <i class="bi bi-eye"></i>
                                     </a>
                                     <?php if ($contrat['statut'] === 'signe'): ?>
-                                        <a href="../pdf/download.php?contract_id=<?php echo $contrat['id']; ?>" class="btn btn-outline-success" title="Télécharger PDF">
+                                        <a href="../pdf/download.php?contrat_id=<?php echo $contrat['id']; ?>" class="btn btn-outline-success" title="Télécharger PDF">
                                             <i class="bi bi-download"></i>
                                         </a>
                                     <?php endif; ?>
