@@ -23,7 +23,7 @@ if (!$contrat) {
 
 // Vérifier si le contrat est valide
 if (DEBUG_MODE) {
-    error_log("DEBUG: Checking contract validity for token: " . substr($token, 0, 10) . "...");
+    error_log("DEBUG: Validating contract expiration");
     error_log("DEBUG: Contract ID: " . ($contrat['id'] ?? 'N/A'));
     error_log("DEBUG: Contract status: " . ($contrat['statut'] ?? 'N/A'));
     error_log("DEBUG: Expiration date: " . ($contrat['date_expiration'] ?? 'N/A'));
