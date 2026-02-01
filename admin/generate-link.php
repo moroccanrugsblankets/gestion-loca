@@ -40,8 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $signatureLink = $config['SITE_URL'] . '/signature/index.php?token=' . $contrat['token'];
                     $generatedLink = $signatureLink;
                     
-                    // Générer le template d'email
-                    $emailData = getInvitationEmailTemplate($signatureLink, $logement);
+                    // Générer le template d'email avec la date d'expiration
+                    $emailData = getInvitationEmailTemplate($signatureLink, $logement, $contrat['expiration']);
                     $emailTemplate = $emailData['body'];
                     
                     $success = 'Lien de signature généré avec succès !';

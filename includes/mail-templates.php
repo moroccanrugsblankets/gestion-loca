@@ -51,11 +51,19 @@ use PHPMailer\PHPMailer\SMTP;
  * Template email d'invitation à signer le bail
  * @param string $signatureLink
  * @param array $logement
+ * @param string|null $dateExpiration Date d'expiration du lien (format compatible strtotime, typically 'Y-m-d H:i:s')
  * @return array ['subject' => string, 'body' => string]
  */
-function getInvitationEmailTemplate($signatureLink, $logement) {
+function getInvitationEmailTemplate($signatureLink, $logement, $dateExpiration = null) {
     global $config;
     $subject = "Contrat de bail à signer – Action immédiate requise";
+    
+    // Format expiration date for email if provided
+    $expirationText = '';
+    if ($dateExpiration) {
+        // Format: "02/02/2026 à 15:30"
+        $expirationText = "\n\n⚠️ IMPORTANT : Ce lien expire le " . date('d/m/Y à H:i', strtotime($dateExpiration)) . ".";
+    }
     
     $body = "Bonjour,
 
@@ -63,7 +71,7 @@ Merci de prendre connaissance de la procédure ci-dessous.
 
 Procédure de signature du bail
 
-Merci de compléter l'ensemble de la procédure dans un délai de 24 heures, à compter de la réception du présent message, incluant :
+Merci de compléter l'ensemble de la procédure avant la date d'expiration indiquée, incluant :
 	1.	La signature du contrat de bail en ligne
 	2.	La transmission d'une pièce d'identité en cours de validité (carte nationale d'identité ou passeport)
 	3.	Le règlement immédiat du dépôt de garantie, correspondant à deux mois de loyer, par virement bancaire instantané
@@ -72,7 +80,7 @@ La prise d'effet du bail ainsi que la remise des clés interviendront uniquement
 
 À défaut de réception complète du dossier dans le délai indiqué, la réservation du logement pourra être remise en disponibilité sans autre formalité.
 
-Pour accéder au contrat de bail : $signatureLink
+Pour accéder au contrat de bail : $signatureLink$expirationText
 
 Nous restons à votre disposition en cas de question.";
     

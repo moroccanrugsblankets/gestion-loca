@@ -64,13 +64,17 @@ try {
         $stmt->execute([$token, $contrat_id]);
     }
     
-    // Update expiration date to 24h from now
-    $date_expiration = (new DateTime())->modify('+24 hours')->format('Y-m-d H:i:s');
+    // Update expiration date using parameter value
+    $expiryHours = getParameter('delai_expiration_lien_contrat', 24);
+    $date_expiration = (new DateTime())->modify('+' . $expiryHours . ' hours')->format('Y-m-d H:i:s');
     $stmt = $pdo->prepare("UPDATE contrats SET date_expiration = ? WHERE id = ?");
     $stmt->execute([$date_expiration, $contrat_id]);
     
     // Create signature link
     $signature_link = $config['SITE_URL'] . '/signature/index.php?token=' . $token;
+    
+    // Format expiration date for email (e.g., "02/02/2026 à 15:30")
+    $date_expiration_formatted = date('d/m/Y à H:i', strtotime($date_expiration));
     
     // Préparer les variables pour le template
     $variables = [
@@ -78,7 +82,8 @@ try {
         'prenom' => $contrat['prenom'],
         'email' => $contrat['email'],
         'adresse' => $contrat['adresse'],
-        'lien_signature' => $signature_link
+        'lien_signature' => $signature_link,
+        'date_expiration_lien_contrat' => $date_expiration_formatted
     ];
     
     // Envoyer l'email d'invitation avec le template de la base de données

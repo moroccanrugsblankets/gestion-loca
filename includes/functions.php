@@ -85,7 +85,10 @@ function logAction($contratId, $action, $details = '') {
 function createContract($logementId, $nbLocataires = 1) {
     global $config;
     $token = generateContractToken();
-    $expiration = date('Y-m-d H:i:s', strtotime('+' . $config['TOKEN_EXPIRY_HOURS'] . ' hours'));
+    
+    // Get expiration delay from parameters table, fallback to config
+    $expiryHours = getParameter('delai_expiration_lien_contrat', $config['TOKEN_EXPIRY_HOURS']);
+    $expiration = date('Y-m-d H:i:s', strtotime('+' . $expiryHours . ' hours'));
     
     $sql = "INSERT INTO contrats (reference_unique, logement_id, nb_locataires, date_expiration) 
             VALUES (?, ?, ?, ?)";
