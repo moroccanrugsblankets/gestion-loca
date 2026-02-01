@@ -55,6 +55,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         ");
         $stmt->execute($params);
         
+        // Regenerate PDF with company signature now that contract is validated
+        require_once __DIR__ . '/../pdf/generate-bail.php';
+        $pdfPath = generateBailPDF($contractId);
+        
         // Get contract and tenant details for emails
         $contrat = fetchOne("
             SELECT c.*, l.*, c.id as contrat_id, c.reference_unique as reference_contrat

@@ -44,6 +44,7 @@ $stats = [
     'total' => $pdo->query("SELECT COUNT(*) FROM contrats")->fetchColumn(),
     'en_attente' => $pdo->query("SELECT COUNT(*) FROM contrats WHERE statut = 'en_attente'")->fetchColumn(),
     'signe' => $pdo->query("SELECT COUNT(*) FROM contrats WHERE statut = 'signe'")->fetchColumn(),
+    'valide' => $pdo->query("SELECT COUNT(*) FROM contrats WHERE statut = 'valide'")->fetchColumn(),
     'expire' => $pdo->query("SELECT COUNT(*) FROM contrats WHERE statut = 'expire'")->fetchColumn()
 ];
 ?>
@@ -90,6 +91,7 @@ $stats = [
         }
         .status-en_attente { background: #fff3cd; color: #856404; }
         .status-signe { background: #d4edda; color: #155724; }
+        .status-valide { background: #d1ecf1; color: #0c5460; }
         .status-expire { background: #f8d7da; color: #721c24; }
         .status-annule { background: #e2e3e5; color: #383d41; }
     </style>
@@ -135,17 +137,6 @@ $stats = [
                 <div class="stats-card">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <div class="text-muted small">Total Contrats</div>
-                            <div class="number"><?php echo $stats['total']; ?></div>
-                        </div>
-                        <i class="bi bi-file-earmark-check" style="font-size: 2rem; color: #007bff;"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
                             <div class="text-muted small">En Attente</div>
                             <div class="number text-warning"><?php echo $stats['en_attente']; ?></div>
                         </div>
@@ -168,10 +159,21 @@ $stats = [
                 <div class="stats-card">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <div class="text-muted small">Expirés</div>
-                            <div class="number text-danger"><?php echo $stats['expire']; ?></div>
+                            <div class="text-muted small">Validés</div>
+                            <div class="number text-info"><?php echo $stats['valide']; ?></div>
                         </div>
-                        <i class="bi bi-exclamation-triangle" style="font-size: 2rem; color: #dc3545;"></i>
+                        <i class="bi bi-patch-check" style="font-size: 2rem; color: #17a2b8;"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small">Total Contrats</div>
+                            <div class="number"><?php echo $stats['total']; ?></div>
+                        </div>
+                        <i class="bi bi-file-earmark-check" style="font-size: 2rem; color: #007bff;"></i>
                     </div>
                 </div>
             </div>
@@ -188,6 +190,7 @@ $stats = [
                         <option value="">Tous les statuts</option>
                         <option value="en_attente" <?php echo $statut_filter === 'en_attente' ? 'selected' : ''; ?>>En attente</option>
                         <option value="signe" <?php echo $statut_filter === 'signe' ? 'selected' : ''; ?>>Signé</option>
+                        <option value="valide" <?php echo $statut_filter === 'valide' ? 'selected' : ''; ?>>Validé</option>
                         <option value="expire" <?php echo $statut_filter === 'expire' ? 'selected' : ''; ?>>Expiré</option>
                         <option value="annule" <?php echo $statut_filter === 'annule' ? 'selected' : ''; ?>>Annulé</option>
                     </select>
@@ -256,6 +259,7 @@ $stats = [
                                     $statut_labels = [
                                         'en_attente' => 'En attente',
                                         'signe' => 'Signé',
+                                        'valide' => 'Validé',
                                         'expire' => 'Expiré',
                                         'annule' => 'Annulé'
                                     ];
@@ -268,7 +272,7 @@ $stats = [
                                     <a href="contrat-detail.php?id=<?php echo $contrat['id']; ?>" class="btn btn-outline-primary" title="Voir détails">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    <?php if ($contrat['statut'] === 'signe'): ?>
+                                    <?php if ($contrat['statut'] === 'signe' || $contrat['statut'] === 'valide'): ?>
                                         <a href="../pdf/download.php?contrat_id=<?php echo $contrat['id']; ?>" class="btn btn-outline-success" title="Télécharger PDF">
                                             <i class="bi bi-download"></i>
                                         </a>
