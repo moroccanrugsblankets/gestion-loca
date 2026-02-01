@@ -138,7 +138,7 @@ CREATE TABLE IF NOT EXISTS contrats (
     date_expiration TIMESTAMP NULL,
     
     -- Statut
-    statut ENUM('en_attente', 'signe', 'expire', 'annule', 'actif', 'termine') DEFAULT 'en_attente',
+    statut ENUM('en_attente', 'signe', 'en_verification', 'valide', 'expire', 'annule', 'actif', 'termine') DEFAULT 'en_attente',
     nb_locataires INT DEFAULT 1,
     
     -- Financier
@@ -149,11 +149,21 @@ CREATE TABLE IF NOT EXISTS contrats (
     -- Lien signature
     token_signature VARCHAR(100) UNIQUE,
     
+    -- Validation tracking
+    date_verification TIMESTAMP NULL COMMENT 'Date de vérification par admin',
+    date_validation TIMESTAMP NULL COMMENT 'Date de validation finale',
+    validation_notes TEXT NULL COMMENT 'Notes de vérification/validation',
+    motif_annulation TEXT NULL COMMENT 'Raison de l''annulation du contrat',
+    verified_by INT NULL COMMENT 'Admin qui a vérifié',
+    validated_by INT NULL COMMENT 'Admin qui a validé',
+    
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     FOREIGN KEY (candidature_id) REFERENCES candidatures(id) ON DELETE SET NULL,
     FOREIGN KEY (logement_id) REFERENCES logements(id) ON DELETE CASCADE,
+    FOREIGN KEY (verified_by) REFERENCES administrateurs(id) ON DELETE SET NULL,
+    FOREIGN KEY (validated_by) REFERENCES administrateurs(id) ON DELETE SET NULL,
     INDEX idx_reference (reference_unique),
     INDEX idx_statut (statut),
     INDEX idx_token (token_signature)
