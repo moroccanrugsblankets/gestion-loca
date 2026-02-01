@@ -56,12 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // Create image resource from uploaded file
             $sourceImage = null;
             if ($file['type'] === 'image/png') {
-                $sourceImage = @imagecreatefrompng($file['tmp_name']);
+                $sourceImage = imagecreatefrompng($file['tmp_name']);
             } elseif ($file['type'] === 'image/jpeg' || $file['type'] === 'image/jpg') {
-                $sourceImage = @imagecreatefromjpeg($file['tmp_name']);
+                $sourceImage = imagecreatefromjpeg($file['tmp_name']);
             }
             
-            if (!$sourceImage) {
+            if ($sourceImage === false || $sourceImage === null) {
                 $_SESSION['error'] = "Impossible de traiter l'image. Veuillez réessayer avec un autre fichier.";
                 header('Location: contrat-configuration.php');
                 exit;
@@ -70,6 +70,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // Get original dimensions
             $originalWidth = imagesx($sourceImage);
             $originalHeight = imagesy($sourceImage);
+            
+            // Validate dimensions to prevent division by zero
+            if ($originalWidth <= 0 || $originalHeight <= 0) {
+                imagedestroy($sourceImage);
+                $_SESSION['error'] = "L'image téléchargée a des dimensions invalides.";
+                header('Location: contrat-configuration.php');
+                exit;
+            }
             
             // Calculate new dimensions maintaining aspect ratio
             $ratio = min($maxWidth / $originalWidth, $maxHeight / $originalHeight);
