@@ -152,7 +152,16 @@ foreach ($files as $file) {
                 continue;
             }
             
-            $pdo->exec($statement);
+            // Execute the statement and consume any result set
+            $result = $pdo->query($statement);
+            if ($result !== false) {
+                // Fetch all results to consume the result set
+                // This prevents "Cannot execute queries while other unbuffered queries are active" errors
+                if ($result instanceof PDOStatement) {
+                    $result->fetchAll();
+                    $result->closeCursor();
+                }
+            }
         }
         
         // Record the migration as executed
