@@ -60,8 +60,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Generate unique reference
     $reference_unique = 'BAIL-' . strtoupper(uniqid());
     
-    // Calculate expiration date (24h from now)
-    $date_expiration = date('Y-m-d H:i:s', strtotime('+24 hours'));
+    // Get expiration delay from parameters table, fallback to 24 hours
+    $expiryHours = getParameter('delai_expiration_lien_contrat', 24);
+    $date_expiration = date('Y-m-d H:i:s', strtotime('+' . $expiryHours . ' hours'));
     
     // Create contract
     $stmt = $pdo->prepare("
@@ -110,13 +111,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Create signature link
         $signature_link = $config['SITE_URL'] . '/signature/index.php?token=' . $token_signature;
         
+        // Format expiration date for email (e.g., "02/02/2026 à 15:30")
+        $date_expiration_formatted = date('d/m/Y à H:i', strtotime($date_expiration));
+        
         // Préparer les variables pour le template
         $variables = [
             'nom' => $candidature_info['nom'],
             'prenom' => $candidature_info['prenom'],
             'email' => $candidature_info['email'],
             'adresse' => $logement_info['adresse'],
-            'lien_signature' => $signature_link
+            'lien_signature' => $signature_link,
+            'date_expiration_lien_contrat' => $date_expiration_formatted
         ];
         
         // Envoyer l'email d'invitation avec le template de la base de données
