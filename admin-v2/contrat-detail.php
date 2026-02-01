@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             WHERE c.id = ?
         ", [$contractId]);
         
-        $locataires = query("
+        $locataires = fetchAll("
             SELECT * FROM locataires 
             WHERE contrat_id = ? 
             ORDER BY ordre
@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             WHERE c.id = ?
         ", [$contractId]);
         
-        $locataires = query("
+        $locataires = fetchAll("
             SELECT * FROM locataires 
             WHERE contrat_id = ? 
             ORDER BY ordre
@@ -176,7 +176,7 @@ if (!$contrat) {
 }
 
 // Get tenants
-$locataires = query("
+$locataires = fetchAll("
     SELECT * FROM locataires 
     WHERE contrat_id = ? 
     ORDER BY ordre
