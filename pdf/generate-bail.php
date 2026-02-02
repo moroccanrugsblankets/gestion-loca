@@ -17,11 +17,12 @@ require_once __DIR__ . '/generate-contrat-pdf.php';
  */
 function generateBailPDF($contratId) {
     // Validate input: cast to integer and ensure positive value (SQL injection prevented by prepared statements)
+    $originalId = $contratId;
     $contratId = (int)$contratId;
     
     // Return early if invalid ID
     if ($contratId <= 0) {
-        error_log("generateBailPDF: ERREUR - ID de contrat invalide: $contratId");
+        error_log("generateBailPDF: ERREUR - ID de contrat invalide: '$originalId' (cast: $contratId)");
         return false;
     }
     
