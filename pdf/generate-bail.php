@@ -16,8 +16,20 @@ require_once __DIR__ . '/generate-contrat-pdf.php';
  * @return string|false Chemin du fichier PDF généré
  */
 function generateBailPDF($contratId) {
+    error_log("=== generateBailPDF START pour contrat #$contratId ===");
+    error_log("generateBailPDF: Redirection vers generateContratPDF()");
+    
     // Utiliser la nouvelle fonction de génération PDF avec TCPDF
-    return generateContratPDF($contratId);
+    $result = generateContratPDF($contratId);
+    
+    if ($result) {
+        error_log("generateBailPDF: Succès - PDF généré: $result");
+    } else {
+        error_log("generateBailPDF: ÉCHEC - Aucun PDF généré");
+    }
+    error_log("=== generateBailPDF END pour contrat #$contratId ===");
+    
+    return $result;
 }
 
 /**
@@ -366,8 +378,8 @@ function generateBailHTML($contrat, $locataires) {
             <p><strong>Signature</strong></p>';
         
         if ($locataire['signature_data']) {
-            // Signature avec taille réduite (40px max) et sans bordure - réduction de 60px à 40px
-            $html .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" alt="Signature" style="max-width: 40px; max-height: 20px; border: 0; border-style: none; background: transparent;"><br>';
+            // Signature client avec taille équilibrée (60x30px) et sans bordure
+            $html .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" alt="Signature" style="max-width: 60px; max-height: 30px; border: 0; border-style: none; background: transparent;"><br>';
         }
         
         $html .= '<p><strong>Horodatage :</strong> ' . formatDateFr($locataire['signature_timestamp'], 'd/m/Y à H:i:s') . '<br>
