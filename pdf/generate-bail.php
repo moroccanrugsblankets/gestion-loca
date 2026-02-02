@@ -125,15 +125,15 @@ function generateBailHTML($contrat, $locataires) {
             padding: 10px;
         }
         .signature-image {
-            max-width: 80px;
-            max-height: 40px;
+            max-width: 60px;
+            max-height: 30px;
             border: 0;
             border-style: none;
             background: transparent;
         }
         .company-signature {
-            max-width: 100px;
-            max-height: 50px;
+            max-width: 80px;
+            max-height: 40px;
             border: 0;
             border-style: none;
             background: transparent;
@@ -320,7 +320,7 @@ function generateBailHTML($contrat, $locataires) {
     if ($isValidated && $signatureEnabled === 'true' && !empty($signatureImage)) {
         $html .= '
         <p><strong>Signature électronique</strong></p>
-        <img src="' . htmlspecialchars($signatureImage) . '" alt="Signature Société" class="company-signature" style="max-width: 100px; max-height: 50px; border: 0; border-style: none; background: transparent;"><br>
+        <img src="' . htmlspecialchars($signatureImage) . '" alt="Signature Société" class="company-signature" style="max-width: 80px; max-height: 40px; border: 0; border-style: none; background: transparent;"><br>
         <p><strong>Validé le :</strong> ' . formatDateFr($contrat['date_validation'], 'd/m/Y à H:i:s') . '</p>';
     } else {
         $html .= '
@@ -352,8 +352,8 @@ function generateBailHTML($contrat, $locataires) {
             <p><strong>Signature</strong></p>';
         
         if ($locataire['signature_data']) {
-            // Signature avec taille réduite (80px max) et sans bordure
-            $html .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" alt="Signature" style="max-width: 80px; max-height: 40px; border: 0; border-style: none; background: transparent;"><br>';
+            // Signature avec taille réduite (60px max) et sans bordure
+            $html .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" alt="Signature" style="max-width: 60px; max-height: 30px; border: 0; border-style: none; background: transparent;"><br>';
         }
         
         $html .= '<p><strong>Horodatage :</strong> ' . formatDateFr($locataire['signature_timestamp'], 'd/m/Y à H:i:s') . '<br>

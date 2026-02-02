@@ -205,9 +205,9 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 if (strlen($base64Data) < MAX_TENANT_SIGNATURE_SIZE * BASE64_OVERHEAD_RATIO) {
                     // Log: Signature client traitée avec succès
                     error_log("PDF Generation: Signature client " . ($i + 1) . " - Format: $imageFormat, Taille base64: " . strlen($base64Data) . " octets");
-                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Ajoutée avec taille réduite (80px max), SANS bordure, fond transparent");
-                    // Signature réduite (80px) et sans bordure/background pour un rendu propre et harmonieux
-                    $sig .= '<p><img src="' . $locataire['signature_data'] . '" alt="Signature" style="max-width: 80px; max-height: 40px; height: auto; border: 0; border-style: none; outline: none; background: transparent;"></p>';
+                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Ajoutée avec taille réduite (60px max), SANS bordure, fond transparent");
+                    // Signature réduite (60px) et sans bordure/background pour un rendu équilibré
+                    $sig .= '<p><img src="' . $locataire['signature_data'] . '" alt="Signature" style="max-width: 60px; max-height: 30px; height: auto; border: 0; border-style: none; outline: none; background: transparent;"></p>';
                 } else {
                     error_log("PDF Generation: AVERTISSEMENT - Signature client " . ($i + 1) . " trop volumineuse (" . strlen($base64Data) . " octets), ignorée");
                 }
@@ -260,8 +260,8 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 if (strlen($base64Data) < MAX_COMPANY_SIGNATURE_SIZE * BASE64_OVERHEAD_RATIO) {
                     $signatureAgence = '<div style="margin-top: 20px;">';
                     $signatureAgence .= '<p><strong>Signature électronique de la société</strong></p>';
-                    // Signature agence avec taille adaptée (120px) et sans bordure pour un rendu propre
-                    $signatureAgence .= '<p><img src="' . $signatureImage . '" alt="Signature Société" style="max-width: 120px; max-height: 60px; height: auto; border: 0; border-style: none; outline: none; background: transparent;"></p>';
+                    // Signature agence avec taille adaptée (80px) et sans bordure pour un rendu équilibré
+                    $signatureAgence .= '<p><img src="' . $signatureImage . '" alt="Signature Société" style="max-width: 80px; max-height: 40px; height: auto; border: 0; border-style: none; outline: none; background: transparent;"></p>';
                     if (!empty($contrat['date_validation'])) {
                         $validationTimestamp = strtotime($contrat['date_validation']);
                         if ($validationTimestamp !== false) {
@@ -651,9 +651,9 @@ class ContratBailPDF extends TCPDF {
                         
                         if (file_put_contents($tempFile, $imgData) !== false) {
                             try {
-                                // Signature agence avec taille adaptée (25mm) pour un rendu harmonieux
-                                error_log("PDF Generation Legacy: Signature agence - Format: $imageFormat, Ajoutée avec taille (25mm)");
-                                $this->Image($tempFile, $this->GetX(), $this->GetY(), 25, 0, $imageFormat);
+                                // Signature agence avec taille adaptée (20mm) pour un rendu équilibré
+                                error_log("PDF Generation Legacy: Signature agence - Format: $imageFormat, Ajoutée avec taille (20mm)");
+                                $this->Image($tempFile, $this->GetX(), $this->GetY(), 20, 0, $imageFormat);
                                 error_log("PDF Generation Legacy: Signature agence AJOUTÉE avec succès");
                                 @unlink($tempFile);
                             } catch (Exception $e) {
@@ -732,9 +732,9 @@ class ContratBailPDF extends TCPDF {
                             // Écrire les données de l'image dans le fichier temporaire
                             if (file_put_contents($tempFile, $imageData) !== false) {
                                 try {
-                                    // Signature client réduite (20mm) pour un rendu proportionnel et harmonieux
-                                    error_log("PDF Generation Legacy: Signature client " . ($i + 1) . " - Format: $imageFormat, Ajoutée avec taille réduite (20mm)");
-                                    $this->Image($tempFile, $this->GetX(), $this->GetY(), 20, 0, $imageFormat);
+                                    // Signature client réduite (15mm) pour un rendu équilibré
+                                    error_log("PDF Generation Legacy: Signature client " . ($i + 1) . " - Format: $imageFormat, Ajoutée avec taille réduite (15mm)");
+                                    $this->Image($tempFile, $this->GetX(), $this->GetY(), 15, 0, $imageFormat);
                                     $this->Ln(10); // Espace réduit après l'image
                                 } catch (Exception $e) {
                                     // Log l'erreur mais continue la génération du PDF
