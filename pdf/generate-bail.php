@@ -322,7 +322,7 @@ function generateBailHTML($contrat, $locataires) {
     $html .= '
     </div>
     
-    <div class="signature-block">;
+    <div class="signature-block">';
     
     foreach ($locataires as $i => $locataire) {
         $html .= '
