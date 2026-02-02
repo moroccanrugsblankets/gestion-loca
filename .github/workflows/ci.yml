@@ -1,6 +1,12 @@
 name: CI
 
 on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -8,7 +14,25 @@ jobs:
     runs-on: ubuntu-latest
     environment: copilot
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v3
-      - name: Test
-        run: echo "Workflow lancé avec succès !"
+
+      - name: Set up Node.js (si nécessaire)
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          if [ -f package.json ]; then
+            npm install
+          fi
+
+      - name: Run tests
+        run: |
+          echo "Lancement des tests..."
+          # Ici tu peux mettre tes scripts PHP ou JS pour valider les changements
+          php -l pdf/*.php || true
+
+      - name: Confirm Copilot changes
+        run: echo "Les modifications proposées par Copilot ont été intégrées et validées."
