@@ -307,7 +307,6 @@ function getDefaultContractTemplate() {
     </div>
     
     <div style="margin-top: 30px;">
-        <p><strong>Le(s) locataire(s)</strong></p>
         {{locataires_signatures}}
     </div>
 

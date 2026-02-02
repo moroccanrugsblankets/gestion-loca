@@ -137,9 +137,18 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
     
     // Préparer les signatures des locataires
     $locatairesSignatures = [];
+    $nbLocataires = count($locataires);
     foreach ($locataires as $i => $locataire) {
         $sig = '<div style="margin-bottom: 20px;">';
-        $sig .= '<p><strong>Locataire ' . ($i + 1) . ' : ' . htmlspecialchars($locataire['prenom']) . ' ' . htmlspecialchars($locataire['nom']) . '</strong></p>';
+        
+        // Adapter le label selon le nombre de locataires
+        if ($nbLocataires === 1) {
+            // Pour un seul locataire: "Locataire :"
+            $sig .= '<p><strong>Locataire : ' . htmlspecialchars($locataire['prenom']) . ' ' . htmlspecialchars($locataire['nom']) . '</strong></p>';
+        } else {
+            // Pour plusieurs locataires: "Locataire 1 :", "Locataire 2 :", etc.
+            $sig .= '<p><strong>Locataire ' . ($i + 1) . ' : ' . htmlspecialchars($locataire['prenom']) . ' ' . htmlspecialchars($locataire['nom']) . '</strong></p>';
+        }
         
         // Mention "Lu et approuvé"
         if (!empty($locataire['mention_lu_approuve'])) {
@@ -155,7 +164,8 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 $base64Data = $matches[2];
                 // Vérifier la taille
                 if (strlen($base64Data) < MAX_TENANT_SIGNATURE_SIZE * BASE64_OVERHEAD_RATIO) {
-                    $sig .= '<p><img src="' . $locataire['signature_data'] . '" alt="Signature" style="max-width: 200px; border: 1px solid #ddd; padding: 5px;"></p>';
+                    // Signature réduite et sans bordure pour un rendu propre
+                    $sig .= '<p><img src="' . $locataire['signature_data'] . '" alt="Signature" style="max-width: 120px; height: auto;"></p>';
                 }
             }
         }
@@ -193,7 +203,8 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 if (strlen($base64Data) < MAX_COMPANY_SIGNATURE_SIZE * BASE64_OVERHEAD_RATIO) {
                     $signatureAgence = '<div style="margin-top: 20px;">';
                     $signatureAgence .= '<p><strong>Signature électronique de la société</strong></p>';
-                    $signatureAgence .= '<p><img src="' . $signatureImage . '" alt="Signature Société" style="max-width: 200px; border: 1px solid #ddd; padding: 5px;"></p>';
+                    // Signature sans bordure ni padding pour un rendu propre
+                    $signatureAgence .= '<p><img src="' . $signatureImage . '" alt="Signature Société" style="max-width: 150px; height: auto;"></p>';
                     if (!empty($contrat['date_validation'])) {
                         $validationTimestamp = strtotime($contrat['date_validation']);
                         if ($validationTimestamp !== false) {
@@ -478,8 +489,8 @@ class ContratBailPDF extends TCPDF {
                             
                             if (file_put_contents($tempFile, $imgData) !== false) {
                                 try {
-                                    // Insert company signature image (max 40mm width, proportional height)
-                                    $this->Image($tempFile, $this->GetX(), $this->GetY(), 40, 0);
+                                    // Signature agence réduite (35mm au lieu de 40mm) pour un rendu harmonieux
+                                    $this->Image($tempFile, $this->GetX(), $this->GetY(), 35, 0);
                                     @unlink($tempFile);
                                 } catch (Exception $e) {
                                     error_log("Error rendering company signature: " . $e->getMessage());
@@ -499,9 +510,17 @@ class ContratBailPDF extends TCPDF {
         $this->Ln(3);
         
         // Signatures des locataires
+        $nbLocataires = count($locataires);
         foreach ($locataires as $i => $locataire) {
             $this->SetFont('helvetica', 'B', 9);
-            $locataireLabel = count($locataires) > 1 ? 'Le locataire ' . ($i + 1) : 'Le locataire';
+            // Adapter le label selon le nombre de locataires
+            if ($nbLocataires === 1) {
+                // Pour un seul locataire: "Locataire"
+                $locataireLabel = 'Locataire';
+            } else {
+                // Pour plusieurs locataires: "Locataire 1", "Locataire 2", etc.
+                $locataireLabel = 'Locataire ' . ($i + 1);
+            }
             $this->Cell(0, 5, $locataireLabel, 0, 1, 'L');
             $this->SetFont('helvetica', '', 8);
             
@@ -533,9 +552,9 @@ class ContratBailPDF extends TCPDF {
                             // Écrire les données de l'image dans le fichier temporaire
                             if (file_put_contents($tempFile, $imageData) !== false) {
                                 try {
-                                    // Insérer l'image de signature (max 40mm de largeur, hauteur proportionnelle)
-                                    $this->Image($tempFile, $this->GetX(), $this->GetY(), 40, 0, 'PNG');
-                                    $this->Ln(20); // Espace après l'image
+                                    // Signature client réduite (30mm au lieu de 40mm) pour un rendu proportionnel
+                                    $this->Image($tempFile, $this->GetX(), $this->GetY(), 30, 0, 'PNG');
+                                    $this->Ln(15); // Espace réduit après l'image
                                 } catch (Exception $e) {
                                     // Log l'erreur mais continue la génération du PDF
                                     error_log("Erreur lors du rendu de la signature: " . $e->getMessage());
