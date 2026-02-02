@@ -78,20 +78,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 // Envoyer l'email de finalisation aux locataires
                                 $locataires = getTenantsByContract($contratId);
                                 foreach ($locataires as $locataire) {
-                                    $emailData = getFinalisationEmailTemplate($contrat, $contrat, $locataires);
-                                    // Send with PDF attachment
-                                    sendEmail($locataire['email'], $emailData['subject'], $emailData['body'], $pdfPath, true, false);
+                                    // Préparer les variables pour le template
+                                    $variables = [
+                                        'nom' => $locataire['nom'],
+                                        'prenom' => $locataire['prenom'],
+                                        'reference' => $contrat['reference_unique'],
+                                        'depot_garantie' => formatMontant($contrat['depot_garantie'])
+                                    ];
+                                    
+                                    // Envoyer l'email avec le template HTML
+                                    sendTemplatedEmail('contrat_finalisation_client', $locataire['email'], $variables, $pdfPath, false);
                                 }
                                 
-                                // Envoyer une copie aux administrateurs avec le PDF
+                                // Envoyer une notification aux administrateurs avec le PDF
                                 if ($pdfPath && file_exists($pdfPath)) {
-                                    $adminEmailData = getFinalisationEmailTemplate($contrat, $contrat, $locataires);
-                                    $adminSubject = "[ADMIN] Contrat signé - " . $contrat['reference_unique'];
-                                    $adminBody = "Un contrat a été signé.\n\n" . $adminEmailData['body'];
+                                    // Préparer la liste des locataires
+                                    $locatairesNoms = array_map(function($loc) {
+                                        return $loc['prenom'] . ' ' . $loc['nom'];
+                                    }, $locataires);
+                                    $locatairesStr = implode(', ', $locatairesNoms);
                                     
-                                    // Send to first locataire with admin CC (isAdminEmail = true)
+                                    // Construire le lien admin
+                                    global $config;
+                                    $lienAdmin = $config['BASE_URL'] . '/admin-v2/contract-details.php?id=' . $contratId;
+                                    
+                                    // Préparer les variables pour le template admin
+                                    $adminVariables = [
+                                        'reference' => $contrat['reference_unique'],
+                                        'logement' => $contrat['adresse'],
+                                        'locataires' => $locatairesStr,
+                                        'depot_garantie' => formatMontant($contrat['depot_garantie']),
+                                        'date_finalisation' => date('d/m/Y à H:i'),
+                                        'lien_admin' => $lienAdmin
+                                    ];
+                                    
+                                    // Envoyer l'email admin avec le template HTML
                                     if (!empty($locataires)) {
-                                        sendEmail($locataires[0]['email'], $adminSubject, $adminBody, $pdfPath, true, true);
+                                        sendTemplatedEmail('contrat_finalisation_admin', $locataires[0]['email'], $adminVariables, $pdfPath, true);
                                     }
                                 }
                                 
