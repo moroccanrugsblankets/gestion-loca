@@ -136,7 +136,10 @@ function replaceTemplateVariables($template, $contrat, $locataires) {
         
         // Afficher la signature si disponible
         if (!empty($locataire['signature_data'])) {
-            $sig .= '<p><img src="' . htmlspecialchars($locataire['signature_data']) . '" alt="Signature" style="max-width: 200px; border: 1px solid #ddd; padding: 5px;"></p>';
+            // Valider que c'est un data URI valide (ne pas échapper pour préserver le base64)
+            if (preg_match('/^data:image\/(png|jpeg|jpg);base64,/', $locataire['signature_data'])) {
+                $sig .= '<p><img src="' . $locataire['signature_data'] . '" alt="Signature" style="max-width: 200px; border: 1px solid #ddd; padding: 5px;"></p>';
+            }
         }
         
         // Horodatage et IP
@@ -162,21 +165,24 @@ function replaceTemplateVariables($template, $contrat, $locataires) {
         $signatureEnabled = getParametreValue('signature_societe_enabled') === 'true';
         
         if ($signatureEnabled && !empty($signatureImage)) {
-            $signatureAgence = '<div style="margin-top: 20px;">';
-            $signatureAgence .= '<p><strong>Signature électronique de la société</strong></p>';
-            $signatureAgence .= '<p><img src="' . htmlspecialchars($signatureImage) . '" alt="Signature Société" style="max-width: 200px; border: 1px solid #ddd; padding: 5px;"></p>';
-            if (!empty($contrat['date_validation'])) {
-                $dateValidation = date('d/m/Y à H:i:s', strtotime($contrat['date_validation']));
-                $signatureAgence .= '<p style="font-size: 8pt; color: #666;"><em>Validé le : ' . $dateValidation . '</em></p>';
+            // Valider que c'est un data URI valide (ne pas échapper pour préserver le base64)
+            if (preg_match('/^data:image\/(png|jpeg|jpg);base64,/', $signatureImage)) {
+                $signatureAgence = '<div style="margin-top: 20px;">';
+                $signatureAgence .= '<p><strong>Signature électronique de la société</strong></p>';
+                $signatureAgence .= '<p><img src="' . $signatureImage . '" alt="Signature Société" style="max-width: 200px; border: 1px solid #ddd; padding: 5px;"></p>';
+                if (!empty($contrat['date_validation'])) {
+                    $dateValidation = date('d/m/Y à H:i:s', strtotime($contrat['date_validation']));
+                    $signatureAgence .= '<p style="font-size: 8pt; color: #666;"><em>Validé le : ' . $dateValidation . '</em></p>';
+                }
+                $signatureAgence .= '</div>';
             }
-            $signatureAgence .= '</div>';
         }
     }
     
     // Préparer les dates
     $dateSignature = isset($contrat['date_signature']) && $contrat['date_signature']
         ? date('d/m/Y', strtotime($contrat['date_signature']))
-        : date('d/m/Y');
+        : '___________';
     
     $datePriseEffet = isset($contrat['date_prise_effet']) && $contrat['date_prise_effet']
         ? date('d/m/Y', strtotime($contrat['date_prise_effet']))
@@ -189,8 +195,8 @@ function replaceTemplateVariables($template, $contrat, $locataires) {
     $depotGarantie = number_format($contrat['depot_garantie'], 2, ',', ' ');
     
     // Récupérer IBAN et BIC depuis la config
-    $iban = isset($config['IBAN']) ? $config['IBAN'] : 'FR76 1027 8021 6000 0206 1834 585';
-    $bic = isset($config['BIC']) ? $config['BIC'] : 'CMCIFR2A';
+    $iban = isset($config['IBAN']) ? $config['IBAN'] : '[IBAN non configuré]';
+    $bic = isset($config['BIC']) ? $config['BIC'] : '[BIC non configuré]';
     
     // Map des variables à remplacer
     $variables = [
