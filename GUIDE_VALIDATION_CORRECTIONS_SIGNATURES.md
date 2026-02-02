@@ -183,11 +183,11 @@ SELECT LENGTH(valeur) FROM parametres WHERE cle = 'signature_societe_image';
 Les corrections ont été appliquées dans :
 
 1. **`pdf/generate-contrat-pdf.php`**
-   - Fonction `replaceContratTemplateVariables()` (lignes 138-178, 180-208)
-   - Classe `ContratBailPDF::generateContrat()` (lignes 489, 512-524, 547-548)
+   - Fonction `replaceContratTemplateVariables()` - Génération signatures HTML
+   - Classe `ContratBailPDF::generateContrat()` - Génération signatures PDF legacy
 
 2. **`admin-v2/contrat-configuration.php`**
-   - Fonction `getDefaultContractTemplate()` (ligne 310)
+   - Fonction `getDefaultContractTemplate()` - Template par défaut
 
 ## Validation réussie ✅
 

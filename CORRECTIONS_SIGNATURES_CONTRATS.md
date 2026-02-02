@@ -15,7 +15,7 @@
 - Condition: `statut === 'valide'` + `signature_societe_enabled === 'true'` + image configurée
 
 **Code modifié:**
-- `pdf/generate-contrat-pdf.php` - Ligne 193-216
+- `pdf/generate-contrat-pdf.php` - Fonction `replaceContratTemplateVariables()`, section signature agence
 
 ---
 
@@ -39,7 +39,8 @@
 - `height: auto` pour préserver les proportions
 
 **Code modifié:**
-- `pdf/generate-contrat-pdf.php` - Lignes 158, 167, 547-548
+- `pdf/generate-contrat-pdf.php` - Fonction `replaceContratTemplateVariables()`, section signatures locataires (HTML)
+- `pdf/generate-contrat-pdf.php` - Classe `ContratBailPDF::generateContrat()`, section signatures locataires (PDF legacy)
 
 ---
 
@@ -86,8 +87,8 @@ if ($nbLocataires === 1) {
 ```
 
 **Fichiers modifiés:**
-- `pdf/generate-contrat-pdf.php` - Lignes 140-153 (HTML), 512-524 (PDF legacy)
-- `admin-v2/contrat-configuration.php` - Ligne 310 (suppression du label statique)
+- `pdf/generate-contrat-pdf.php` - Fonctions `replaceContratTemplateVariables()` et `ContratBailPDF::generateContrat()`, sections signatures locataires
+- `admin-v2/contrat-configuration.php` - Fonction `getDefaultContractTemplate()`, section signatures
 
 ---
 
