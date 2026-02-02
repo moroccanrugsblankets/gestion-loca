@@ -16,7 +16,7 @@ require_once __DIR__ . '/generate-contrat-pdf.php';
  * @return string|false Chemin du fichier PDF généré
  */
 function generateBailPDF($contratId) {
-    // Validate contract ID
+    // Cast contract ID to integer to prevent injection
     $contratId = (int)$contratId;
     
     error_log("=== generateBailPDF START pour contrat #$contratId ===");
