@@ -313,20 +313,34 @@ function generateBailHTML($contrat, $locataires) {
         Lu et approuvé</p>';
     
     // Add company signature if contract is validated and signature is enabled
-    $signatureEnabled = getParameter('signature_societe_enabled', 'false');
+    // Note: getParameter returns boolean for 'boolean' type, or the default value as fallback
+    $signatureEnabled = getParameter('signature_societe_enabled', false);
     $signatureImage = getParameter('signature_societe_image', '');
     $isValidated = ($contrat['statut'] === 'valide' && !empty($contrat['date_validation']));
     
-    if ($isValidated && $signatureEnabled === 'true' && !empty($signatureImage)) {
+    // Log for debugging signature agence replacement
+    error_log("PDF Generation Bail HTML: === TRAITEMENT SIGNATURE AGENCE ===");
+    error_log("PDF Generation Bail HTML: Contrat statut: " . $contrat['statut'] . ", date_validation: " . ($contrat['date_validation'] ?? 'NON DÉFINIE'));
+    error_log("PDF Generation Bail HTML: isValidated: " . ($isValidated ? 'OUI' : 'NON'));
+    error_log("PDF Generation Bail HTML: signatureEnabled: " . ($signatureEnabled ? 'OUI' : 'NON') . " (type: " . gettype($signatureEnabled) . ")");
+    error_log("PDF Generation Bail HTML: signatureImage présente: " . (!empty($signatureImage) ? 'OUI (' . strlen($signatureImage) . ' octets)' : 'NON'));
+    
+    // Fix: properly check if signature is enabled (can be boolean true or string 'true')
+    $isSignatureEnabled = ($signatureEnabled === true || $signatureEnabled === 'true');
+    
+    if ($isValidated && $isSignatureEnabled && !empty($signatureImage)) {
+        error_log("PDF Generation Bail HTML: Signature agence AJOUTÉE au HTML");
         $html .= '
         <p><strong>Signature électronique</strong></p>
         <img src="' . htmlspecialchars($signatureImage) . '" alt="Signature Société" class="company-signature" style="max-width: 80px; max-height: 40px; border: 0; border-style: none; background: transparent;"><br>
         <p><strong>Validé le :</strong> ' . formatDateFr($contrat['date_validation'], 'd/m/Y à H:i:s') . '</p>';
     } else {
+        error_log("PDF Generation Bail HTML: Signature agence NON ajoutée - Raisons: isValidated=" . ($isValidated ? 'true' : 'false') . ", isSignatureEnabled=" . ($isSignatureEnabled ? 'true' : 'false') . ", hasImage=" . (!empty($signatureImage) ? 'true' : 'false'));
         $html .= '
         <p>Signature<br>
         (Horodatage + adresse IP + tampon signé)</p>';
     }
+    error_log("PDF Generation Bail HTML: === FIN TRAITEMENT SIGNATURE AGENCE ===");
     
     $html .= '
     </div>
@@ -352,8 +366,8 @@ function generateBailHTML($contrat, $locataires) {
             <p><strong>Signature</strong></p>';
         
         if ($locataire['signature_data']) {
-            // Signature avec taille réduite (60px max) et sans bordure
-            $html .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" alt="Signature" style="max-width: 60px; max-height: 30px; border: 0; border-style: none; background: transparent;"><br>';
+            // Signature avec taille réduite (40px max) et sans bordure - réduction de 60px à 40px
+            $html .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" alt="Signature" style="max-width: 40px; max-height: 20px; border: 0; border-style: none; background: transparent;"><br>';
         }
         
         $html .= '<p><strong>Horodatage :</strong> ' . formatDateFr($locataire['signature_timestamp'], 'd/m/Y à H:i:s') . '<br>
