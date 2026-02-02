@@ -11,8 +11,8 @@
 - Nouvelle dimension: 60x30px (client) / 80x40px (agence - déjà correct)
 
 **Fichiers modifiés:**
-- `/home/runner/work/contrat-de-bail/contrat-de-bail/pdf/generate-contrat-pdf.php`
-- `/home/runner/work/contrat-de-bail/contrat-de-bail/pdf/generate-bail.php`
+- `pdf/generate-contrat-pdf.php`
+- `pdf/generate-bail.php`
 
 ### 2. Fond gris autour des signatures
 **Analyse:** 
@@ -66,7 +66,7 @@ Le code de remplacement est correct et complet:
 
 ## Modifications effectuées
 
-### Fichier 1: `/pdf/generate-contrat-pdf.php`
+### Fichier 1: `pdf/generate-contrat-pdf.php`
 **Ligne 207-210:** Changement de dimensions signature client
 ```php
 // AVANT
@@ -76,7 +76,7 @@ max-width: 40px; max-height: 20px;
 max-width: 60px; max-height: 30px;
 ```
 
-### Fichier 2: `/pdf/generate-bail.php`
+### Fichier 2: `pdf/generate-bail.php`
 **Ligne 18-31:** Ajout de logs dans `generateBailPDF()`
 ```php
 function generateBailPDF($contratId) {
@@ -107,7 +107,7 @@ max-width: 60px; max-height: 30px;
 
 ## Tests créés
 
-### Fichier: `/test-signature-replacement.php`
+### Fichier: `test-signature-replacement.php`
 Script de test complet qui vérifie:
 1. Les paramètres de signature agence dans la base de données
 2. La présence de la template HTML et des placeholders
@@ -147,7 +147,7 @@ Conversion images relatives → URLs absolues
     ↓
 TCPDF génère le PDF
     ↓
-Fichier PDF sauvegardé dans /pdf/contrats/
+Fichier PDF sauvegardé dans `pdf/contrats/`
 ```
 
 ## Dimensions finales
