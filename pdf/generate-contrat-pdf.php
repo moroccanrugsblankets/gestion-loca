@@ -302,9 +302,13 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
             }
         } else {
             if (!$signatureEnabled) {
-                error_log("PDF Generation: Signature agence DÉSACTIVÉE dans la configuration (/admin-v2/contrat-configuration.php)");
+                error_log("PDF Generation: ✗ SIGNATURE AGENCE NON ACTIVÉE");
+                error_log("PDF Generation: Action requise → Activer la signature dans /admin-v2/contrat-configuration.php");
+                error_log("PDF Generation: Paramètre à vérifier: signature_societe_enabled doit être défini à '1' ou 'true'");
             } else {
-                error_log("PDF Generation: ERREUR - Image de signature agence non trouvée dans les paramètres");
+                error_log("PDF Generation: ✗ IMAGE SIGNATURE AGENCE NON TROUVÉE");
+                error_log("PDF Generation: Action requise → Télécharger une image de signature dans /admin-v2/contrat-configuration.php");
+                error_log("PDF Generation: Paramètre à vérifier: signature_societe_image doit contenir un data URI d'image");
             }
         }
     } else {

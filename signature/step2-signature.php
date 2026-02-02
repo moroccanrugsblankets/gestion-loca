@@ -120,7 +120,7 @@ $csrfToken = generateCsrfToken();
                             <div class="mb-4">
                                 <label class="form-label">Veuillez signer dans le cadre ci-dessous :</label>
                                 <div class="signature-container" style="max-width: 300px;">
-                                    <canvas id="signatureCanvas" width="300" height="150"></canvas>
+                                    <canvas id="signatureCanvas" width="300" height="150" style="background: transparent;"></canvas>
                                 </div>
                                 <div class="mt-2">
                                     <button type="button" class="btn btn-warning" onclick="clearSignature()">
