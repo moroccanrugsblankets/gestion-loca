@@ -20,6 +20,9 @@ function initSignature() {
         return;
     }
     
+    console.log('Initialisation du canvas de signature');
+    console.log('- Dimensions:', canvas.width, 'x', canvas.height, 'px');
+    
     ctx = canvas.getContext('2d');
     
     // Configuration du canvas
@@ -31,12 +34,16 @@ function initSignature() {
     // Fond transparent (pas de fond blanc pour éviter les bordures)
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
+    console.log('- Fond: transparent (clearRect appliqué)');
+    console.log('- Style de trait: noir (#000000), largeur 2px');
+    
     // Réinitialiser le style de dessin
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2;
     
     // Sauvegarder l'état vide du canvas
     emptyCanvasData = canvas.toDataURL();
+    console.log('- Canvas vide capturé (taille:', emptyCanvasData.length, 'bytes)');
     
     // Événements souris
     canvas.addEventListener('mousedown', startDrawing);
@@ -48,6 +55,8 @@ function initSignature() {
     canvas.addEventListener('touchstart', handleTouchStart);
     canvas.addEventListener('touchmove', handleTouchMove);
     canvas.addEventListener('touchend', stopDrawing);
+    
+    console.log('✓ Canvas de signature initialisé avec succès');
 }
 
 /**
@@ -127,7 +136,10 @@ function handleTouchMove(e) {
  * Effacer la signature
  */
 function clearSignature() {
-    if (!ctx || !canvas) return;
+    if (!ctx || !canvas) {
+        console.warn('Cannot clear signature: canvas or context not initialized');
+        return;
+    }
     
     // Effacer complètement le canvas (transparent)
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -135,14 +147,26 @@ function clearSignature() {
     // Réinitialiser le style de dessin
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2;
+    
+    console.log('Signature effacée (canvas transparent)');
 }
 
 /**
  * Obtenir les données de la signature
  */
 function getSignatureData() {
-    if (!canvas) return '';
-    return canvas.toDataURL('image/png');
+    if (!canvas) {
+        console.error('Canvas not found when getting signature data');
+        return '';
+    }
+    
+    const signatureData = canvas.toDataURL('image/png');
+    console.log('Signature captured:');
+    console.log('- Data URI length:', signatureData.length, 'bytes');
+    console.log('- Canvas dimensions:', canvas.width, 'x', canvas.height, 'px');
+    console.log('- Data URI preview:', signatureData.substring(0, 60) + '...');
+    
+    return signatureData;
 }
 
 /**

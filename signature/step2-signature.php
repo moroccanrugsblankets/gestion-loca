@@ -32,20 +32,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $signatureData = $_POST['signature_data'] ?? '';
         $mentionLuApprouve = cleanInput($_POST['mention_lu_approuve'] ?? '');
         
+        // Log: Signature client reçue
+        error_log("Step2-Signature: === RÉCEPTION SIGNATURE CLIENT ===");
+        error_log("Step2-Signature: Locataire ID: $locataireId, Numéro: $numeroLocataire");
+        error_log("Step2-Signature: Signature data length: " . strlen($signatureData) . " octets");
+        if (!empty($signatureData)) {
+            error_log("Step2-Signature: Début data URI: " . substr($signatureData, 0, 60) . "...");
+        }
+        
         // Validation
         if (empty($signatureData)) {
+            error_log("Step2-Signature: ERREUR - Signature vide");
             $error = 'Veuillez apposer votre signature.';
         } elseif ($mentionLuApprouve !== 'Lu et approuvé') {
+            error_log("Step2-Signature: ERREUR - Mention 'Lu et approuvé' incorrecte: '$mentionLuApprouve'");
             $error = 'Veuillez recopier exactement "Lu et approuvé".';
         } else {
+            // Log: Validation de la signature
+            if (preg_match('/^data:image\/(png|jpeg|jpg);base64,/', $signatureData, $matches)) {
+                $imageFormat = $matches[1];
+                error_log("Step2-Signature: Format image validé: $imageFormat");
+            } else {
+                error_log("Step2-Signature: AVERTISSEMENT - Format data URI non reconnu");
+            }
+            
             // Enregistrer la signature
+            error_log("Step2-Signature: Enregistrement de la signature en base de données...");
             if (updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve)) {
+                error_log("Step2-Signature: ✓ Signature enregistrée avec succès");
                 logAction($contratId, 'signature_locataire', "Locataire $numeroLocataire a signé");
                 
                 // Rediriger vers l'étape 3
                 header('Location: step3-documents.php');
                 exit;
             } else {
+                error_log("Step2-Signature: ✗ ERREUR lors de l'enregistrement de la signature");
                 $error = 'Erreur lors de l\'enregistrement de la signature.';
             }
         }
@@ -140,18 +161,25 @@ $csrfToken = generateCsrfToken();
     <script>
         // Initialiser le canvas de signature au chargement
         window.addEventListener('DOMContentLoaded', function() {
+            console.log('Step2-Signature: Page chargée, initialisation du canvas...');
             initSignature();
         });
 
         // Valider le formulaire
         document.getElementById('signatureForm').addEventListener('submit', function(e) {
+            console.log('Step2-Signature: Soumission du formulaire...');
+            
             const signatureData = getSignatureData();
             
             if (!signatureData || signatureData === getEmptyCanvasData()) {
                 e.preventDefault();
+                console.error('Step2-Signature: Signature vide détectée');
                 alert('Veuillez apposer votre signature avant de continuer.');
                 return false;
             }
+            
+            console.log('Step2-Signature: ✓ Signature valide, envoi au serveur');
+            console.log('Step2-Signature: Taille signature:', signatureData.length, 'bytes');
             
             document.getElementById('signature_data').value = signatureData;
         });
