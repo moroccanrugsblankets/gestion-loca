@@ -28,14 +28,8 @@ function initSignature() {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     
-    // Fond blanc
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Bordure
-    ctx.strokeStyle = '#cccccc';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(0, 0, canvas.width, canvas.height);
+    // Fond transparent (pas de fond blanc pour éviter les bordures)
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     // Réinitialiser le style de dessin
     ctx.strokeStyle = '#000000';
@@ -135,13 +129,10 @@ function handleTouchMove(e) {
 function clearSignature() {
     if (!ctx || !canvas) return;
     
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Effacer complètement le canvas (transparent)
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    ctx.strokeStyle = '#cccccc';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(0, 0, canvas.width, canvas.height);
-    
+    // Réinitialiser le style de dessin
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2;
 }
