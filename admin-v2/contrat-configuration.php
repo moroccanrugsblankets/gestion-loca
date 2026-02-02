@@ -513,7 +513,7 @@ HTML;
                     <span class="variable-tag" onclick="copyVariable('{{bic}}')">{{bic}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{date_signature}}')">{{date_signature}}</span>
                 </div>
-                <p class="mt-3 mb-0 small"><strong>Note importante :</strong> Ce template HTML est utilisé pour l'affichage et la configuration uniquement. <strong>Le PDF du contrat est généré par un processus séparé</strong> qui utilise une mise en page prédéfinie. Les modifications de ce template n'affecteront pas le format du PDF final.</p>
+                <p class="mt-3 mb-0 small"><strong>Note importante :</strong> Ce template HTML est utilisé pour l'affichage et la configuration uniquement. <strong>Le PDF du contrat est généré par un processus séparé</strong> qui utilise une mise en page prédéfinie. Les modifications de ce template n'auront aucun effet sur le format du PDF final.</p>
             </div>
 
             <form method="POST" action="">

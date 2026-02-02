@@ -246,7 +246,6 @@ $templates = $stmt->fetchAll(PDO::FETCH_ASSOC);
             forced_root_block: false,
             // Preserve DOCTYPE and full document structure
             doctype: '<!DOCTYPE html>',
-            // Code view should show raw HTML
             setup: function(editor) {
                 editor.on('init', function() {
                     console.log('TinyMCE initialized successfully');
