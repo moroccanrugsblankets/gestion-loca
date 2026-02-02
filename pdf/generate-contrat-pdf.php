@@ -9,6 +9,11 @@ require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 
+// Constantes pour la validation des images
+define('BASE64_OVERHEAD_RATIO', 4 / 3); // Base64 est ~33% plus grand que les données brutes
+define('MAX_TENANT_SIGNATURE_SIZE', 5 * 1024 * 1024); // 5 MB pour signatures locataires
+define('MAX_COMPANY_SIGNATURE_SIZE', 2 * 1024 * 1024); // 2 MB pour signature société
+
 /**
  * Générer le PDF du contrat de bail
  * @param int $contratId ID du contrat
@@ -145,11 +150,11 @@ function replaceTemplateVariables($template, $contrat, $locataires) {
         
         // Afficher la signature si disponible
         if (!empty($locataire['signature_data'])) {
-            // Valider que c'est un data URI valide avec limite de taille (max 5MB en base64)
+            // Valider que c'est un data URI valide avec limite de taille
             if (preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $locataire['signature_data'], $matches)) {
                 $base64Data = $matches[2];
-                // Vérifier la taille approximative (base64 est ~33% plus grand que les données brutes)
-                if (strlen($base64Data) < 5 * 1024 * 1024 * 4/3) {
+                // Vérifier la taille
+                if (strlen($base64Data) < MAX_TENANT_SIGNATURE_SIZE * BASE64_OVERHEAD_RATIO) {
                     $sig .= '<p><img src="' . $locataire['signature_data'] . '" alt="Signature" style="max-width: 200px; border: 1px solid #ddd; padding: 5px;"></p>';
                 }
             }
@@ -181,11 +186,11 @@ function replaceTemplateVariables($template, $contrat, $locataires) {
         $signatureEnabled = getParametreValue('signature_societe_enabled') === 'true';
         
         if ($signatureEnabled && !empty($signatureImage)) {
-            // Valider que c'est un data URI valide avec limite de taille (max 2MB en base64)
+            // Valider que c'est un data URI valide avec limite de taille
             if (preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $signatureImage, $matches)) {
                 $base64Data = $matches[2];
-                // Vérifier la taille approximative (base64 est ~33% plus grand que les données brutes)
-                if (strlen($base64Data) < 2 * 1024 * 1024 * 4/3) {
+                // Vérifier la taille
+                if (strlen($base64Data) < MAX_COMPANY_SIGNATURE_SIZE * BASE64_OVERHEAD_RATIO) {
                     $signatureAgence = '<div style="margin-top: 20px;">';
                     $signatureAgence .= '<p><strong>Signature électronique de la société</strong></p>';
                     $signatureAgence .= '<p><img src="' . $signatureImage . '" alt="Signature Société" style="max-width: 200px; border: 1px solid #ddd; padding: 5px;"></p>';
