@@ -498,6 +498,7 @@ HTML;
                     <span class="variable-tag" onclick="copyVariable('{{reference_unique}}')">{{reference_unique}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{locataires_info}}')">{{locataires_info}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{locataires_signatures}}')">{{locataires_signatures}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{signature_agence}}')">{{signature_agence}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{adresse}}')">{{adresse}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{appartement}}')">{{appartement}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{type}}')">{{type}}</span>
@@ -512,6 +513,7 @@ HTML;
                     <span class="variable-tag" onclick="copyVariable('{{bic}}')">{{bic}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{date_signature}}')">{{date_signature}}</span>
                 </div>
+                <p class="mt-3 mb-0 small"><strong>Note importante :</strong> Ce template HTML est utilisé pour l'affichage et la configuration uniquement. <strong>Le PDF du contrat est généré par un processus séparé</strong> qui utilise une mise en page prédéfinie. Les modifications de ce template n'affecteront pas le format du PDF final.</p>
             </div>
 
             <form method="POST" action="">
@@ -603,6 +605,7 @@ HTML;
                 .replace(/\{\{reference_unique\}\}/g, 'BAIL-2024-001')
                 .replace(/\{\{locataires_info\}\}/g, 'Jean DUPONT, né(e) le 01/01/1990<br>Email : jean.dupont@example.com')
                 .replace(/\{\{locataires_signatures\}\}/g, 'Jean DUPONT - Lu et approuvé')
+                .replace(/\{\{signature_agence\}\}/g, '<p><strong>MY INVEST IMMOBILIER</strong><br>Représenté par M. ALEXANDRE<br>Lu et approuvé</p>')
                 .replace(/\{\{adresse\}\}/g, '123 Rue de la République, 74100 Annemasse')
                 .replace(/\{\{appartement\}\}/g, 'Appartement 15')
                 .replace(/\{\{type\}\}/g, 'T2')
@@ -647,6 +650,14 @@ HTML;
             content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }',
             branding: false,
             promotion: false,
+            // Preserve full HTML document structure including <html>, <head>, <style> tags
+            verify_html: false,
+            extended_valid_elements: 'style,link[href|rel],head,html[lang],meta[*],body[*]',
+            valid_children: '+body[style],+head[style]',
+            // Don't remove tags or attributes
+            forced_root_block: false,
+            // Preserve DOCTYPE and full document structure
+            doctype: '<!DOCTYPE html>',
             setup: function(editor) {
                 editor.on('init', function() {
                     console.log('TinyMCE initialized successfully on contract template');
