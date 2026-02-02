@@ -246,7 +246,8 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
         // Récupérer les paramètres de signature depuis la base de données
         require_once __DIR__ . '/../includes/functions.php';
         $signatureImage = getParametreValue('signature_societe_image');
-        $signatureEnabled = getParametreValue('signature_societe_enabled') === 'true';
+        $signatureEnabledRaw = getParametreValue('signature_societe_enabled');
+        $signatureEnabled = toBooleanParam($signatureEnabledRaw);
         
         error_log("PDF Generation: Configuration signature agence - Activée: " . ($signatureEnabled ? 'OUI' : 'NON') . ", Image présente: " . (!empty($signatureImage) ? 'OUI (' . strlen($signatureImage) . ' octets)' : 'NON'));
         if (!empty($signatureImage)) {
@@ -658,7 +659,8 @@ class ContratBailPDF extends TCPDF {
             error_log("PDF Generation Legacy: Date validation: " . ($contrat['date_validation'] ?? 'NON DÉFINIE'));
             
             $signatureImage = getParametreValue('signature_societe_image');
-            $signatureEnabled = getParametreValue('signature_societe_enabled') === 'true';
+            $signatureEnabledRaw = getParametreValue('signature_societe_enabled');
+            $signatureEnabled = toBooleanParam($signatureEnabledRaw);
             
             error_log("PDF Generation Legacy: Configuration - Activée: " . ($signatureEnabled ? 'OUI' : 'NON') . ", Image présente: " . (!empty($signatureImage) ? 'OUI (' . strlen($signatureImage) . ' octets)' : 'NON'));
             if (!empty($signatureImage)) {

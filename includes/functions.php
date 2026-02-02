@@ -737,3 +737,20 @@ function getParametreValue($cle) {
     return $result !== false ? $result : null;
 }
 
+/**
+ * Convert a parameter value to boolean
+ * Handles both boolean and string 'true'/'false' values for consistency
+ * @param mixed $value The value to convert (can be bool, string, or null)
+ * @return bool
+ */
+function toBooleanParam($value) {
+    if (is_bool($value)) {
+        return $value;
+    }
+    if (is_string($value)) {
+        return $value === 'true' || $value === '1';
+    }
+    return false;
+}
+
+

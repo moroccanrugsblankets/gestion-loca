@@ -325,8 +325,8 @@ function generateBailHTML($contrat, $locataires) {
     error_log("PDF Generation Bail HTML: signatureEnabled: " . ($signatureEnabled ? 'OUI' : 'NON') . " (type: " . gettype($signatureEnabled) . ")");
     error_log("PDF Generation Bail HTML: signatureImage présente: " . (!empty($signatureImage) ? 'OUI (' . strlen($signatureImage) . ' octets)' : 'NON'));
     
-    // Fix: properly check if signature is enabled (can be boolean true or string 'true')
-    $isSignatureEnabled = ($signatureEnabled === true || $signatureEnabled === 'true');
+    // Use helper function to normalize boolean parameter value
+    $isSignatureEnabled = toBooleanParam($signatureEnabled);
     
     if ($isValidated && $isSignatureEnabled && !empty($signatureImage)) {
         error_log("PDF Generation Bail HTML: Signature agence AJOUTÉE au HTML");
