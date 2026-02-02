@@ -217,9 +217,10 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 if (strlen($base64Data) < MAX_TENANT_SIGNATURE_SIZE * BASE64_OVERHEAD_RATIO) {
                     // Log: Signature client traitée avec succès
                     error_log("PDF Generation: Signature client " . ($i + 1) . " - Format: $imageFormat, Taille base64: " . strlen($base64Data) . " octets");
-                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Ajoutée avec taille équilibrée (60x30px), SANS bordure, fond transparent");
-                    // Signature client avec taille équilibrée (60x30px) et sans bordure/background
-                    $sig .= '<p><img src="' . $locataire['signature_data'] . '" alt="Signature" style="max-width: 60px; max-height: 30px; height: auto; border: 0; border-style: none; outline: none; background: transparent;"></p>';
+                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Dimensions appliquées: max-width 150px, max-height 60px");
+                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Style: SANS bordure, fond transparent, affichage proportionné");
+                    // Signature client avec taille normalisée (150x60px max) et sans bordure/background
+                    $sig .= '<p><img src="' . $locataire['signature_data'] . '" alt="Signature" style="max-width: 150px; max-height: 60px; width: auto; height: auto; border: 0; border-style: none; outline: none; background: transparent; display: inline-block;"></p>';
                 } else {
                     error_log("PDF Generation: AVERTISSEMENT - Signature client " . ($i + 1) . " trop volumineuse (" . strlen($base64Data) . " octets), ignorée");
                 }
@@ -277,8 +278,8 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 if (strlen($base64Data) < MAX_COMPANY_SIGNATURE_SIZE * BASE64_OVERHEAD_RATIO) {
                     $signatureAgence = '<div style="margin-top: 20px;">';
                     $signatureAgence .= '<p><strong>Signature électronique de la société</strong></p>';
-                    // Signature agence avec taille adaptée (80px) et sans bordure pour un rendu équilibré
-                    $signatureAgence .= '<p><img src="' . $signatureImage . '" alt="Signature Société" style="max-width: 80px; max-height: 40px; height: auto; border: 0; border-style: none; outline: none; background: transparent;"></p>';
+                    // Signature agence avec taille adaptée (150x60px max) et sans bordure pour un rendu équilibré
+                    $signatureAgence .= '<p><img src="' . $signatureImage . '" alt="Signature Société" style="max-width: 150px; max-height: 60px; width: auto; height: auto; border: 0; border-style: none; outline: none; background: transparent; display: inline-block;"></p>';
                     if (!empty($contrat['date_validation'])) {
                         $validationTimestamp = strtotime($contrat['date_validation']);
                         if ($validationTimestamp !== false) {
@@ -287,8 +288,9 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                         }
                     }
                     $signatureAgence .= '</div>';
-                    error_log("PDF Generation: Signature agence AJOUTÉE avec succès au PDF ({{signature_agence}} sera remplacé)");
+                    error_log("PDF Generation: ✓ Signature agence AJOUTÉE avec succès au PDF ({{signature_agence}} sera remplacé)");
                     error_log("PDF Generation: Longueur HTML signature agence: " . strlen($signatureAgence) . " caractères");
+                    error_log("PDF Generation: Dimensions signature agence appliquées: max-width 150px, max-height 60px");
                 } else {
                     error_log("PDF Generation: ERREUR - Signature agence trop volumineuse (" . strlen($base64Data) . " octets), ignorée");
                 }
@@ -300,9 +302,13 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
             }
         } else {
             if (!$signatureEnabled) {
-                error_log("PDF Generation: Signature agence DÉSACTIVÉE dans la configuration (/admin-v2/contrat-configuration.php)");
+                error_log("PDF Generation: ✗ SIGNATURE AGENCE NON ACTIVÉE");
+                error_log("PDF Generation: Action requise → Activer la signature dans /admin-v2/contrat-configuration.php");
+                error_log("PDF Generation: Paramètre à vérifier: signature_societe_enabled doit être défini à '1' ou 'true'");
             } else {
-                error_log("PDF Generation: ERREUR - Image de signature agence non trouvée dans les paramètres");
+                error_log("PDF Generation: ✗ IMAGE SIGNATURE AGENCE NON TROUVÉE");
+                error_log("PDF Generation: Action requise → Télécharger une image de signature dans /admin-v2/contrat-configuration.php");
+                error_log("PDF Generation: Paramètre à vérifier: signature_societe_image doit contenir un data URI d'image");
             }
         }
     } else {
