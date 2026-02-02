@@ -25,6 +25,12 @@ function generateContratPDF($contratId) {
     // Cast contract ID to integer to prevent injection
     $contratId = (int)$contratId;
     
+    // Return early if invalid ID
+    if ($contratId <= 0) {
+        error_log("PDF Generation: ERREUR - ID de contrat invalide: $contratId");
+        return false;
+    }
+    
     error_log("=== PDF Generation START pour contrat #$contratId ===");
     
     try {

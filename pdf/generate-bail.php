@@ -19,6 +19,12 @@ function generateBailPDF($contratId) {
     // Cast contract ID to integer to prevent injection
     $contratId = (int)$contratId;
     
+    // Return early if invalid ID
+    if ($contratId <= 0) {
+        error_log("generateBailPDF: ERREUR - ID de contrat invalide: $contratId");
+        return false;
+    }
+    
     error_log("=== generateBailPDF START pour contrat #$contratId ===");
     error_log("generateBailPDF: Redirection vers generateContratPDF()");
     
