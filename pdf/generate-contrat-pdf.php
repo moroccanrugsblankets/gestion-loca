@@ -60,26 +60,32 @@ function generateContratPDF($contratId) {
         
         error_log("PDF Generation: " . count($locataires) . " locataire(s) trouvé(s)");
         
-        // Récupérer la template HTML depuis la configuration
+        // Récupérer la template HTML depuis la configuration (/admin-v2/contrat-configuration.php)
+        error_log("PDF Generation: === RÉCUPÉRATION TEMPLATE HTML ===");
+        error_log("PDF Generation: Recherche de la template dans la table 'parametres' (cle='contrat_template_html')");
         $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'contrat_template_html'");
         if (!$stmt || !$stmt->execute()) {
-            error_log("PDF Generation: ERREUR - Impossible de récupérer la template HTML, utilisation du système legacy");
+            error_log("PDF Generation: ERREUR - Impossible de récupérer la template HTML depuis la base de données");
+            error_log("PDF Generation: Basculement vers le système LEGACY (mise en page prédéfinie)");
             return generateContratPDFLegacy($contratId, $contrat, $locataires);
         }
         $templateHtml = $stmt->fetchColumn();
         
         // Si pas de template, utiliser le template par défaut ou l'ancien système
         if (empty($templateHtml)) {
-            error_log("PDF Generation: Aucune template HTML trouvée dans la configuration, utilisation du système legacy");
+            error_log("PDF Generation: Aucune template HTML trouvée dans la configuration");
+            error_log("PDF Generation: Basculement vers le système LEGACY (mise en page prédéfinie)");
             return generateContratPDFLegacy($contratId, $contrat, $locataires);
         }
         
-        error_log("PDF Generation: Template HTML récupérée depuis /admin-v2/contrat-configuration.php (longueur: " . strlen($templateHtml) . " caractères)");
+        error_log("PDF Generation: Template HTML récupérée avec SUCCÈS depuis /admin-v2/contrat-configuration.php");
+        error_log("PDF Generation: Longueur de la template: " . strlen($templateHtml) . " caractères");
+        error_log("PDF Generation: Le PDF sera généré à partir de la TEMPLATE HTML CONFIGURÉE (PAS le système legacy)");
         
         // Remplacer les variables dans la template
         $html = replaceContratTemplateVariables($templateHtml, $contrat, $locataires);
         
-        error_log("PDF Generation: Création du PDF avec TCPDF");
+        error_log("PDF Generation: === GÉNÉRATION DU PDF AVEC TCPDF ===");
         
         // Créer le PDF avec TCPDF
         $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
@@ -115,7 +121,8 @@ function generateContratPDF($contratId) {
         $pdf->Output($filepath, 'F');
         
         error_log("PDF Generation: PDF généré avec succès: $filepath");
-        error_log("=== PDF Generation END pour contrat #$contratId - SUCCÈS ===");
+        error_log("PDF Generation: Taille du fichier: " . (file_exists($filepath) ? filesize($filepath) . ' octets' : 'inconnu'));
+        error_log("=== PDF Generation END pour contrat #$contratId - SUCCÈS (source: Template HTML) ===");
         
         return $filepath;
         
@@ -159,18 +166,25 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
     // Préparer les signatures des locataires
     $locatairesSignatures = [];
     $nbLocataires = count($locataires);
-    error_log("PDF Generation: Traitement de " . $nbLocataires . " signature(s) client(s)");
+    error_log("PDF Generation: === TRAITEMENT DES SIGNATURES CLIENTS ===");
+    error_log("PDF Generation: Nombre de locataires à traiter: " . $nbLocataires);
     
     foreach ($locataires as $i => $locataire) {
         $sig = '<div style="margin-bottom: 20px;">';
         
         // Adapter le label selon le nombre de locataires
+        // Si un seul locataire: "Locataire :" sans numéro
+        // Si plusieurs locataires: "Locataire 1 :", "Locataire 2 :", etc.
         if ($nbLocataires === 1) {
-            // Pour un seul locataire: "Locataire :"
-            $sig .= '<p><strong>Locataire : ' . htmlspecialchars($locataire['prenom']) . ' ' . htmlspecialchars($locataire['nom']) . '</strong></p>';
+            $locataireLabel = 'Locataire';
+            $sig .= '<p><strong>' . $locataireLabel . ' :</strong></p>';
+            $sig .= '<p>' . htmlspecialchars($locataire['prenom']) . ' ' . htmlspecialchars($locataire['nom']) . '</p>';
+            error_log("PDF Generation: Locataire unique - Label: '$locataireLabel'");
         } else {
-            // Pour plusieurs locataires: "Locataire 1 :", "Locataire 2 :", etc.
-            $sig .= '<p><strong>Locataire ' . ($i + 1) . ' : ' . htmlspecialchars($locataire['prenom']) . ' ' . htmlspecialchars($locataire['nom']) . '</strong></p>';
+            $locataireLabel = 'Locataire ' . ($i + 1);
+            $sig .= '<p><strong>' . $locataireLabel . ' :</strong></p>';
+            $sig .= '<p>' . htmlspecialchars($locataire['prenom']) . ' ' . htmlspecialchars($locataire['nom']) . '</p>';
+            error_log("PDF Generation: Locataire " . ($i + 1) . "/" . $nbLocataires . " - Label: '$locataireLabel'");
         }
         
         // Mention "Lu et approuvé"
@@ -182,23 +196,26 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
         
         // Afficher la signature si disponible
         if (!empty($locataire['signature_data'])) {
+            error_log("PDF Generation: Signature client " . ($i + 1) . " - Données présentes (taille: " . strlen($locataire['signature_data']) . " octets)");
             // Valider que c'est un data URI valide avec limite de taille
             if (preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $locataire['signature_data'], $matches)) {
                 $base64Data = $matches[2];
+                $imageFormat = $matches[1];
                 // Vérifier la taille
                 if (strlen($base64Data) < MAX_TENANT_SIGNATURE_SIZE * BASE64_OVERHEAD_RATIO) {
                     // Log: Signature client traitée avec succès
-                    error_log("PDF Generation: Signature client " . ($i + 1) . " ajoutée (taille réduite à 100px, sans bordure)");
-                    // Signature réduite et sans bordure pour un rendu propre et harmonieux
-                    $sig .= '<p><img src="' . $locataire['signature_data'] . '" alt="Signature" style="max-width: 100px; height: auto; border: none;"></p>';
+                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Format: $imageFormat, Taille base64: " . strlen($base64Data) . " octets");
+                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Ajoutée avec taille réduite (80px max), SANS bordure, fond transparent");
+                    // Signature réduite (80px) et sans bordure/background pour un rendu propre et harmonieux
+                    $sig .= '<p><img src="' . $locataire['signature_data'] . '" alt="Signature" style="max-width: 80px; max-height: 40px; height: auto; border: 0; border-style: none; outline: none; background: transparent;"></p>';
                 } else {
-                    error_log("PDF Generation: AVERTISSEMENT - Signature client " . ($i + 1) . " trop volumineuse, ignorée");
+                    error_log("PDF Generation: AVERTISSEMENT - Signature client " . ($i + 1) . " trop volumineuse (" . strlen($base64Data) . " octets), ignorée");
                 }
             } else {
-                error_log("PDF Generation: ERREUR - Format de signature client " . ($i + 1) . " invalide");
+                error_log("PDF Generation: ERREUR - Format de signature client " . ($i + 1) . " invalide (n'est pas un data URI image valide)");
             }
         } else {
-            error_log("PDF Generation: Signature client " . ($i + 1) . " non disponible");
+            error_log("PDF Generation: Signature client " . ($i + 1) . " - Non disponible (champ vide)");
         }
         
         // Horodatage et IP
@@ -217,29 +234,34 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
         $locatairesSignatures[] = $sig;
     }
     $locatairesSignaturesHtml = implode('', $locatairesSignatures);
+    error_log("PDF Generation: === FIN TRAITEMENT SIGNATURES CLIENTS - " . count($locatairesSignatures) . " signature(s) générée(s) ===");
     
     // Préparer la signature de l'agence (si contrat validé)
+    error_log("PDF Generation: === TRAITEMENT SIGNATURE AGENCE ===");
     $signatureAgence = '';
     if (isset($contrat['statut']) && $contrat['statut'] === 'valide') {
-        error_log("PDF Generation: Contrat validé, traitement de la signature agence");
+        error_log("PDF Generation: Contrat validé (statut='valide'), traitement de la signature agence");
         
-        // Récupérer les paramètres de signature
+        // Récupérer les paramètres de signature depuis la base de données
         require_once __DIR__ . '/../includes/functions.php';
         $signatureImage = getParametreValue('signature_societe_image');
         $signatureEnabled = getParametreValue('signature_societe_enabled') === 'true';
         
-        error_log("PDF Generation: Signature agence activée = " . ($signatureEnabled ? 'OUI' : 'NON'));
+        error_log("PDF Generation: Configuration signature agence - Activée: " . ($signatureEnabled ? 'OUI' : 'NON') . ", Image présente: " . (!empty($signatureImage) ? 'OUI (' . strlen($signatureImage) . ' octets)' : 'NON'));
         
         if ($signatureEnabled && !empty($signatureImage)) {
             // Valider que c'est un data URI valide avec limite de taille
             if (preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $signatureImage, $matches)) {
+                $imageFormat = $matches[1];
                 $base64Data = $matches[2];
+                error_log("PDF Generation: Signature agence - Format: $imageFormat, Taille base64: " . strlen($base64Data) . " octets");
+                
                 // Vérifier la taille
                 if (strlen($base64Data) < MAX_COMPANY_SIGNATURE_SIZE * BASE64_OVERHEAD_RATIO) {
                     $signatureAgence = '<div style="margin-top: 20px;">';
                     $signatureAgence .= '<p><strong>Signature électronique de la société</strong></p>';
-                    // Signature sans bordure pour un rendu propre
-                    $signatureAgence .= '<p><img src="' . $signatureImage . '" alt="Signature Société" style="max-width: 150px; height: auto; border: none;"></p>';
+                    // Signature agence avec taille adaptée (120px) et sans bordure pour un rendu propre
+                    $signatureAgence .= '<p><img src="' . $signatureImage . '" alt="Signature Société" style="max-width: 120px; max-height: 60px; height: auto; border: 0; border-style: none; outline: none; background: transparent;"></p>';
                     if (!empty($contrat['date_validation'])) {
                         $validationTimestamp = strtotime($contrat['date_validation']);
                         if ($validationTimestamp !== false) {
@@ -248,23 +270,24 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                         }
                     }
                     $signatureAgence .= '</div>';
-                    error_log("PDF Generation: Signature agence ajoutée avec succès au PDF");
+                    error_log("PDF Generation: Signature agence AJOUTÉE avec succès au PDF ({{signature_agence}} sera remplacé)");
                 } else {
-                    error_log("PDF Generation: ERREUR - Signature agence trop volumineuse, ignorée");
+                    error_log("PDF Generation: ERREUR - Signature agence trop volumineuse (" . strlen($base64Data) . " octets), ignorée");
                 }
             } else {
-                error_log("PDF Generation: ERREUR - Format de signature agence invalide");
+                error_log("PDF Generation: ERREUR - Format de signature agence invalide (n'est pas un data URI image valide)");
             }
         } else {
             if (!$signatureEnabled) {
-                error_log("PDF Generation: Signature agence désactivée dans la configuration");
+                error_log("PDF Generation: Signature agence DÉSACTIVÉE dans la configuration (/admin-v2/contrat-configuration.php)");
             } else {
-                error_log("PDF Generation: ERREUR - Image de signature agence non trouvée");
+                error_log("PDF Generation: ERREUR - Image de signature agence non trouvée dans les paramètres");
             }
         }
     } else {
-        error_log("PDF Generation: Contrat non validé (statut: " . ($contrat['statut'] ?? 'inconnu') . "), signature agence non ajoutée");
+        error_log("PDF Generation: Contrat NON validé (statut: " . ($contrat['statut'] ?? 'inconnu') . "), signature agence ne sera PAS ajoutée");
     }
+    error_log("PDF Generation: === FIN TRAITEMENT SIGNATURE AGENCE - " . (empty($signatureAgence) ? 'NON GÉNÉRÉE' : 'GÉNÉRÉE') . " ===");
     
     // Préparer les dates
     $dateSignature = '___________';
@@ -314,6 +337,12 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
         '{{bic}}' => htmlspecialchars($bic),
     ];
     
+    // Log: Variables à remplacer
+    error_log("PDF Generation: === REMPLACEMENT DES VARIABLES TEMPLATE ===");
+    error_log("PDF Generation: Variables disponibles: " . implode(', ', array_keys($variables)));
+    error_log("PDF Generation: {{signature_agence}} contient " . (empty($variables['{{signature_agence}}']) ? 'VIDE' : strlen($variables['{{signature_agence}}']) . ' caractères'));
+    error_log("PDF Generation: {{locataires_signatures}} contient " . strlen($variables['{{locataires_signatures}}']) . ' caractères');
+    
     // Remplacer toutes les variables
     $html = str_replace(array_keys($variables), array_values($variables), $template);
     
@@ -323,60 +352,70 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
     $siteUrl = rtrim($config['SITE_URL'] ?? 'https://contrat.myinvest-immobilier.com', '/');
     
     // Log: Traitement des images
-    error_log("PDF Generation: Conversion des chemins d'images (URL de base: $siteUrl)");
+    error_log("PDF Generation: === TRAITEMENT DES IMAGES TEMPLATE ===");
+    error_log("PDF Generation: URL de base pour conversion des chemins: $siteUrl");
     
     // Remplacer les chemins relatifs par des chemins absolus
     $imageCount = 0;
+    $imageSuccessCount = 0;
     $html = preg_replace_callback(
         '/<img([^>]*?)src=["\']([^"\']+)["\']([^>]*?)>/i',
-        function($matches) use ($siteUrl, &$imageCount) {
+        function($matches) use ($siteUrl, &$imageCount, &$imageSuccessCount) {
             $beforeSrc = $matches[1];
             $src = $matches[2];
             $afterSrc = $matches[3];
+            $imageCount++;
             
-            // Ne pas modifier les data URIs
+            // Ne pas modifier les data URIs (signatures encodées en base64)
             if (strpos($src, 'data:') === 0) {
-                error_log("PDF Generation: Image " . (++$imageCount) . " - Data URI conservée");
+                error_log("PDF Generation: Image #$imageCount - Type: Data URI (signature/image encodée), conservée telle quelle");
+                $imageSuccessCount++;
                 return $matches[0];
             }
             
-            // Ne pas modifier les URLs absolues (http/https)
+            // Ne pas modifier les URLs absolues (http/https) - c'est déjà une URL complète
             if (preg_match('/^https?:\/\//i', $src)) {
-                error_log("PDF Generation: Image " . (++$imageCount) . " - URL absolue conservée: $src");
+                error_log("PDF Generation: Image #$imageCount - Type: URL absolue, conservée: $src");
+                $imageSuccessCount++;
                 return $matches[0];
             }
             
             // Convertir les chemins relatifs en absolus
             $newSrc = $src;
+            $pathType = '';
             
             // Supprimer les ../ au début et construire l'URL absolue
             if (preg_match('/^\.\.\//', $src)) {
                 $newSrc = $siteUrl . '/' . preg_replace('/^\.\.\//', '', $src);
-                error_log("PDF Generation: Image " . (++$imageCount) . " - Chemin relatif ../ converti: $src => $newSrc");
+                $pathType = 'Chemin relatif ../';
             } 
             // Supprimer les ./ au début
             elseif (preg_match('/^\.\//', $src)) {
                 $newSrc = $siteUrl . '/' . preg_replace('/^\.\//', '', $src);
-                error_log("PDF Generation: Image " . (++$imageCount) . " - Chemin relatif ./ converti: $src => $newSrc");
+                $pathType = 'Chemin relatif ./';
             }
             // Chemins commençant par /
             elseif (preg_match('/^\//', $src)) {
                 $newSrc = $siteUrl . $src;
-                error_log("PDF Generation: Image " . (++$imageCount) . " - Chemin absolu / converti: $src => $newSrc");
+                $pathType = 'Chemin absolu /';
             }
-            // Autres chemins relatifs
+            // Autres chemins relatifs (sans préfixe)
             else {
                 $newSrc = $siteUrl . '/' . $src;
-                error_log("PDF Generation: Image " . (++$imageCount) . " - Chemin relatif converti: $src => $newSrc");
+                $pathType = 'Chemin relatif simple';
             }
+            
+            error_log("PDF Generation: Image #$imageCount - Type: $pathType, Converti: '$src' => '$newSrc'");
+            $imageSuccessCount++;
             
             return '<img' . $beforeSrc . 'src="' . $newSrc . '"' . $afterSrc . '>';
         },
         $html
     );
     
-    error_log("PDF Generation: " . $imageCount . " image(s) traitée(s) dans le template");
+    error_log("PDF Generation: === FIN TRAITEMENT IMAGES - $imageSuccessCount/$imageCount image(s) traitée(s) avec succès ===");
     error_log("PDF Generation: Remplacement des variables terminé avec succès");
+    error_log("PDF Generation: Source du PDF: Template HTML depuis /admin-v2/contrat-configuration.php");
     
     return $html;
 }
@@ -389,7 +428,10 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
  * @return string|false Chemin du fichier PDF généré ou false en cas d'erreur
  */
 function generateContratPDFLegacy($contratId, $contrat, $locataires) {
-    error_log("PDF Generation: Utilisation du système LEGACY pour contrat #$contratId");
+    error_log("PDF Generation: === GÉNÉRATION LEGACY ===");
+    error_log("PDF Generation: ATTENTION - Utilisation du système LEGACY pour contrat #$contratId");
+    error_log("PDF Generation: Ce mode utilise une mise en page prédéfinie, PAS la template HTML de /admin-v2/contrat-configuration.php");
+    error_log("PDF Generation: Pour utiliser la template HTML, configurez-la dans l'interface admin");
     
     try {
         // Créer le PDF
@@ -584,74 +626,78 @@ class ContratBailPDF extends TCPDF {
         
         // Add company signature image if contract is validated and signature is enabled
         if (isset($contrat['statut']) && $contrat['statut'] === 'valide') {
+            error_log("PDF Generation Legacy: === TRAITEMENT SIGNATURE AGENCE ===");
             error_log("PDF Generation Legacy: Contrat validé, ajout de la signature agence");
             
             $signatureImage = getParametreValue('signature_societe_image');
             $signatureEnabled = getParametreValue('signature_societe_enabled') === 'true';
             
-            error_log("PDF Generation Legacy: Signature agence activée = " . ($signatureEnabled ? 'OUI' : 'NON'));
+            error_log("PDF Generation Legacy: Configuration - Activée: " . ($signatureEnabled ? 'OUI' : 'NON') . ", Image présente: " . (!empty($signatureImage) ? 'OUI (' . strlen($signatureImage) . ' octets)' : 'NON'));
             
             if ($signatureEnabled && !empty($signatureImage)) {
                 // Check if it's a data URI
-                if (strpos($signatureImage, 'data:image') === 0) {
-                    // Extract the base64 data
-                    $parts = explode(',', $signatureImage);
-                    if (count($parts) === 2) {
-                        $imgData = base64_decode($parts[1]);
-                        if ($imgData !== false) {
-                            // Create temporary file for signature in uploads directory for better security
-                            $uploadsDir = __DIR__ . '/../uploads/temp';
-                            if (!is_dir($uploadsDir)) {
-                                @mkdir($uploadsDir, 0755, true);
-                            }
-                            $tempFile = $uploadsDir . '/company_sig_' . uniqid() . '.png';
-                            
-                            if (file_put_contents($tempFile, $imgData) !== false) {
-                                try {
-                                    // Signature agence réduite (30mm) pour un rendu harmonieux
-                                    error_log("PDF Generation Legacy: Signature agence ajoutée avec succès (taille: 30mm)");
-                                    $this->Image($tempFile, $this->GetX(), $this->GetY(), 30, 0);
-                                    @unlink($tempFile);
-                                } catch (Exception $e) {
-                                    error_log("PDF Generation Legacy: ERREUR lors du rendu de la signature agence: " . $e->getMessage());
-                                    @unlink($tempFile);
-                                }
-                            } else {
-                                error_log("PDF Generation Legacy: ERREUR - Impossible de créer le fichier temporaire pour la signature agence");
+                if (preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $signatureImage, $matches)) {
+                    $imageFormat = strtoupper($matches[1] === 'jpg' ? 'JPEG' : $matches[1]);
+                    $imgData = base64_decode($matches[2]);
+                    
+                    if ($imgData !== false) {
+                        // Create temporary file for signature in uploads directory for better security
+                        $uploadsDir = __DIR__ . '/../uploads/temp';
+                        if (!is_dir($uploadsDir)) {
+                            @mkdir($uploadsDir, 0755, true);
+                        }
+                        $extension = strtolower($imageFormat) === 'jpeg' ? 'jpg' : 'png';
+                        $tempFile = $uploadsDir . '/company_sig_' . uniqid() . '.' . $extension;
+                        
+                        if (file_put_contents($tempFile, $imgData) !== false) {
+                            try {
+                                // Signature agence avec taille adaptée (25mm) pour un rendu harmonieux
+                                error_log("PDF Generation Legacy: Signature agence - Format: $imageFormat, Ajoutée avec taille (25mm)");
+                                $this->Image($tempFile, $this->GetX(), $this->GetY(), 25, 0, $imageFormat);
+                                error_log("PDF Generation Legacy: Signature agence AJOUTÉE avec succès");
+                                @unlink($tempFile);
+                            } catch (Exception $e) {
+                                error_log("PDF Generation Legacy: ERREUR lors du rendu de la signature agence: " . $e->getMessage());
+                                @unlink($tempFile);
                             }
                         } else {
-                            error_log("PDF Generation Legacy: ERREUR - Données base64 invalides pour la signature agence");
+                            error_log("PDF Generation Legacy: ERREUR - Impossible de créer le fichier temporaire pour la signature agence");
                         }
                     } else {
-                        error_log("PDF Generation Legacy: ERREUR - Format de data URI invalide pour la signature agence");
+                        error_log("PDF Generation Legacy: ERREUR - Données base64 invalides pour la signature agence");
                     }
                 } else {
-                    error_log("PDF Generation Legacy: ERREUR - La signature agence n'est pas un data URI");
+                    error_log("PDF Generation Legacy: ERREUR - Format de signature agence invalide (n'est pas un data URI image valide)");
                 }
             } else {
                 if (!$signatureEnabled) {
-                    error_log("PDF Generation Legacy: Signature agence désactivée dans la configuration");
+                    error_log("PDF Generation Legacy: Signature agence DÉSACTIVÉE dans la configuration");
                 } else {
                     error_log("PDF Generation Legacy: ERREUR - Image de signature agence non trouvée");
                 }
             }
+            error_log("PDF Generation Legacy: === FIN TRAITEMENT SIGNATURE AGENCE ===");
         } else {
-            error_log("PDF Generation Legacy: Contrat non validé (statut: " . ($contrat['statut'] ?? 'inconnu') . "), signature agence non ajoutée");
+            error_log("PDF Generation Legacy: Contrat NON validé (statut: " . ($contrat['statut'] ?? 'inconnu') . "), signature agence ne sera PAS ajoutée");
         }
         
         $this->Ln(3);
         
         // Signatures des locataires
         $nbLocataires = count($locataires);
+        error_log("PDF Generation Legacy: === TRAITEMENT SIGNATURES CLIENTS ($nbLocataires locataire(s)) ===");
+        
         foreach ($locataires as $i => $locataire) {
             $this->SetFont('helvetica', 'B', 9);
             // Adapter le label selon le nombre de locataires
+            // Si un seul locataire: "Locataire :" sans numéro
+            // Si plusieurs locataires: "Locataire 1 :", "Locataire 2 :", etc.
             if ($nbLocataires === 1) {
-                // Pour un seul locataire: "Locataire"
-                $locataireLabel = 'Locataire';
+                $locataireLabel = 'Locataire :';
+                error_log("PDF Generation Legacy: Locataire unique - Label: 'Locataire'");
             } else {
-                // Pour plusieurs locataires: "Locataire 1", "Locataire 2", etc.
-                $locataireLabel = 'Locataire ' . ($i + 1);
+                $locataireLabel = 'Locataire ' . ($i + 1) . ' :';
+                error_log("PDF Generation Legacy: Locataire " . ($i + 1) . "/" . $nbLocataires . " - Label: 'Locataire " . ($i + 1) . "'");
             }
             $this->Cell(0, 5, $locataireLabel, 0, 1, 'L');
             $this->SetFont('helvetica', '', 8);
@@ -669,11 +715,13 @@ class ContratBailPDF extends TCPDF {
             // Afficher la signature si disponible
             if (!empty($locataire['signature_data'])) {
                 $this->Ln(1);
+                error_log("PDF Generation Legacy: Signature client " . ($i + 1) . " - Données présentes (" . strlen($locataire['signature_data']) . " octets)");
                 // Créer un fichier temporaire pour la signature
                 $imgData = $locataire['signature_data'];
-                // Vérifier que c'est un data URL base64 PNG (seul format accepté)
-                if (preg_match('/^data:image\/png;base64,(.+)$/', $imgData, $matches)) {
-                    $imageData = base64_decode($matches[1], true);
+                // Vérifier que c'est un data URL base64 PNG ou JPEG
+                if (preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $imgData, $matches)) {
+                    $imageFormat = strtoupper($matches[1] === 'jpg' ? 'JPEG' : $matches[1]);
+                    $imageData = base64_decode($matches[2], true);
                     
                     // Vérifier que le décodage a réussi et que les données ne sont pas vides
                     if ($imageData !== false && !empty($imageData)) {
@@ -684,10 +732,10 @@ class ContratBailPDF extends TCPDF {
                             // Écrire les données de l'image dans le fichier temporaire
                             if (file_put_contents($tempFile, $imageData) !== false) {
                                 try {
-                                    // Signature client réduite (25mm au lieu de 30mm) pour un rendu proportionnel et harmonieux
-                                    error_log("PDF Generation Legacy: Signature client " . ($i + 1) . " ajoutée (taille: 25mm)");
-                                    $this->Image($tempFile, $this->GetX(), $this->GetY(), 25, 0, 'PNG');
-                                    $this->Ln(12); // Espace réduit après l'image
+                                    // Signature client réduite (20mm) pour un rendu proportionnel et harmonieux
+                                    error_log("PDF Generation Legacy: Signature client " . ($i + 1) . " - Format: $imageFormat, Ajoutée avec taille réduite (20mm)");
+                                    $this->Image($tempFile, $this->GetX(), $this->GetY(), 20, 0, $imageFormat);
+                                    $this->Ln(10); // Espace réduit après l'image
                                 } catch (Exception $e) {
                                     // Log l'erreur mais continue la génération du PDF
                                     error_log("PDF Generation Legacy: ERREUR lors du rendu de la signature: " . $e->getMessage());
@@ -709,8 +757,10 @@ class ContratBailPDF extends TCPDF {
                         error_log("PDF Generation Legacy: Décodage base64 invalide pour la signature du locataire");
                     }
                 } else {
-                    error_log("PDF Generation Legacy: Format de signature invalide (doit être data:image/png;base64)");
+                    error_log("PDF Generation Legacy: Format de signature invalide (doit être data:image/png ou data:image/jpeg;base64)");
                 }
+            } else {
+                error_log("PDF Generation Legacy: Signature client " . ($i + 1) . " - Non disponible (champ vide)");
             }
             
             // Horodatage et IP si disponibles

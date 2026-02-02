@@ -125,8 +125,18 @@ function generateBailHTML($contrat, $locataires) {
             padding: 10px;
         }
         .signature-image {
-            max-width: 250px;
-            padding: 5px;
+            max-width: 80px;
+            max-height: 40px;
+            border: 0;
+            border-style: none;
+            background: transparent;
+        }
+        .company-signature {
+            max-width: 100px;
+            max-height: 50px;
+            border: 0;
+            border-style: none;
+            background: transparent;
         }
         .footer {
             margin-top: 40px;
@@ -310,7 +320,7 @@ function generateBailHTML($contrat, $locataires) {
     if ($isValidated && $signatureEnabled === 'true' && !empty($signatureImage)) {
         $html .= '
         <p><strong>Signature électronique</strong></p>
-        <img src="' . htmlspecialchars($signatureImage) . '" alt="Signature Société" class="signature-image"><br>
+        <img src="' . htmlspecialchars($signatureImage) . '" alt="Signature Société" class="company-signature" style="max-width: 100px; max-height: 50px; border: 0; border-style: none; background: transparent;"><br>
         <p><strong>Validé le :</strong> ' . formatDateFr($contrat['date_validation'], 'd/m/Y à H:i:s') . '</p>';
     } else {
         $html .= '
@@ -323,16 +333,27 @@ function generateBailHTML($contrat, $locataires) {
     
     <div class="signature-block">';
     
+    $nbLocataires = count($locataires);
     foreach ($locataires as $i => $locataire) {
+        // Adapter le label selon le nombre de locataires
+        // Si un seul locataire: "Le locataire" sans numéro
+        // Si plusieurs locataires: "Le locataire 1", "Le locataire 2", etc.
+        if ($nbLocataires === 1) {
+            $locataireLabel = 'Le locataire';
+        } else {
+            $locataireLabel = 'Le locataire ' . ($i + 1);
+        }
+        
         $html .= '
         <div class="signature-item">
-            <h3>Le locataire ' . ($i > 0 ? ($i + 1) : '') . '</h3>
+            <h3>' . $locataireLabel . '</h3>
             <p><strong>Nom et prénom :</strong> ' . htmlspecialchars($locataire['prenom']) . ' ' . htmlspecialchars($locataire['nom']) . '</p>
             <p><strong>Mention à saisir :</strong> ' . htmlspecialchars($locataire['mention_lu_approuve']) . '</p>
             <p><strong>Signature</strong></p>';
         
         if ($locataire['signature_data']) {
-            $html .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" alt="Signature" class="signature-image"><br>';
+            // Signature avec taille réduite (80px max) et sans bordure
+            $html .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" alt="Signature" style="max-width: 80px; max-height: 40px; border: 0; border-style: none; background: transparent;"><br>';
         }
         
         $html .= '<p><strong>Horodatage :</strong> ' . formatDateFr($locataire['signature_timestamp'], 'd/m/Y à H:i:s') . '<br>
