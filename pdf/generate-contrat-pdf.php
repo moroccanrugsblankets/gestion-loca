@@ -51,7 +51,10 @@ function generateContratPDF($contratId) {
         
         // Récupérer la template HTML depuis la configuration
         $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'contrat_template_html'");
-        $stmt->execute();
+        if (!$stmt || !$stmt->execute()) {
+            error_log("Erreur récupération template HTML pour contrat #$contratId");
+            return generateContratPDFLegacy($contratId, $contrat, $locataires);
+        }
         $templateHtml = $stmt->fetchColumn();
         
         // Si pas de template, utiliser le template par défaut ou l'ancien système
@@ -114,7 +117,13 @@ function replaceTemplateVariables($template, $contrat, $locataires) {
     // Préparer les informations des locataires
     $locatairesInfo = [];
     foreach ($locataires as $i => $loc) {
-        $dateNaissance = isset($loc['date_naissance']) ? date('d/m/Y', strtotime($loc['date_naissance'])) : 'N/A';
+        $dateNaissance = 'N/A';
+        if (isset($loc['date_naissance']) && !empty($loc['date_naissance'])) {
+            $timestamp = strtotime($loc['date_naissance']);
+            if ($timestamp !== false) {
+                $dateNaissance = date('d/m/Y', $timestamp);
+            }
+        }
         $locatairesInfo[] = htmlspecialchars($loc['prenom']) . ' ' . htmlspecialchars($loc['nom']) . 
                            ', né(e) le ' . $dateNaissance . '<br>' .
                            'Email : ' . htmlspecialchars($loc['email']);
@@ -136,16 +145,23 @@ function replaceTemplateVariables($template, $contrat, $locataires) {
         
         // Afficher la signature si disponible
         if (!empty($locataire['signature_data'])) {
-            // Valider que c'est un data URI valide (ne pas échapper pour préserver le base64)
-            if (preg_match('/^data:image\/(png|jpeg|jpg);base64,/', $locataire['signature_data'])) {
-                $sig .= '<p><img src="' . $locataire['signature_data'] . '" alt="Signature" style="max-width: 200px; border: 1px solid #ddd; padding: 5px;"></p>';
+            // Valider que c'est un data URI valide avec limite de taille (max 5MB en base64)
+            if (preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $locataire['signature_data'], $matches)) {
+                $base64Data = $matches[2];
+                // Vérifier la taille approximative (base64 est ~33% plus grand que les données brutes)
+                if (strlen($base64Data) < 5 * 1024 * 1024 * 4/3) {
+                    $sig .= '<p><img src="' . $locataire['signature_data'] . '" alt="Signature" style="max-width: 200px; border: 1px solid #ddd; padding: 5px;"></p>';
+                }
             }
         }
         
         // Horodatage et IP
         if (!empty($locataire['signature_timestamp'])) {
-            $timestamp = date('d/m/Y à H:i:s', strtotime($locataire['signature_timestamp']));
-            $sig .= '<p style="font-size: 8pt; color: #666;"><em>Horodatage : ' . $timestamp . '</em></p>';
+            $timestamp = strtotime($locataire['signature_timestamp']);
+            if ($timestamp !== false) {
+                $formattedTimestamp = date('d/m/Y à H:i:s', $timestamp);
+                $sig .= '<p style="font-size: 8pt; color: #666;"><em>Horodatage : ' . $formattedTimestamp . '</em></p>';
+            }
         }
         if (!empty($locataire['signature_ip'])) {
             $sig .= '<p style="font-size: 8pt; color: #666;"><em>Adresse IP : ' . htmlspecialchars($locataire['signature_ip']) . '</em></p>';
@@ -165,28 +181,43 @@ function replaceTemplateVariables($template, $contrat, $locataires) {
         $signatureEnabled = getParametreValue('signature_societe_enabled') === 'true';
         
         if ($signatureEnabled && !empty($signatureImage)) {
-            // Valider que c'est un data URI valide (ne pas échapper pour préserver le base64)
-            if (preg_match('/^data:image\/(png|jpeg|jpg);base64,/', $signatureImage)) {
-                $signatureAgence = '<div style="margin-top: 20px;">';
-                $signatureAgence .= '<p><strong>Signature électronique de la société</strong></p>';
-                $signatureAgence .= '<p><img src="' . $signatureImage . '" alt="Signature Société" style="max-width: 200px; border: 1px solid #ddd; padding: 5px;"></p>';
-                if (!empty($contrat['date_validation'])) {
-                    $dateValidation = date('d/m/Y à H:i:s', strtotime($contrat['date_validation']));
-                    $signatureAgence .= '<p style="font-size: 8pt; color: #666;"><em>Validé le : ' . $dateValidation . '</em></p>';
+            // Valider que c'est un data URI valide avec limite de taille (max 2MB en base64)
+            if (preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $signatureImage, $matches)) {
+                $base64Data = $matches[2];
+                // Vérifier la taille approximative (base64 est ~33% plus grand que les données brutes)
+                if (strlen($base64Data) < 2 * 1024 * 1024 * 4/3) {
+                    $signatureAgence = '<div style="margin-top: 20px;">';
+                    $signatureAgence .= '<p><strong>Signature électronique de la société</strong></p>';
+                    $signatureAgence .= '<p><img src="' . $signatureImage . '" alt="Signature Société" style="max-width: 200px; border: 1px solid #ddd; padding: 5px;"></p>';
+                    if (!empty($contrat['date_validation'])) {
+                        $validationTimestamp = strtotime($contrat['date_validation']);
+                        if ($validationTimestamp !== false) {
+                            $dateValidation = date('d/m/Y à H:i:s', $validationTimestamp);
+                            $signatureAgence .= '<p style="font-size: 8pt; color: #666;"><em>Validé le : ' . $dateValidation . '</em></p>';
+                        }
+                    }
+                    $signatureAgence .= '</div>';
                 }
-                $signatureAgence .= '</div>';
             }
         }
     }
     
     // Préparer les dates
-    $dateSignature = isset($contrat['date_signature']) && $contrat['date_signature']
-        ? date('d/m/Y', strtotime($contrat['date_signature']))
-        : '___________';
+    $dateSignature = '___________';
+    if (isset($contrat['date_signature']) && !empty($contrat['date_signature'])) {
+        $timestamp = strtotime($contrat['date_signature']);
+        if ($timestamp !== false) {
+            $dateSignature = date('d/m/Y', $timestamp);
+        }
+    }
     
-    $datePriseEffet = isset($contrat['date_prise_effet']) && $contrat['date_prise_effet']
-        ? date('d/m/Y', strtotime($contrat['date_prise_effet']))
-        : '___________';
+    $datePriseEffet = '___________';
+    if (isset($contrat['date_prise_effet']) && !empty($contrat['date_prise_effet'])) {
+        $timestamp = strtotime($contrat['date_prise_effet']);
+        if ($timestamp !== false) {
+            $datePriseEffet = date('d/m/Y', $timestamp);
+        }
+    }
     
     // Préparer les montants
     $loyer = number_format($contrat['loyer'], 2, ',', ' ');
