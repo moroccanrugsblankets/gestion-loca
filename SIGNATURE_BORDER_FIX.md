@@ -3,7 +3,7 @@
 ## Problème Initial / Initial Problem
 
 **En français:**
-> "tjrs probleme d'ajout de signature après validation !"
+> "tjrs problème d'ajout de signature après validation !"
 > "aussi la signature du client est tjrs dans bloc avec border !"
 
 **Traduction:**
@@ -13,7 +13,7 @@
 ## Analyse / Analysis
 
 ### Problème 1: Bordures grises autour des signatures client dans les PDFs
-**Location:** `pdf/generate-bail.php` ligne 126
+**Location:** `pdf/generate-bail.php` classe CSS `.signature-item`
 
 **Avant (Before):**
 ```css
@@ -40,7 +40,7 @@
 ---
 
 ### Problème 2: Fond blanc sur les aperçus de signature dans l'admin
-**Location:** `admin-v2/contrat-detail.php` ligne 307-313
+**Location:** `admin-v2/contrat-detail.php` classe CSS `.signature-preview`
 
 **Avant (Before):**
 ```css
@@ -162,10 +162,10 @@ Résumé des corrections:
 ### Fichiers modifiés / Modified Files:
 
 1. **`pdf/generate-bail.php`**
-   - Ligne 126: Suppression de `border: 1px solid #ccc;` dans `.signature-item`
+   - Suppression de `border: 1px solid #ccc;` dans la classe CSS `.signature-item`
 
 2. **`admin-v2/contrat-detail.php`**
-   - Lignes 307-313: Suppression de `background: white;` dans `.signature-preview`
+   - Suppression de `background: white;` dans la classe CSS `.signature-preview`
    - Réduction du padding de 10px à 5px
 
 ### Fichiers créés / Created Files:
