@@ -238,6 +238,14 @@ $templates = $stmt->fetchAll(PDO::FETCH_ASSOC);
             content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }',
             branding: false,
             promotion: false,
+            // Preserve full HTML document structure including <html>, <head>, <style> tags
+            verify_html: false,
+            extended_valid_elements: 'style,link[href|rel],head,html[lang],meta[*],body[*]',
+            valid_children: '+body[style],+head[style]',
+            // Don't remove tags or attributes
+            forced_root_block: false,
+            // Preserve DOCTYPE and full document structure
+            doctype: '<!DOCTYPE html>',
             setup: function(editor) {
                 editor.on('init', function() {
                     console.log('TinyMCE initialized successfully');
