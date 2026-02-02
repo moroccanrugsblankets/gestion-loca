@@ -109,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // Capture resized image as base64
             ob_start();
             if ($file['type'] === 'image/png') {
-                imagepng($resizedImage, null, 6); // Good compression balance (file size vs speed)
+                imagepng($resizedImage, null, 6); // PNG compression level 6 (0-9): balance between file size and speed
                 $mimeType = 'image/png';
             } else {
                 imagejpeg($resizedImage, null, 90); // High quality JPEG
