@@ -308,8 +308,7 @@ if ($contrat['validated_by']) {
             max-width: 300px;
             max-height: 150px;
             border-radius: 4px;
-            padding: 10px;
-            background: white;
+            padding: 5px;
         }
         .action-section {
             background: #e8f4f8;
