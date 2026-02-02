@@ -17,22 +17,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Node.js (si nécessaire)
-        uses: actions/setup-node@v3
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
         with:
-          node-version: '18'
+          php-version: '8.1'
 
-      - name: Install dependencies
+      - name: Validate PHP syntax
         run: |
-          if [ -f package.json ]; then
-            npm install
-          fi
+          find . -type f -name "*.php" -exec php -l {} \;
 
       - name: Run tests
         run: |
-          echo "Lancement des tests..."
-          # Ici tu peux mettre tes scripts PHP ou JS pour valider les changements
-          php -l pdf/*.php || true
+          echo "Tests en cours..."
+          # Ici tu peux lancer tes scripts de validation PDF ou signature
+          php pdf/test_signature.php || true
 
       - name: Confirm Copilot changes
         run: echo "Les modifications proposées par Copilot ont été intégrées et validées."
