@@ -69,7 +69,7 @@ function generateContratPDF($contratId) {
         }
         
         // Remplacer les variables dans la template
-        $html = replaceTemplateVariables($templateHtml, $contrat, $locataires);
+        $html = replaceContratTemplateVariables($templateHtml, $contrat, $locataires);
         
         // Créer le PDF avec TCPDF
         $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
@@ -110,13 +110,13 @@ function generateContratPDF($contratId) {
 }
 
 /**
- * Remplacer les variables dans la template HTML
+ * Remplacer les variables dans la template HTML du contrat
  * @param string $template Template HTML avec variables {{variable}}
  * @param array $contrat Données du contrat
  * @param array $locataires Liste des locataires
  * @return string HTML avec variables remplacées
  */
-function replaceTemplateVariables($template, $contrat, $locataires) {
+function replaceContratTemplateVariables($template, $contrat, $locataires) {
     global $config;
     
     // Préparer les informations des locataires
