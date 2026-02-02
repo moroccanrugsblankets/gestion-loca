@@ -7,7 +7,7 @@
 
 **Solution:** 
 - Modifié `pdf/generate-contrat-pdf.php` ligne 210
-- Modifié `pdf/generate-bail.php` ligne 370
+- Modifié `pdf/generate-bail.php` ligne 381
 - Nouvelle dimension: 60x30px (client) / 80x40px (agence - déjà correct)
 
 **Fichiers modifiés:**
@@ -96,7 +96,7 @@ function generateBailPDF($contratId) {
 }
 ```
 
-**Ligne 369-371:** Changement de dimensions signature client
+**Ligne 381-382:** Changement de dimensions signature client
 ```php
 // AVANT
 max-width: 40px; max-height: 20px;
