@@ -22,6 +22,9 @@ define('MAX_COMPANY_SIGNATURE_SIZE', 2 * 1024 * 1024); // 2 MB pour signature so
 function generateContratPDF($contratId) {
     global $config, $pdo;
     
+    // Validate contract ID
+    $contratId = (int)$contratId;
+    
     error_log("=== PDF Generation START pour contrat #$contratId ===");
     
     try {
