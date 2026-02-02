@@ -56,14 +56,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $stmt->execute($params);
         
         // Regenerate PDF with company signature now that contract is validated
+        error_log("Contract Validation: Régénération du PDF pour contrat #$contractId après validation");
         require_once __DIR__ . '/../pdf/generate-bail.php';
         $pdfPath = generateBailPDF($contractId);
         
         // Check if PDF generation was successful
         if (!$pdfPath) {
-            error_log("PDF regeneration failed - generateBailPDF returned false for contract ID: $contractId");
+            error_log("Contract Validation: ERREUR - La régénération du PDF a échoué (generateBailPDF a retourné false) pour contrat #$contractId");
         } elseif (!file_exists($pdfPath)) {
-            error_log("PDF regeneration failed - file not found: $pdfPath for contract ID: $contractId");
+            error_log("Contract Validation: ERREUR - Le PDF régénéré n'existe pas: $pdfPath pour contrat #$contractId");
+        } else {
+            error_log("Contract Validation: PDF régénéré avec succès: $pdfPath pour contrat #$contractId");
         }
         
         // Get contract and tenant details for emails
