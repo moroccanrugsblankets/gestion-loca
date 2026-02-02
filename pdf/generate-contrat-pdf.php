@@ -49,6 +49,185 @@ function generateContratPDF($contratId) {
             return false;
         }
         
+        // Récupérer la template HTML depuis la configuration
+        $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'contrat_template_html'");
+        $stmt->execute();
+        $templateHtml = $stmt->fetchColumn();
+        
+        // Si pas de template, utiliser le template par défaut ou l'ancien système
+        if (empty($templateHtml)) {
+            error_log("Aucune template HTML trouvée, utilisation du système par défaut");
+            return generateContratPDFLegacy($contratId, $contrat, $locataires);
+        }
+        
+        // Remplacer les variables dans la template
+        $html = replaceTemplateVariables($templateHtml, $contrat, $locataires);
+        
+        // Créer le PDF avec TCPDF
+        $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+        $pdf->SetCreator('MY INVEST IMMOBILIER');
+        $pdf->SetAuthor('MY INVEST IMMOBILIER');
+        $pdf->SetTitle('Contrat de Bail - ' . $contrat['reference_unique']);
+        $pdf->SetSubject('Contrat de Location Meublée');
+        
+        // Configuration
+        $pdf->SetMargins(15, 15, 15);
+        $pdf->SetAutoPageBreak(true, 15);
+        $pdf->SetHeaderMargin(0);
+        $pdf->SetFooterMargin(0);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->AddPage();
+        
+        // Convertir HTML en PDF
+        $pdf->writeHTML($html, true, false, true, false, '');
+        
+        // Sauvegarder le PDF
+        $filename = 'bail-' . $contrat['reference_unique'] . '.pdf';
+        $pdfDir = dirname(__DIR__) . '/pdf/contrats/';
+        
+        if (!is_dir($pdfDir)) {
+            mkdir($pdfDir, 0755, true);
+        }
+        
+        $filepath = $pdfDir . $filename;
+        $pdf->Output($filepath, 'F');
+        
+        return $filepath;
+        
+    } catch (Exception $e) {
+        error_log("Erreur génération PDF contrat #$contratId: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Remplacer les variables dans la template HTML
+ * @param string $template Template HTML avec variables {{variable}}
+ * @param array $contrat Données du contrat
+ * @param array $locataires Liste des locataires
+ * @return string HTML avec variables remplacées
+ */
+function replaceTemplateVariables($template, $contrat, $locataires) {
+    global $config;
+    
+    // Préparer les informations des locataires
+    $locatairesInfo = [];
+    foreach ($locataires as $i => $loc) {
+        $dateNaissance = isset($loc['date_naissance']) ? date('d/m/Y', strtotime($loc['date_naissance'])) : 'N/A';
+        $locatairesInfo[] = htmlspecialchars($loc['prenom']) . ' ' . htmlspecialchars($loc['nom']) . 
+                           ', né(e) le ' . $dateNaissance . '<br>' .
+                           'Email : ' . htmlspecialchars($loc['email']);
+    }
+    $locatairesInfoHtml = implode('<br>', $locatairesInfo);
+    
+    // Préparer les signatures des locataires
+    $locatairesSignatures = [];
+    foreach ($locataires as $i => $locataire) {
+        $sig = '<div style="margin-bottom: 20px;">';
+        $sig .= '<p><strong>Locataire ' . ($i + 1) . ' : ' . htmlspecialchars($locataire['prenom']) . ' ' . htmlspecialchars($locataire['nom']) . '</strong></p>';
+        
+        // Mention "Lu et approuvé"
+        if (!empty($locataire['mention_lu_approuve'])) {
+            $sig .= '<p>' . htmlspecialchars($locataire['mention_lu_approuve']) . '</p>';
+        } else {
+            $sig .= '<p>Lu et approuvé</p>';
+        }
+        
+        // Afficher la signature si disponible
+        if (!empty($locataire['signature_data'])) {
+            $sig .= '<p><img src="' . htmlspecialchars($locataire['signature_data']) . '" alt="Signature" style="max-width: 200px; border: 1px solid #ddd; padding: 5px;"></p>';
+        }
+        
+        // Horodatage et IP
+        if (!empty($locataire['signature_timestamp'])) {
+            $timestamp = date('d/m/Y à H:i:s', strtotime($locataire['signature_timestamp']));
+            $sig .= '<p style="font-size: 8pt; color: #666;"><em>Horodatage : ' . $timestamp . '</em></p>';
+        }
+        if (!empty($locataire['signature_ip'])) {
+            $sig .= '<p style="font-size: 8pt; color: #666;"><em>Adresse IP : ' . htmlspecialchars($locataire['signature_ip']) . '</em></p>';
+        }
+        
+        $sig .= '</div>';
+        $locatairesSignatures[] = $sig;
+    }
+    $locatairesSignaturesHtml = implode('', $locatairesSignatures);
+    
+    // Préparer la signature de l'agence (si contrat validé)
+    $signatureAgence = '';
+    if (isset($contrat['statut']) && $contrat['statut'] === 'valide') {
+        // Récupérer les paramètres de signature
+        require_once __DIR__ . '/../includes/functions.php';
+        $signatureImage = getParametreValue('signature_societe_image');
+        $signatureEnabled = getParametreValue('signature_societe_enabled') === 'true';
+        
+        if ($signatureEnabled && !empty($signatureImage)) {
+            $signatureAgence = '<div style="margin-top: 20px;">';
+            $signatureAgence .= '<p><strong>Signature électronique de la société</strong></p>';
+            $signatureAgence .= '<p><img src="' . htmlspecialchars($signatureImage) . '" alt="Signature Société" style="max-width: 200px; border: 1px solid #ddd; padding: 5px;"></p>';
+            if (!empty($contrat['date_validation'])) {
+                $dateValidation = date('d/m/Y à H:i:s', strtotime($contrat['date_validation']));
+                $signatureAgence .= '<p style="font-size: 8pt; color: #666;"><em>Validé le : ' . $dateValidation . '</em></p>';
+            }
+            $signatureAgence .= '</div>';
+        }
+    }
+    
+    // Préparer les dates
+    $dateSignature = isset($contrat['date_signature']) && $contrat['date_signature']
+        ? date('d/m/Y', strtotime($contrat['date_signature']))
+        : date('d/m/Y');
+    
+    $datePriseEffet = isset($contrat['date_prise_effet']) && $contrat['date_prise_effet']
+        ? date('d/m/Y', strtotime($contrat['date_prise_effet']))
+        : '___________';
+    
+    // Préparer les montants
+    $loyer = number_format($contrat['loyer'], 2, ',', ' ');
+    $charges = number_format($contrat['charges'], 2, ',', ' ');
+    $loyerTotal = number_format($contrat['loyer'] + $contrat['charges'], 2, ',', ' ');
+    $depotGarantie = number_format($contrat['depot_garantie'], 2, ',', ' ');
+    
+    // Récupérer IBAN et BIC depuis la config
+    $iban = isset($config['IBAN']) ? $config['IBAN'] : 'FR76 1027 8021 6000 0206 1834 585';
+    $bic = isset($config['BIC']) ? $config['BIC'] : 'CMCIFR2A';
+    
+    // Map des variables à remplacer
+    $variables = [
+        '{{reference_unique}}' => htmlspecialchars($contrat['reference_unique']),
+        '{{locataires_info}}' => $locatairesInfoHtml,
+        '{{locataires_signatures}}' => $locatairesSignaturesHtml,
+        '{{signature_agence}}' => $signatureAgence,
+        '{{adresse}}' => htmlspecialchars($contrat['adresse']),
+        '{{appartement}}' => htmlspecialchars($contrat['appartement']),
+        '{{type}}' => htmlspecialchars($contrat['type']),
+        '{{surface}}' => htmlspecialchars($contrat['surface']),
+        '{{parking}}' => htmlspecialchars($contrat['parking']),
+        '{{date_prise_effet}}' => $datePriseEffet,
+        '{{date_signature}}' => $dateSignature,
+        '{{loyer}}' => $loyer,
+        '{{charges}}' => $charges,
+        '{{loyer_total}}' => $loyerTotal,
+        '{{depot_garantie}}' => $depotGarantie,
+        '{{iban}}' => htmlspecialchars($iban),
+        '{{bic}}' => htmlspecialchars($bic),
+    ];
+    
+    // Remplacer toutes les variables
+    $html = str_replace(array_keys($variables), array_values($variables), $template);
+    
+    return $html;
+}
+
+/**
+ * Générer le PDF avec l'ancien système (legacy)
+ * @param int $contratId ID du contrat
+ * @param array $contrat Données du contrat
+ * @param array $locataires Liste des locataires
+ * @return string|false Chemin du fichier PDF généré ou false en cas d'erreur
+ */
+function generateContratPDFLegacy($contratId, $contrat, $locataires) {
+    try {
         // Créer le PDF
         $pdf = new ContratBailPDF();
         $pdf->SetCreator('MY INVEST IMMOBILIER');
@@ -78,7 +257,7 @@ function generateContratPDF($contratId) {
         return $filepath;
         
     } catch (Exception $e) {
-        error_log("Erreur génération PDF contrat #$contratId: " . $e->getMessage());
+        error_log("Erreur génération PDF (legacy) contrat #$contratId: " . $e->getMessage());
         return false;
     }
 }
