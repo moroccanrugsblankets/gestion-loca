@@ -301,12 +301,28 @@ function generateBailHTML($contrat, $locataires) {
         <h3>Le bailleur</h3>
         <p><strong>MY Invest Immobilier (SCI)</strong><br>
         Représentée par Maxime Alexandre<br>
-        Lu et approuvé<br>
-        Signature<br>
-        (Horodatage + adresse IP + tampon signé)</p>
+        Lu et approuvé</p>';
+    
+    // Add company signature if contract is validated and signature is enabled
+    $signatureEnabled = getParameter('signature_societe_enabled', 'false');
+    $signatureImage = getParameter('signature_societe_image', '');
+    $isValidated = ($contrat['statut'] === 'valide' && !empty($contrat['date_validation']));
+    
+    if ($isValidated && $signatureEnabled === 'true' && !empty($signatureImage)) {
+        $html .= '
+        <p><strong>Signature électronique</strong></p>
+        <img src="' . htmlspecialchars($signatureImage) . '" alt="Signature Société" class="signature-image"><br>
+        <p><strong>Validé le :</strong> ' . formatDateFr($contrat['date_validation'], 'd/m/Y à H:i:s') . '</p>';
+    } else {
+        $html .= '
+        <p>Signature<br>
+        (Horodatage + adresse IP + tampon signé)</p>';
+    }
+    
+    $html .= '
     </div>
     
-    <div class="signature-block">';
+    <div class="signature-block">;
     
     foreach ($locataires as $i => $locataire) {
         $html .= '
