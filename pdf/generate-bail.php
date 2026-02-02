@@ -16,7 +16,7 @@ require_once __DIR__ . '/generate-contrat-pdf.php';
  * @return string|false Chemin du fichier PDF généré
  */
 function generateBailPDF($contratId) {
-    // Cast contract ID to integer to prevent injection
+    // Cast to integer and validate (SQL injection is prevented by prepared statements used later)
     $contratId = (int)$contratId;
     
     // Return early if invalid ID
