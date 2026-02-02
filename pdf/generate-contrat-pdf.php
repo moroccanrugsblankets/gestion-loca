@@ -22,7 +22,7 @@ define('MAX_COMPANY_SIGNATURE_SIZE', 2 * 1024 * 1024); // 2 MB pour signature so
 function generateContratPDF($contratId) {
     global $config, $pdo;
     
-    // Validate input: cast to integer and ensure positive value (SQL injection prevented by prepared statements)
+    // Validate and sanitize contract ID: ensure it's a positive integer
     $originalId = $contratId;
     $contratId = (int)$contratId;
     
