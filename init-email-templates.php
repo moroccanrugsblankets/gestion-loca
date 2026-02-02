@@ -47,20 +47,13 @@ $templates = [
 <html>
 <head>
     <meta charset="UTF-8">
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #2c3e50; color: white; padding: 20px; text-align: center; }
-        .content { background: #f8f9fa; padding: 30px; }
-        .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
-    </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #2c3e50; color: white; padding: 20px; text-align: center;">
             <h1>MY Invest Immobilier</h1>
         </div>
-        <div class="content">
+        <div style="background: #f8f9fa; padding: 30px;">
             <h2>Bonjour {{prenom}} {{nom}},</h2>
             
             <p>Nous vous confirmons la bonne réception de votre candidature pour le logement <strong>{{logement}}</strong>.</p>
@@ -73,7 +66,7 @@ $templates = [
             
             {{signature}}
         </div>
-        <div class="footer">
+        <div style="text-align: center; padding: 20px; font-size: 12px; color: #666;">
             <p>Date de soumission : {{date}}</p>
         </div>
     </div>
@@ -91,34 +84,25 @@ $templates = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
-        .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center; }
-        .header h1 { margin: 0; font-size: 28px; }
-        .content { padding: 30px; }
-        .content p { margin: 15px 0; }
-        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e9ecef; }
-    </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>MY Invest Immobilier</h1>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0;">
+    <div style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px;">MY Invest Immobilier</h1>
         </div>
-        <div class="content">
-            <p>Bonjour,</p>
+        <div style="padding: 30px;">
+            <p style="margin: 15px 0;">Bonjour,</p>
             
-            <p>Nous vous remercions pour l\'intérêt que vous portez à notre logement et pour votre candidature.</p>
+            <p style="margin: 15px 0;">Nous vous remercions pour l\'intérêt que vous portez à notre logement et pour votre candidature.</p>
             
-            <p>Après une première analyse de votre dossier, nous avons le plaisir de vous informer qu\'il a été retenu pour la suite du processus.<br>
+            <p style="margin: 15px 0;">Après une première analyse de votre dossier, nous avons le plaisir de vous informer qu\'il a été retenu pour la suite du processus.<br>
             Nous reviendrons vers vous prochainement afin de convenir ensemble d\'une date de visite.</p>
             
-            <p>Nous vous remercions encore pour votre démarche et restons à votre disposition pour toute information complémentaire.</p>
+            <p style="margin: 15px 0;">Nous vous remercions encore pour votre démarche et restons à votre disposition pour toute information complémentaire.</p>
             
             {{signature}}
         </div>
-        <div class="footer">
+        <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e9ecef;">
             <p>MY Invest Immobilier - Gestion locative professionnelle</p>
         </div>
     </div>
@@ -136,33 +120,24 @@ $templates = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
-        .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center; }
-        .header h1 { margin: 0; font-size: 28px; }
-        .content { padding: 30px; }
-        .content p { margin: 15px 0; }
-        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e9ecef; }
-    </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>MY Invest Immobilier</h1>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0;">
+    <div style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px;">MY Invest Immobilier</h1>
         </div>
-        <div class="content">
-            <p>Bonjour,</p>
+        <div style="padding: 30px;">
+            <p style="margin: 15px 0;">Bonjour,</p>
             
-            <p>Nous vous remercions pour l\'intérêt que vous portez à notre logement et pour le temps consacré à votre candidature.</p>
+            <p style="margin: 15px 0;">Nous vous remercions pour l\'intérêt que vous portez à notre logement et pour le temps consacré à votre candidature.</p>
             
-            <p>Après étude de l\'ensemble des dossiers reçus, nous vous informons que nous ne donnerons pas suite à votre demande pour ce logement.</p>
+            <p style="margin: 15px 0;">Après étude de l\'ensemble des dossiers reçus, nous vous informons que nous ne donnerons pas suite à votre demande pour ce logement.</p>
             
-            <p>Nous vous remercions pour votre démarche et vous souhaitons pleine réussite dans vos recherches.</p>
+            <p style="margin: 15px 0;">Nous vous remercions pour votre démarche et vous souhaitons pleine réussite dans vos recherches.</p>
             
             {{signature}}
         </div>
-        <div class="footer">
+        <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e9ecef;">
             <p>MY Invest Immobilier - Gestion locative professionnelle</p>
         </div>
     </div>
@@ -179,57 +154,47 @@ $templates = [
 <html>
 <head>
     <meta charset="UTF-8">
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #2c3e50; color: white; padding: 20px; text-align: center; }
-        .content { background: #f8f9fa; padding: 30px; }
-        .info-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        .info-table td { padding: 8px; border-bottom: 1px solid #ddd; }
-        .info-table td:first-child { font-weight: bold; width: 40%; }
-        .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
-    </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #2c3e50; color: white; padding: 20px; text-align: center;">
             <h1>Nouvelle candidature</h1>
         </div>
-        <div class="content">
+        <div style="background: #f8f9fa; padding: 30px;">
             <h2>Candidature reçue</h2>
             
-            <table class="info-table">
+            <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
                 <tr>
-                    <td>Référence</td>
-                    <td>{{reference}}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; width: 40%;">Référence</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{reference}}</td>
                 </tr>
                 <tr>
-                    <td>Candidat</td>
-                    <td>{{prenom}} {{nom}}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; width: 40%;">Candidat</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{prenom}} {{nom}}</td>
                 </tr>
                 <tr>
-                    <td>Email</td>
-                    <td>{{email}}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; width: 40%;">Email</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{email}}</td>
                 </tr>
                 <tr>
-                    <td>Téléphone</td>
-                    <td>{{telephone}}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; width: 40%;">Téléphone</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{telephone}}</td>
                 </tr>
                 <tr>
-                    <td>Logement</td>
-                    <td>{{logement}}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; width: 40%;">Logement</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{logement}}</td>
                 </tr>
                 <tr>
-                    <td>Revenus mensuels</td>
-                    <td>{{revenus}}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; width: 40%;">Revenus mensuels</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{revenus}}</td>
                 </tr>
                 <tr>
-                    <td>Statut professionnel</td>
-                    <td>{{statut_pro}}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; width: 40%;">Statut professionnel</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{statut_pro}}</td>
                 </tr>
                 <tr>
-                    <td>Date de soumission</td>
-                    <td>{{date}}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; width: 40%;">Date de soumission</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{date}}</td>
                 </tr>
             </table>
             
@@ -237,7 +202,7 @@ $templates = [
             
             {{signature}}
         </div>
-        <div class="footer">
+        <div style="text-align: center; padding: 20px; font-size: 12px; color: #666;">
             <p>MY Invest Immobilier - Système de gestion des candidatures</p>
         </div>
     </div>
@@ -255,29 +220,18 @@ $templates = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
-        .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; padding: 30px 20px; text-align: center; }
-        .header h1 { margin: 0; font-size: 24px; }
-        .content { padding: 30px 20px; }
-        .alert-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px; }
-        .info-box { background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px; margin: 20px 0; border-radius: 4px; }
-        .btn { display: inline-block; padding: 15px 30px; background: #667eea; color: #ffffff !important; text-decoration: none; border-radius: 4px; margin: 20px 0; font-weight: bold; }
-        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; }
-    </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>📝 Contrat de Bail à Signer</h1>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0;">
+    <div style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; padding: 30px 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px;">📝 Contrat de Bail à Signer</h1>
         </div>
-        <div class="content">
+        <div style="padding: 30px 20px;">
             <p>Bonjour,</p>
             
             <p>Merci de prendre connaissance de la procédure ci-dessous.</p>
             
-            <div class="alert-box">
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">
                 <strong>⏰ Action immédiate requise</strong><br>
                 Délai de 24 heures à compter de la réception de ce message
             </div>
@@ -290,7 +244,7 @@ $templates = [
                 <li><strong>Le règlement du dépôt de garantie</strong> (2 mois de loyer) par virement bancaire instantané</li>
             </ol>
             
-            <div class="info-box">
+            <div style="background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px; margin: 20px 0; border-radius: 4px;">
                 <p style="margin: 0;"><strong>Important :</strong></p>
                 <ul style="margin: 10px 0 0 0;">
                     <li>La prise d\'effet du bail et la remise des clés interviendront uniquement après réception complète de l\'ensemble des éléments</li>
@@ -299,14 +253,14 @@ $templates = [
             </div>
             
             <div style="text-align: center; margin: 30px 0;">
-                <a href="{{lien_signature}}" class="btn">🖊️ Accéder au Contrat de Bail</a>
+                <a href="{{lien_signature}}" style="display: inline-block; padding: 15px 30px; background: #667eea; color: #ffffff; text-decoration: none; border-radius: 4px; margin: 20px 0; font-weight: bold;">🖊️ Accéder au Contrat de Bail</a>
             </div>
             
             <p>Nous restons à votre disposition en cas de question.</p>
             
             {{signature}}
         </div>
-        <div class="footer">
+        <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666;">
             <p>MY Invest Immobilier - Gestion locative professionnelle</p>
         </div>
     </div>
@@ -323,50 +277,37 @@ $templates = [
 <html>
 <head>
     <meta charset="UTF-8">
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center; border-radius: 10px 10px 0 0; }
-        .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; }
-        .info-box { background: #e8f4f8; border-left: 4px solid #3498db; padding: 15px; margin: 20px 0; border-radius: 4px; }
-        .bank-info { background: #fff; border: 2px solid #3498db; padding: 20px; margin: 20px 0; border-radius: 8px; }
-        .bank-info h3 { color: #2c3e50; margin-top: 0; }
-        .bank-detail { margin: 10px 0; }
-        .bank-detail strong { display: inline-block; min-width: 120px; color: #555; }
-        .highlight { color: #e74c3c; font-weight: bold; }
-        .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; margin-top: 20px; }
-    </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center; border-radius: 10px 10px 0 0;">
             <h1 style="margin: 0;">✅ Contrat de Bail Finalisé</h1>
         </div>
-        <div class="content">
+        <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
             <h2>Bonjour {{prenom}} {{nom}},</h2>
             
             <p>Nous vous remercions pour votre confiance.</p>
             
             <p>Veuillez trouver ci-joint une copie du <strong>contrat de bail dûment complété</strong>.</p>
             
-            <div class="info-box">
+            <div style="background: #e8f4f8; border-left: 4px solid #3498db; padding: 15px; margin: 20px 0; border-radius: 4px;">
                 <strong>📋 Référence du contrat :</strong> {{reference}}
             </div>
             
             <h3>Informations importantes</h3>
             
-            <p>La prise d\'effet du bail intervient après le <span class="highlight">règlement immédiat du dépôt de garantie</span>, correspondant à deux mois de loyer (<strong>{{depot_garantie}}</strong>), par virement bancaire instantané sur le compte suivant :</p>
+            <p>La prise d\'effet du bail intervient après le <span style="color: #e74c3c; font-weight: bold;">règlement immédiat du dépôt de garantie</span>, correspondant à deux mois de loyer (<strong>{{depot_garantie}}</strong>), par virement bancaire instantané sur le compte suivant :</p>
             
-            <div class="bank-info">
-                <h3>Coordonnées Bancaires</h3>
-                <div class="bank-detail">
-                    <strong>Bénéficiaire :</strong> MY Invest Immobilier
+            <div style="background: #fff; border: 2px solid #3498db; padding: 20px; margin: 20px 0; border-radius: 8px;">
+                <h3 style="color: #2c3e50; margin-top: 0;">Coordonnées Bancaires</h3>
+                <div style="margin: 10px 0;">
+                    <strong style="display: inline-block; min-width: 120px; color: #555;">Bénéficiaire :</strong> MY Invest Immobilier
                 </div>
-                <div class="bank-detail">
-                    <strong>IBAN :</strong> FR76 1027 8021 6000 0206 1834 585
+                <div style="margin: 10px 0;">
+                    <strong style="display: inline-block; min-width: 120px; color: #555;">IBAN :</strong> FR76 1027 8021 6000 0206 1834 585
                 </div>
-                <div class="bank-detail">
-                    <strong>BIC :</strong> CMCIFRA
+                <div style="margin: 10px 0;">
+                    <strong style="display: inline-block; min-width: 120px; color: #555;">BIC :</strong> CMCIFRA
                 </div>
             </div>
             
@@ -383,7 +324,7 @@ $templates = [
             
             {{signature}}
         </div>
-        <div class="footer">
+        <div style="text-align: center; padding: 20px; font-size: 12px; color: #666; margin-top: 20px;">
             <p>MY Invest Immobilier - Gestion locative professionnelle<br>
             © 2026 MY Invest Immobilier - Tous droits réservés</p>
         </div>
@@ -401,51 +342,39 @@ $templates = [
 <html>
 <head>
     <meta charset="UTF-8">
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #2c3e50; color: white; padding: 30px 20px; text-align: center; border-radius: 10px 10px 0 0; }
-        .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; }
-        .alert-box { background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; border-radius: 4px; }
-        .info-table { width: 100%; border-collapse: collapse; margin: 20px 0; background: #fff; }
-        .info-table td { padding: 12px; border-bottom: 1px solid #ddd; }
-        .info-table td:first-child { font-weight: bold; width: 40%; background: #f8f9fa; }
-        .button { display: inline-block; padding: 12px 30px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-        .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; margin-top: 20px; }
-    </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #2c3e50; color: white; padding: 30px 20px; text-align: center; border-radius: 10px 10px 0 0;">
             <h1 style="margin: 0;">📝 Contrat Signé - Notification Admin</h1>
         </div>
-        <div class="content">
-            <div class="alert-box">
+        <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+            <div style="background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; border-radius: 4px;">
                 <strong>✅ Nouveau contrat signé !</strong> Un contrat de bail a été finalisé et signé par le(s) locataire(s).
             </div>
             
             <h2>Détails du contrat</h2>
             
-            <table class="info-table">
+            <table style="width: 100%; border-collapse: collapse; margin: 20px 0; background: #fff;">
                 <tr>
-                    <td>Référence</td>
-                    <td><strong>{{reference}}</strong></td>
+                    <td style="padding: 12px; border-bottom: 1px solid #ddd; font-weight: bold; width: 40%; background: #f8f9fa;">Référence</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #ddd;"><strong>{{reference}}</strong></td>
                 </tr>
                 <tr>
-                    <td>Logement</td>
-                    <td>{{logement}}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #ddd; font-weight: bold; width: 40%; background: #f8f9fa;">Logement</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #ddd;">{{logement}}</td>
                 </tr>
                 <tr>
-                    <td>Locataire(s)</td>
-                    <td>{{locataires}}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #ddd; font-weight: bold; width: 40%; background: #f8f9fa;">Locataire(s)</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #ddd;">{{locataires}}</td>
                 </tr>
                 <tr>
-                    <td>Dépôt de garantie</td>
-                    <td>{{depot_garantie}}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #ddd; font-weight: bold; width: 40%; background: #f8f9fa;">Dépôt de garantie</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #ddd;">{{depot_garantie}}</td>
                 </tr>
                 <tr>
-                    <td>Date de finalisation</td>
-                    <td>{{date_finalisation}}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #ddd; font-weight: bold; width: 40%; background: #f8f9fa;">Date de finalisation</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #ddd;">{{date_finalisation}}</td>
                 </tr>
             </table>
             
@@ -458,14 +387,14 @@ $templates = [
             </ol>
             
             <p style="text-align: center;">
-                <a href="{{lien_admin}}" class="button">Voir le Contrat dans l\'Admin</a>
+                <a href="{{lien_admin}}" style="display: inline-block; padding: 12px 30px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">Voir le Contrat dans l\'Admin</a>
             </p>
             
             <p><strong>Note :</strong> Le contrat PDF signé est joint à cet email.</p>
             
             {{signature}}
         </div>
-        <div class="footer">
+        <div style="text-align: center; padding: 20px; font-size: 12px; color: #666; margin-top: 20px;">
             <p>MY Invest Immobilier - Système de gestion des contrats<br>
             © 2026 MY Invest Immobilier</p>
         </div>

@@ -396,41 +396,28 @@ function getCandidatureRecueEmailHTML($prenom, $nom, $logement, $uploaded_count)
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
-        .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; padding: 30px 20px; text-align: center; }
-        .header h1 { margin: 0; font-size: 24px; }
-        .content { padding: 30px 20px; }
-        .info-box { background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px; margin: 20px 0; border-radius: 4px; }
-        .info-box h3 { margin-top: 0; color: #667eea; }
-        .info-item { margin: 10px 0; }
-        .info-item strong { color: #555; }
-        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; }
-        .btn { display: inline-block; padding: 12px 24px; background: #667eea; color: #ffffff; text-decoration: none; border-radius: 4px; margin: 20px 0; }
-    </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>✓ Candidature Reçue</h1>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0;">
+    <div style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; padding: 30px 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px;">✓ Candidature Reçue</h1>
         </div>
-        <div class="content">
+        <div style="padding: 30px 20px;">
             <p>Bonjour <strong>' . htmlspecialchars($prenom . ' ' . $nom) . '</strong>,</p>
             
             <p>Nous avons bien reçu votre candidature pour le logement <strong>' . htmlspecialchars($logement['reference']) . '</strong>.</p>
             
-            <div class="info-box">
-                <h3>📋 Informations de votre candidature</h3>
-                <div class="info-item"><strong>Logement :</strong> ' . htmlspecialchars($logement['reference']) . ' - ' . htmlspecialchars($logement['type']) . '</div>
-                <div class="info-item"><strong>Adresse :</strong> ' . htmlspecialchars($logement['adresse']) . '</div>
-                <div class="info-item"><strong>Loyer :</strong> ' . htmlspecialchars($logement['loyer']) . ' €/mois</div>
-                <div class="info-item"><strong>Documents joints :</strong> ' . $uploaded_count . ' pièce(s) justificative(s)</div>
+            <div style="background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <h3 style="margin-top: 0; color: #667eea;">📋 Informations de votre candidature</h3>
+                <div style="margin: 10px 0;"><strong style="color: #555;">Logement :</strong> ' . htmlspecialchars($logement['reference']) . ' - ' . htmlspecialchars($logement['type']) . '</div>
+                <div style="margin: 10px 0;"><strong style="color: #555;">Adresse :</strong> ' . htmlspecialchars($logement['adresse']) . '</div>
+                <div style="margin: 10px 0;"><strong style="color: #555;">Loyer :</strong> ' . htmlspecialchars($logement['loyer']) . ' €/mois</div>
+                <div style="margin: 10px 0;"><strong style="color: #555;">Documents joints :</strong> ' . $uploaded_count . ' pièce(s) justificative(s)</div>
             </div>
             
             <p>Il est actuellement en cours d\'étude. Une réponse vous sera apportée sous 1 à 4 jours ouvrés.</p>
         </div>
-        <div class="footer">
+        <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666;">
             <p>© ' . date('Y') . ' MY Invest Immobilier - Tous droits réservés</p>
             <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre directement.</p>
         </div>
@@ -456,29 +443,18 @@ function getInvitationSignatureEmailHTML($signatureLink, $adresse, $nb_locataire
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
-        .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; padding: 30px 20px; text-align: center; }
-        .header h1 { margin: 0; font-size: 24px; }
-        .content { padding: 30px 20px; }
-        .alert-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px; }
-        .info-box { background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px; margin: 20px 0; border-radius: 4px; }
-        .btn { display: inline-block; padding: 15px 30px; background: #667eea; color: #ffffff !important; text-decoration: none; border-radius: 4px; margin: 20px 0; font-weight: bold; }
-        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; }
-    </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>📝 Contrat de Bail à Signer</h1>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0;">
+    <div style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; padding: 30px 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px;">📝 Contrat de Bail à Signer</h1>
         </div>
-        <div class="content">
+        <div style="padding: 30px 20px;">
             <p>Bonjour,</p>
             
             <p>Merci de prendre connaissance de la procédure ci-dessous.</p>
             
-            <div class="alert-box">
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">
                 <strong>⏰ Action immédiate requise</strong><br>
                 Délai de 24 heures à compter de la réception de ce message
             </div>
@@ -491,7 +467,7 @@ function getInvitationSignatureEmailHTML($signatureLink, $adresse, $nb_locataire
                 <li><strong>Le règlement du dépôt de garantie</strong> (2 mois de loyer) par virement bancaire instantané</li>
             </ol>
             
-            <div class="info-box">
+            <div style="background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px; margin: 20px 0; border-radius: 4px;">
                 <p style="margin: 0;"><strong>Important :</strong></p>
                 <ul style="margin: 10px 0 0 0;">
                     <li>La prise d\'effet du bail et la remise des clés interviendront uniquement après réception complète de l\'ensemble des éléments</li>
@@ -500,12 +476,12 @@ function getInvitationSignatureEmailHTML($signatureLink, $adresse, $nb_locataire
             </div>
             
             <div style="text-align: center; margin: 30px 0;">
-                <a href="' . htmlspecialchars($signatureLink) . '" class="btn">🖊️ Accéder au Contrat de Bail</a>
+                <a href="' . htmlspecialchars($signatureLink) . '" style="display: inline-block; padding: 15px 30px; background: #667eea; color: #ffffff; text-decoration: none; border-radius: 4px; margin: 20px 0; font-weight: bold;">🖊️ Accéder au Contrat de Bail</a>
             </div>
             
             <p>Nous restons à votre disposition en cas de question.</p>
         </div>
-        <div class="footer">
+        <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666;">
             <p>© ' . date('Y') . ' MY Invest Immobilier - Tous droits réservés</p>
         </div>
     </div>
@@ -580,35 +556,25 @@ function getStatusChangeEmailHTML($nom_complet, $statut, $commentaire = '') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
-        .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; padding: 30px 20px; text-align: center; }
-        .header h1 { margin: 0; font-size: 28px; }
-        .content { padding: 30px; }
-        .content p { margin: 15px 0; }
-        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e9ecef; }
-        .signature { margin-top: 30px; }
-    </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>MY Invest Immobilier</h1>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0;">
+    <div style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; padding: 30px 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px;">MY Invest Immobilier</h1>
         </div>
-        <div class="content">
-            <p>Bonjour,</p>
+        <div style="padding: 30px;">
+            <p style="margin: 15px 0;">Bonjour,</p>
             
-            <p>' . $message . '</p>';
+            <p style="margin: 15px 0;">' . $message . '</p>';
     
     if ($commentaire) {
         $html .= '
-            <p><strong>Note :</strong> ' . nl2br(htmlspecialchars($commentaire)) . '</p>';
+            <p style="margin: 15px 0;"><strong>Note :</strong> ' . nl2br(htmlspecialchars($commentaire)) . '</p>';
     }
     
     $html .= '
         </div>
-        <div class="footer">
+        <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e9ecef;">
             <p>MY Invest Immobilier - Gestion locative professionnelle</p>
         </div>
     </div>
@@ -749,13 +715,13 @@ function getAdminNewCandidatureEmailHTML($candidature, $logement, $nb_documents)
         $linkNegative = $baseUrl . '/candidature/reponse-candidature.php?token=' . urlencode($candidature['response_token']) . '&action=negative';
         
         $responseLinksHtml = '
-            <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107;">
-                <h3 style="color: #856404;">⚡ Actions Rapides</h3>
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <h3 style="margin-top: 0; color: #856404; font-size: 16px;">⚡ Actions Rapides</h3>
                 <div style="text-align: center; margin: 15px 0;">
-                    <a href="' . htmlspecialchars($linkPositive) . '" class="btn" style="background: #28a745; margin: 5px;">
+                    <a href="' . htmlspecialchars($linkPositive) . '" style="display: inline-block; padding: 12px 24px; background: #28a745; color: #ffffff; text-decoration: none; border-radius: 4px; margin: 5px;">
                         ✓ Accepter la candidature
                     </a>
-                    <a href="' . htmlspecialchars($linkNegative) . '" class="btn" style="background: #dc3545; margin: 5px;">
+                    <a href="' . htmlspecialchars($linkNegative) . '" style="display: inline-block; padding: 12px 24px; background: #dc3545; color: #ffffff; text-decoration: none; border-radius: 4px; margin: 5px;">
                         ✗ Refuser la candidature
                     </a>
                 </div>
@@ -768,66 +734,53 @@ function getAdminNewCandidatureEmailHTML($candidature, $logement, $nb_documents)
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
-        .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: #ffffff; padding: 30px 20px; text-align: center; }
-        .header h1 { margin: 0; font-size: 24px; }
-        .content { padding: 30px 20px; }
-        .info-box { background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; border-radius: 4px; }
-        .info-box h3 { margin-top: 0; color: #28a745; font-size: 16px; }
-        .info-item { margin: 8px 0; }
-        .info-item strong { color: #555; display: inline-block; width: 180px; }
-        .btn { display: inline-block; padding: 12px 24px; background: #28a745; color: #ffffff !important; text-decoration: none; border-radius: 4px; margin: 20px 0; }
-        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; }
-    </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🔔 Nouvelle Candidature Reçue</h1>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0;">
+    <div style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: #ffffff; padding: 30px 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px;">🔔 Nouvelle Candidature Reçue</h1>
         </div>
-        <div class="content">
+        <div style="padding: 30px 20px;">
             <p><strong>Une nouvelle candidature vient d\'être soumise.</strong></p>
             
-            <div class="info-box">
-                <h3>👤 Informations du Candidat</h3>
-                <div class="info-item"><strong>Nom :</strong> ' . htmlspecialchars($candidature['nom']) . ' ' . htmlspecialchars($candidature['prenom']) . '</div>
-                <div class="info-item"><strong>Email :</strong> <a href="mailto:' . htmlspecialchars($candidature['email']) . '">' . htmlspecialchars($candidature['email']) . '</a></div>
-                <div class="info-item"><strong>Téléphone :</strong> ' . htmlspecialchars($candidature['telephone']) . '</div>
-                <div class="info-item"><strong>Référence :</strong> ' . htmlspecialchars($candidature['reference']) . '</div>
+            <div style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <h3 style="margin-top: 0; color: #28a745; font-size: 16px;">👤 Informations du Candidat</h3>
+                <div style="margin: 8px 0;"><strong style="color: #555; display: inline-block; width: 180px;">Nom :</strong> ' . htmlspecialchars($candidature['nom']) . ' ' . htmlspecialchars($candidature['prenom']) . '</div>
+                <div style="margin: 8px 0;"><strong style="color: #555; display: inline-block; width: 180px;">Email :</strong> <a href="mailto:' . htmlspecialchars($candidature['email']) . '">' . htmlspecialchars($candidature['email']) . '</a></div>
+                <div style="margin: 8px 0;"><strong style="color: #555; display: inline-block; width: 180px;">Téléphone :</strong> ' . htmlspecialchars($candidature['telephone']) . '</div>
+                <div style="margin: 8px 0;"><strong style="color: #555; display: inline-block; width: 180px;">Référence :</strong> ' . htmlspecialchars($candidature['reference']) . '</div>
             </div>
             
-            <div class="info-box">
-                <h3>🏠 Logement</h3>
-                <div class="info-item"><strong>Référence :</strong> ' . htmlspecialchars($logement['reference']) . '</div>
-                <div class="info-item"><strong>Type :</strong> ' . htmlspecialchars($logement['type']) . '</div>
-                <div class="info-item"><strong>Adresse :</strong> ' . htmlspecialchars($logement['adresse']) . '</div>
-                <div class="info-item"><strong>Loyer :</strong> ' . htmlspecialchars($logement['loyer']) . ' €/mois</div>
+            <div style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <h3 style="margin-top: 0; color: #28a745; font-size: 16px;">🏠 Logement</h3>
+                <div style="margin: 8px 0;"><strong style="color: #555; display: inline-block; width: 180px;">Référence :</strong> ' . htmlspecialchars($logement['reference']) . '</div>
+                <div style="margin: 8px 0;"><strong style="color: #555; display: inline-block; width: 180px;">Type :</strong> ' . htmlspecialchars($logement['type']) . '</div>
+                <div style="margin: 8px 0;"><strong style="color: #555; display: inline-block; width: 180px;">Adresse :</strong> ' . htmlspecialchars($logement['adresse']) . '</div>
+                <div style="margin: 8px 0;"><strong style="color: #555; display: inline-block; width: 180px;">Loyer :</strong> ' . htmlspecialchars($logement['loyer']) . ' €/mois</div>
             </div>
             
-            <div class="info-box">
-                <h3>💼 Situation Professionnelle</h3>
-                <div class="info-item"><strong>Statut :</strong> ' . htmlspecialchars($candidature['statut_professionnel']) . '</div>
-                <div class="info-item"><strong>Période d\'essai :</strong> ' . htmlspecialchars($candidature['periode_essai']) . '</div>
-                <div class="info-item"><strong>Revenus mensuels :</strong> ' . formatRevenus($candidature['revenus_mensuels'] ?? null) . '</div>
-                <div class="info-item"><strong>Type de revenus :</strong> ' . htmlspecialchars($candidature['type_revenus']) . '</div>
+            <div style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <h3 style="margin-top: 0; color: #28a745; font-size: 16px;">💼 Situation Professionnelle</h3>
+                <div style="margin: 8px 0;"><strong style="color: #555; display: inline-block; width: 180px;">Statut :</strong> ' . htmlspecialchars($candidature['statut_professionnel']) . '</div>
+                <div style="margin: 8px 0;"><strong style="color: #555; display: inline-block; width: 180px;">Période d\'essai :</strong> ' . htmlspecialchars($candidature['periode_essai']) . '</div>
+                <div style="margin: 8px 0;"><strong style="color: #555; display: inline-block; width: 180px;">Revenus mensuels :</strong> ' . formatRevenus($candidature['revenus_mensuels'] ?? null) . '</div>
+                <div style="margin: 8px 0;"><strong style="color: #555; display: inline-block; width: 180px;">Type de revenus :</strong> ' . htmlspecialchars($candidature['type_revenus']) . '</div>
             </div>
             
-            <div class="info-box">
-                <h3>📎 Documents</h3>
-                <div class="info-item"><strong>Nombre de pièces :</strong> ' . $nb_documents . ' document(s)</div>
+            <div style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <h3 style="margin-top: 0; color: #28a745; font-size: 16px;">📎 Documents</h3>
+                <div style="margin: 8px 0;"><strong style="color: #555; display: inline-block; width: 180px;">Nombre de pièces :</strong> ' . $nb_documents . ' document(s)</div>
             </div>
             
             ' . $responseLinksHtml . '
             
             <div style="text-align: center; margin: 30px 0;">
-                <a href="' . $config['SITE_URL'] . '/admin-v2/candidature-detail.php?id=' . $candidature['id'] . '" class="btn">
+                <a href="' . $config['SITE_URL'] . '/admin-v2/candidature-detail.php?id=' . $candidature['id'] . '" style="display: inline-block; padding: 12px 24px; background: #28a745; color: #ffffff; text-decoration: none; border-radius: 4px; margin: 20px 0;">
                     Voir la Candidature
                 </a>
             </div>
         </div>
-        <div class="footer">
+        <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666;">
             <p>© ' . date('Y') . ' MY Invest Immobilier - Système de Gestion des Candidatures</p>
         </div>
     </div>
