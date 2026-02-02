@@ -22,6 +22,18 @@ define('MAX_COMPANY_SIGNATURE_SIZE', 2 * 1024 * 1024); // 2 MB pour signature so
 function generateContratPDF($contratId) {
     global $config, $pdo;
     
+    // Validate and sanitize contract ID: ensure it's a positive integer
+    $originalId = $contratId;
+    $contratId = (int)$contratId;
+    
+    // Return early if invalid ID
+    if ($contratId <= 0) {
+        // Sanitize original ID for logging (remove newlines and control characters)
+        $safeOriginalId = preg_replace('/[\x00-\x1F\x7F]/', '', (string)$originalId);
+        error_log("PDF Generation: ERREUR - ID de contrat invalide: '$safeOriginalId' (cast: $contratId)");
+        return false;
+    }
+    
     error_log("=== PDF Generation START pour contrat #$contratId ===");
     
     try {
@@ -205,9 +217,9 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 if (strlen($base64Data) < MAX_TENANT_SIGNATURE_SIZE * BASE64_OVERHEAD_RATIO) {
                     // Log: Signature client traitée avec succès
                     error_log("PDF Generation: Signature client " . ($i + 1) . " - Format: $imageFormat, Taille base64: " . strlen($base64Data) . " octets");
-                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Ajoutée avec taille réduite (40px max), SANS bordure, fond transparent");
-                    // Signature réduite (40px) et sans bordure/background pour un rendu équilibré - réduction de 60px à 40px
-                    $sig .= '<p><img src="' . $locataire['signature_data'] . '" alt="Signature" style="max-width: 40px; max-height: 20px; height: auto; border: 0; border-style: none; outline: none; background: transparent;"></p>';
+                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Ajoutée avec taille équilibrée (60x30px), SANS bordure, fond transparent");
+                    // Signature client avec taille équilibrée (60x30px) et sans bordure/background
+                    $sig .= '<p><img src="' . $locataire['signature_data'] . '" alt="Signature" style="max-width: 60px; max-height: 30px; height: auto; border: 0; border-style: none; outline: none; background: transparent;"></p>';
                 } else {
                     error_log("PDF Generation: AVERTISSEMENT - Signature client " . ($i + 1) . " trop volumineuse (" . strlen($base64Data) . " octets), ignorée");
                 }
