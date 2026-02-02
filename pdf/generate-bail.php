@@ -123,7 +123,6 @@ function generateBailHTML($contrat, $locataires) {
         .signature-item {
             margin-bottom: 20px;
             padding: 10px;
-            border: 1px solid #ccc;
         }
         .signature-image {
             max-width: 250px;
