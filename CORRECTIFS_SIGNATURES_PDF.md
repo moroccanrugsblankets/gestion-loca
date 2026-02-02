@@ -6,8 +6,8 @@
 **Problème:** Les signatures clients apparaissaient à 40x20px au lieu de 60x30px comme spécifié.
 
 **Solution:** 
-- Modifié `pdf/generate-contrat-pdf.php` ligne 210
-- Modifié `pdf/generate-bail.php` ligne 385
+- Modifié `pdf/generate-contrat-pdf.php` ligne 222
+- Modifié `pdf/generate-bail.php` ligne 394
 - Nouvelle dimension: 60x30px (client) / 80x40px (agence - déjà correct)
 
 **Fichiers modifiés:**
@@ -67,7 +67,7 @@ Le code de remplacement est correct et complet:
 ## Modifications effectuées
 
 ### Fichier 1: `pdf/generate-contrat-pdf.php`
-**Ligne 207-210:** Changement de dimensions signature client
+**Ligne 222:** Changement de dimensions signature client
 ```php
 // AVANT
 max-width: 40px; max-height: 20px;
@@ -96,7 +96,7 @@ function generateBailPDF($contratId) {
 }
 ```
 
-**Ligne 384-385:** Changement de dimensions signature client
+**Ligne 394:** Changement de dimensions signature client
 ```php
 // AVANT
 max-width: 40px; max-height: 20px;
