@@ -205,9 +205,9 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 if (strlen($base64Data) < MAX_TENANT_SIGNATURE_SIZE * BASE64_OVERHEAD_RATIO) {
                     // Log: Signature client traitée avec succès
                     error_log("PDF Generation: Signature client " . ($i + 1) . " - Format: $imageFormat, Taille base64: " . strlen($base64Data) . " octets");
-                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Ajoutée avec taille réduite (60px max), SANS bordure, fond transparent");
-                    // Signature réduite (60px) et sans bordure/background pour un rendu équilibré
-                    $sig .= '<p><img src="' . $locataire['signature_data'] . '" alt="Signature" style="max-width: 60px; max-height: 30px; height: auto; border: 0; border-style: none; outline: none; background: transparent;"></p>';
+                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Ajoutée avec taille réduite (40px max), SANS bordure, fond transparent");
+                    // Signature réduite (40px) et sans bordure/background pour un rendu équilibré - réduction de 60px à 40px
+                    $sig .= '<p><img src="' . $locataire['signature_data'] . '" alt="Signature" style="max-width: 40px; max-height: 20px; height: auto; border: 0; border-style: none; outline: none; background: transparent;"></p>';
                 } else {
                     error_log("PDF Generation: AVERTISSEMENT - Signature client " . ($i + 1) . " trop volumineuse (" . strlen($base64Data) . " octets), ignorée");
                 }
@@ -241,13 +241,18 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
     $signatureAgence = '';
     if (isset($contrat['statut']) && $contrat['statut'] === 'valide') {
         error_log("PDF Generation: Contrat validé (statut='valide'), traitement de la signature agence");
+        error_log("PDF Generation: Date validation: " . ($contrat['date_validation'] ?? 'NON DÉFINIE'));
         
         // Récupérer les paramètres de signature depuis la base de données
         require_once __DIR__ . '/../includes/functions.php';
         $signatureImage = getParametreValue('signature_societe_image');
-        $signatureEnabled = getParametreValue('signature_societe_enabled') === 'true';
+        $signatureEnabledRaw = getParametreValue('signature_societe_enabled');
+        $signatureEnabled = toBooleanParam($signatureEnabledRaw);
         
         error_log("PDF Generation: Configuration signature agence - Activée: " . ($signatureEnabled ? 'OUI' : 'NON') . ", Image présente: " . (!empty($signatureImage) ? 'OUI (' . strlen($signatureImage) . ' octets)' : 'NON'));
+        if (!empty($signatureImage)) {
+            error_log("PDF Generation: Début du data URI: " . substr($signatureImage, 0, 50) . '...');
+        }
         
         if ($signatureEnabled && !empty($signatureImage)) {
             // Valider que c'est un data URI valide avec limite de taille
@@ -271,11 +276,15 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                     }
                     $signatureAgence .= '</div>';
                     error_log("PDF Generation: Signature agence AJOUTÉE avec succès au PDF ({{signature_agence}} sera remplacé)");
+                    error_log("PDF Generation: Longueur HTML signature agence: " . strlen($signatureAgence) . " caractères");
                 } else {
                     error_log("PDF Generation: ERREUR - Signature agence trop volumineuse (" . strlen($base64Data) . " octets), ignorée");
                 }
             } else {
                 error_log("PDF Generation: ERREUR - Format de signature agence invalide (n'est pas un data URI image valide)");
+                if (!empty($signatureImage)) {
+                    error_log("PDF Generation: Contenu trouvé (début): " . substr($signatureImage, 0, 100));
+                }
             }
         } else {
             if (!$signatureEnabled) {
@@ -287,7 +296,7 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
     } else {
         error_log("PDF Generation: Contrat NON validé (statut: " . ($contrat['statut'] ?? 'inconnu') . "), signature agence ne sera PAS ajoutée");
     }
-    error_log("PDF Generation: === FIN TRAITEMENT SIGNATURE AGENCE - " . (empty($signatureAgence) ? 'NON GÉNÉRÉE' : 'GÉNÉRÉE') . " ===");
+    error_log("PDF Generation: === FIN TRAITEMENT SIGNATURE AGENCE - " . (empty($signatureAgence) ? 'NON GÉNÉRÉE' : 'GÉNÉRÉE (longueur: ' . strlen($signatureAgence) . ')') . " ===");
     
     // Préparer les dates
     $dateSignature = '___________';
@@ -343,8 +352,27 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
     error_log("PDF Generation: {{signature_agence}} contient " . (empty($variables['{{signature_agence}}']) ? 'VIDE' : strlen($variables['{{signature_agence}}']) . ' caractères'));
     error_log("PDF Generation: {{locataires_signatures}} contient " . strlen($variables['{{locataires_signatures}}']) . ' caractères');
     
+    // Log: Vérifier si {{signature_agence}} est présente dans la template AVANT remplacement
+    $signatureAgencePresent = strpos($template, '{{signature_agence}}') !== false;
+    error_log("PDF Generation: {{signature_agence}} PRÉSENTE dans template: " . ($signatureAgencePresent ? 'OUI' : 'NON'));
+    if ($signatureAgencePresent) {
+        error_log("PDF Generation: Valeur brute de {{signature_agence}} avant remplacement: " . (empty($variables['{{signature_agence}}']) ? '(VIDE)' : substr($variables['{{signature_agence}}'], 0, 200) . '...'));
+    }
+    
     // Remplacer toutes les variables
     $html = str_replace(array_keys($variables), array_values($variables), $template);
+    
+    // Log: Vérifier le résultat du remplacement
+    $signatureAgenceReplaced = strpos($html, '{{signature_agence}}') === false;
+    error_log("PDF Generation: {{signature_agence}} remplacée avec succès: " . ($signatureAgenceReplaced ? 'OUI' : 'NON (reste dans le HTML!)'));
+    if (!$signatureAgenceReplaced) {
+        error_log("PDF Generation: ERREUR - {{signature_agence}} n'a PAS été remplacée dans le HTML final!");
+    }
+    // Log: Vérifier si l'image de signature agence est présente dans le HTML final
+    if (!empty($variables['{{signature_agence}}'])) {
+        $signatureImageInFinal = strpos($html, 'alt="Signature Société"') !== false;
+        error_log("PDF Generation: Image signature agence dans HTML final: " . ($signatureImageInFinal ? 'OUI' : 'NON'));
+    }
     
     // Convertir les chemins d'images relatifs en chemins absolus pour le PDF
     // Gestion des chemins relatifs commençant par ../ ou ./
@@ -628,11 +656,16 @@ class ContratBailPDF extends TCPDF {
         if (isset($contrat['statut']) && $contrat['statut'] === 'valide') {
             error_log("PDF Generation Legacy: === TRAITEMENT SIGNATURE AGENCE ===");
             error_log("PDF Generation Legacy: Contrat validé, ajout de la signature agence");
+            error_log("PDF Generation Legacy: Date validation: " . ($contrat['date_validation'] ?? 'NON DÉFINIE'));
             
             $signatureImage = getParametreValue('signature_societe_image');
-            $signatureEnabled = getParametreValue('signature_societe_enabled') === 'true';
+            $signatureEnabledRaw = getParametreValue('signature_societe_enabled');
+            $signatureEnabled = toBooleanParam($signatureEnabledRaw);
             
             error_log("PDF Generation Legacy: Configuration - Activée: " . ($signatureEnabled ? 'OUI' : 'NON') . ", Image présente: " . (!empty($signatureImage) ? 'OUI (' . strlen($signatureImage) . ' octets)' : 'NON'));
+            if (!empty($signatureImage)) {
+                error_log("PDF Generation Legacy: Début du data URI: " . substr($signatureImage, 0, 50) . '...');
+            }
             
             if ($signatureEnabled && !empty($signatureImage)) {
                 // Check if it's a data URI
