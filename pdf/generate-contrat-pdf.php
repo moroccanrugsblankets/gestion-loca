@@ -305,15 +305,28 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 // Legacy format: base64 data URI - keep using it directly in HTML
                 $signatureImagePath = $locataire['signature_data'];
                 error_log("PDF Generation: Signature client " . ($i + 1) . " - Format: Legacy base64 data URI");
-                error_log("PDF Generation: ATTENTION - Signature au format legacy (data URI), pourrait avoir une bordure");
+                error_log("PDF Generation: ATTENTION - Signature au format legacy (data URI), pourrait avoir des bordures");
             } else {
                 error_log("PDF Generation: ERREUR - Format de signature client " . ($i + 1) . " invalide");
             }
             
             // Insert signature image directly in HTML (not as placeholder)
             if ($signatureImagePath !== null) {
-                // Use inline style to prevent borders
-                $sig .= '<img src="' . htmlspecialchars($signatureImagePath) . '" alt="Signature Locataire ' . ($i + 1) . '" style="' . SIGNATURE_IMG_STYLE . '">';
+                // Security: Validate file path to prevent path traversal attacks
+                // For physical files, ensure they're in the uploads/signatures directory
+                if (strpos($signatureImagePath, 'uploads/signatures/') !== false) {
+                    // Normalize path and check it doesn't contain path traversal
+                    $normalizedPath = str_replace('\\', '/', $signatureImagePath);
+                    if (strpos($normalizedPath, '..') !== false) {
+                        error_log("PDF Generation: SÉCURITÉ - Tentative de path traversal détectée dans: " . $signatureImagePath);
+                        $signatureImagePath = null;
+                    }
+                }
+                
+                if ($signatureImagePath !== null) {
+                    // Use inline style to prevent borders
+                    $sig .= '<img src="' . htmlspecialchars($signatureImagePath) . '" alt="Signature Locataire ' . ($i + 1) . '" style="' . SIGNATURE_IMG_STYLE . '">';
+                }
             }
         } else {
             error_log("PDF Generation: Signature client " . ($i + 1) . " - Non disponible (champ vide)");
@@ -386,7 +399,7 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 // Legacy support: signature is a data URI - use directly
                 $signatureImagePath = $signatureImage;
                 error_log("PDF Generation: Signature agence - Format: Legacy base64 data URI");
-                error_log("PDF Generation: ATTENTION - Signature au format legacy (data URI), pourrait avoir une bordure");
+                error_log("PDF Generation: ATTENTION - Signature au format legacy (data URI), pourrait avoir des bordures");
             } else {
                 error_log("PDF Generation: ERREUR - Format de signature agence invalide (ni fichier ni data URI valide)");
                 if (!empty($signatureImage)) {
@@ -396,22 +409,35 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
             
             // Insert signature directly in HTML (not as placeholder)
             if ($signatureImagePath !== null) {
-                // Create HTML with direct image
-                $signatureAgence = '<div style="margin-top: 40px;">';
-                $signatureAgence .= '<p style="margin-bottom: 15px;"><strong>Signature électronique de la société</strong></p>';
-                
-                // Insert image directly with inline style to prevent borders
-                $signatureAgence .= '<img src="' . htmlspecialchars($signatureImagePath) . '" alt="Signature Agence" style="' . SIGNATURE_IMG_STYLE . '">';
-                
-                // Ajouter le texte "Validé le" avec margin-top augmenté pour éviter chevauchement
-                if (!empty($contrat['date_validation'])) {
-                    $validationTimestamp = strtotime($contrat['date_validation']);
-                    if ($validationTimestamp !== false) {
-                        $dateValidation = date('d/m/Y à H:i:s', $validationTimestamp);
-                        $signatureAgence .= '<p style="font-size: 8pt; color: #666; margin-top: 15px;"><em>Validé le : ' . $dateValidation . '</em></p>';
+                // Security: Validate file path to prevent path traversal attacks
+                // For physical files, ensure they're in the uploads/signatures directory
+                if (strpos($signatureImagePath, 'uploads/signatures/') !== false) {
+                    // Normalize path and check it doesn't contain path traversal
+                    $normalizedPath = str_replace('\\', '/', $signatureImagePath);
+                    if (strpos($normalizedPath, '..') !== false) {
+                        error_log("PDF Generation: SÉCURITÉ - Tentative de path traversal détectée dans: " . $signatureImagePath);
+                        $signatureImagePath = null;
                     }
                 }
-                $signatureAgence .= '</div>';
+                
+                if ($signatureImagePath !== null) {
+                    // Create HTML with direct image
+                    $signatureAgence = '<div style="margin-top: 40px;">';
+                    $signatureAgence .= '<p style="margin-bottom: 15px;"><strong>Signature électronique de la société</strong></p>';
+                    
+                    // Insert image directly with inline style to prevent borders
+                    $signatureAgence .= '<img src="' . htmlspecialchars($signatureImagePath) . '" alt="Signature Agence" style="' . SIGNATURE_IMG_STYLE . '">';
+                    
+                    // Ajouter le texte "Validé le" avec margin-top augmenté pour éviter chevauchement
+                    if (!empty($contrat['date_validation'])) {
+                        $validationTimestamp = strtotime($contrat['date_validation']);
+                        if ($validationTimestamp !== false) {
+                            $dateValidation = date('d/m/Y à H:i:s', $validationTimestamp);
+                            $signatureAgence .= '<p style="font-size: 8pt; color: #666; margin-top: 15px;"><em>Validé le : ' . $dateValidation . '</em></p>';
+                        }
+                    }
+                    $signatureAgence .= '</div>';
+                }
             }
         } else {
             if (!$signatureEnabled) {
