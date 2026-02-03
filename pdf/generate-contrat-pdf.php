@@ -42,7 +42,7 @@ function generateContratPDF($contratId) {
         // Both tables have 'statut' column, and we need contrats.statut, not logements.statut
         $stmt = $pdo->prepare("
             SELECT c.*, 
-                   l.reference as logement_reference,
+                   l.reference,
                    l.adresse,
                    l.appartement,
                    l.type,

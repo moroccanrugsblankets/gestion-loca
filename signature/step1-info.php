@@ -17,7 +17,7 @@ $contratId = $_SESSION['contrat_id'];
 // Both tables have 'statut' column, and we need contrats.statut, not logements.statut
 $contrat = fetchOne("
     SELECT c.*, 
-           l.reference as logement_reference,
+           l.reference,
            l.adresse,
            l.appartement,
            l.type,
