@@ -722,7 +722,7 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
             } 
             // Supprimer les ./ au début
             elseif (preg_match('/^\.\//', $src)) {
-                $newSrc = $siteUrl . '/' . preg_replace('/^\.\.\//', '', $src);
+                $newSrc = $siteUrl . '/' . preg_replace('/^\.\//', '', $src);
                 $pathType = 'Chemin relatif ./';
             }
             // Chemins commençant par /
