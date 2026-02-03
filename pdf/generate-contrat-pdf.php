@@ -18,6 +18,18 @@ define('MAX_COMPANY_SIGNATURE_SIZE', 2 * 1024 * 1024); // 2 MB pour signature so
 // margin-bottom augmenté de 5mm à 15mm pour éviter chevauchement avec texte suivant
 define('SIGNATURE_IMG_STYLE', 'width: 40mm; height: auto; display: block; margin-bottom: 15mm; border: none; border-style: none; background: transparent;');
 
+// Style pour les placeholders de signature dans le HTML
+define('SIGNATURE_PLACEHOLDER_STYLE', 'margin-top: 15mm;');
+
+/**
+ * Créer un placeholder HTML pour une signature
+ * @param string $placeholderId ID unique du placeholder (ex: SIGNATURE_LOCATAIRE_1)
+ * @return string HTML du placeholder
+ */
+function createSignaturePlaceholder($placeholderId) {
+    return '<p style="' . SIGNATURE_PLACEHOLDER_STYLE . '">[' . $placeholderId . ']</p>';
+}
+
 /**
  * Sauvegarder une signature data URI en fichier physique PNG
  * @param string $signatureData Data URI de la signature (base64)
@@ -224,7 +236,7 @@ function generateContratPDF($contratId) {
 
 /**
  * Insérer les signatures directement dans le PDF via TCPDF::Image()
- * Note: This replaces placeholder text with images by searching for placeholder positions
+ * Note: Signatures are positioned using calculated coordinates based on signature type
  * @param TCPDF $pdf Instance TCPDF
  * @param array $signatureData Données des signatures avec positions
  */
@@ -263,11 +275,9 @@ function insertSignaturesDirectly($pdf, $signatureData) {
             for ($pageNum = 1; $pageNum <= $pageCount; $pageNum++) {
                 $pdf->setPage($pageNum);
                 
-                // Get page content to search for placeholder
-                // Note: TCPDF doesn't provide direct text search, so we use a workaround
-                // by positioning signatures at calculated positions based on signature type
-                
                 // Calculate position based on signature type
+                // Note: TCPDF doesn't provide direct text search, so we position signatures
+                // at calculated coordinates instead of searching for placeholder text
                 if ($sig['type'] === 'SIGNATURE_AGENCE') {
                     // Agency signature towards bottom of page
                     // Adjust Y position based on page layout (typically after client signatures)
@@ -439,7 +449,7 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 ];
                 
                 // Insert placeholder in HTML
-                $sig .= '<p style="margin-top: 15mm;">[' . $placeholderId . ']</p>';
+                $sig .= createSignaturePlaceholder($placeholderId);
                 error_log("PDF Generation: ✓ Placeholder créé: [" . $placeholderId . "] - Signature sera insérée via TCPDF::Image() sans bordure");
             }
         } else {
@@ -551,7 +561,7 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 $signatureAgence .= '<p style="margin-bottom: 15px;"><strong>Signature électronique de la société</strong></p>';
                 
                 // Insert placeholder instead of actual image
-                $signatureAgence .= '<p style="margin-top: 15mm;">[' . $placeholderId . ']</p>';
+                $signatureAgence .= createSignaturePlaceholder($placeholderId);
                 
                 // Ajouter le texte "Validé le" avec margin-top augmenté pour éviter chevauchement
                 if (!empty($contrat['date_validation'])) {
