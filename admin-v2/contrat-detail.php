@@ -334,6 +334,7 @@ if ($contrat['validated_by']) {
         .signature-preview {
             max-width: 300px;
             max-height: 150px;
+            border: 0;
             border-radius: 4px;
             padding: 5px;
         }
