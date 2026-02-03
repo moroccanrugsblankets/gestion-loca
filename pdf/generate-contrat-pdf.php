@@ -233,7 +233,7 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                     error_log("PDF Generation: Signature client " . ($i + 1) . " - Dimensions appliquées: max-width 200px, max-height 100px");
                     error_log("PDF Generation: Signature client " . ($i + 1) . " - Style: SANS bordure, fond transparent, affichage proportionné");
                     // Signature client avec taille normalisée (200x100px max) et sans bordure/background
-                    $sig .= '<p><img src="' . $locataire['signature_data'] . '" alt="Signature" style="max-width: 200px; max-height: 100px; width: auto; height: auto; border: 0; border-style: none; outline: none; background: transparent; display: inline-block;"></p>';
+                    $sig .= '<img src="' . $locataire['signature_data'] . '" alt="Signature" style="max-width: 200px; max-height: 100px; width: auto; height: auto; border: 0; border-style: none; outline: none; background: transparent; display: block;"><br>';
                 } else {
                     error_log("PDF Generation: AVERTISSEMENT - Signature client " . ($i + 1) . " trop volumineuse (" . strlen($base64Data) . " octets), ignorée");
                 }
@@ -292,7 +292,7 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                     $signatureAgence = '<div style="margin-top: 20px;">';
                     $signatureAgence .= '<p><strong>Signature électronique de la société</strong></p>';
                     // Signature agence avec taille adaptée (200x100px max) et sans bordure pour un rendu équilibré
-                    $signatureAgence .= '<p><img src="' . $signatureImage . '" alt="Signature Société" style="max-width: 200px; max-height: 100px; width: auto; height: auto; border: 0; border-style: none; outline: none; background: transparent; display: inline-block;"></p>';
+                    $signatureAgence .= '<img src="' . $signatureImage . '" alt="Signature Société" style="max-width: 200px; max-height: 100px; width: auto; height: auto; border: 0; border-style: none; outline: none; background: transparent; display: block;"><br>';
                     if (!empty($contrat['date_validation'])) {
                         $validationTimestamp = strtotime($contrat['date_validation']);
                         if ($validationTimestamp !== false) {
