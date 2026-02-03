@@ -1,6 +1,9 @@
 # Fichiers uploadés (contiennent des données sensibles)
 uploads/*
 !uploads/.htaccess
+!uploads/signatures/
+uploads/signatures/*
+!uploads/signatures/.htaccess
 
 # PDF générés (contiennent des données personnelles)
 pdf/*

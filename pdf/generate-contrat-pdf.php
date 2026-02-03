@@ -14,6 +14,59 @@ define('BASE64_OVERHEAD_RATIO', 4 / 3); // Base64 est ~33% plus grand que les do
 define('MAX_TENANT_SIGNATURE_SIZE', 5 * 1024 * 1024); // 5 MB pour signatures locataires
 define('MAX_COMPANY_SIGNATURE_SIZE', 2 * 1024 * 1024); // 2 MB pour signature société
 
+// Style CSS pour les images de signature (évite les bordures grises)
+define('SIGNATURE_IMG_STYLE', 'width: 40mm; height: auto; display: block; margin-bottom: 5mm; border: none; border-style: none; background: transparent;');
+
+/**
+ * Sauvegarder une signature data URI en fichier physique PNG
+ * @param string $signatureData Data URI de la signature (base64)
+ * @param string $prefix Préfixe du nom de fichier (agency ou tenant)
+ * @param int $contratId ID du contrat
+ * @param int|null $locataireId ID du locataire (optionnel)
+ * @return string|false Chemin relatif du fichier sauvegardé ou false en cas d'erreur
+ */
+function saveSignatureAsPhysicalFile($signatureData, $prefix, $contratId, $locataireId = null) {
+    // Vérifier que c'est un data URI valide
+    if (!preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $signatureData, $matches)) {
+        error_log("saveSignatureAsPhysicalFile: Format data URI invalide");
+        return false;
+    }
+    
+    $imageFormat = $matches[1];
+    $base64Data = $matches[2];
+    
+    // Décoder le base64
+    $imageData = base64_decode($base64Data);
+    if ($imageData === false) {
+        error_log("saveSignatureAsPhysicalFile: Échec du décodage base64");
+        return false;
+    }
+    
+    // Créer le répertoire si nécessaire (utiliser chemin absolu)
+    $baseDir = dirname(__DIR__); // Répertoire racine du projet
+    $uploadsDir = $baseDir . '/uploads/signatures';
+    if (!is_dir($uploadsDir)) {
+        mkdir($uploadsDir, 0755, true);
+    }
+    
+    // Générer le nom du fichier
+    $suffix = $locataireId ? "_locataire_{$locataireId}" : "";
+    $filename = "{$prefix}_contrat_{$contratId}{$suffix}_" . time() . ".png";
+    $filepath = $uploadsDir . '/' . $filename;
+    
+    // Sauvegarder le fichier
+    if (file_put_contents($filepath, $imageData) === false) {
+        error_log("saveSignatureAsPhysicalFile: Échec de l'écriture du fichier: $filepath");
+        return false;
+    }
+    
+    // Retourner le chemin relatif depuis le répertoire pdf/
+    $relativePath = '../uploads/signatures/' . $filename;
+    error_log("saveSignatureAsPhysicalFile: ✓ Image physique sauvegardée: $relativePath");
+    
+    return $relativePath;
+}
+
 /**
  * Générer le PDF du contrat de bail
  * @param int $contratId ID du contrat
@@ -335,13 +388,25 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 if (strlen($base64Data) < MAX_TENANT_SIGNATURE_SIZE * BASE64_OVERHEAD_RATIO) {
                     // Log: Signature client traitée avec succès
                     error_log("PDF Generation: Signature client " . ($i + 1) . " - Format: $imageFormat, Taille base64: " . strlen($base64Data) . " octets");
-                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Sera insérée directement dans le HTML");
                     
-                    // Insérer la signature directement dans le HTML comme une image
-                    // Cela permet à la signature de suivre le flux du document au lieu d'utiliser un positionnement absolu
-                    $sig .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" style="width: 40mm; height: auto; display: block; margin-bottom: 5mm;" />';
+                    // Sauvegarder la signature comme fichier physique
+                    $locataireIdForFile = $locataire['id'] ?? ($i + 1);
+                    $physicalImagePath = saveSignatureAsPhysicalFile($locataire['signature_data'], 'tenant', $contratId, $locataireIdForFile);
                     
-                    error_log("PDF Generation: ✓ Signature locataire " . ($i + 1) . " insérée directement dans le HTML sans bordure");
+                    if ($physicalImagePath !== false) {
+                        // Utiliser l'image physique au lieu du data URI base64
+                        error_log("PDF Generation: ✓ Image physique utilisée pour la signature client " . ($i + 1));
+                        
+                        // Insérer la signature comme image physique avec bordure supprimée et margin-top
+                        // border="0" + style pour éviter toute bordure grise par défaut
+                        $sig .= '<img src="' . htmlspecialchars($physicalImagePath) . '" border="0" style="' . SIGNATURE_IMG_STYLE . '" />';
+                        
+                        error_log("PDF Generation: ✓ Signature client " . ($i + 1) . " ajoutée avec margin-top et sans bordure");
+                    } else {
+                        // Fallback: utiliser le data URI si la sauvegarde échoue
+                        error_log("PDF Generation: AVERTISSEMENT - Impossible de sauvegarder l'image physique, utilisation du data URI");
+                        $sig .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" border="0" style="' . SIGNATURE_IMG_STYLE . '" />';
+                    }
                 } else {
                     error_log("PDF Generation: AVERTISSEMENT - Signature client " . ($i + 1) . " trop volumineuse (" . strlen($base64Data) . " octets), ignorée");
                 }
@@ -352,16 +417,24 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
             error_log("PDF Generation: Signature client " . ($i + 1) . " - Non disponible (champ vide)");
         }
         
-        // Horodatage et IP
-        if (!empty($locataire['signature_timestamp'])) {
-            $timestamp = strtotime($locataire['signature_timestamp']);
-            if ($timestamp !== false) {
-                $formattedTimestamp = date('d/m/Y à H:i:s', $timestamp);
-                $sig .= '<p style="font-size: 8pt; color: #666;"><em>Horodatage : ' . $formattedTimestamp . '</em></p>';
+        // Horodatage et IP avec margin-top de 10px et affichage sur une seule ligne
+        if (!empty($locataire['signature_timestamp']) || !empty($locataire['signature_ip'])) {
+            $sig .= '<div style="margin-top: 10px;">';
+            
+            if (!empty($locataire['signature_timestamp'])) {
+                $timestamp = strtotime($locataire['signature_timestamp']);
+                if ($timestamp !== false) {
+                    $formattedTimestamp = date('d/m/Y à H:i:s', $timestamp);
+                    // white-space: nowrap pour forcer l'affichage sur une seule ligne
+                    $sig .= '<p style="font-size: 8pt; color: #666; white-space: nowrap; margin-bottom: 2px;"><em>Horodatage : ' . $formattedTimestamp . '</em></p>';
+                    error_log("PDF Generation: ✓ Horodatage affiché sur une seule ligne");
+                }
             }
-        }
-        if (!empty($locataire['signature_ip'])) {
-            $sig .= '<p style="font-size: 8pt; color: #666;"><em>Adresse IP : ' . htmlspecialchars($locataire['signature_ip']) . '</em></p>';
+            if (!empty($locataire['signature_ip'])) {
+                $sig .= '<p style="font-size: 8pt; color: #666; white-space: nowrap; margin-top: 0;"><em>Adresse IP : ' . htmlspecialchars($locataire['signature_ip']) . '</em></p>';
+            }
+            
+            $sig .= '</div>';
         }
         
         $sig .= '</div>';
@@ -400,19 +473,33 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                     $signatureAgence = '<div style="margin-top: 20px;">';
                     $signatureAgence .= '<p><strong>Signature électronique de la société</strong></p>';
                     
-                    // Insérer la signature directement dans le HTML comme une image
-                    // Cela permet à la signature de suivre le flux du document au lieu d'utiliser un positionnement absolu
-                    $signatureAgence .= '<img src="' . htmlspecialchars($signatureImage) . '" style="width: 40mm; height: auto; display: block; margin-bottom: 5mm;" />';
+                    // Sauvegarder la signature agence comme fichier physique
+                    $physicalImagePath = saveSignatureAsPhysicalFile($signatureImage, 'agency', $contratId);
                     
+                    if ($physicalImagePath !== false) {
+                        // Utiliser l'image physique au lieu du data URI base64
+                        error_log("PDF Generation: ✓ Image physique utilisée pour la signature agence");
+                        
+                        // Insérer la signature comme image physique avec bordure supprimée
+                        // border="0" + style pour éviter toute bordure grise par défaut
+                        $signatureAgence .= '<img src="' . htmlspecialchars($physicalImagePath) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-bottom: 10px;" />';
+                    } else {
+                        // Fallback: utiliser le data URI si la sauvegarde échoue
+                        error_log("PDF Generation: AVERTISSEMENT - Impossible de sauvegarder l'image physique, utilisation du data URI");
+                        $signatureAgence .= '<img src="' . htmlspecialchars($signatureImage) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-bottom: 10px;" />';
+                    }
+                    
+                    // Ajouter le texte "Validé le" avec margin-top de 10px
                     if (!empty($contrat['date_validation'])) {
                         $validationTimestamp = strtotime($contrat['date_validation']);
                         if ($validationTimestamp !== false) {
                             $dateValidation = date('d/m/Y à H:i:s', $validationTimestamp);
-                            $signatureAgence .= '<p style="font-size: 8pt; color: #666;"><em>Validé le : ' . $dateValidation . '</em></p>';
+                            $signatureAgence .= '<p style="font-size: 8pt; color: #666; margin-top: 10px;"><em>Validé le : ' . $dateValidation . '</em></p>';
+                            error_log("PDF Generation: ✓ Texte 'Validé le' ajouté avec margin-top de 10px");
                         }
                     }
                     $signatureAgence .= '</div>';
-                    error_log("PDF Generation: ✓ Signature agence insérée directement dans le HTML sans bordure");
+                    error_log("PDF Generation: ✓ Signature agence ajoutée avec margin-top et sans bordure");
                     error_log("PDF Generation: Format: $imageFormat, Taille: " . strlen($base64Data) . " octets");
                 } else {
                     error_log("PDF Generation: ERREUR - Signature agence trop volumineuse (" . strlen($base64Data) . " octets), ignorée");

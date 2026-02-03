@@ -1,0 +1,15 @@
+# Protection du répertoire des signatures
+# Autoriser l'accès aux images PNG et JPEG uniquement
+<FilesMatch "\.(png|jpg|jpeg)$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+# Interdire l'accès à tous les autres fichiers
+<FilesMatch "^\.">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Désactiver le listing de répertoire
+Options -Indexes
