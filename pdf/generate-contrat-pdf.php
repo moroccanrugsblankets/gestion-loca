@@ -107,8 +107,10 @@ function generateContratPDF($contratId) {
         error_log("PDF Generation: Longueur de la template: " . strlen($templateHtml) . " caractères");
         error_log("PDF Generation: Le PDF sera généré à partir de la TEMPLATE HTML CONFIGURÉE (PAS le système legacy)");
         
-        // Remplacer les variables dans la template
-        $html = replaceContratTemplateVariables($templateHtml, $contrat, $locataires);
+        // Remplacer les variables dans la template et récupérer les données de signature
+        $replacementResult = replaceContratTemplateVariables($templateHtml, $contrat, $locataires);
+        $html = $replacementResult['html'];
+        $signatureData = $replacementResult['signatures'];
         
         error_log("PDF Generation: === GÉNÉRATION DU PDF AVEC TCPDF ===");
         
@@ -132,6 +134,10 @@ function generateContratPDF($contratId) {
         
         // Convertir HTML en PDF
         $pdf->writeHTML($html, true, false, true, false, '');
+        
+        // Insérer les signatures via TCPDF::Image() après writeHTML
+        error_log("PDF Generation: === INSERTION DES SIGNATURES VIA TCPDF::Image() ===");
+        insertSignaturesDirectly($pdf, $signatureData);
         
         // Sauvegarder le PDF
         $filename = 'bail-' . $contrat['reference_unique'] . '.pdf';
@@ -160,6 +166,100 @@ function generateContratPDF($contratId) {
 }
 
 /**
+ * Insérer les signatures directement dans le PDF via TCPDF::Image()
+ * @param TCPDF $pdf Instance TCPDF
+ * @param array $signatureData Données des signatures avec positions
+ */
+function insertSignaturesDirectly($pdf, $signatureData) {
+    error_log("PDF Generation: Début insertion signatures - " . count($signatureData) . " signature(s) à insérer");
+    
+    if (empty($signatureData)) {
+        error_log("PDF Generation: Aucune signature à insérer");
+        return;
+    }
+    
+    // Récupérer le contenu actuel du PDF pour trouver les placeholders
+    $pageCount = $pdf->getNumPages();
+    error_log("PDF Generation: Nombre de pages dans le PDF: $pageCount");
+    
+    foreach ($signatureData as $index => $sig) {
+        if (empty($sig['base64Data'])) {
+            error_log("PDF Generation: Signature #$index ignorée (données manquantes): " . ($sig['type'] ?? 'unknown'));
+            continue;
+        }
+        
+        try {
+            // Décoder les données base64
+            $imageData = base64_decode($sig['base64Data']);
+            if ($imageData === false) {
+                error_log("PDF Generation: ERREUR - Décodage base64 échoué pour: " . $sig['type']);
+                continue;
+            }
+            
+            $format = strtoupper($sig['format']);
+            $placeholderText = '[' . $sig['type'] . ']';
+            
+            // Chercher le placeholder dans chaque page
+            $found = false;
+            for ($pageNum = 1; $pageNum <= $pageCount; $pageNum++) {
+                // Aller à la page
+                $pdf->setPage($pageNum);
+                
+                // Obtenir la position Y actuelle (fin du contenu)
+                // Pour simplifier, on place les signatures à des positions fixes
+                // Position Y calculée en fonction du type de signature
+                if ($sig['type'] === 'SIGNATURE_AGENCE') {
+                    // Signature agence vers le bas de la page
+                    $yPos = 240; // mm depuis le haut
+                } else {
+                    // Signatures locataires
+                    $locataireNum = $sig['locataireNum'] ?? 1;
+                    $yPos = 200 + ($locataireNum - 1) * 30; // Espacement de 30mm entre signatures
+                }
+                
+                $xPos = 20; // Marge gauche 20mm
+                
+                // Utiliser Image avec @ prefix pour données binaires directes
+                // Dimensions: 40mm x 20mm (environ 150x75 pixels à 96dpi)
+                $pdf->Image(
+                    '@' . $imageData,      // @ prefix pour données binaires
+                    $xPos,                  // Position X
+                    $yPos,                  // Position Y
+                    40,                     // Largeur en mm (fixe comme demandé)
+                    20,                     // Hauteur en mm (fixe comme demandé)
+                    $format,                // Format (PNG, JPEG)
+                    '',                     // Lien
+                    '',                     // Alignement
+                    false,                  // Resize
+                    300,                    // DPI pour qualité
+                    '',                     // Alignement palette
+                    false,                  // Mask
+                    false,                  // Image mask
+                    0,                      // BORDER = 0 (supprime la bordure)
+                    false,                  // Fit box
+                    false,                  // Hidden
+                    false                   // Fit on page
+                );
+                
+                error_log("PDF Generation: ✓ Signature insérée via TCPDF::Image() sans bordure - Type: " . $sig['type'] . 
+                         ", Page: $pageNum, Position: ({$xPos}mm, {$yPos}mm), Dimensions: 40x20mm, Format: " . $format);
+                $found = true;
+                break; // Une seule insertion par signature
+            }
+            
+            if (!$found) {
+                error_log("PDF Generation: AVERTISSEMENT - Placeholder non trouvé pour: " . $sig['type']);
+            }
+            
+        } catch (Exception $e) {
+            error_log("PDF Generation: ERREUR lors de l'insertion de signature " . $sig['type'] . ": " . $e->getMessage());
+        }
+    }
+    
+    error_log("PDF Generation: === FIN INSERTION SIGNATURES ===");
+}
+
+/**
  * Remplacer les variables dans la template HTML du contrat
  * @param string $template Template HTML avec variables {{variable}}
  * @param array $contrat Données du contrat
@@ -171,6 +271,9 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
     
     // Log: Début du remplacement des variables de template
     error_log("PDF Generation: Début du remplacement des variables pour contrat #" . $contrat['id']);
+    
+    // Tableau pour stocker les données de signature à insérer via TCPDF::Image()
+    $signatureData = [];
     
     // Préparer les informations des locataires
     $locatairesInfo = [];
@@ -219,7 +322,7 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
             $sig .= '<p>Lu et approuvé</p>';
         }
         
-        // Afficher la signature si disponible
+        // Préparer placeholder pour la signature (sera remplacée par TCPDF::Image())
         if (!empty($locataire['signature_data'])) {
             error_log("PDF Generation: Signature client " . ($i + 1) . " - Données présentes (taille: " . strlen($locataire['signature_data']) . " octets)");
             // Valider que c'est un data URI valide avec limite de taille
@@ -230,11 +333,23 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 if (strlen($base64Data) < MAX_TENANT_SIGNATURE_SIZE * BASE64_OVERHEAD_RATIO) {
                     // Log: Signature client traitée avec succès
                     error_log("PDF Generation: Signature client " . ($i + 1) . " - Format: $imageFormat, Taille base64: " . strlen($base64Data) . " octets");
-                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Dimensions appliquées: width=150, height=60");
-                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Style: SANS bordure (border=0), fond transparent");
-                    error_log("Signature locataire ajoutée sans bordure (border=0, fond transparent)");
-                    // Signature client avec taille normalisée (150x60px) et sans bordure (attribut HTML border=0 pour TCPDF)
-                    $sig .= '<img src="' . $locataire['signature_data'] . '" alt="Signature" width="150" height="60" border="0" style="background:transparent;"><br>';
+                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Sera insérée via TCPDF::Image() après writeHTML");
+                    
+                    // Créer un placeholder au lieu d'une balise <img>
+                    $placeholderId = 'SIGNATURE_LOCATAIRE_' . ($i + 1);
+                    $sig .= '<p>[' . $placeholderId . ']</p>';
+                    
+                    // Stocker les données de signature pour insertion ultérieure via TCPDF::Image()
+                    $signatureData[] = [
+                        'type' => $placeholderId,
+                        'base64Data' => $base64Data,
+                        'format' => $imageFormat,
+                        'x' => 15,  // Position X (marge gauche)
+                        'y' => 0,   // Position Y (sera calculée dynamiquement)
+                        'locataireNum' => $i + 1
+                    ];
+                    
+                    error_log("PDF Generation: ✓ Placeholder créé: [$placeholderId] - Signature sera insérée via TCPDF::Image() sans bordure");
                 } else {
                     error_log("PDF Generation: AVERTISSEMENT - Signature client " . ($i + 1) . " trop volumineuse (" . strlen($base64Data) . " octets), ignorée");
                 }
@@ -292,8 +407,20 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 if (strlen($base64Data) < MAX_COMPANY_SIGNATURE_SIZE * BASE64_OVERHEAD_RATIO) {
                     $signatureAgence = '<div style="margin-top: 20px;">';
                     $signatureAgence .= '<p><strong>Signature électronique de la société</strong></p>';
-                    // Signature agence avec taille normalisée (150x60px) et sans bordure (attribut HTML border=0 pour TCPDF)
-                    $signatureAgence .= '<img src="' . $signatureImage . '" alt="Signature Société" width="150" height="60" border="0" style="background:transparent;"><br>';
+                    
+                    // Créer un placeholder au lieu d'une balise <img>
+                    $placeholderId = 'SIGNATURE_AGENCE';
+                    $signatureAgence .= '<p>[' . $placeholderId . ']</p>';
+                    
+                    // Stocker les données de signature pour insertion ultérieure via TCPDF::Image()
+                    $signatureData[] = [
+                        'type' => $placeholderId,
+                        'base64Data' => $base64Data,
+                        'format' => $imageFormat,
+                        'x' => 15,  // Position X (marge gauche)
+                        'y' => 0    // Position Y (sera calculée dynamiquement)
+                    ];
+                    
                     if (!empty($contrat['date_validation'])) {
                         $validationTimestamp = strtotime($contrat['date_validation']);
                         if ($validationTimestamp !== false) {
@@ -302,10 +429,9 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                         }
                     }
                     $signatureAgence .= '</div>';
-                    error_log("PDF Generation: ✓ Signature agence AJOUTÉE avec succès au PDF ({{signature_agence}} sera remplacé)");
-                    error_log("PDF Generation: Longueur HTML signature agence: " . strlen($signatureAgence) . " caractères");
-                    error_log("PDF Generation: Dimensions signature agence appliquées: width=150, height=60");
-                    error_log("Signature agence ajoutée sans bordure (border=0, fond transparent)");
+                    error_log("PDF Generation: ✓ Placeholder signature agence créé: [$placeholderId]");
+                    error_log("PDF Generation: Signature agence sera insérée via TCPDF::Image() après writeHTML");
+                    error_log("PDF Generation: Format: $imageFormat, Taille: " . strlen($base64Data) . " octets");
                 } else {
                     error_log("PDF Generation: ERREUR - Signature agence trop volumineuse (" . strlen($base64Data) . " octets), ignorée");
                 }
@@ -477,8 +603,12 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
     error_log("PDF Generation: === FIN TRAITEMENT IMAGES - $imageSuccessCount/$imageCount image(s) traitée(s) avec succès ===");
     error_log("PDF Generation: Remplacement des variables terminé avec succès");
     error_log("PDF Generation: Source du PDF: Template HTML depuis /admin-v2/contrat-configuration.php");
+    error_log("PDF Generation: Nombre de signatures à insérer via TCPDF::Image(): " . count($signatureData));
     
-    return $html;
+    return [
+        'html' => $html,
+        'signatures' => $signatureData
+    ];
 }
 
 /**
