@@ -230,10 +230,11 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 if (strlen($base64Data) < MAX_TENANT_SIGNATURE_SIZE * BASE64_OVERHEAD_RATIO) {
                     // Log: Signature client traitée avec succès
                     error_log("PDF Generation: Signature client " . ($i + 1) . " - Format: $imageFormat, Taille base64: " . strlen($base64Data) . " octets");
-                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Dimensions appliquées: max-width 200px, max-height 100px");
-                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Style: SANS bordure, fond transparent, affichage proportionné");
-                    // Signature client avec taille normalisée (200x100px max) et sans bordure/background
-                    $sig .= '<img src="' . $locataire['signature_data'] . '" alt="Signature" style="max-width: 200px; max-height: 100px; width: auto; height: auto; border: 0; border-style: none; outline: none; background: transparent; display: block;"><br>';
+                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Dimensions appliquées: width=150, height=60");
+                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Style: SANS bordure (border=0), fond transparent");
+                    error_log("Signature locataire ajoutée sans bordure (border=0, fond transparent)");
+                    // Signature client avec taille normalisée (150x60px) et sans bordure (attribut HTML border=0 pour TCPDF)
+                    $sig .= '<img src="' . $locataire['signature_data'] . '" alt="Signature" width="150" height="60" border="0" style="background:transparent;"><br>';
                 } else {
                     error_log("PDF Generation: AVERTISSEMENT - Signature client " . ($i + 1) . " trop volumineuse (" . strlen($base64Data) . " octets), ignorée");
                 }
@@ -291,8 +292,8 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 if (strlen($base64Data) < MAX_COMPANY_SIGNATURE_SIZE * BASE64_OVERHEAD_RATIO) {
                     $signatureAgence = '<div style="margin-top: 20px;">';
                     $signatureAgence .= '<p><strong>Signature électronique de la société</strong></p>';
-                    // Signature agence avec taille adaptée (200x100px max) et sans bordure pour un rendu équilibré
-                    $signatureAgence .= '<img src="' . $signatureImage . '" alt="Signature Société" style="max-width: 200px; max-height: 100px; width: auto; height: auto; border: 0; border-style: none; outline: none; background: transparent; display: block;"><br>';
+                    // Signature agence avec taille normalisée (150x60px) et sans bordure (attribut HTML border=0 pour TCPDF)
+                    $signatureAgence .= '<img src="' . $signatureImage . '" alt="Signature Société" width="150" height="60" border="0" style="background:transparent;"><br>';
                     if (!empty($contrat['date_validation'])) {
                         $validationTimestamp = strtotime($contrat['date_validation']);
                         if ($validationTimestamp !== false) {
@@ -303,7 +304,8 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                     $signatureAgence .= '</div>';
                     error_log("PDF Generation: ✓ Signature agence AJOUTÉE avec succès au PDF ({{signature_agence}} sera remplacé)");
                     error_log("PDF Generation: Longueur HTML signature agence: " . strlen($signatureAgence) . " caractères");
-                    error_log("PDF Generation: Dimensions signature agence appliquées: max-width 200px, max-height 100px");
+                    error_log("PDF Generation: Dimensions signature agence appliquées: width=150, height=60");
+                    error_log("Signature agence ajoutée sans bordure (border=0, fond transparent)");
                 } else {
                     error_log("PDF Generation: ERREUR - Signature agence trop volumineuse (" . strlen($base64Data) . " octets), ignorée");
                 }
