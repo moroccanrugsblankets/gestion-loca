@@ -484,8 +484,42 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
         }
         
         if ($signatureEnabled && !empty($signatureImage)) {
-            // Valider que c'est un data URI valide avec limite de taille
-            if (preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $signatureImage, $matches)) {
+            // Check if signature is a file path or a data URI
+            // A file path should not start with 'data:' and should contain 'uploads/signatures/'
+            $isFilePath = (strpos($signatureImage, 'data:') !== 0 && strpos($signatureImage, 'uploads/signatures/') !== false);
+            
+            if ($isFilePath) {
+                // Signature is stored as a file path
+                $baseDir = dirname(__DIR__);
+                $absolutePath = $baseDir . '/' . $signatureImage;
+                
+                if (file_exists($absolutePath)) {
+                    error_log("PDF Generation: Signature agence depuis fichier physique: $signatureImage");
+                    
+                    // Increase margin-top to 30px for better spacing and prevent overlap
+                    $signatureAgence = '<div style="margin-top: 30px;">';
+                    $signatureAgence .= '<p style="margin-bottom: 15px;"><strong>Signature électronique de la société</strong></p>';
+                    
+                    // Use relative path from pdf/ directory
+                    $relativePath = '../' . $signatureImage;
+                    $signatureAgence .= '<img src="' . htmlspecialchars($relativePath) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-top: 10mm; margin-bottom: 10px;" />';
+                    
+                    // Ajouter le texte "Validé le" avec margin-top augmenté pour éviter chevauchement
+                    if (!empty($contrat['date_validation'])) {
+                        $validationTimestamp = strtotime($contrat['date_validation']);
+                        if ($validationTimestamp !== false) {
+                            $dateValidation = date('d/m/Y à H:i:s', $validationTimestamp);
+                            $signatureAgence .= '<p style="font-size: 8pt; color: #666; margin-top: 15px;"><em>Validé le : ' . $dateValidation . '</em></p>';
+                            error_log("PDF Generation: ✓ Texte 'Validé le' ajouté avec margin-top de 15px");
+                        }
+                    }
+                    $signatureAgence .= '</div>';
+                    error_log("PDF Generation: ✓ Signature agence ajoutée depuis fichier physique avec margins augmentés et sans bordure");
+                } else {
+                    error_log("PDF Generation: ERREUR - Fichier de signature introuvable: $absolutePath");
+                }
+            } elseif (preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $signatureImage, $matches)) {
+                // Legacy support: signature is a data URI
                 $imageFormat = $matches[1];
                 $base64Data = $matches[2];
                 error_log("PDF Generation: Signature agence - Format: $imageFormat, Taille base64: " . strlen($base64Data) . " octets");
@@ -528,7 +562,7 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                     error_log("PDF Generation: ERREUR - Signature agence trop volumineuse (" . strlen($base64Data) . " octets), ignorée");
                 }
             } else {
-                error_log("PDF Generation: ERREUR - Format de signature agence invalide (n'est pas un data URI image valide)");
+                error_log("PDF Generation: ERREUR - Format de signature agence invalide (ni fichier ni data URI valide)");
                 if (!empty($signatureImage)) {
                     error_log("PDF Generation: Contenu trouvé (début): " . substr($signatureImage, 0, 100));
                 }
@@ -541,7 +575,7 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
             } else {
                 error_log("PDF Generation: ✗ IMAGE SIGNATURE AGENCE NON TROUVÉE");
                 error_log("PDF Generation: Action requise → Télécharger une image de signature dans /admin-v2/contrat-configuration.php");
-                error_log("PDF Generation: Paramètre à vérifier: signature_societe_image doit contenir un data URI d'image");
+                error_log("PDF Generation: Paramètre à vérifier: signature_societe_image doit contenir un chemin de fichier ou un data URI d'image");
             }
         }
     } else {

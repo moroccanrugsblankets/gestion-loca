@@ -106,14 +106,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // Resize the image
             imagecopyresampled($resizedImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $originalWidth, $originalHeight);
             
-            // Capture resized image as base64
+            // Save resized image data
             ob_start();
             if ($file['type'] === 'image/png') {
                 imagepng($resizedImage, null, 6); // PNG compression level 6 (0-9): balance between file size and speed
-                $mimeType = 'image/png';
             } else {
                 imagejpeg($resizedImage, null, 90); // High quality JPEG
-                $mimeType = 'image/jpeg';
             }
             $imageData = ob_get_clean();
             
@@ -121,21 +119,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             imagedestroy($sourceImage);
             imagedestroy($resizedImage);
             
-            // Encode as base64
-            $base64Image = base64_encode($imageData);
-            $dataUri = "data:$mimeType;base64,$base64Image";
+            // Create uploads directory if it doesn't exist
+            $baseDir = dirname(__DIR__);
+            $uploadsDir = $baseDir . '/uploads/signatures';
+            if (!is_dir($uploadsDir)) {
+                if (!mkdir($uploadsDir, 0755, true)) {
+                    $_SESSION['error'] = "Impossible de créer le répertoire des signatures";
+                    header('Location: contrat-configuration.php');
+                    exit;
+                }
+            }
             
-            // Update or insert signature parameter
+            // Delete old signature file if exists
+            $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_image'");
+            $stmt->execute();
+            $oldSignature = $stmt->fetchColumn();
+            if (!empty($oldSignature) && strpos($oldSignature, 'data:') !== 0 && strpos($oldSignature, 'uploads/signatures/') !== false) {
+                $oldFilePath = $baseDir . '/' . $oldSignature;
+                if (file_exists($oldFilePath)) {
+                    unlink($oldFilePath);
+                    error_log("Deleted old company signature file: $oldFilePath");
+                }
+            }
+            
+            // Generate unique filename for company signature
+            $filename = "company_signature_" . time() . ".png";
+            $filepath = $uploadsDir . '/' . $filename;
+            
+            // Save physical file
+            if (file_put_contents($filepath, $imageData) === false) {
+                $_SESSION['error'] = "Impossible de sauvegarder le fichier de signature";
+                header('Location: contrat-configuration.php');
+                exit;
+            }
+            
+            // Store relative path instead of base64
+            $relativePath = 'uploads/signatures/' . $filename;
+            error_log("Company signature saved as physical file: $relativePath");
+            
+            // Update or insert signature parameter with file path
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM parametres WHERE cle = 'signature_societe_image'");
             $stmt->execute();
             $exists = $stmt->fetchColumn() > 0;
             
             if ($exists) {
                 $stmt = $pdo->prepare("UPDATE parametres SET valeur = ?, updated_at = NOW() WHERE cle = 'signature_societe_image'");
-                $stmt->execute([$dataUri]);
+                $stmt->execute([$relativePath]);
             } else {
-                $stmt = $pdo->prepare("INSERT INTO parametres (cle, valeur, type, groupe, description) VALUES ('signature_societe_image', ?, 'string', 'contrats', 'Image de la signature électronique de la société (base64)')");
-                $stmt->execute([$dataUri]);
+                $stmt = $pdo->prepare("INSERT INTO parametres (cle, valeur, type, groupe, description) VALUES ('signature_societe_image', ?, 'string', 'contrats', 'Chemin du fichier de la signature électronique de la société')");
+                $stmt->execute([$relativePath]);
             }
             
             // Update enabled status
@@ -160,7 +192,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
     elseif ($_POST['action'] === 'delete_signature') {
-        // Delete signature image
+        // Get current signature path and delete physical file if exists
+        $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_image'");
+        $stmt->execute();
+        $signaturePath = $stmt->fetchColumn();
+        
+        if (!empty($signaturePath)) {
+            // If it's a file path (not a base64 data URI), delete the physical file
+            // A file path should not start with 'data:' and should contain 'uploads/signatures/'
+            if (strpos($signaturePath, 'data:') !== 0 && strpos($signaturePath, 'uploads/signatures/') !== false) {
+                $baseDir = dirname(__DIR__);
+                $filepath = $baseDir . '/' . $signaturePath;
+                if (file_exists($filepath)) {
+                    unlink($filepath);
+                    error_log("Deleted company signature file: $filepath");
+                }
+            }
+        }
+        
+        // Delete signature reference from database
         $stmt = $pdo->prepare("UPDATE parametres SET valeur = '', updated_at = NOW() WHERE cle = 'signature_societe_image'");
         $stmt->execute();
         
