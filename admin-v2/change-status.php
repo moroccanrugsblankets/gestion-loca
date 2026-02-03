@@ -75,39 +75,29 @@ if ($send_email) {
     $to = $candidature['email'];
     $nom_complet = $candidature['prenom'] . ' ' . $candidature['nom'];
     
-    // Email templates based on status
-    $subject = '';
+    // Map status to template identifier
+    $templateMap = [
+        'accepte' => 'candidature_acceptee',
+        'refuse' => 'candidature_refusee',
+        'visite_planifiee' => 'statut_visite_planifiee',
+        'contrat_envoye' => 'statut_contrat_envoye',
+        'contrat_signe' => 'statut_contrat_signe'
+    ];
     
-    switch ($nouveau_statut) {
-        case 'Accepté':
-            $subject = "Candidature acceptée - MyInvest Immobilier";
-            break;
-            
-        case 'Refusé':
-            $subject = "Suite à votre candidature - MyInvest Immobilier";
-            break;
-            
-        case 'Visite planifiée':
-            $subject = "Visite de logement planifiée - MyInvest Immobilier";
-            break;
-            
-        case 'Contrat envoyé':
-            $subject = "Contrat de bail - MyInvest Immobilier";
-            break;
-            
-        case 'Contrat signé':
-            $subject = "Contrat signé - MyInvest Immobilier";
-            break;
-    }
+    $templateId = $templateMap[$nouveau_statut] ?? null;
     
-    if ($subject) {
-        // Générer l'email HTML
-        $htmlBody = getStatusChangeEmailHTML($nom_complet, $nouveau_statut, $commentaire);
+    if ($templateId) {
+        // Prepare variables for the template
+        $variables = [
+            'nom' => $candidature['nom'],
+            'prenom' => $candidature['prenom'],
+            'email' => $candidature['email'],
+            'commentaire' => $commentaire ? '<p style="margin: 15px 0;"><strong>Note :</strong> ' . nl2br(htmlspecialchars($commentaire)) . '</p>' : ''
+        ];
         
-        // Envoyer l'email avec PHPMailer
-        // Set isAdminEmail to true for refuse status to CC administrators
+        // Send templated email
         $isAdminEmail = ($nouveau_statut === 'refuse');
-        $emailSent = sendEmail($to, $subject, $htmlBody, null, true, $isAdminEmail);
+        $emailSent = sendTemplatedEmail($templateId, $to, $variables, null, $isAdminEmail);
         
         if ($emailSent) {
             // Log email sent
@@ -118,7 +108,7 @@ if ($send_email) {
             $stmt->execute([
                 $candidature_id,
                 "Email envoyé",
-                "Objet: $subject",
+                "Template: $templateId",
                 $_SERVER['REMOTE_ADDR']
             ]);
         } else {

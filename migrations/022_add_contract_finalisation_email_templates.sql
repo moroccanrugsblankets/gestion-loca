@@ -84,7 +84,7 @@ INSERT INTO email_templates (identifiant, nom, sujet, corps_html, variables_disp
 (
     'contrat_finalisation_admin',
     'Notification Admin - Contrat Finalisé',
-    '[ADMIN] Contrat signé - {{reference}}',
+    'Contrat signé - {{reference}} - Vérification requise',
     '<!DOCTYPE html>
 <html>
 <head>
