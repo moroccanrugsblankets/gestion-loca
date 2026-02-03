@@ -418,7 +418,16 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                         // Detect format from extension
                         if (preg_match('/\.(jpe?g)$/i', $fullPath)) {
                             $signatureFormat = 'JPEG';
+                        } elseif (preg_match('/\.png$/i', $fullPath)) {
+                            $signatureFormat = 'PNG';
+                        } else {
+                            // Unknown format - default to PNG but log warning
+                            $signatureFormat = 'PNG';
+                            error_log("PDF Generation: AVERTISSEMENT - Extension de fichier non reconnue pour " . $fullPath . ", utilisation de PNG par défaut");
                         }
+                        error_log("PDF Generation: ✓ Signature client " . ($i + 1) . " encodée en base64 - Taille: " . strlen($signatureBase64) . " octets, Format: " . $signatureFormat);
+                    } else {
+                        error_log("PDF Generation: ERREUR - Impossible de lire le fichier: " . $fullPath);
                     }
                 } else {
                     error_log("PDF Generation: ERREUR - Fichier de signature introuvable: " . $fullPath);
@@ -522,7 +531,16 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                         // Detect format from extension
                         if (preg_match('/\.(jpe?g)$/i', $absolutePath)) {
                             $signatureFormat = 'JPEG';
+                        } elseif (preg_match('/\.png$/i', $absolutePath)) {
+                            $signatureFormat = 'PNG';
+                        } else {
+                            // Unknown format - default to PNG but log warning
+                            $signatureFormat = 'PNG';
+                            error_log("PDF Generation: AVERTISSEMENT - Extension de fichier non reconnue pour " . $absolutePath . ", utilisation de PNG par défaut");
                         }
+                        error_log("PDF Generation: ✓ Signature agence encodée en base64 - Taille: " . strlen($signatureBase64) . " octets, Format: " . $signatureFormat);
+                    } else {
+                        error_log("PDF Generation: ERREUR - Impossible de lire le fichier: " . $absolutePath);
                     }
                 } else {
                     error_log("PDF Generation: ERREUR - Fichier de signature introuvable: $absolutePath");
