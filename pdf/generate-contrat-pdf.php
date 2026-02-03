@@ -133,11 +133,13 @@ function generateContratPDF($contratId) {
         error_log("PDF Generation: Conversion HTML vers PDF en cours");
         
         // Convertir HTML en PDF
+        // Les signatures sont maintenant directement intégrées dans le HTML comme des balises <img>
+        // au lieu d'utiliser un positionnement absolu après writeHTML
         $pdf->writeHTML($html, true, false, true, false, '');
         
-        // Insérer les signatures via TCPDF::Image() après writeHTML
-        error_log("PDF Generation: === INSERTION DES SIGNATURES VIA TCPDF::Image() ===");
-        insertSignaturesDirectly($pdf, $signatureData);
+        // Note: insertSignaturesDirectly() n'est plus utilisé car les signatures sont maintenant
+        // intégrées directement dans le HTML, ce qui permet un flux naturel du document
+        // au lieu d'un positionnement absolu qui pouvait superposer le texte
         
         // Sauvegarder le PDF
         $filename = 'bail-' . $contrat['reference_unique'] . '.pdf';
@@ -333,23 +335,13 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 if (strlen($base64Data) < MAX_TENANT_SIGNATURE_SIZE * BASE64_OVERHEAD_RATIO) {
                     // Log: Signature client traitée avec succès
                     error_log("PDF Generation: Signature client " . ($i + 1) . " - Format: $imageFormat, Taille base64: " . strlen($base64Data) . " octets");
-                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Sera insérée via TCPDF::Image() après writeHTML");
+                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Sera insérée directement dans le HTML");
                     
-                    // Créer un espace réservé pour la signature (hauteur fixe)
-                    // Au lieu d'un placeholder visible, on crée un espace vide de hauteur fixe (20mm)
-                    $sig .= '<div style="height: 20mm; margin-bottom: 5mm;"></div>';
+                    // Insérer la signature directement dans le HTML comme une image
+                    // Cela permet à la signature de suivre le flux du document au lieu d'utiliser un positionnement absolu
+                    $sig .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" style="width: 40mm; height: auto; display: block; margin-bottom: 5mm;" />';
                     
-                    // Stocker les données de signature pour insertion ultérieure via TCPDF::Image()
-                    $signatureData[] = [
-                        'type' => 'SIGNATURE_LOCATAIRE_' . ($i + 1),
-                        'base64Data' => $base64Data,
-                        'format' => $imageFormat,
-                        'x' => 15,  // Position X (marge gauche)
-                        'y' => 0,   // Position Y (sera calculée dynamiquement)
-                        'locataireNum' => $i + 1
-                    ];
-                    
-                    error_log("PDF Generation: ✓ Espace réservé créé pour signature locataire " . ($i + 1) . " - Signature sera insérée via TCPDF::Image() sans bordure");
+                    error_log("PDF Generation: ✓ Signature locataire " . ($i + 1) . " insérée directement dans le HTML sans bordure");
                 } else {
                     error_log("PDF Generation: AVERTISSEMENT - Signature client " . ($i + 1) . " trop volumineuse (" . strlen($base64Data) . " octets), ignorée");
                 }
@@ -408,17 +400,9 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                     $signatureAgence = '<div style="margin-top: 20px;">';
                     $signatureAgence .= '<p><strong>Signature électronique de la société</strong></p>';
                     
-                    // Créer un espace réservé pour la signature (hauteur fixe)
-                    $signatureAgence .= '<div style="height: 20mm; margin-bottom: 5mm;"></div>';
-                    
-                    // Stocker les données de signature pour insertion ultérieure via TCPDF::Image()
-                    $signatureData[] = [
-                        'type' => 'SIGNATURE_AGENCE',
-                        'base64Data' => $base64Data,
-                        'format' => $imageFormat,
-                        'x' => 15,  // Position X (marge gauche)
-                        'y' => 0    // Position Y (sera calculée dynamiquement)
-                    ];
+                    // Insérer la signature directement dans le HTML comme une image
+                    // Cela permet à la signature de suivre le flux du document au lieu d'utiliser un positionnement absolu
+                    $signatureAgence .= '<img src="' . htmlspecialchars($signatureImage) . '" style="width: 40mm; height: auto; display: block; margin-bottom: 5mm;" />';
                     
                     if (!empty($contrat['date_validation'])) {
                         $validationTimestamp = strtotime($contrat['date_validation']);
@@ -428,8 +412,7 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                         }
                     }
                     $signatureAgence .= '</div>';
-                    error_log("PDF Generation: ✓ Espace réservé créé pour signature agence");
-                    error_log("PDF Generation: Signature agence sera insérée via TCPDF::Image() après writeHTML");
+                    error_log("PDF Generation: ✓ Signature agence insérée directement dans le HTML sans bordure");
                     error_log("PDF Generation: Format: $imageFormat, Taille: " . strlen($base64Data) . " octets");
                 } else {
                     error_log("PDF Generation: ERREUR - Signature agence trop volumineuse (" . strlen($base64Data) . " octets), ignorée");
@@ -848,7 +831,7 @@ class ContratBailPDF extends TCPDF {
                             try {
                                 // Signature agence avec taille adaptée (20mm) pour un rendu équilibré
                                 error_log("PDF Generation Legacy: Signature agence - Format: $imageFormat, Ajoutée avec taille (20mm)");
-                                $this->Image($tempFile, $this->GetX(), $this->GetY(), 20, 0, $imageFormat);
+                                $this->Image($tempFile, $this->GetX(), $this->GetY(), 20, 0, $imageFormat, '', '', false, 300, '', false, false, 0);
                                 error_log("PDF Generation Legacy: Signature agence AJOUTÉE avec succès");
                                 @unlink($tempFile);
                             } catch (Exception $e) {
@@ -929,7 +912,7 @@ class ContratBailPDF extends TCPDF {
                                 try {
                                     // Signature client réduite (15mm) pour un rendu équilibré
                                     error_log("PDF Generation Legacy: Signature client " . ($i + 1) . " - Format: $imageFormat, Ajoutée avec taille réduite (15mm)");
-                                    $this->Image($tempFile, $this->GetX(), $this->GetY(), 15, 0, $imageFormat);
+                                    $this->Image($tempFile, $this->GetX(), $this->GetY(), 15, 0, $imageFormat, '', '', false, 300, '', false, false, 0);
                                     $this->Ln(10); // Espace réduit après l'image
                                 } catch (Exception $e) {
                                     // Log l'erreur mais continue la génération du PDF
