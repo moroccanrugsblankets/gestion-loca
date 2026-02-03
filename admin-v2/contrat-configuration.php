@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_image'");
             $stmt->execute();
             $oldSignature = $stmt->fetchColumn();
-            if (!empty($oldSignature) && strpos($oldSignature, 'uploads/signatures/') !== false) {
+            if (!empty($oldSignature) && strpos($oldSignature, 'data:') !== 0 && strpos($oldSignature, 'uploads/signatures/') !== false) {
                 $oldFilePath = $baseDir . '/' . $oldSignature;
                 if (file_exists($oldFilePath)) {
                     unlink($oldFilePath);
@@ -199,7 +199,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         if (!empty($signaturePath)) {
             // If it's a file path (not a base64 data URI), delete the physical file
-            if (strpos($signaturePath, 'uploads/signatures/') !== false) {
+            // A file path should not start with 'data:' and should contain 'uploads/signatures/'
+            if (strpos($signaturePath, 'data:') !== 0 && strpos($signaturePath, 'uploads/signatures/') !== false) {
                 $baseDir = dirname(__DIR__);
                 $filepath = $baseDir . '/' . $signaturePath;
                 if (file_exists($filepath)) {

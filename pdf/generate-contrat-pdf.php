@@ -485,7 +485,8 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
         
         if ($signatureEnabled && !empty($signatureImage)) {
             // Check if signature is a file path or a data URI
-            $isFilePath = (strpos($signatureImage, 'uploads/signatures/') !== false);
+            // A file path should not start with 'data:' and should contain 'uploads/signatures/'
+            $isFilePath = (strpos($signatureImage, 'data:') !== 0 && strpos($signatureImage, 'uploads/signatures/') !== false);
             
             if ($isFilePath) {
                 // Signature is stored as a file path

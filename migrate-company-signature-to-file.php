@@ -58,8 +58,9 @@ if ($imageData === false) {
     exit(1);
 }
 
-// Generate unique filename
-$filename = "company_signature_migrated_" . time() . ".png";
+// Generate unique filename with correct extension
+$extension = ($imageFormat === 'jpeg' || $imageFormat === 'jpg') ? 'jpg' : 'png';
+$filename = "company_signature_migrated_" . time() . ".$extension";
 $filepath = $uploadsDir . '/' . $filename;
 
 // Save physical file
