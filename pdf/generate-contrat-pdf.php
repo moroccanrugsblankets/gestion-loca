@@ -1002,10 +1002,28 @@ class ContratBailPDF extends TCPDF {
             if (!empty($locataire['signature_data'])) {
                 $this->Ln(1);
                 error_log("PDF Generation Legacy: Signature client " . ($i + 1) . " - Données présentes (" . strlen($locataire['signature_data']) . " octets)");
-                // Créer un fichier temporaire pour la signature
                 $imgData = $locataire['signature_data'];
-                // Vérifier que c'est un data URL base64 PNG ou JPEG
-                if (preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $imgData, $matches)) {
+                
+                // Check if it's a physical file path (new format) or base64 data URI (legacy format)
+                if (preg_match('/^uploads\/signatures\//', $imgData)) {
+                    // New format: physical file path
+                    $baseDir = dirname(dirname(__DIR__));
+                    $fullPath = $baseDir . '/' . $imgData;
+                    
+                    if (file_exists($fullPath)) {
+                        error_log("PDF Generation Legacy: Signature client " . ($i + 1) . " - Format: Fichier physique");
+                        try {
+                            // Signature client (15mm) with increased spacing
+                            $this->Image($fullPath, $this->GetX(), $this->GetY(), 15, 0, 'PNG', '', '', false, 300, '', false, false, 0);
+                            $this->Ln(12); // Increased spacing after image to prevent overlap
+                        } catch (Exception $e) {
+                            error_log("PDF Generation Legacy: ERREUR lors du rendu de la signature physique: " . $e->getMessage());
+                        }
+                    } else {
+                        error_log("PDF Generation Legacy: ERREUR - Fichier de signature introuvable: " . $fullPath);
+                    }
+                } elseif (preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $imgData, $matches)) {
+                    // Legacy format: base64 data URI
                     $imageFormat = strtoupper($matches[1] === 'jpg' ? 'JPEG' : $matches[1]);
                     $imageData = base64_decode($matches[2], true);
                     
@@ -1018,10 +1036,10 @@ class ContratBailPDF extends TCPDF {
                             // Écrire les données de l'image dans le fichier temporaire
                             if (file_put_contents($tempFile, $imageData) !== false) {
                                 try {
-                                    // Signature client réduite (15mm) pour un rendu équilibré
-                                    error_log("PDF Generation Legacy: Signature client " . ($i + 1) . " - Format: $imageFormat, Ajoutée avec taille réduite (15mm)");
+                                    // Signature client (15mm) with increased spacing
+                                    error_log("PDF Generation Legacy: Signature client " . ($i + 1) . " - Format: Legacy base64, Ajoutée avec taille (15mm)");
                                     $this->Image($tempFile, $this->GetX(), $this->GetY(), 15, 0, $imageFormat, '', '', false, 300, '', false, false, 0);
-                                    $this->Ln(10); // Espace réduit après l'image
+                                    $this->Ln(12); // Increased spacing after image to prevent overlap
                                 } catch (Exception $e) {
                                     // Log l'erreur mais continue la génération du PDF
                                     error_log("PDF Generation Legacy: ERREUR lors du rendu de la signature: " . $e->getMessage());
@@ -1043,7 +1061,7 @@ class ContratBailPDF extends TCPDF {
                         error_log("PDF Generation Legacy: Décodage base64 invalide pour la signature du locataire");
                     }
                 } else {
-                    error_log("PDF Generation Legacy: Format de signature invalide (doit être data:image/png ou data:image/jpeg;base64)");
+                    error_log("PDF Generation Legacy: Format de signature invalide (ni fichier physique ni data URI valide)");
                 }
             } else {
                 error_log("PDF Generation Legacy: Signature client " . ($i + 1) . " - Non disponible (champ vide)");
