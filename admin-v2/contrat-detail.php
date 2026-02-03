@@ -596,12 +596,69 @@ if ($contrat['validated_by']) {
         <div class="detail-card">
             <h5><i class="bi bi-file-earmark-text"></i> Documents Envoyés</h5>
             <?php
+            // Helper function to check if tenant has documents
+            function tenantHasDocuments($locataire) {
+                return !empty($locataire['piece_identite_recto']) || 
+                       !empty($locataire['piece_identite_verso']) || 
+                       !empty($locataire['preuve_paiement_depot']);
+            }
+            
+            // Helper function to validate and sanitize filename for security
+            function validateAndSanitizeFilename($filename) {
+                if (empty($filename)) {
+                    return null;
+                }
+                
+                // Security: Prevent directory traversal attacks
+                // Remove any path components, keep only the filename
+                $filename = basename($filename);
+                
+                // Additional security: ensure no directory traversal sequences
+                if (strpos($filename, '..') !== false || 
+                    strpos($filename, '/') !== false || 
+                    strpos($filename, '\\') !== false) {
+                    return null;
+                }
+                
+                return $filename;
+            }
+            
+            // Helper function to render document card
+            function renderDocumentCard($documentPath, $title, $icon) {
+                $safePath = validateAndSanitizeFilename($documentPath);
+                if (!$safePath) {
+                    return;
+                }
+                
+                $extension = strtolower(pathinfo($safePath, PATHINFO_EXTENSION));
+                $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif']);
+                $fullPath = '../uploads/' . $safePath;
+                
+                echo '<div class="col-md-4 mb-3">';
+                echo '    <div class="card">';
+                echo '        <div class="card-body">';
+                echo '            <h6 class="card-title"><i class="bi bi-' . htmlspecialchars($icon) . '"></i> ' . htmlspecialchars($title) . '</h6>';
+                
+                // Show image preview if it's an image and file exists
+                if ($isImage && file_exists($fullPath)) {
+                    echo '            <img src="' . htmlspecialchars($fullPath) . '" class="img-fluid mb-2" style="max-height: 150px; object-fit: cover;" alt="' . htmlspecialchars($title) . '">';
+                }
+                
+                echo '            <a href="../uploads/' . htmlspecialchars($safePath) . '" ';
+                echo '               class="btn btn-sm btn-primary" ';
+                echo '               download ';
+                echo '               target="_blank">';
+                echo '                <i class="bi bi-download"></i> Télécharger';
+                echo '            </a>';
+                echo '        </div>';
+                echo '    </div>';
+                echo '</div>';
+            }
+            
+            // Check if any tenant has documents
             $hasDocuments = false;
             foreach ($locataires as $locataire) {
-                $locataireHasDoc = !empty($locataire['piece_identite_recto']) || 
-                                   !empty($locataire['piece_identite_verso']) || 
-                                   !empty($locataire['preuve_paiement_depot']);
-                if ($locataireHasDoc) {
+                if (tenantHasDocuments($locataire)) {
                     $hasDocuments = true;
                     break;
                 }
@@ -611,98 +668,21 @@ if ($contrat['validated_by']) {
                 <p class="text-muted">Aucun document envoyé pour le moment.</p>
             <?php else: ?>
                 <?php foreach ($locataires as $locataire): ?>
-                    <?php 
-                    $locataireHasDoc = !empty($locataire['piece_identite_recto']) || 
-                                       !empty($locataire['piece_identite_verso']) || 
-                                       !empty($locataire['preuve_paiement_depot']);
-                    if (!$locataireHasDoc) continue;
-                    ?>
+                    <?php if (!tenantHasDocuments($locataire)) continue; ?>
                     <div class="mb-4">
                         <h6><i class="bi bi-person"></i> Locataire <?php echo $locataire['ordre']; ?> - <?php echo htmlspecialchars($locataire['prenom'] . ' ' . $locataire['nom']); ?></h6>
                         <div class="row mt-2">
-                            <?php if (!empty($locataire['piece_identite_recto'])): ?>
-                                <div class="col-md-4 mb-3">
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <h6 class="card-title"><i class="bi bi-card-image"></i> Pièce d'identité (Recto)</h6>
-                                            <?php
-                                            $extension = strtolower(pathinfo($locataire['piece_identite_recto'], PATHINFO_EXTENSION));
-                                            $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif']);
-                                            if ($isImage):
-                                                $filePath = '../uploads/' . $locataire['piece_identite_recto'];
-                                                if (file_exists($filePath)):
-                                            ?>
-                                                <img src="<?php echo htmlspecialchars($filePath); ?>" class="img-fluid mb-2" style="max-height: 150px; object-fit: cover;" alt="Pièce d'identité recto">
-                                            <?php 
-                                                endif;
-                                            endif; 
-                                            ?>
-                                            <a href="../uploads/<?php echo htmlspecialchars($locataire['piece_identite_recto']); ?>" 
-                                               class="btn btn-sm btn-primary" 
-                                               download
-                                               target="_blank">
-                                                <i class="bi bi-download"></i> Télécharger
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php endif; ?>
-                            
-                            <?php if (!empty($locataire['piece_identite_verso'])): ?>
-                                <div class="col-md-4 mb-3">
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <h6 class="card-title"><i class="bi bi-card-image"></i> Pièce d'identité (Verso)</h6>
-                                            <?php
-                                            $extension = strtolower(pathinfo($locataire['piece_identite_verso'], PATHINFO_EXTENSION));
-                                            $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif']);
-                                            if ($isImage):
-                                                $filePath = '../uploads/' . $locataire['piece_identite_verso'];
-                                                if (file_exists($filePath)):
-                                            ?>
-                                                <img src="<?php echo htmlspecialchars($filePath); ?>" class="img-fluid mb-2" style="max-height: 150px; object-fit: cover;" alt="Pièce d'identité verso">
-                                            <?php 
-                                                endif;
-                                            endif; 
-                                            ?>
-                                            <a href="../uploads/<?php echo htmlspecialchars($locataire['piece_identite_verso']); ?>" 
-                                               class="btn btn-sm btn-primary" 
-                                               download
-                                               target="_blank">
-                                                <i class="bi bi-download"></i> Télécharger
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php endif; ?>
-                            
-                            <?php if (!empty($locataire['preuve_paiement_depot'])): ?>
-                                <div class="col-md-4 mb-3">
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <h6 class="card-title"><i class="bi bi-receipt"></i> Preuve de paiement</h6>
-                                            <?php
-                                            $extension = strtolower(pathinfo($locataire['preuve_paiement_depot'], PATHINFO_EXTENSION));
-                                            $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif']);
-                                            if ($isImage):
-                                                $filePath = '../uploads/' . $locataire['preuve_paiement_depot'];
-                                                if (file_exists($filePath)):
-                                            ?>
-                                                <img src="<?php echo htmlspecialchars($filePath); ?>" class="img-fluid mb-2" style="max-height: 150px; object-fit: cover;" alt="Preuve de paiement">
-                                            <?php 
-                                                endif;
-                                            endif; 
-                                            ?>
-                                            <a href="../uploads/<?php echo htmlspecialchars($locataire['preuve_paiement_depot']); ?>" 
-                                               class="btn btn-sm btn-primary" 
-                                               download
-                                               target="_blank">
-                                                <i class="bi bi-download"></i> Télécharger
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php endif; ?>
+                            <?php
+                            if (!empty($locataire['piece_identite_recto'])) {
+                                renderDocumentCard($locataire['piece_identite_recto'], 'Pièce d\'identité (Recto)', 'card-image');
+                            }
+                            if (!empty($locataire['piece_identite_verso'])) {
+                                renderDocumentCard($locataire['piece_identite_verso'], 'Pièce d\'identité (Verso)', 'card-image');
+                            }
+                            if (!empty($locataire['preuve_paiement_depot'])) {
+                                renderDocumentCard($locataire['preuve_paiement_depot'], 'Preuve de paiement', 'receipt');
+                            }
+                            ?>
                         </div>
                     </div>
                 <?php endforeach; ?>
