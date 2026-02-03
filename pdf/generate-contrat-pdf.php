@@ -353,7 +353,8 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
     error_log("PDF Generation: Nombre de locataires à traiter: " . $nbLocataires);
     
     foreach ($locataires as $i => $locataire) {
-        $sig = '<div style="margin-bottom: 20px;">';
+        // Increase margin-bottom to 30px for better spacing between client signatures
+        $sig = '<div style="margin-bottom: 30px;">';
         
         // Adapter le label selon le nombre de locataires
         // Si un seul locataire: "Locataire :" sans numéro
@@ -380,14 +381,35 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
         // Préparer placeholder pour la signature (sera remplacée par TCPDF::Image())
         if (!empty($locataire['signature_data'])) {
             error_log("PDF Generation: Signature client " . ($i + 1) . " - Données présentes (taille: " . strlen($locataire['signature_data']) . " octets)");
-            // Valider que c'est un data URI valide avec limite de taille
-            if (preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $locataire['signature_data'], $matches)) {
+            
+            // Check if it's a physical file path (new format) or base64 data URI (legacy format)
+            if (preg_match('/^uploads\/signatures\//', $locataire['signature_data'])) {
+                // New format: physical file path
+                $baseDir = dirname(__DIR__);
+                $fullPath = $baseDir . '/' . $locataire['signature_data'];
+                
+                if (file_exists($fullPath)) {
+                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Format: Fichier physique, Chemin: " . $locataire['signature_data']);
+                    
+                    // Path for HTML context: relative from pdf/ directory to uploads/
+                    $htmlPath = '../' . $locataire['signature_data'];
+                    
+                    // Insérer la signature comme image physique avec bordure supprimée et margin-top augmenté
+                    // border="0" + style pour éviter toute bordure grise par défaut + margin-top: 10mm pour éviter chevauchement
+                    $sig .= '<img src="' . htmlspecialchars($htmlPath) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-top: 10mm;" />';
+                    
+                    error_log("PDF Generation: ✓ Signature client " . ($i + 1) . " ajoutée avec margin-top augmenté et sans bordure");
+                } else {
+                    error_log("PDF Generation: ERREUR - Fichier de signature introuvable: " . $fullPath);
+                }
+            } elseif (preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $locataire['signature_data'], $matches)) {
+                // Legacy format: base64 data URI
                 $base64Data = $matches[2];
                 $imageFormat = $matches[1];
                 // Vérifier la taille
                 if (strlen($base64Data) < MAX_TENANT_SIGNATURE_SIZE * BASE64_OVERHEAD_RATIO) {
                     // Log: Signature client traitée avec succès
-                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Format: $imageFormat, Taille base64: " . strlen($base64Data) . " octets");
+                    error_log("PDF Generation: Signature client " . ($i + 1) . " - Format: Legacy base64, Taille: " . strlen($base64Data) . " octets");
                     
                     // Sauvegarder la signature comme fichier physique
                     $locataireIdForFile = $locataire['id'] ?? ($i + 1);
@@ -397,29 +419,29 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                         // Utiliser l'image physique au lieu du data URI base64
                         error_log("PDF Generation: ✓ Image physique utilisée pour la signature client " . ($i + 1));
                         
-                        // Insérer la signature comme image physique avec bordure supprimée et margin-top
-                        // border="0" + style pour éviter toute bordure grise par défaut
-                        $sig .= '<img src="' . htmlspecialchars($physicalImagePath) . '" border="0" style="' . SIGNATURE_IMG_STYLE . '" />';
+                        // Insérer la signature comme image physique avec bordure supprimée et margin-top augmenté
+                        // border="0" + style pour éviter toute bordure grise par défaut + margin-top: 10mm pour éviter chevauchement
+                        $sig .= '<img src="' . htmlspecialchars($physicalImagePath) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-top: 10mm;" />';
                         
-                        error_log("PDF Generation: ✓ Signature client " . ($i + 1) . " ajoutée avec margin-top et sans bordure");
+                        error_log("PDF Generation: ✓ Signature client " . ($i + 1) . " ajoutée avec margin-top augmenté et sans bordure");
                     } else {
                         // Fallback: utiliser le data URI si la sauvegarde échoue
                         error_log("PDF Generation: AVERTISSEMENT - Impossible de sauvegarder l'image physique, utilisation du data URI");
-                        $sig .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" border="0" style="' . SIGNATURE_IMG_STYLE . '" />';
+                        $sig .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-top: 10mm;" />';
                     }
                 } else {
                     error_log("PDF Generation: AVERTISSEMENT - Signature client " . ($i + 1) . " trop volumineuse (" . strlen($base64Data) . " octets), ignorée");
                 }
             } else {
-                error_log("PDF Generation: ERREUR - Format de signature client " . ($i + 1) . " invalide (n'est pas un data URI image valide)");
+                error_log("PDF Generation: ERREUR - Format de signature client " . ($i + 1) . " invalide (ni fichier physique ni data URI valide)");
             }
         } else {
             error_log("PDF Generation: Signature client " . ($i + 1) . " - Non disponible (champ vide)");
         }
         
-        // Horodatage et IP avec margin-top de 10px et affichage sur une seule ligne
+        // Horodatage et IP avec margin-top augmenté pour éviter chevauchement avec signature
         if (!empty($locataire['signature_timestamp']) || !empty($locataire['signature_ip'])) {
-            $sig .= '<div style="margin-top: 10px;">';
+            $sig .= '<div style="margin-top: 15px;">';
             
             if (!empty($locataire['signature_timestamp'])) {
                 $timestamp = strtotime($locataire['signature_timestamp']);
@@ -470,8 +492,9 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 
                 // Vérifier la taille
                 if (strlen($base64Data) < MAX_COMPANY_SIGNATURE_SIZE * BASE64_OVERHEAD_RATIO) {
-                    $signatureAgence = '<div style="margin-top: 20px;">';
-                    $signatureAgence .= '<p><strong>Signature électronique de la société</strong></p>';
+                    // Increase margin-top to 30px for better spacing and prevent overlap
+                    $signatureAgence = '<div style="margin-top: 30px;">';
+                    $signatureAgence .= '<p style="margin-bottom: 15px;"><strong>Signature électronique de la société</strong></p>';
                     
                     // Sauvegarder la signature agence comme fichier physique
                     $physicalImagePath = saveSignatureAsPhysicalFile($signatureImage, 'agency', $contratId);
@@ -480,26 +503,26 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                         // Utiliser l'image physique au lieu du data URI base64
                         error_log("PDF Generation: ✓ Image physique utilisée pour la signature agence");
                         
-                        // Insérer la signature comme image physique avec bordure supprimée
-                        // border="0" + style pour éviter toute bordure grise par défaut
-                        $signatureAgence .= '<img src="' . htmlspecialchars($physicalImagePath) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-bottom: 10px;" />';
+                        // Insérer la signature comme image physique avec bordure supprimée et margin-top augmenté
+                        // border="0" + style pour éviter toute bordure grise par défaut + margin-top: 10mm pour éviter chevauchement avec texte au-dessus
+                        $signatureAgence .= '<img src="' . htmlspecialchars($physicalImagePath) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-top: 10mm; margin-bottom: 10px;" />';
                     } else {
                         // Fallback: utiliser le data URI si la sauvegarde échoue
                         error_log("PDF Generation: AVERTISSEMENT - Impossible de sauvegarder l'image physique, utilisation du data URI");
-                        $signatureAgence .= '<img src="' . htmlspecialchars($signatureImage) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-bottom: 10px;" />';
+                        $signatureAgence .= '<img src="' . htmlspecialchars($signatureImage) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-top: 10mm; margin-bottom: 10px;" />';
                     }
                     
-                    // Ajouter le texte "Validé le" avec margin-top de 10px
+                    // Ajouter le texte "Validé le" avec margin-top augmenté pour éviter chevauchement
                     if (!empty($contrat['date_validation'])) {
                         $validationTimestamp = strtotime($contrat['date_validation']);
                         if ($validationTimestamp !== false) {
                             $dateValidation = date('d/m/Y à H:i:s', $validationTimestamp);
-                            $signatureAgence .= '<p style="font-size: 8pt; color: #666; margin-top: 10px;"><em>Validé le : ' . $dateValidation . '</em></p>';
-                            error_log("PDF Generation: ✓ Texte 'Validé le' ajouté avec margin-top de 10px");
+                            $signatureAgence .= '<p style="font-size: 8pt; color: #666; margin-top: 15px;"><em>Validé le : ' . $dateValidation . '</em></p>';
+                            error_log("PDF Generation: ✓ Texte 'Validé le' ajouté avec margin-top de 15px");
                         }
                     }
                     $signatureAgence .= '</div>';
-                    error_log("PDF Generation: ✓ Signature agence ajoutée avec margin-top et sans bordure");
+                    error_log("PDF Generation: ✓ Signature agence ajoutée avec margins augmentés et sans bordure");
                     error_log("PDF Generation: Format: $imageFormat, Taille: " . strlen($base64Data) . " octets");
                 } else {
                     error_log("PDF Generation: ERREUR - Signature agence trop volumineuse (" . strlen($base64Data) . " octets), ignorée");
@@ -981,10 +1004,28 @@ class ContratBailPDF extends TCPDF {
             if (!empty($locataire['signature_data'])) {
                 $this->Ln(1);
                 error_log("PDF Generation Legacy: Signature client " . ($i + 1) . " - Données présentes (" . strlen($locataire['signature_data']) . " octets)");
-                // Créer un fichier temporaire pour la signature
                 $imgData = $locataire['signature_data'];
-                // Vérifier que c'est un data URL base64 PNG ou JPEG
-                if (preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $imgData, $matches)) {
+                
+                // Check if it's a physical file path (new format) or base64 data URI (legacy format)
+                if (preg_match('/^uploads\/signatures\//', $imgData)) {
+                    // New format: physical file path
+                    $baseDir = dirname(dirname(__DIR__));
+                    $fullPath = $baseDir . '/' . $imgData;
+                    
+                    if (file_exists($fullPath)) {
+                        error_log("PDF Generation Legacy: Signature client " . ($i + 1) . " - Format: Fichier physique");
+                        try {
+                            // Signature client (15mm) with increased spacing
+                            $this->Image($fullPath, $this->GetX(), $this->GetY(), 15, 0, 'PNG', '', '', false, 300, '', false, false, 0);
+                            $this->Ln(12); // Increased spacing after image to prevent overlap
+                        } catch (Exception $e) {
+                            error_log("PDF Generation Legacy: ERREUR lors du rendu de la signature physique: " . $e->getMessage());
+                        }
+                    } else {
+                        error_log("PDF Generation Legacy: ERREUR - Fichier de signature introuvable: " . $fullPath);
+                    }
+                } elseif (preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $imgData, $matches)) {
+                    // Legacy format: base64 data URI
                     $imageFormat = strtoupper($matches[1] === 'jpg' ? 'JPEG' : $matches[1]);
                     $imageData = base64_decode($matches[2], true);
                     
@@ -997,10 +1038,10 @@ class ContratBailPDF extends TCPDF {
                             // Écrire les données de l'image dans le fichier temporaire
                             if (file_put_contents($tempFile, $imageData) !== false) {
                                 try {
-                                    // Signature client réduite (15mm) pour un rendu équilibré
-                                    error_log("PDF Generation Legacy: Signature client " . ($i + 1) . " - Format: $imageFormat, Ajoutée avec taille réduite (15mm)");
+                                    // Signature client (15mm) with increased spacing
+                                    error_log("PDF Generation Legacy: Signature client " . ($i + 1) . " - Format: Legacy base64, Ajoutée avec taille (15mm)");
                                     $this->Image($tempFile, $this->GetX(), $this->GetY(), 15, 0, $imageFormat, '', '', false, 300, '', false, false, 0);
-                                    $this->Ln(10); // Espace réduit après l'image
+                                    $this->Ln(12); // Increased spacing after image to prevent overlap
                                 } catch (Exception $e) {
                                     // Log l'erreur mais continue la génération du PDF
                                     error_log("PDF Generation Legacy: ERREUR lors du rendu de la signature: " . $e->getMessage());
@@ -1022,7 +1063,7 @@ class ContratBailPDF extends TCPDF {
                         error_log("PDF Generation Legacy: Décodage base64 invalide pour la signature du locataire");
                     }
                 } else {
-                    error_log("PDF Generation Legacy: Format de signature invalide (doit être data:image/png ou data:image/jpeg;base64)");
+                    error_log("PDF Generation Legacy: Format de signature invalide (ni fichier physique ni data URI valide)");
                 }
             } else {
                 error_log("PDF Generation Legacy: Signature client " . ($i + 1) . " - Non disponible (champ vide)");
