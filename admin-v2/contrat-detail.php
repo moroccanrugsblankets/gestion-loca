@@ -631,7 +631,12 @@ if ($contrat['validated_by']) {
                 $realUploadsDir = realpath($uploadsDir);
                 $realFilePath = realpath($fullPath);
                 
-                // If file doesn't exist, realpath returns false
+                // Check if uploads directory exists and is accessible
+                if ($realUploadsDir === false) {
+                    return null;
+                }
+                
+                // If file doesn't exist or is inaccessible, realpath returns false
                 if ($realFilePath === false) {
                     return null;
                 }
@@ -651,35 +656,43 @@ if ($contrat['validated_by']) {
                     return;
                 }
                 
-                $extension = strtolower(pathinfo($safePath, PATHINFO_EXTENSION));
-                $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif']);
-                $relativePath = '../uploads/' . $safePath;
-                
                 // Validate the file path is within uploads and exists
                 $validatedPath = validateFilePath($safePath);
                 $fileExists = ($validatedPath !== null);
+                
+                // Only construct relative path if file is validated
+                if (!$fileExists) {
+                    echo '<div class="col-md-4 mb-3">';
+                    echo '    <div class="card">';
+                    echo '        <div class="card-body">';
+                    echo '            <h6 class="card-title"><i class="bi bi-' . htmlspecialchars($icon) . '"></i> ' . htmlspecialchars($title) . '</h6>';
+                    echo '            <p class="text-muted small mb-0">Fichier non disponible</p>';
+                    echo '        </div>';
+                    echo '    </div>';
+                    echo '</div>';
+                    return;
+                }
+                
+                $extension = strtolower(pathinfo($safePath, PATHINFO_EXTENSION));
+                $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif']);
+                $relativePath = '../uploads/' . $safePath;
                 
                 echo '<div class="col-md-4 mb-3">';
                 echo '    <div class="card">';
                 echo '        <div class="card-body">';
                 echo '            <h6 class="card-title"><i class="bi bi-' . htmlspecialchars($icon) . '"></i> ' . htmlspecialchars($title) . '</h6>';
                 
-                // Show image preview if it's an image and file exists
-                if ($isImage && $fileExists) {
+                // Show image preview if it's an image
+                if ($isImage) {
                     echo '            <img src="' . htmlspecialchars($relativePath) . '" class="img-fluid mb-2" style="max-height: 150px; object-fit: cover;" alt="' . htmlspecialchars($title) . '">';
                 }
                 
-                // Only show download button if file exists
-                if ($fileExists) {
-                    echo '            <a href="' . htmlspecialchars($relativePath) . '" ';
-                    echo '               class="btn btn-sm btn-primary" ';
-                    echo '               download ';
-                    echo '               target="_blank">';
-                    echo '                <i class="bi bi-download"></i> Télécharger';
-                    echo '            </a>';
-                } else {
-                    echo '            <p class="text-muted small mb-0">Fichier non disponible</p>';
-                }
+                // Download button (file exists and is validated)
+                echo '            <a href="' . htmlspecialchars($relativePath) . '" ';
+                echo '               class="btn btn-sm btn-primary" ';
+                echo '               download>';
+                echo '                <i class="bi bi-download"></i> Télécharger';
+                echo '            </a>';
                 
                 echo '        </div>';
                 echo '    </div>';
@@ -705,10 +718,10 @@ if ($contrat['validated_by']) {
                         <div class="row mt-2">
                             <?php
                             if (!empty($locataire['piece_identite_recto'])) {
-                                renderDocumentCard($locataire['piece_identite_recto'], 'Pièce d\'identité (Recto)', 'card-image');
+                                renderDocumentCard($locataire['piece_identite_recto'], "Pièce d'identité (Recto)", 'card-image');
                             }
                             if (!empty($locataire['piece_identite_verso'])) {
-                                renderDocumentCard($locataire['piece_identite_verso'], 'Pièce d\'identité (Verso)', 'card-image');
+                                renderDocumentCard($locataire['piece_identite_verso'], "Pièce d'identité (Verso)", 'card-image');
                             }
                             if (!empty($locataire['preuve_paiement_depot'])) {
                                 renderDocumentCard($locataire['preuve_paiement_depot'], 'Preuve de paiement', 'receipt');
