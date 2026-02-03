@@ -234,6 +234,10 @@ if (!$template) {
 $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_image'");
 $stmt->execute();
 $signatureImage = $stmt->fetchColumn() ?: '';
+// If it's a file path (not a data URI), prepend '/' to make it absolute from web root
+if (!empty($signatureImage) && strpos($signatureImage, 'data:') !== 0 && strpos($signatureImage, '/') !== 0) {
+    $signatureImage = '/' . $signatureImage;
+}
 
 $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_enabled'");
 $stmt->execute();
