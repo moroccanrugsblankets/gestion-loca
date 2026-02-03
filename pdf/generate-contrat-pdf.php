@@ -15,7 +15,8 @@ define('MAX_TENANT_SIGNATURE_SIZE', 5 * 1024 * 1024); // 5 MB pour signatures lo
 define('MAX_COMPANY_SIGNATURE_SIZE', 2 * 1024 * 1024); // 2 MB pour signature société
 
 // Style CSS pour les images de signature (évite les bordures grises)
-define('SIGNATURE_IMG_STYLE', 'width: 40mm; height: auto; display: block; margin-bottom: 5mm; border: none; border-style: none; background: transparent;');
+// margin-bottom augmenté de 5mm à 15mm pour éviter chevauchement avec texte suivant
+define('SIGNATURE_IMG_STYLE', 'width: 40mm; height: auto; display: block; margin-bottom: 15mm; border: none; border-style: none; background: transparent;');
 
 /**
  * Sauvegarder une signature data URI en fichier physique PNG
@@ -353,8 +354,9 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
     error_log("PDF Generation: Nombre de locataires à traiter: " . $nbLocataires);
     
     foreach ($locataires as $i => $locataire) {
-        // Increase margin-bottom to 30px for better spacing between client signatures
-        $sig = '<div style="margin-bottom: 30px;">';
+        // Increase margin-bottom to 40px for better spacing between client signatures and text below
+        // Previous value was 30px, increased to prevent overlapping
+        $sig = '<div style="margin-bottom: 40px;">';
         
         // Adapter le label selon le nombre de locataires
         // Si un seul locataire: "Locataire :" sans numéro
@@ -395,8 +397,8 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                     $htmlPath = '../' . $locataire['signature_data'];
                     
                     // Insérer la signature comme image physique avec bordure supprimée et margin-top augmenté
-                    // border="0" + style pour éviter toute bordure grise par défaut + margin-top: 10mm pour éviter chevauchement
-                    $sig .= '<img src="' . htmlspecialchars($htmlPath) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-top: 10mm;" />';
+                    // border="0" + style pour éviter toute bordure grise par défaut + margin-top: 15mm (augmenté de 10mm) pour éviter chevauchement
+                    $sig .= '<img src="' . htmlspecialchars($htmlPath) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-top: 15mm;" />';
                     
                     error_log("PDF Generation: ✓ Signature client " . ($i + 1) . " ajoutée avec margin-top augmenté et sans bordure");
                 } else {
@@ -420,14 +422,14 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                         error_log("PDF Generation: ✓ Image physique utilisée pour la signature client " . ($i + 1));
                         
                         // Insérer la signature comme image physique avec bordure supprimée et margin-top augmenté
-                        // border="0" + style pour éviter toute bordure grise par défaut + margin-top: 10mm pour éviter chevauchement
-                        $sig .= '<img src="' . htmlspecialchars($physicalImagePath) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-top: 10mm;" />';
+                        // border="0" + style pour éviter toute bordure grise par défaut + margin-top: 15mm (augmenté de 10mm) pour éviter chevauchement
+                        $sig .= '<img src="' . htmlspecialchars($physicalImagePath) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-top: 15mm;" />';
                         
                         error_log("PDF Generation: ✓ Signature client " . ($i + 1) . " ajoutée avec margin-top augmenté et sans bordure");
                     } else {
                         // Fallback: utiliser le data URI si la sauvegarde échoue
                         error_log("PDF Generation: AVERTISSEMENT - Impossible de sauvegarder l'image physique, utilisation du data URI");
-                        $sig .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-top: 10mm;" />';
+                        $sig .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-top: 15mm;" />';
                     }
                 } else {
                     error_log("PDF Generation: AVERTISSEMENT - Signature client " . ($i + 1) . " trop volumineuse (" . strlen($base64Data) . " octets), ignorée");
@@ -496,13 +498,14 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 if (file_exists($absolutePath)) {
                     error_log("PDF Generation: Signature agence depuis fichier physique: $signatureImage");
                     
-                    // Increase margin-top to 30px for better spacing and prevent overlap
-                    $signatureAgence = '<div style="margin-top: 30px;">';
+                    // Increase margin-top to 40px for better spacing and prevent overlap
+                    // Previous value was 30px, increased to prevent overlapping with text above
+                    $signatureAgence = '<div style="margin-top: 40px;">';
                     $signatureAgence .= '<p style="margin-bottom: 15px;"><strong>Signature électronique de la société</strong></p>';
                     
                     // Use relative path from pdf/ directory
                     $relativePath = '../' . $signatureImage;
-                    $signatureAgence .= '<img src="' . htmlspecialchars($relativePath) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-top: 10mm; margin-bottom: 10px;" />';
+                    $signatureAgence .= '<img src="' . htmlspecialchars($relativePath) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-top: 15mm; margin-bottom: 15px;" />';
                     
                     // Ajouter le texte "Validé le" avec margin-top augmenté pour éviter chevauchement
                     if (!empty($contrat['date_validation'])) {
@@ -526,8 +529,9 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 
                 // Vérifier la taille
                 if (strlen($base64Data) < MAX_COMPANY_SIGNATURE_SIZE * BASE64_OVERHEAD_RATIO) {
-                    // Increase margin-top to 30px for better spacing and prevent overlap
-                    $signatureAgence = '<div style="margin-top: 30px;">';
+                    // Increase margin-top to 40px for better spacing and prevent overlap
+                    // Previous value was 30px, increased to prevent overlapping with text above
+                    $signatureAgence = '<div style="margin-top: 40px;">';
                     $signatureAgence .= '<p style="margin-bottom: 15px;"><strong>Signature électronique de la société</strong></p>';
                     
                     // Sauvegarder la signature agence comme fichier physique
@@ -538,12 +542,12 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                         error_log("PDF Generation: ✓ Image physique utilisée pour la signature agence");
                         
                         // Insérer la signature comme image physique avec bordure supprimée et margin-top augmenté
-                        // border="0" + style pour éviter toute bordure grise par défaut + margin-top: 10mm pour éviter chevauchement avec texte au-dessus
-                        $signatureAgence .= '<img src="' . htmlspecialchars($physicalImagePath) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-top: 10mm; margin-bottom: 10px;" />';
+                        // border="0" + style pour éviter toute bordure grise par défaut + margin-top: 15mm (augmenté de 10mm) pour éviter chevauchement avec texte au-dessus
+                        $signatureAgence .= '<img src="' . htmlspecialchars($physicalImagePath) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-top: 15mm; margin-bottom: 15px;" />';
                     } else {
                         // Fallback: utiliser le data URI si la sauvegarde échoue
                         error_log("PDF Generation: AVERTISSEMENT - Impossible de sauvegarder l'image physique, utilisation du data URI");
-                        $signatureAgence .= '<img src="' . htmlspecialchars($signatureImage) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-top: 10mm; margin-bottom: 10px;" />';
+                        $signatureAgence .= '<img src="' . htmlspecialchars($signatureImage) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-top: 15mm; margin-bottom: 15px;" />';
                     }
                     
                     // Ajouter le texte "Validé le" avec margin-top augmenté pour éviter chevauchement
@@ -697,8 +701,22 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
             $newSrc = $src;
             $pathType = '';
             
-            // Supprimer les ../ au début et construire l'URL absolue
-            if (preg_match('/^\.\.\//', $src)) {
+            // Pour les fichiers de signature locaux, utiliser le chemin absolu du système de fichiers au lieu d'une URL
+            // Ceci évite les problèmes de TCPDF qui ne peut pas charger les images via HTTP en mode CLI
+            if (preg_match('/^\.\.\/uploads\/signatures\//', $src)) {
+                // Convertir ../uploads/signatures/file.png en chemin absolu du système de fichiers
+                $baseDir = dirname(__DIR__);
+                $relativePath = preg_replace('/^\.\.\//', '', $src);
+                $newSrc = $baseDir . '/' . $relativePath;
+                $pathType = 'Signature locale (fichier système)';
+                
+                // Vérifier que le fichier existe
+                if (!file_exists($newSrc)) {
+                    error_log("PDF Generation: AVERTISSEMENT - Image #$imageCount - Fichier signature introuvable: $newSrc");
+                }
+            }
+            // Supprimer les ../ au début et construire l'URL absolue (pour autres images)
+            elseif (preg_match('/^\.\.\//', $src)) {
                 $newSrc = $siteUrl . '/' . preg_replace('/^\.\.\//', '', $src);
                 $pathType = 'Chemin relatif ../';
             } 
