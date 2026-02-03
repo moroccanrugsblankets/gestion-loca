@@ -14,7 +14,23 @@ if ($contractId === 0) {
     exit;
 }
 
-$contrat = fetchOne("SELECT l.*, c.* FROM contrats c INNER JOIN logements l ON c.logement_id = l.id WHERE c.id = ?", [$contractId]);
+// Important: Select c.* first, then explicitly name logements columns to avoid column name collision
+// Both tables have 'statut' column, and we need contrats.statut, not logements.statut
+$contrat = fetchOne("
+    SELECT c.*, 
+           l.reference,
+           l.adresse,
+           l.appartement,
+           l.type,
+           l.surface,
+           l.loyer,
+           l.charges,
+           l.depot_garantie,
+           l.parking
+    FROM contrats c 
+    INNER JOIN logements l ON c.logement_id = l.id 
+    WHERE c.id = ?
+", [$contractId]);
 
 if (!$contrat) {
     echo '<p class="text-danger">Contrat non trouvé.</p>';

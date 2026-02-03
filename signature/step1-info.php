@@ -13,7 +13,25 @@ if (!isset($_SESSION['signature_token']) || !isset($_SESSION['contrat_id'])) {
 }
 
 $contratId = $_SESSION['contrat_id'];
-$contrat = fetchOne("SELECT l.*, c.* FROM contrats c INNER JOIN logements l ON c.logement_id = l.id WHERE c.id = ?", [$contratId]);
+// Important: Select c.* first, then explicitly name logements columns to avoid column name collision
+// Both tables have 'statut' column, and we need contrats.statut, not logements.statut
+$contrat = fetchOne("
+    SELECT c.*, 
+           l.reference,
+           l.adresse,
+           l.appartement,
+           l.type,
+           l.surface,
+           l.loyer,
+           l.charges,
+           l.depot_garantie,
+           l.parking,
+           l.iban,
+           l.bic
+    FROM contrats c 
+    INNER JOIN logements l ON c.logement_id = l.id 
+    WHERE c.id = ?
+", [$contratId]);
 
 if (!$contrat || !isContractValid($contrat)) {
     die('Contrat invalide ou expiré.');
