@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     
                                     // Construire le lien admin
                                     global $config;
-                                    $lienAdmin = $config['BASE_URL'] . '/admin-v2/contract-details.php?id=' . $contratId;
+                                    $lienAdmin = $config['SITE_URL'] . '/admin-v2/contract-details.php?id=' . $contratId;
                                     
                                     // Préparer les variables pour le template admin
                                     $adminVariables = [

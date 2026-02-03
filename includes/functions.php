@@ -72,8 +72,8 @@ function getClientIp() {
  * @return bool
  */
 function logAction($contratId, $action, $details = '') {
-    $sql = "INSERT INTO logs (contrat_id, action, details, ip_address) VALUES (?, ?, ?, ?)";
-    $stmt = executeQuery($sql, [$contratId, $action, $details, getClientIp()]);
+    $sql = "INSERT INTO logs (type_entite, entite_id, action, details, ip_address) VALUES (?, ?, ?, ?, ?)";
+    $stmt = executeQuery($sql, ['contrat', $contratId, $action, $details, getClientIp()]);
     return $stmt !== false;
 }
 
