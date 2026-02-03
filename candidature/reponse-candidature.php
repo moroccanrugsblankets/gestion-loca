@@ -67,13 +67,17 @@ try {
         
         // Envoyer un email de notification au candidat
         $nomComplet = $candidature['prenom'] . ' ' . $candidature['nom'];
-        $emailSubject = ($action === 'positive') 
-            ? 'Suite à votre candidature'
-            : 'Réponse à votre candidature';
         
-        $emailBody = getStatusChangeEmailHTML($nomComplet, ucfirst($newStatus), '');
+        // Use appropriate email template
+        $templateId = ($action === 'positive') ? 'candidature_acceptee' : 'candidature_refusee';
         
-        $emailSent = sendEmail($candidature['email'], $emailSubject, $emailBody, null, true);
+        $variables = [
+            'nom' => $candidature['nom'],
+            'prenom' => $candidature['prenom'],
+            'email' => $candidature['email']
+        ];
+        
+        $emailSent = sendTemplatedEmail($templateId, $candidature['email'], $variables, null, false);
         
         if (!$emailSent) {
             error_log("Avertissement: Email de notification non envoyé au candidat " . $candidature['email']);

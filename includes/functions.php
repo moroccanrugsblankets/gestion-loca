@@ -241,6 +241,18 @@ function updateTenantDocuments($locataireId, $recto, $verso) {
 }
 
 /**
+ * Mettre à jour la preuve de paiement du dépôt de garantie d'un locataire
+ * @param int $locataireId
+ * @param string $preuvePaiement
+ * @return bool
+ */
+function updateTenantPaymentProof($locataireId, $preuvePaiement) {
+    $sql = "UPDATE locataires SET preuve_paiement_depot = ? WHERE id = ?";
+    $stmt = executeQuery($sql, [$preuvePaiement, $locataireId]);
+    return $stmt !== false;
+}
+
+/**
  * Finaliser un contrat (marquer comme signé)
  * @param int $contratId
  * @return bool

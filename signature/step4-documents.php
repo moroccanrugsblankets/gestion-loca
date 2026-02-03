@@ -1,6 +1,6 @@
 <?php
 /**
- * Signature - Étape 3 : Upload des documents
+ * Signature - Étape 4 : Upload des documents d'identité
  * My Invest Immobilier
  */
 
@@ -159,7 +159,7 @@ $csrfToken = generateCsrfToken();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Documents d'identité - MY Invest Immobilier</title>
+    <title>Vérification d'identité - MY Invest Immobilier</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../assets/css/style.css">
 </head>
@@ -168,14 +168,14 @@ $csrfToken = generateCsrfToken();
         <div class="text-center mb-4">
             <img src="../assets/images/logo.png" alt="MY Invest Immobilier" class="logo mb-3" 
                  onerror="this.style.display='none'">
-            <h1 class="h2">Documents d'identité</h1>
+            <h1 class="h2">Vérification d'identité du ou des locataires</h1>
         </div>
 
         <!-- Barre de progression -->
         <div class="mb-4">
             <div class="progress" style="height: 30px;">
                 <div class="progress-bar bg-success" role="progressbar" style="width: 100%;">
-                    Étape 3/3 - Documents
+                    Étape 4/4 - Documents d'identité
                 </div>
             </div>
         </div>
@@ -184,9 +184,18 @@ $csrfToken = generateCsrfToken();
             <div class="col-md-8">
                 <div class="card shadow">
                     <div class="card-body">
-                        <h4 class="card-title mb-4">
-                            Upload de la pièce d'identité (Locataire <?= $numeroLocataire ?>)
+                        <h4 class="card-title mb-3">
+                            Justificatif(s) d'identité
                         </h4>
+
+                        <div class="alert alert-info mb-4">
+                            <p class="mb-2">
+                                Conformément à la réglementation en vigueur et afin de finaliser le dossier de location, nous vous remercions de nous transmettre une copie de la pièce d'identité de chaque titulaire du bail (carte nationale d'identité ou passeport).
+                            </p>
+                            <p class="mb-0">
+                                Ces documents sont nécessaires afin de vérifier que les signataires du bail sont bien les personnes qui louent le logement. Les données transmises sont traitées de manière strictement confidentielle.
+                            </p>
+                        </div>
 
                         <?php if ($error): ?>
                             <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
@@ -198,6 +207,8 @@ $csrfToken = generateCsrfToken();
 
                         <form method="POST" action="" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
+                            
+                            <h5 class="mb-3">Locataire <?= $numeroLocataire ?></h5>
                             
                             <div class="mb-3">
                                 <label for="piece_recto" class="form-label">

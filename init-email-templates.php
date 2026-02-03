@@ -147,6 +147,117 @@ $templates = [
         'description' => 'Email envoyé au candidat si sa candidature est refusée automatiquement'
     ],
     [
+        'identifiant' => 'statut_visite_planifiee',
+        'nom' => 'Visite planifiée',
+        'sujet' => 'Visite de logement planifiée - MY Invest Immobilier',
+        'corps_html' => '<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0;">
+    <div style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px;">MY Invest Immobilier</h1>
+        </div>
+        <div style="padding: 30px;">
+            <p style="margin: 15px 0;">Bonjour {{nom}},</p>
+            
+            <p style="margin: 15px 0;">📅 <strong>Votre visite du logement a été planifiée.</strong></p>
+            
+            <p style="margin: 15px 0;">Nous vous contacterons prochainement pour confirmer la date et l\'heure de la visite.</p>
+            
+            <p style="margin: 15px 0;">{{commentaire}}</p>
+            
+            <p style="margin: 15px 0;">Nous restons à votre disposition pour toute question.</p>
+            
+            {{signature}}
+        </div>
+        <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e9ecef;">
+            <p>MY Invest Immobilier - Gestion locative professionnelle</p>
+        </div>
+    </div>
+</body>
+</html>',
+        'variables_disponibles' => '["nom", "prenom", "email", "commentaire"]',
+        'description' => 'Email envoyé au candidat quand une visite est planifiée'
+    ],
+    [
+        'identifiant' => 'statut_contrat_envoye',
+        'nom' => 'Contrat envoyé',
+        'sujet' => 'Contrat de bail - MY Invest Immobilier',
+        'corps_html' => '<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0;">
+    <div style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px;">MY Invest Immobilier</h1>
+        </div>
+        <div style="padding: 30px;">
+            <p style="margin: 15px 0;">Bonjour {{nom}},</p>
+            
+            <p style="margin: 15px 0;">📄 <strong>Votre contrat de bail est prêt.</strong></p>
+            
+            <p style="margin: 15px 0;">Vous allez recevoir un lien pour le signer électroniquement.</p>
+            
+            <p style="margin: 15px 0;">{{commentaire}}</p>
+            
+            <p style="margin: 15px 0;">Nous restons à votre disposition pour toute question.</p>
+            
+            {{signature}}
+        </div>
+        <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e9ecef;">
+            <p>MY Invest Immobilier - Gestion locative professionnelle</p>
+        </div>
+    </div>
+</body>
+</html>',
+        'variables_disponibles' => '["nom", "prenom", "email", "commentaire"]',
+        'description' => 'Email envoyé au candidat quand le contrat est envoyé'
+    ],
+    [
+        'identifiant' => 'statut_contrat_signe',
+        'nom' => 'Contrat signé',
+        'sujet' => 'Contrat signé - MY Invest Immobilier',
+        'corps_html' => '<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0;">
+    <div style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px;">MY Invest Immobilier</h1>
+        </div>
+        <div style="padding: 30px;">
+            <p style="margin: 15px 0;">Bonjour {{nom}},</p>
+            
+            <p style="margin: 15px 0;">✓ <strong>Nous avons bien reçu votre contrat signé.</strong></p>
+            
+            <p style="margin: 15px 0;">Nous vous contacterons prochainement pour les modalités d\'entrée dans le logement.</p>
+            
+            <p style="margin: 15px 0;">{{commentaire}}</p>
+            
+            <p style="margin: 15px 0;">Nous restons à votre disposition pour toute question.</p>
+            
+            {{signature}}
+        </div>
+        <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e9ecef;">
+            <p>MY Invest Immobilier - Gestion locative professionnelle</p>
+        </div>
+    </div>
+</body>
+</html>',
+        'variables_disponibles' => '["nom", "prenom", "email", "commentaire"]',
+        'description' => 'Email envoyé au candidat quand le contrat est signé'
+    ],
+    [
         'identifiant' => 'admin_nouvelle_candidature',
         'nom' => 'Notification admin - Nouvelle candidature',
         'sujet' => 'Nouvelle candidature reçue - {{reference}}',
@@ -337,7 +448,7 @@ $templates = [
     [
         'identifiant' => 'contrat_finalisation_admin',
         'nom' => 'Notification Admin - Contrat Finalisé',
-        'sujet' => '[ADMIN] Contrat signé - {{reference}}',
+        'sujet' => 'Contrat signé - {{reference}} - Vérification requise',
         'corps_html' => '<!DOCTYPE html>
 <html>
 <head>
