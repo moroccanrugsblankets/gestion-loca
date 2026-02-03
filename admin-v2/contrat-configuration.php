@@ -299,14 +299,14 @@ function getDefaultContractTemplate() {
     <p>Fait à Annemasse, le {{date_signature}}</p>
     
     <div style="margin-bottom: 30px;">
-        <p><strong>Le bailleur</strong><br>
+        <p style="margin-bottom: 15px; border: none;"><strong>Le bailleur</strong><br>
         MY INVEST IMMOBILIER<br>
         Représenté par M. ALEXANDRE<br>
         Lu et approuvé</p>
         {{signature_agence}}
     </div>
     
-    <div style="margin-top: 30px;">
+    <div style="margin-top: 40px;">
         {{locataires_signatures}}
     </div>
 
