@@ -78,8 +78,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 error_log("Step2-Signature: ✓ Signature enregistrée avec succès");
                 logAction($contratId, 'signature_locataire', "Locataire $numeroLocataire a signé");
                 
-                // Rediriger vers l'étape 3
-                header('Location: step3-documents.php');
+                // Rediriger vers l'étape 3 (paiement)
+                header('Location: step3-payment.php');
                 exit;
             } else {
                 error_log("Step2-Signature: ✗ ERREUR lors de l'enregistrement de la signature");
@@ -111,8 +111,8 @@ $csrfToken = generateCsrfToken();
         <!-- Barre de progression -->
         <div class="mb-4">
             <div class="progress" style="height: 30px;">
-                <div class="progress-bar bg-success" role="progressbar" style="width: 66%;">
-                    Étape 2/3 - Signature
+                <div class="progress-bar bg-success" role="progressbar" style="width: 50%;">
+                    Étape 2/4 - Signature
                 </div>
             </div>
         </div>
