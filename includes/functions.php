@@ -253,8 +253,20 @@ function finalizeContract($contratId) {
         logAction($contratId, 'signature_contrat', 'Contrat finalisé et signé');
         
         // Send email notification to administrators that contract is signed and needs verification
+        // Important: Select c.* first, then explicitly name logements columns to avoid column name collision
         $contrat = fetchOne("
-            SELECT c.*, l.*, c.id as contrat_id, c.reference_unique as reference_contrat
+            SELECT c.*, 
+                   c.id as contrat_id, 
+                   c.reference_unique as reference_contrat,
+                   l.reference,
+                   l.adresse,
+                   l.appartement,
+                   l.type,
+                   l.surface,
+                   l.loyer,
+                   l.charges,
+                   l.depot_garantie,
+                   l.parking
             FROM contrats c
             INNER JOIN logements l ON c.logement_id = l.id
             WHERE c.id = ?

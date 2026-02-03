@@ -70,8 +70,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         
         // Get contract and tenant details for emails
+        // Important: Select c.* first, then explicitly name logements columns to avoid column name collision
         $contrat = fetchOne("
-            SELECT c.*, l.*, c.id as contrat_id, c.reference_unique as reference_contrat
+            SELECT c.*, 
+                   c.id as contrat_id, 
+                   c.reference_unique as reference_contrat,
+                   l.reference,
+                   l.adresse,
+                   l.appartement,
+                   l.type,
+                   l.surface,
+                   l.loyer,
+                   l.charges,
+                   l.depot_garantie,
+                   l.parking
             FROM contrats c
             INNER JOIN logements l ON c.logement_id = l.id
             WHERE c.id = ?
@@ -153,8 +165,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $stmt->execute($params);
         
         // Get contract and tenant details for emails
+        // Important: Select c.* first, then explicitly name logements columns to avoid column name collision
         $contrat = fetchOne("
-            SELECT c.*, l.*, c.id as contrat_id, c.reference_unique as reference_contrat
+            SELECT c.*, 
+                   c.id as contrat_id, 
+                   c.reference_unique as reference_contrat,
+                   l.reference,
+                   l.adresse,
+                   l.appartement,
+                   l.type,
+                   l.surface,
+                   l.loyer,
+                   l.charges,
+                   l.depot_garantie,
+                   l.parking
             FROM contrats c
             INNER JOIN logements l ON c.logement_id = l.id
             WHERE c.id = ?

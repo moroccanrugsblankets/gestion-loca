@@ -38,9 +38,24 @@ function generateContratPDF($contratId) {
     
     try {
         // Récupérer les données du contrat
+        // Important: Select c.* first, then explicitly name logements columns to avoid column name collision
+        // Both tables have 'statut' column, and we need contrats.statut, not logements.statut
         $stmt = $pdo->prepare("
-            SELECT c.*, l.*, 
-                   ca.nom as candidat_nom, ca.prenom as candidat_prenom, ca.email as candidat_email
+            SELECT c.*, 
+                   l.reference as logement_reference,
+                   l.adresse,
+                   l.appartement,
+                   l.type,
+                   l.surface,
+                   l.loyer,
+                   l.charges,
+                   l.depot_garantie,
+                   l.parking,
+                   l.iban,
+                   l.bic,
+                   ca.nom as candidat_nom, 
+                   ca.prenom as candidat_prenom, 
+                   ca.email as candidat_email
             FROM contrats c
             INNER JOIN logements l ON c.logement_id = l.id
             LEFT JOIN candidatures ca ON c.candidature_id = ca.id
