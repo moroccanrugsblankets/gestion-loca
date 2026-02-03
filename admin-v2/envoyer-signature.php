@@ -80,10 +80,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Logger l'action
         $stmt = $pdo->prepare("
-            INSERT INTO logs (contrat_id, action, details, ip_address)
-            VALUES (?, 'signature_link_sent', ?, ?)
+            INSERT INTO logs (type_entite, entite_id, action, details, ip_address)
+            VALUES (?, ?, 'signature_link_sent', ?, ?)
         ");
         $stmt->execute([
+            'contrat',
             $contrat_id,
             "Lien de signature envoyé à $email_principal pour $nb_locataires locataire(s)",
             $_SERVER['REMOTE_ADDR']

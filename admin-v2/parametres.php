@@ -35,7 +35,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // Get all parameters grouped by category
-$stmt = $pdo->query("SELECT * FROM parametres ORDER BY groupe, cle");
+// Exclude 'contrats' group as it's managed in contrat-configuration.php
+$stmt = $pdo->query("SELECT * FROM parametres WHERE groupe != 'contrats' ORDER BY groupe, cle");
 $allParams = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Group parameters by category
@@ -105,6 +106,15 @@ foreach ($allParams as $param) {
             <div class="d-flex justify-content-between align-items-center">
                 <h4>Paramètres de l'application</h4>
             </div>
+        </div>
+
+        <!-- Info about contract configuration -->
+        <div class="alert alert-info alert-dismissible fade show">
+            <i class="bi bi-info-circle"></i>
+            <strong>Configuration des contrats :</strong> 
+            Les paramètres relatifs aux contrats (template HTML, signature électronique) sont gérés dans 
+            <a href="contrat-configuration.php" class="alert-link"><strong>Configuration du Template de Contrat</strong></a>.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
 
         <?php if (isset($_SESSION['error'])): ?>
