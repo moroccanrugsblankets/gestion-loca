@@ -610,17 +610,38 @@ if ($contrat['validated_by']) {
                 }
                 
                 // Security: Prevent directory traversal attacks
-                // Remove any path components, keep only the filename
+                // basename() removes any directory components, keeping only the filename
+                // This is defense-in-depth: basename already removes .., /, and \
                 $filename = basename($filename);
                 
-                // Additional security: ensure no directory traversal sequences
-                if (strpos($filename, '..') !== false || 
-                    strpos($filename, '/') !== false || 
-                    strpos($filename, '\\') !== false) {
+                // Verify the filename is not empty after sanitization
+                if (empty($filename)) {
                     return null;
                 }
                 
                 return $filename;
+            }
+            
+            // Helper function to validate file path is within uploads directory
+            function validateFilePath($relativePath) {
+                $uploadsDir = dirname(__DIR__) . '/uploads/';
+                $fullPath = $uploadsDir . $relativePath;
+                
+                // Get real paths for comparison
+                $realUploadsDir = realpath($uploadsDir);
+                $realFilePath = realpath($fullPath);
+                
+                // If file doesn't exist, realpath returns false
+                if ($realFilePath === false) {
+                    return null;
+                }
+                
+                // Ensure the resolved path is within the uploads directory
+                if (strpos($realFilePath, $realUploadsDir) !== 0) {
+                    return null;
+                }
+                
+                return $fullPath;
             }
             
             // Helper function to render document card
@@ -632,7 +653,11 @@ if ($contrat['validated_by']) {
                 
                 $extension = strtolower(pathinfo($safePath, PATHINFO_EXTENSION));
                 $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif']);
-                $fullPath = '../uploads/' . $safePath;
+                $relativePath = '../uploads/' . $safePath;
+                
+                // Validate the file path is within uploads and exists
+                $validatedPath = validateFilePath($safePath);
+                $fileExists = ($validatedPath !== null);
                 
                 echo '<div class="col-md-4 mb-3">';
                 echo '    <div class="card">';
@@ -640,16 +665,22 @@ if ($contrat['validated_by']) {
                 echo '            <h6 class="card-title"><i class="bi bi-' . htmlspecialchars($icon) . '"></i> ' . htmlspecialchars($title) . '</h6>';
                 
                 // Show image preview if it's an image and file exists
-                if ($isImage && file_exists($fullPath)) {
-                    echo '            <img src="' . htmlspecialchars($fullPath) . '" class="img-fluid mb-2" style="max-height: 150px; object-fit: cover;" alt="' . htmlspecialchars($title) . '">';
+                if ($isImage && $fileExists) {
+                    echo '            <img src="' . htmlspecialchars($relativePath) . '" class="img-fluid mb-2" style="max-height: 150px; object-fit: cover;" alt="' . htmlspecialchars($title) . '">';
                 }
                 
-                echo '            <a href="../uploads/' . htmlspecialchars($safePath) . '" ';
-                echo '               class="btn btn-sm btn-primary" ';
-                echo '               download ';
-                echo '               target="_blank">';
-                echo '                <i class="bi bi-download"></i> Télécharger';
-                echo '            </a>';
+                // Only show download button if file exists
+                if ($fileExists) {
+                    echo '            <a href="' . htmlspecialchars($relativePath) . '" ';
+                    echo '               class="btn btn-sm btn-primary" ';
+                    echo '               download ';
+                    echo '               target="_blank">';
+                    echo '                <i class="bi bi-download"></i> Télécharger';
+                    echo '            </a>';
+                } else {
+                    echo '            <p class="text-muted small mb-0">Fichier non disponible</p>';
+                }
+                
                 echo '        </div>';
                 echo '    </div>';
                 echo '</div>';
