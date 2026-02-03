@@ -13,7 +13,8 @@ if (!isset($_SESSION['signature_token']) || !isset($_SESSION['contrat_id'])) {
 }
 
 $contratId = $_SESSION['contrat_id'];
-// Important: Select c.* first, then explicitly name logements columns to avoid confusion
+// Important: Select c.* first, then explicitly name logements columns to avoid column name collision
+// Both tables have 'statut' column, and we need contrats.statut, not logements.statut
 $contrat = fetchOne("
     SELECT c.*, 
            l.reference as logement_reference,

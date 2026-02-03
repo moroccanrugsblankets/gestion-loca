@@ -17,7 +17,8 @@ $contratId = $_SESSION['contrat_id'];
 $locataireId = $_SESSION['current_locataire_id'];
 $numeroLocataire = $_SESSION['current_locataire_numero'];
 
-// Important: Select c.* first, then explicitly name logements columns to avoid confusion
+// Important: Select c.* first, then explicitly name logements columns to avoid column name collision
+// Both tables have 'statut' column, and we need contrats.statut, not logements.statut
 $contrat = fetchOne("
     SELECT c.*, 
            l.reference as logement_reference,
