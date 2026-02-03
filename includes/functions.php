@@ -246,6 +246,7 @@ function updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve)
     // Store relative path instead of base64
     $relativePath = 'uploads/signatures/' . $filename;
     error_log("Signature saved as physical file: $relativePath for locataire ID: $locataireId");
+    error_log("✓ Signature enregistrée physiquement et intégrée sans bordure - Locataire ID: $locataireId");
     
     $sql = "UPDATE locataires 
             SET signature_data = ?, signature_ip = ?, signature_timestamp = NOW(), mention_lu_approuve = ?
