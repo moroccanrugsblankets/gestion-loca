@@ -354,10 +354,26 @@ function generateBailHTML($contrat, $locataires) {
     
     if ($isValidated && $isSignatureEnabled && !empty($signatureImage)) {
         error_log("PDF Generation Bail HTML: Signature agence AJOUTÉE au HTML");
-        $html .= '
-        <p><strong>Signature électronique</strong></p>
-        <img src="' . htmlspecialchars($signatureImage) . '" alt="Signature Société" class="company-signature" style="max-width: 80px; max-height: 40px; border: 0; border-style: none; background: transparent;"><br>
-        <p><strong>Validé le :</strong> ' . formatDateFr($contrat['date_validation'], 'd/m/Y à H:i:s') . '</p>';
+        
+        // Sauvegarder la signature agence comme fichier physique
+        $physicalImagePath = saveSignatureAsPhysicalFile($signatureImage, 'agency_bail', $contratId);
+        
+        if ($physicalImagePath !== false) {
+            // Utiliser l'image physique
+            error_log("PDF Generation Bail: ✓ Image physique utilisée pour la signature agence");
+            $html .= '
+            <p><strong>Signature électronique</strong></p>
+            <img src="' . htmlspecialchars($physicalImagePath) . '" alt="Signature Société" class="company-signature" border="0" style="max-width: 80px; max-height: 40px; border: 0; border-style: none; background: transparent; margin-bottom: 10px;"><br>
+            <p style="margin-top: 10px;"><strong>Validé le :</strong> ' . formatDateFr($contrat['date_validation'], 'd/m/Y à H:i:s') . '</p>';
+            error_log("PDF Generation Bail: ✓ Signature agence ajoutée avec margin-top et sans bordure");
+        } else {
+            // Fallback: utiliser data URI
+            error_log("PDF Generation Bail: AVERTISSEMENT - Impossible de sauvegarder l'image physique, utilisation du data URI");
+            $html .= '
+            <p><strong>Signature électronique</strong></p>
+            <img src="' . htmlspecialchars($signatureImage) . '" alt="Signature Société" class="company-signature" border="0" style="max-width: 80px; max-height: 40px; border: 0; border-style: none; background: transparent; margin-bottom: 10px;"><br>
+            <p style="margin-top: 10px;"><strong>Validé le :</strong> ' . formatDateFr($contrat['date_validation'], 'd/m/Y à H:i:s') . '</p>';
+        }
     } else {
         error_log("PDF Generation Bail HTML: Signature agence NON ajoutée - Raisons: isValidated=" . ($isValidated ? 'true' : 'false') . ", isSignatureEnabled=" . ($isSignatureEnabled ? 'true' : 'false') . ", hasImage=" . (!empty($signatureImage) ? 'true' : 'false'));
         $html .= '
@@ -390,13 +406,26 @@ function generateBailHTML($contrat, $locataires) {
             <p><strong>Signature</strong></p>';
         
         if ($locataire['signature_data']) {
-            // Signature client avec taille équilibrée (60x30px) et sans bordure
-            $html .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" alt="Signature" style="max-width: 60px; max-height: 30px; border: 0; border-style: none; background: transparent;"><br>';
+            // Sauvegarder la signature client comme fichier physique
+            $locataireIdForFile = $locataire['id'] ?? ($i + 1);
+            $physicalImagePath = saveSignatureAsPhysicalFile($locataire['signature_data'], 'tenant_bail', $contratId, $locataireIdForFile);
+            
+            if ($physicalImagePath !== false) {
+                // Utiliser l'image physique
+                error_log("PDF Generation Bail: ✓ Image physique utilisée pour la signature client " . ($i + 1));
+                $html .= '<img src="' . htmlspecialchars($physicalImagePath) . '" alt="Signature" border="0" style="max-width: 60px; max-height: 30px; border: 0; border-style: none; background: transparent; margin-bottom: 10px;"><br>';
+                error_log("PDF Generation Bail: ✓ Signature client " . ($i + 1) . " ajoutée avec margin-top et sans bordure");
+            } else {
+                // Fallback: utiliser data URI
+                error_log("PDF Generation Bail: AVERTISSEMENT - Impossible de sauvegarder l'image physique client " . ($i + 1) . ", utilisation du data URI");
+                $html .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" alt="Signature" border="0" style="max-width: 60px; max-height: 30px; border: 0; border-style: none; background: transparent; margin-bottom: 10px;"><br>';
+            }
         }
         
-        $html .= '<p style="margin-top: 30px;"><strong>Horodatage :</strong> ' . formatDateFr($locataire['signature_timestamp'], 'd/m/Y à H:i:s') . '<br>
-            <strong>Adresse IP :</strong> ' . htmlspecialchars($locataire['signature_ip']) . '</p>
+        $html .= '<div style="margin-top: 10px;"><p style="white-space: nowrap;"><strong>Horodatage :</strong> ' . formatDateFr($locataire['signature_timestamp'], 'd/m/Y à H:i:s') . '</p>
+            <p style="white-space: nowrap;"><strong>Adresse IP :</strong> ' . htmlspecialchars($locataire['signature_ip']) . '</p></div>
         </div>';
+        error_log("PDF Generation Bail: ✓ Horodatage affiché sur une seule ligne");
     }
     
     $html .= '
