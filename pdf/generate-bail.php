@@ -394,7 +394,7 @@ function generateBailHTML($contrat, $locataires) {
             $html .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" alt="Signature" style="max-width: 60px; max-height: 30px; border: 0; border-style: none; background: transparent;"><br>';
         }
         
-        $html .= '<p><strong>Horodatage :</strong> ' . formatDateFr($locataire['signature_timestamp'], 'd/m/Y à H:i:s') . '<br>
+        $html .= '<p style="margin-top: 30px;"><strong>Horodatage :</strong> ' . formatDateFr($locataire['signature_timestamp'], 'd/m/Y à H:i:s') . '<br>
             <strong>Adresse IP :</strong> ' . htmlspecialchars($locataire['signature_ip']) . '</p>
         </div>';
     }

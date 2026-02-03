@@ -592,6 +592,147 @@ if ($contrat['validated_by']) {
             <?php endif; ?>
         </div>
 
+        <!-- Documents Section -->
+        <div class="detail-card">
+            <h5><i class="bi bi-file-earmark-text"></i> Documents Envoyés</h5>
+            <?php
+            // Helper function to check if tenant has documents
+            function tenantHasDocuments($locataire) {
+                return !empty($locataire['piece_identite_recto']) || 
+                       !empty($locataire['piece_identite_verso']) || 
+                       !empty($locataire['preuve_paiement_depot']);
+            }
+            
+            // Helper function to validate and sanitize filename for security
+            function validateAndSanitizeFilename($filename) {
+                if (empty($filename)) {
+                    return null;
+                }
+                
+                // Security: Prevent directory traversal attacks
+                // basename() removes any directory components, keeping only the filename
+                // This is defense-in-depth: basename already removes .., /, and \
+                $filename = basename($filename);
+                
+                // Verify the filename is not empty after sanitization
+                if (empty($filename)) {
+                    return null;
+                }
+                
+                return $filename;
+            }
+            
+            // Helper function to validate file path is within uploads directory
+            function validateFilePath($relativePath) {
+                $uploadsDir = dirname(__DIR__) . '/uploads/';
+                $fullPath = $uploadsDir . $relativePath;
+                
+                // Get real paths for comparison
+                $realUploadsDir = realpath($uploadsDir);
+                $realFilePath = realpath($fullPath);
+                
+                // Check if uploads directory exists and is accessible
+                if ($realUploadsDir === false) {
+                    return null;
+                }
+                
+                // If file doesn't exist or is inaccessible, realpath returns false
+                if ($realFilePath === false) {
+                    return null;
+                }
+                
+                // Ensure the resolved path is within the uploads directory
+                if (strpos($realFilePath, $realUploadsDir) !== 0) {
+                    return null;
+                }
+                
+                return $fullPath;
+            }
+            
+            // Helper function to render document card
+            function renderDocumentCard($documentPath, $title, $icon) {
+                $safePath = validateAndSanitizeFilename($documentPath);
+                if (!$safePath) {
+                    return;
+                }
+                
+                // Validate the file path is within uploads and exists
+                $validatedPath = validateFilePath($safePath);
+                $fileExists = ($validatedPath !== null);
+                
+                // Only construct relative path if file is validated
+                if (!$fileExists) {
+                    echo '<div class="col-md-4 mb-3">';
+                    echo '    <div class="card">';
+                    echo '        <div class="card-body">';
+                    echo '            <h6 class="card-title"><i class="bi bi-' . htmlspecialchars($icon) . '"></i> ' . htmlspecialchars($title) . '</h6>';
+                    echo '            <p class="text-muted small mb-0">Fichier non disponible</p>';
+                    echo '        </div>';
+                    echo '    </div>';
+                    echo '</div>';
+                    return;
+                }
+                
+                $extension = strtolower(pathinfo($safePath, PATHINFO_EXTENSION));
+                $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif']);
+                $relativePath = '../uploads/' . $safePath;
+                
+                echo '<div class="col-md-4 mb-3">';
+                echo '    <div class="card">';
+                echo '        <div class="card-body">';
+                echo '            <h6 class="card-title"><i class="bi bi-' . htmlspecialchars($icon) . '"></i> ' . htmlspecialchars($title) . '</h6>';
+                
+                // Show image preview if it's an image
+                if ($isImage) {
+                    echo '            <img src="' . htmlspecialchars($relativePath) . '" class="img-fluid mb-2" style="max-height: 150px; object-fit: cover;" alt="' . htmlspecialchars($title) . '">';
+                }
+                
+                // Download button (file exists and is validated)
+                echo '            <a href="' . htmlspecialchars($relativePath) . '" ';
+                echo '               class="btn btn-sm btn-primary" ';
+                echo '               download>';
+                echo '                <i class="bi bi-download"></i> Télécharger';
+                echo '            </a>';
+                
+                echo '        </div>';
+                echo '    </div>';
+                echo '</div>';
+            }
+            
+            // Check if any tenant has documents
+            $hasDocuments = false;
+            foreach ($locataires as $locataire) {
+                if (tenantHasDocuments($locataire)) {
+                    $hasDocuments = true;
+                    break;
+                }
+            }
+            
+            if (!$hasDocuments): ?>
+                <p class="text-muted">Aucun document envoyé pour le moment.</p>
+            <?php else: ?>
+                <?php foreach ($locataires as $locataire): ?>
+                    <?php if (!tenantHasDocuments($locataire)) continue; ?>
+                    <div class="mb-4">
+                        <h6><i class="bi bi-person"></i> Locataire <?php echo $locataire['ordre']; ?> - <?php echo htmlspecialchars($locataire['prenom'] . ' ' . $locataire['nom']); ?></h6>
+                        <div class="row mt-2">
+                            <?php
+                            if (!empty($locataire['piece_identite_recto'])) {
+                                renderDocumentCard($locataire['piece_identite_recto'], "Pièce d'identité (Recto)", 'card-image');
+                            }
+                            if (!empty($locataire['piece_identite_verso'])) {
+                                renderDocumentCard($locataire['piece_identite_verso'], "Pièce d'identité (Verso)", 'card-image');
+                            }
+                            if (!empty($locataire['preuve_paiement_depot'])) {
+                                renderDocumentCard($locataire['preuve_paiement_depot'], 'Preuve de paiement', 'receipt');
+                            }
+                            ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </div>
+
         <!-- Action Section for signed contracts -->
         <?php if ($contrat['statut'] === 'signe'): ?>
         <div class="action-section">
