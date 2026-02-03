@@ -51,8 +51,6 @@ function generateContratPDF($contratId) {
                    l.charges,
                    l.depot_garantie,
                    l.parking,
-                   l.iban,
-                   l.bic,
                    ca.nom as candidat_nom, 
                    ca.prenom as candidat_prenom, 
                    ca.email as candidat_email
