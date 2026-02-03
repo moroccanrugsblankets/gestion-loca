@@ -29,9 +29,7 @@ $contrat = fetchOne("
            l.loyer,
            l.charges,
            l.depot_garantie,
-           l.parking,
-           l.iban,
-           l.bic
+           l.parking
     FROM contrats c 
     INNER JOIN logements l ON c.logement_id = l.id 
     WHERE c.id = ?
