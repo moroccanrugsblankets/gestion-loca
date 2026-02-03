@@ -385,16 +385,18 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
             // Check if it's a physical file path (new format) or base64 data URI (legacy format)
             if (preg_match('/^uploads\/signatures\//', $locataire['signature_data'])) {
                 // New format: physical file path
-                $physicalImagePath = '../' . $locataire['signature_data'];
                 $baseDir = dirname(__DIR__);
                 $fullPath = $baseDir . '/' . $locataire['signature_data'];
                 
                 if (file_exists($fullPath)) {
                     error_log("PDF Generation: Signature client " . ($i + 1) . " - Format: Fichier physique, Chemin: " . $locataire['signature_data']);
                     
+                    // Path for HTML context: relative from pdf/ directory to uploads/
+                    $htmlPath = '../' . $locataire['signature_data'];
+                    
                     // Insérer la signature comme image physique avec bordure supprimée et margin-top augmenté
                     // border="0" + style pour éviter toute bordure grise par défaut + margin-top: 10mm pour éviter chevauchement
-                    $sig .= '<img src="' . htmlspecialchars($physicalImagePath) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-top: 10mm;" />';
+                    $sig .= '<img src="' . htmlspecialchars($htmlPath) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-top: 10mm;" />';
                     
                     error_log("PDF Generation: ✓ Signature client " . ($i + 1) . " ajoutée avec margin-top augmenté et sans bordure");
                 } else {

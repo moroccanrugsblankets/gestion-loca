@@ -56,7 +56,7 @@ foreach ($locataires as $locataire) {
     $base64Data = $matches[2];
     
     // Decode base64
-    $imageData = base64_decode($base64Data);
+    $imageData = base64_decode($base64Data, true);
     if ($imageData === false) {
         echo "  ✗ Failed to decode base64\n";
         $failed++;
