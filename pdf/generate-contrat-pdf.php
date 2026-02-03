@@ -14,6 +14,9 @@ define('BASE64_OVERHEAD_RATIO', 4 / 3); // Base64 est ~33% plus grand que les do
 define('MAX_TENANT_SIGNATURE_SIZE', 5 * 1024 * 1024); // 5 MB pour signatures locataires
 define('MAX_COMPANY_SIGNATURE_SIZE', 2 * 1024 * 1024); // 2 MB pour signature société
 
+// Style CSS pour les images de signature (évite les bordures grises)
+define('SIGNATURE_IMG_STYLE', 'width: 40mm; height: auto; display: block; margin-bottom: 5mm; border: none; border-style: none; background: transparent;');
+
 /**
  * Sauvegarder une signature data URI en fichier physique PNG
  * @param string $signatureData Data URI de la signature (base64)
@@ -39,8 +42,9 @@ function saveSignatureAsPhysicalFile($signatureData, $prefix, $contratId, $locat
         return false;
     }
     
-    // Créer le répertoire si nécessaire
-    $uploadsDir = __DIR__ . '/../uploads/signatures';
+    // Créer le répertoire si nécessaire (utiliser chemin absolu)
+    $baseDir = dirname(__DIR__); // Répertoire racine du projet
+    $uploadsDir = $baseDir . '/uploads/signatures';
     if (!is_dir($uploadsDir)) {
         mkdir($uploadsDir, 0755, true);
     }
@@ -56,7 +60,7 @@ function saveSignatureAsPhysicalFile($signatureData, $prefix, $contratId, $locat
         return false;
     }
     
-    // Retourner le chemin relatif
+    // Retourner le chemin relatif depuis le répertoire pdf/
     $relativePath = '../uploads/signatures/' . $filename;
     error_log("saveSignatureAsPhysicalFile: ✓ Image physique sauvegardée: $relativePath");
     
@@ -395,13 +399,13 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                         
                         // Insérer la signature comme image physique avec bordure supprimée et margin-top
                         // border="0" + style pour éviter toute bordure grise par défaut
-                        $sig .= '<img src="' . htmlspecialchars($physicalImagePath) . '" border="0" style="width: 40mm; height: auto; display: block; margin-bottom: 5mm; border: none; border-style: none; background: transparent;" />';
+                        $sig .= '<img src="' . htmlspecialchars($physicalImagePath) . '" border="0" style="' . SIGNATURE_IMG_STYLE . '" />';
                         
                         error_log("PDF Generation: ✓ Signature client " . ($i + 1) . " ajoutée avec margin-top et sans bordure");
                     } else {
                         // Fallback: utiliser le data URI si la sauvegarde échoue
                         error_log("PDF Generation: AVERTISSEMENT - Impossible de sauvegarder l'image physique, utilisation du data URI");
-                        $sig .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" border="0" style="width: 40mm; height: auto; display: block; margin-bottom: 5mm; border: none; border-style: none; background: transparent;" />';
+                        $sig .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" border="0" style="' . SIGNATURE_IMG_STYLE . '" />';
                     }
                 } else {
                     error_log("PDF Generation: AVERTISSEMENT - Signature client " . ($i + 1) . " trop volumineuse (" . strlen($base64Data) . " octets), ignorée");
@@ -478,11 +482,11 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                         
                         // Insérer la signature comme image physique avec bordure supprimée
                         // border="0" + style pour éviter toute bordure grise par défaut
-                        $signatureAgence .= '<img src="' . htmlspecialchars($physicalImagePath) . '" border="0" style="width: 40mm; height: auto; display: block; margin-bottom: 10px; border: none; border-style: none; background: transparent;" />';
+                        $signatureAgence .= '<img src="' . htmlspecialchars($physicalImagePath) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-bottom: 10px;" />';
                     } else {
                         // Fallback: utiliser le data URI si la sauvegarde échoue
                         error_log("PDF Generation: AVERTISSEMENT - Impossible de sauvegarder l'image physique, utilisation du data URI");
-                        $signatureAgence .= '<img src="' . htmlspecialchars($signatureImage) . '" border="0" style="width: 40mm; height: auto; display: block; margin-bottom: 10px; border: none; border-style: none; background: transparent;" />';
+                        $signatureAgence .= '<img src="' . htmlspecialchars($signatureImage) . '" border="0" style="' . SIGNATURE_IMG_STYLE . ' margin-bottom: 10px;" />';
                     }
                     
                     // Ajouter le texte "Validé le" avec margin-top de 10px
