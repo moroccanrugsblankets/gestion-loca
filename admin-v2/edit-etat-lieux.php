@@ -22,6 +22,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     try {
         $pdo->beginTransaction();
         
+        // Handle signature data
+        $bailleurSignature = null;
+        $locataireSignature = null;
+        
+        if (!empty($_POST['bailleur_signature_data'])) {
+            $bailleurSignature = $_POST['bailleur_signature_data'];
+            // Validate it's a proper data URL
+            if (!preg_match('/^data:image\/(jpeg|jpg);base64,/', $bailleurSignature)) {
+                throw new Exception("Format de signature bailleur invalide");
+            }
+        }
+        
+        if (!empty($_POST['locataire_signature_data'])) {
+            $locataireSignature = $_POST['locataire_signature_data'];
+            // Validate it's a proper data URL
+            if (!preg_match('/^data:image\/(jpeg|jpg);base64,/', $locataireSignature)) {
+                throw new Exception("Format de signature locataire invalide");
+            }
+        }
+        
         // Update état des lieux
         $stmt = $pdo->prepare("
             UPDATE etats_lieux SET
@@ -47,10 +67,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 depot_garantie_montant_retenu = ?,
                 depot_garantie_motif_retenue = ?,
                 lieu_signature = ?,
+                signature_bailleur = ?,
+                signature_locataire = ?,
+                date_signature = ?,
                 statut = ?,
                 updated_at = NOW()
             WHERE id = ?
         ");
+        
+        // Set date_signature if either signature is provided
+        $dateSignature = ($bailleurSignature || $locataireSignature) ? date('Y-m-d H:i:s') : null;
         
         $stmt->execute([
             $_POST['date_etat'],
@@ -75,6 +101,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             isset($_POST['depot_garantie_montant_retenu']) && !empty($_POST['depot_garantie_montant_retenu']) ? (float)$_POST['depot_garantie_montant_retenu'] : null,
             $_POST['depot_garantie_motif_retenue'] ?? '',
             $_POST['lieu_signature'] ?? '',
+            $bailleurSignature,
+            $locataireSignature,
+            $dateSignature,
             $_POST['statut'] ?? 'brouillon',
             $id
         ]);
@@ -92,6 +121,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $pdo->rollBack();
         error_log("Error updating état des lieux: " . $e->getMessage());
         $_SESSION['error'] = "Erreur lors de l'enregistrement";
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        error_log("Error updating état des lieux: " . $e->getMessage());
+        $_SESSION['error'] = $e->getMessage();
     }
 }
 
@@ -182,6 +215,16 @@ $isSortie = $etat['type'] === 'sortie';
             margin: 0 -15px -15px -15px;
             border-radius: 0 0 10px 10px;
         }
+        .signature-container {
+            border: 2px solid #dee2e6;
+            border-radius: 5px;
+            background-color: #ffffff;
+            display: inline-block;
+            cursor: crosshair;
+        }
+        #signatureCanvasBailleur, #signatureCanvasLocataire {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -227,6 +270,8 @@ $isSortie = $etat['type'] === 'sortie';
 
         <form method="POST" action="" id="etatLieuxForm" enctype="multipart/form-data">
             <input type="hidden" name="action" value="save">
+            <input type="hidden" name="bailleur_signature_data" id="bailleur_signature_data">
+            <input type="hidden" name="locataire_signature_data" id="locataire_signature_data">
             
             <!-- 1. Identification -->
             <div class="form-card">
@@ -586,8 +631,38 @@ $isSortie = $etat['type'] === 'sortie';
                     </div>
                 </div>
                 
+                <div class="section-subtitle">Signature du bailleur</div>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Veuillez signer dans le cadre ci-dessous :</label>
+                        <div class="signature-container" style="max-width: 300px;">
+                            <canvas id="signatureCanvasBailleur" width="300" height="150" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
+                        </div>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-warning btn-sm" onclick="clearSignatureBailleur()">
+                                <i class="bi bi-eraser"></i> Effacer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section-subtitle">Signature du locataire</div>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Veuillez signer dans le cadre ci-dessous :</label>
+                        <div class="signature-container" style="max-width: 300px;">
+                            <canvas id="signatureCanvasLocataire" width="300" height="150" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
+                        </div>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-warning btn-sm" onclick="clearSignatureLocataire()">
+                                <i class="bi bi-eraser"></i> Effacer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i> Les signatures seront ajoutées lors de la finalisation du document.
+                    <i class="bi bi-info-circle"></i> Les signatures sont capturées en format .jpg et seront incluses dans le PDF généré.
                 </div>
             </div>
 
@@ -614,7 +689,165 @@ $isSortie = $etat['type'] === 'sortie';
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../assets/js/signature.js"></script>
     <script>
+        // Signature handling
+        let canvasBailleur, ctxBailleur, isDrawingBailleur = false, lastXBailleur = 0, lastYBailleur = 0;
+        let canvasLocataire, ctxLocataire, isDrawingLocataire = false, lastXLocataire = 0, lastYLocataire = 0;
+        let tempCanvasBailleur, tempCtxBailleur, tempCanvasLocataire, tempCtxLocataire;
+        
+        function initSignatureBailleur() {
+            canvasBailleur = document.getElementById('signatureCanvasBailleur');
+            if (!canvasBailleur) return;
+            
+            ctxBailleur = canvasBailleur.getContext('2d');
+            ctxBailleur.strokeStyle = '#000000';
+            ctxBailleur.lineWidth = 2;
+            ctxBailleur.lineCap = 'round';
+            ctxBailleur.lineJoin = 'round';
+            ctxBailleur.clearRect(0, 0, canvasBailleur.width, canvasBailleur.height);
+            
+            // Create temp canvas for JPEG conversion
+            tempCanvasBailleur = document.createElement('canvas');
+            tempCanvasBailleur.width = canvasBailleur.width;
+            tempCanvasBailleur.height = canvasBailleur.height;
+            tempCtxBailleur = tempCanvasBailleur.getContext('2d');
+            
+            // Mouse events
+            canvasBailleur.addEventListener('mousedown', (e) => {
+                isDrawingBailleur = true;
+                const pos = getMousePos(canvasBailleur, e);
+                lastXBailleur = pos.x;
+                lastYBailleur = pos.y;
+            });
+            canvasBailleur.addEventListener('mousemove', (e) => {
+                if (!isDrawingBailleur) return;
+                e.preventDefault();
+                const pos = getMousePos(canvasBailleur, e);
+                ctxBailleur.beginPath();
+                ctxBailleur.moveTo(lastXBailleur, lastYBailleur);
+                ctxBailleur.lineTo(pos.x, pos.y);
+                ctxBailleur.stroke();
+                lastXBailleur = pos.x;
+                lastYBailleur = pos.y;
+            });
+            canvasBailleur.addEventListener('mouseup', () => { isDrawingBailleur = false; });
+            canvasBailleur.addEventListener('mouseout', () => { isDrawingBailleur = false; });
+            
+            // Touch events
+            canvasBailleur.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousedown', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                canvasBailleur.dispatchEvent(mouseEvent);
+            });
+            canvasBailleur.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousemove', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                canvasBailleur.dispatchEvent(mouseEvent);
+            });
+            canvasBailleur.addEventListener('touchend', () => { isDrawingBailleur = false; });
+        }
+        
+        function initSignatureLocataire() {
+            canvasLocataire = document.getElementById('signatureCanvasLocataire');
+            if (!canvasLocataire) return;
+            
+            ctxLocataire = canvasLocataire.getContext('2d');
+            ctxLocataire.strokeStyle = '#000000';
+            ctxLocataire.lineWidth = 2;
+            ctxLocataire.lineCap = 'round';
+            ctxLocataire.lineJoin = 'round';
+            ctxLocataire.clearRect(0, 0, canvasLocataire.width, canvasLocataire.height);
+            
+            // Create temp canvas for JPEG conversion
+            tempCanvasLocataire = document.createElement('canvas');
+            tempCanvasLocataire.width = canvasLocataire.width;
+            tempCanvasLocataire.height = canvasLocataire.height;
+            tempCtxLocataire = tempCanvasLocataire.getContext('2d');
+            
+            // Mouse events
+            canvasLocataire.addEventListener('mousedown', (e) => {
+                isDrawingLocataire = true;
+                const pos = getMousePos(canvasLocataire, e);
+                lastXLocataire = pos.x;
+                lastYLocataire = pos.y;
+            });
+            canvasLocataire.addEventListener('mousemove', (e) => {
+                if (!isDrawingLocataire) return;
+                e.preventDefault();
+                const pos = getMousePos(canvasLocataire, e);
+                ctxLocataire.beginPath();
+                ctxLocataire.moveTo(lastXLocataire, lastYLocataire);
+                ctxLocataire.lineTo(pos.x, pos.y);
+                ctxLocataire.stroke();
+                lastXLocataire = pos.x;
+                lastYLocataire = pos.y;
+            });
+            canvasLocataire.addEventListener('mouseup', () => { isDrawingLocataire = false; });
+            canvasLocataire.addEventListener('mouseout', () => { isDrawingLocataire = false; });
+            
+            // Touch events
+            canvasLocataire.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousedown', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                canvasLocataire.dispatchEvent(mouseEvent);
+            });
+            canvasLocataire.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousemove', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                canvasLocataire.dispatchEvent(mouseEvent);
+            });
+            canvasLocataire.addEventListener('touchend', () => { isDrawingLocataire = false; });
+        }
+        
+        function getMousePos(canvas, e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+        
+        function canvasToJPEG(canvas, tempCanvas, tempCtx) {
+            // Fill with white background (JPEG doesn't support transparency)
+            tempCtx.fillStyle = '#FFFFFF';
+            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            // Draw signature on white background
+            tempCtx.drawImage(canvas, 0, 0);
+            // Convert to JPEG with 95% quality
+            return tempCanvas.toDataURL('image/jpeg', 0.95);
+        }
+        
+        function clearSignatureBailleur() {
+            if (!ctxBailleur || !canvasBailleur) return;
+            ctxBailleur.clearRect(0, 0, canvasBailleur.width, canvasBailleur.height);
+            ctxBailleur.strokeStyle = '#000000';
+            ctxBailleur.lineWidth = 2;
+        }
+        
+        function clearSignatureLocataire() {
+            if (!ctxLocataire || !canvasLocataire) return;
+            ctxLocataire.clearRect(0, 0, canvasLocataire.width, canvasLocataire.height);
+            ctxLocataire.strokeStyle = '#000000';
+            ctxLocataire.lineWidth = 2;
+        }
+        
         // Calculate total keys
         function calculateTotalKeys() {
             const appart = parseInt(document.querySelector('[name="cles_appartement"]').value) || 0;
@@ -655,6 +888,22 @@ $isSortie = $etat['type'] === 'sortie';
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             calculateTotalKeys();
+            initSignatureBailleur();
+            initSignatureLocataire();
+        });
+        
+        // Handle form submission
+        document.getElementById('etatLieuxForm').addEventListener('submit', function(e) {
+            // Capture signatures before submission
+            if (canvasBailleur && tempCanvasBailleur && tempCtxBailleur) {
+                const bailleurSignature = canvasToJPEG(canvasBailleur, tempCanvasBailleur, tempCtxBailleur);
+                document.getElementById('bailleur_signature_data').value = bailleurSignature;
+            }
+            
+            if (canvasLocataire && tempCanvasLocataire && tempCtxLocataire) {
+                const locataireSignature = canvasToJPEG(canvasLocataire, tempCanvasLocataire, tempCtxLocataire);
+                document.getElementById('locataire_signature_data').value = locataireSignature;
+            }
         });
     </script>
 </body>
