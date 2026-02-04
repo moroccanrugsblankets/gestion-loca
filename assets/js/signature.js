@@ -49,11 +49,23 @@ function initSignature() {
     ctx.lineWidth = 2;
     
     // Créer un canvas temporaire réutilisable pour la conversion JPEG avec fond blanc
-    tempCanvas = document.createElement('canvas');
-    tempCanvas.width = canvas.width;
-    tempCanvas.height = canvas.height;
-    tempCtx = tempCanvas.getContext('2d');
-    console.log('- Canvas temporaire créé pour conversion JPEG');
+    // Check if tempCanvas already exists to avoid memory leaks on reinitialization
+    if (!tempCanvas) {
+        tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+        tempCtx = tempCanvas.getContext('2d');
+        console.log('- Canvas temporaire créé pour conversion JPEG');
+    } else {
+        // Reuse existing canvas but update dimensions if needed
+        if (tempCanvas.width !== canvas.width || tempCanvas.height !== canvas.height) {
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            console.log('- Canvas temporaire redimensionné');
+        } else {
+            console.log('- Canvas temporaire réutilisé');
+        }
+    }
     
     // Sauvegarder l'état vide du canvas avec fond blanc pour JPEG
     tempCtx.fillStyle = '#FFFFFF';
