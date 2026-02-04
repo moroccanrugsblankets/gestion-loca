@@ -11,6 +11,23 @@ require_once __DIR__ . '/../includes/db.php';
 try {
     $pdo->beginTransaction();
     
+    echo "=== Migration 021: Create État des Lieux Tables ===\n";
+    echo "⚠️  NOTE: This migration has been superseded by migration 026\n";
+    echo "⚠️  Migration 026 uses the correct table name 'etats_lieux' (plural)\n";
+    echo "⚠️  This migration created 'etat_lieux' (singular) which conflicts with existing schema\n\n";
+    
+    // Check if the wrong table name was created
+    $stmt = $pdo->query("SHOW TABLES LIKE 'etat_lieux'");
+    if ($stmt->rowCount() > 0) {
+        echo "⚠️  WARNING: Table 'etat_lieux' (singular) exists from this migration\n";
+        echo "⚠️  You may need to migrate data to 'etats_lieux' (plural) and drop 'etat_lieux'\n";
+    }
+    
+    // Skip creating the tables - migration 026 handles this correctly
+    echo "✓ Migration skipped - use migration 026 instead\n";
+    
+    // Original code kept for reference but not executed:
+    /*
     // Table: etat_lieux
     // Stores the main inventory data for entry and exit inspections
     $sql = "
@@ -78,7 +95,10 @@ try {
     
     $pdo->exec($sql);
     echo "✓ Table etat_lieux créée\n";
+    */
     
+    // Skip rest of migration
+    /*
     // Table: etat_lieux_locataires
     // Stores tenant signatures for each inventory
     $sql = "
@@ -146,13 +166,15 @@ try {
     
     $pdo->exec($sql);
     echo "✓ Templates email créés\n";
+    */
     
-    // Commit transaction
+    // Commit transaction (no-op)
     $pdo->commit();
-    echo "\n✅ Migration 021 terminée avec succès\n";
+    echo "\n✅ Migration 021 skipped (superseded by migration 026)\n";
     
 } catch (Exception $e) {
     $pdo->rollBack();
     echo "\n❌ Erreur lors de la migration 021: " . $e->getMessage() . "\n";
+    echo "This migration is deprecated - use migration 026 instead\n";
     exit(1);
 }

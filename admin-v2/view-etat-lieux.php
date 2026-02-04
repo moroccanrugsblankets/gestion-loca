@@ -50,7 +50,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 $stmt = $pdo->prepare("
     SELECT edl.*, 
            c.reference_unique as contrat_ref,
-           c.date_debut, c.date_fin,
+           c.date_prise_effet as date_debut, 
+           c.date_fin_prevue as date_fin,
            CONCAT(cand.prenom, ' ', cand.nom) as locataire,
            cand.email as locataire_email,
            l.adresse, l.appartement, l.type as type_logement, l.surface
