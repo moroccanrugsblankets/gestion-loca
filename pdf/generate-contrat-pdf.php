@@ -525,7 +525,7 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 $timestamp = strtotime($locataire['signature_timestamp']);
                 if ($timestamp !== false) {
                     $formattedTimestamp = date('d/m/Y à H:i:s', $timestamp);
-                    // margin-top: 40px to lower timestamp by 30px (was 10px)
+                    // margin-top: 40px to lower timestamp position by 30px (was 10px)
                     // margin-bottom: 0 for minimal spacing before IP address line
                     $signaturesTable .= '<p style="font-size: 8pt; color: #666; white-space: nowrap; margin: 40px 0 0 0;"><em>Horodatage : ' . $formattedTimestamp . '</em></p>';
                 }
