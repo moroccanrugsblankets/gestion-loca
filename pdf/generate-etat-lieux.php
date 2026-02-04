@@ -524,13 +524,15 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
         if ($key === $depotStatus) {
             $depotHTML .= "<p>$label</p>";
         } else {
-            // Extract the label text after the checkbox symbol and dash
+            // Extract the label text after the checkbox symbol and optional dash
             $labelText = $label;
             if (strpos($label, ' - ') !== false) {
                 // Format: "☑ Text - More text" -> "More text"
+                // Offset 3 accounts for ' - ' (space, dash, space)
                 $labelText = substr($label, strpos($label, ' - ') + 3);
             } else {
                 // Format: "☑ Text" -> "Text"
+                // Offset 1 accounts for the space after the checkbox symbol
                 $labelText = substr($label, strpos($label, ' ') + 1);
             }
             $depotHTML .= "<p>☐ " . $labelText . "</p>";

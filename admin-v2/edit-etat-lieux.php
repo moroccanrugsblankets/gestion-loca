@@ -635,7 +635,7 @@ $isSortie = $etat['type'] === 'sortie';
             const container = document.getElementById('depot_details_container');
             const selectedValue = select.value;
             
-            // Show details only if retenue_partielle or retenue_totale
+            // Show details only if restitution_partielle or retenue_totale
             container.style.display = (selectedValue === 'restitution_partielle' || selectedValue === 'retenue_totale') ? 'block' : 'none';
         }
         
