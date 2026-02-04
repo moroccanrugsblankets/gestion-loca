@@ -74,7 +74,7 @@ function generateContratPDF($contratId) {
         error_log("Template HTML récupérée");
         
         // 5. Remplacer les variables {{nom_variable}} par leurs valeurs
-        $html = replaceTemplateVariables($templateHtml, $contrat, $locataires);
+        $html = replaceContratTemplateVariables($templateHtml, $contrat, $locataires);
         error_log("Variables remplacées");
         
         // 6. Injecter les signatures via <img>
@@ -115,9 +115,9 @@ function generateContratPDF($contratId) {
 }
 
 /**
- * Remplacer les variables dans la template
+ * Remplacer les variables dans la template du contrat PDF
  */
-function replaceTemplateVariables($template, $contrat, $locataires) {
+function replaceContratTemplateVariables($template, $contrat, $locataires) {
     global $config;
     
     // Préparer les informations des locataires
