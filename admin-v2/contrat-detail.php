@@ -562,6 +562,7 @@ if ($contrat['validated_by']) {
                                             <?php 
                                             // Fix path for admin-v2 directory - prepend ../ for relative paths
                                             // Relative paths are those that don't start with 'data:', 'http', or '/'
+                                            // Note: Using strpos() === 0 for PHP 7.2 compatibility (str_starts_with requires PHP 8.0+)
                                             $signatureSrc = $locataire['signature_data'];
                                             $isDataUri = strpos($signatureSrc, 'data:') === 0;
                                             $isHttpUrl = strpos($signatureSrc, 'http') === 0;
