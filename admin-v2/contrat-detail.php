@@ -559,7 +559,14 @@ if ($contrat['validated_by']) {
                                     <?php if ($locataire['signature_data']): ?>
                                         <div>
                                             <strong>Aperçu de la signature:</strong><br>
-                                            <img src="<?php echo htmlspecialchars($locataire['signature_data']); ?>" 
+                                            <?php 
+                                            // Fix path for admin-v2 directory - prepend ../ for relative paths
+                                            $signatureSrc = $locataire['signature_data'];
+                                            if (strpos($signatureSrc, 'data:') !== 0 && strpos($signatureSrc, 'http') !== 0 && strpos($signatureSrc, '/') !== 0) {
+                                                $signatureSrc = '../' . $signatureSrc;
+                                            }
+                                            ?>
+                                            <img src="<?php echo htmlspecialchars($signatureSrc); ?>" 
                                                  alt="Signature" 
                                                  class="signature-preview">
                                         </div>

@@ -423,7 +423,6 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 if ($signatureImagePath !== null) {
                     // Create HTML with direct image
                     $signatureAgence = '<div style="margin-top: 40px;">';
-                    $signatureAgence .= '<p style="margin-bottom: 15px;"><strong>Signature électronique de la société</strong></p>';
                     
                     // Insert image directly with inline style to prevent borders
                     $signatureAgence .= '<img src="' . htmlspecialchars($signatureImagePath) . '" alt="Signature Agence" style="' . SIGNATURE_IMG_STYLE . '">';
