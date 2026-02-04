@@ -61,8 +61,7 @@ function initSignature() {
         if (tempCanvas.width !== canvas.width || tempCanvas.height !== canvas.height) {
             tempCanvas.width = canvas.width;
             tempCanvas.height = canvas.height;
-            // Resizing canvas resets context state, must reacquire context
-            tempCtx = tempCanvas.getContext('2d');
+            // Note: Resizing canvas clears content but tempCtx reference remains valid
             console.log('- Canvas temporaire redimensionné');
         } else {
             console.log('- Canvas temporaire réutilisé');
