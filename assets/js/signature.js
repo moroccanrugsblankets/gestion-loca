@@ -3,6 +3,9 @@
  * My Invest Immobilier
  */
 
+// Configuration constants
+const JPEG_QUALITY = 0.95; // Quality for JPEG compression (0-1)
+
 let canvas;
 let ctx;
 let isDrawing = false;
@@ -56,7 +59,7 @@ function initSignature() {
     tempCtx.fillStyle = '#FFFFFF';
     tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
     tempCtx.drawImage(canvas, 0, 0);
-    emptyCanvasData = tempCanvas.toDataURL('image/jpeg', 0.95);
+    emptyCanvasData = tempCanvas.toDataURL('image/jpeg', JPEG_QUALITY);
     console.log('- Canvas vide capturé avec fond blanc (taille:', emptyCanvasData.length, 'bytes)');
     
     // Événements souris
@@ -187,7 +190,7 @@ function getSignatureData() {
     // Draw the signature on top of the white background
     tempCtx.drawImage(canvas, 0, 0);
     
-    const signatureData = tempCanvas.toDataURL('image/jpeg', 0.95);
+    const signatureData = tempCanvas.toDataURL('image/jpeg', JPEG_QUALITY);
     console.log('Signature captured:');
     console.log('- Data URI length:', signatureData.length, 'bytes');
     console.log('- Canvas dimensions:', canvas.width, 'x', canvas.height, 'px');
