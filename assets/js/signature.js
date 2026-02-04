@@ -32,11 +32,11 @@ function initSignature() {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     
-    // Fond transparent (pas de fond blanc pour éviter les bordures)
+    // Fond blanc (clearRect puis conversion JPEG donnera un fond blanc)
     // This ensures the saved JPEG will have a clean white background with no borders
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    console.log('- Fond: transparent (clearRect appliqué)');
+    console.log('- Fond: blanc (clearRect appliqué, converti en blanc par JPEG)');
     console.log('- Style de trait: noir (#000000), largeur 2px');
     
     // Réinitialiser le style de dessin
