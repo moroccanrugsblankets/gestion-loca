@@ -32,20 +32,27 @@ function initSignature() {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     
-    // Fond blanc (clearRect puis conversion JPEG donnera un fond blanc)
-    // This ensures the saved JPEG will have a clean white background with no borders
+    // Fond transparent pour le dessin (sera converti avec fond blanc lors de la sauvegarde JPEG)
+    // Clear canvas for drawing with transparent background
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    console.log('- Fond: blanc (clearRect appliqué, converti en blanc par JPEG)');
+    console.log('- Fond: transparent pour le dessin (converti en blanc lors de la sauvegarde JPEG)');
     console.log('- Style de trait: noir (#000000), largeur 2px');
     
     // Réinitialiser le style de dessin
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2;
     
-    // Sauvegarder l'état vide du canvas
-    emptyCanvasData = canvas.toDataURL('image/jpeg', 0.95);
-    console.log('- Canvas vide capturé (taille:', emptyCanvasData.length, 'bytes)');
+    // Sauvegarder l'état vide du canvas avec fond blanc pour JPEG
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.fillStyle = '#FFFFFF';
+    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+    tempCtx.drawImage(canvas, 0, 0);
+    emptyCanvasData = tempCanvas.toDataURL('image/jpeg', 0.95);
+    console.log('- Canvas vide capturé avec fond blanc (taille:', emptyCanvasData.length, 'bytes)');
     
     // Événements souris
     canvas.addEventListener('mousedown', startDrawing);
@@ -162,7 +169,20 @@ function getSignatureData() {
         return '';
     }
     
-    const signatureData = canvas.toDataURL('image/jpeg', 0.95);
+    // Create a temporary canvas with white background for JPEG conversion
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    // Fill with white background (JPEG doesn't support transparency)
+    tempCtx.fillStyle = '#FFFFFF';
+    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+    
+    // Draw the signature on top of the white background
+    tempCtx.drawImage(canvas, 0, 0);
+    
+    const signatureData = tempCanvas.toDataURL('image/jpeg', 0.95);
     console.log('Signature captured:');
     console.log('- Data URI length:', signatureData.length, 'bytes');
     console.log('- Canvas dimensions:', canvas.width, 'x', canvas.height, 'px');
