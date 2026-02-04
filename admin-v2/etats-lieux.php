@@ -125,10 +125,10 @@ $etats_lieux = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <i class="bi bi-calendar"></i> <?php echo date('d/m/Y', strtotime($etat['date_etat'])); ?>
                             </small>
                             <div>
-                                <a href="#" class="btn btn-sm btn-outline-primary">
+                                <a href="view-etat-lieux.php?id=<?php echo $etat['id']; ?>" class="btn btn-sm btn-outline-primary" title="Voir">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                <a href="#" class="btn btn-sm btn-outline-secondary">
+                                <a href="download-etat-lieux.php?id=<?php echo $etat['id']; ?>" class="btn btn-sm btn-outline-secondary" title="Télécharger" target="_blank">
                                     <i class="bi bi-download"></i>
                                 </a>
                             </div>

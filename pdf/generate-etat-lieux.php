@@ -70,7 +70,7 @@ function generateEtatDesLieuxPDF($contratId, $type = 'entree') {
         }
 
         // Vérifier si un état des lieux existe déjà
-        $stmt = $pdo->prepare("SELECT * FROM etat_lieux WHERE contrat_id = ? AND type = ? ORDER BY created_at DESC LIMIT 1");
+        $stmt = $pdo->prepare("SELECT * FROM etats_lieux WHERE contrat_id = ? AND type = ? ORDER BY created_at DESC LIMIT 1");
         $stmt->execute([$contratId, $type]);
         $etatLieux = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -113,7 +113,7 @@ function generateEtatDesLieuxPDF($contratId, $type = 'entree') {
 
         // Mettre à jour le statut de l'état des lieux
         if ($etatLieux && isset($etatLieux['id'])) {
-            $stmt = $pdo->prepare("UPDATE etat_lieux SET statut = 'finalise', updated_at = NOW() WHERE id = ?");
+            $stmt = $pdo->prepare("UPDATE etats_lieux SET statut = 'finalise' WHERE id = ?");
             $stmt->execute([$etatLieux['id']]);
         }
 
@@ -135,7 +135,7 @@ function createDefaultEtatLieux($contratId, $type, $contrat, $locataires) {
     $referenceUnique = 'EDL-' . strtoupper($type) . '-' . $contrat['reference'] . '-' . date('YmdHis');
     
     $stmt = $pdo->prepare("
-        INSERT INTO etat_lieux (
+        INSERT INTO etats_lieux (
             contrat_id, 
             type, 
             reference_unique,
@@ -195,7 +195,7 @@ function createDefaultEtatLieux($contratId, $type, $contrat, $locataires) {
     }
     
     // Récupérer l'état des lieux créé
-    $stmt = $pdo->prepare("SELECT * FROM etat_lieux WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT * FROM etats_lieux WHERE id = ?");
     $stmt->execute([$etatLieuxId]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
@@ -845,7 +845,7 @@ function sendEtatDesLieuxEmail($contratId, $type, $pdfPath) {
         }
         
         // Récupérer l'état des lieux
-        $stmt = $pdo->prepare("SELECT * FROM etat_lieux WHERE contrat_id = ? AND type = ? ORDER BY created_at DESC LIMIT 1");
+        $stmt = $pdo->prepare("SELECT * FROM etats_lieux WHERE contrat_id = ? AND type = ? ORDER BY created_at DESC LIMIT 1");
         $stmt->execute([$contratId, $type]);
         $etatLieux = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -910,7 +910,7 @@ function sendEtatDesLieuxEmail($contratId, $type, $pdfPath) {
         // Mettre à jour le statut de l'email dans la base de données
         if ($etatLieux && $success) {
             $stmt = $pdo->prepare("
-                UPDATE etat_lieux 
+                UPDATE etats_lieux 
                 SET email_envoye = TRUE, date_envoi_email = NOW(), statut = 'envoye'
                 WHERE id = ?
             ");
