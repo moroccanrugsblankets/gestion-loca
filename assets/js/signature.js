@@ -26,14 +26,14 @@ function initSignature() {
     ctx = canvas.getContext('2d');
     
     // Configuration du canvas
-    // IMPORTANT: No borders should be added to the canvas to avoid borders in the saved PNG
+    // IMPORTANT: No borders should be added to the canvas to avoid borders in the saved JPEG
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     
     // Fond transparent (pas de fond blanc pour éviter les bordures)
-    // This ensures the saved PNG will have a transparent background with no borders
+    // This ensures the saved JPEG will have a clean white background with no borders
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     console.log('- Fond: transparent (clearRect appliqué)');
@@ -44,7 +44,7 @@ function initSignature() {
     ctx.lineWidth = 2;
     
     // Sauvegarder l'état vide du canvas
-    emptyCanvasData = canvas.toDataURL();
+    emptyCanvasData = canvas.toDataURL('image/jpeg', 0.95);
     console.log('- Canvas vide capturé (taille:', emptyCanvasData.length, 'bytes)');
     
     // Événements souris
