@@ -16,7 +16,8 @@ define('MAX_COMPANY_SIGNATURE_SIZE', 2 * 1024 * 1024); // 2 MB pour signature so
 
 // Style CSS pour les images de signature (évite les bordures grises)
 // margin-bottom augmenté de 5mm à 15mm pour éviter chevauchement avec texte suivant
-define('SIGNATURE_IMG_STYLE', 'width: 40mm; height: auto; display: block; margin-bottom: 15mm; border: none; border-style: none; background: transparent;');
+// Additional border properties to ensure no borders in TCPDF rendering
+define('SIGNATURE_IMG_STYLE', 'width: 40mm; height: auto; display: block; margin-bottom: 15mm; border: 0; border-width: 0; border-style: none; outline: none; box-shadow: none; background: transparent;');
 
 /**
  * Sauvegarder une signature data URI en fichier physique PNG
@@ -447,6 +448,16 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
     }
     error_log("PDF Generation: === FIN TRAITEMENT SIGNATURE AGENCE - " . (empty($signatureAgence) ? 'NON GÉNÉRÉE' : 'GÉNÉRÉE (longueur: ' . strlen($signatureAgence) . ')') . " ===");
     
+    // Detect if any client signatures exist (PDF is "signed")
+    $hasClientSignatures = false;
+    foreach ($locataires as $loc) {
+        if (!empty($loc['signature_data'])) {
+            $hasClientSignatures = true;
+            break;
+        }
+    }
+    error_log("PDF Generation: Client signatures present: " . ($hasClientSignatures ? 'OUI' : 'NON'));
+    
     // Créer le tableau de signatures alignées horizontalement
     error_log("PDF Generation: === CRÉATION DU TABLEAU DE SIGNATURES ===");
     $signaturesTable = '<table style="width: 100%; border-collapse: collapse; border: none;" cellpadding="0" cellspacing="0">';
@@ -455,6 +466,14 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
     // Colonne 1: Le bailleur
     $signaturesTable .= '<td style="width: ' . ($nbLocataires === 1 ? '50%' : '33.33%') . '; padding: 10px; border: none; background: transparent;">';
     $signaturesTable .= '<p style="margin: 0 0 10px 0;"><strong>Le bailleur</strong></p>';
+    
+    // Add agency text ONLY when NO client signatures exist (validated PDF, not signed PDF)
+    if (!$hasClientSignatures) {
+        $signaturesTable .= '<p style="margin: 0; font-size: 9pt;">MY INVEST IMMOBILIER<br>Représenté par M. ALEXANDRE<br>Lu et approuvé</p>';
+        error_log("PDF Generation: Agency text added (validated PDF without client signatures)");
+    } else {
+        error_log("PDF Generation: Agency text hidden (signed PDF with client signatures)");
+    }
     
     // Ajouter la signature agence si disponible
     if (!empty($signatureAgence)) {
@@ -480,8 +499,12 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
             error_log("PDF Generation: Table - Locataire " . ($i + 1) . "/" . $nbLocataires);
         }
         
-        // Nom du locataire
-        $signaturesTable .= '<p style="margin: 0; font-size: 9pt;">' . htmlspecialchars($locataire['prenom']) . ' ' . htmlspecialchars($locataire['nom']) . '</p>';
+        // Nom du locataire - add "Lu et approuvé" only when NO client signatures exist
+        if (!$hasClientSignatures) {
+            $signaturesTable .= '<p style="margin: 0; font-size: 9pt;">' . htmlspecialchars($locataire['prenom']) . ' ' . htmlspecialchars($locataire['nom']) . '<br>Lu et approuvé</p>';
+        } else {
+            $signaturesTable .= '<p style="margin: 0; font-size: 9pt;">' . htmlspecialchars($locataire['prenom']) . ' ' . htmlspecialchars($locataire['nom']) . '</p>';
+        }
         
         // Signature image
         if (!empty($locataire['signature_data'])) {
@@ -513,8 +536,8 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
             
             // Insert signature image
             if ($signatureImagePath !== null) {
-                // Updated style with margin-top: 10px as per requirements
-                $tableSignatureStyle = 'width: 40mm; height: auto; display: block; margin-top: 10px; margin-bottom: 5px; border: none; border-style: none; background: transparent;';
+                // Enhanced style to prevent borders in TCPDF rendering
+                $tableSignatureStyle = 'width: 40mm; height: auto; display: block; margin-top: 10px; margin-bottom: 5px; border: 0; border-width: 0; border-style: none; outline: none; box-shadow: none; background: transparent;';
                 $signaturesTable .= '<img src="' . htmlspecialchars($signatureImagePath) . '" alt="Signature Locataire ' . ($i + 1) . '" style="' . $tableSignatureStyle . '">';
             }
         }
@@ -945,7 +968,24 @@ class ContratBailPDF extends TCPDF {
         
         // Only show full details and signature when contract is validated
         if (isset($contrat['statut']) && $contrat['statut'] === 'valide') {
-            // Text removed as per requirements - client-signed PDF should not have these texts
+            // Detect if any client signatures exist
+            $hasClientSignatures = false;
+            foreach ($locataires as $loc) {
+                if (!empty($loc['signature_data'])) {
+                    $hasClientSignatures = true;
+                    break;
+                }
+            }
+            
+            // Add agency text ONLY when NO client signatures exist (validated PDF, not signed PDF)
+            if (!$hasClientSignatures) {
+                $this->Cell(0, 4, 'MY INVEST IMMOBILIER', 0, 1, 'L');
+                $this->Cell(0, 4, 'Représenté par M. ALEXANDRE', 0, 1, 'L');
+                $this->Cell(0, 4, 'Lu et approuvé', 0, 1, 'L');
+                error_log("PDF Generation Legacy: Agency text added (validated PDF without client signatures)");
+            } else {
+                error_log("PDF Generation Legacy: Agency text hidden (signed PDF with client signatures)");
+            }
         }
         
         // Add company signature image if contract is validated and signature is enabled
@@ -1016,6 +1056,15 @@ class ContratBailPDF extends TCPDF {
         $nbLocataires = count($locataires);
         error_log("PDF Generation Legacy: === TRAITEMENT SIGNATURES CLIENTS ($nbLocataires locataire(s)) ===");
         
+        // Detect if any client signatures exist
+        $hasClientSignatures = false;
+        foreach ($locataires as $loc) {
+            if (!empty($loc['signature_data'])) {
+                $hasClientSignatures = true;
+                break;
+            }
+        }
+        
         foreach ($locataires as $i => $locataire) {
             $this->SetFont('helvetica', 'B', 9);
             // Adapter le label selon le nombre de locataires
@@ -1033,6 +1082,11 @@ class ContratBailPDF extends TCPDF {
             
             // Nom du locataire
             $this->Cell(0, 4, $locataire['prenom'] . ' ' . $locataire['nom'], 0, 1, 'L');
+            
+            // Add "Lu et approuvé" only when NO client signatures exist
+            if (!$hasClientSignatures) {
+                $this->Cell(0, 4, 'Lu et approuvé', 0, 1, 'L');
+            }
             
             // Afficher la signature si disponible
             if (!empty($locataire['signature_data'])) {
