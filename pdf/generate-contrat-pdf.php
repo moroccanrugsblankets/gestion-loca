@@ -275,13 +275,6 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
             error_log("PDF Generation: Locataire " . ($i + 1) . "/" . $nbLocataires . " - Label: '$locataireLabel'");
         }
         
-        // Mention "Lu et approuvé"
-        if (!empty($locataire['mention_lu_approuve'])) {
-            $sig .= '<p>' . htmlspecialchars($locataire['mention_lu_approuve']) . '</p>';
-        } else {
-            $sig .= '<p>Lu et approuvé</p>';
-        }
-        
         // Insérer directement la signature via <img> tag avec fichier physique
         if (!empty($locataire['signature_data'])) {
             error_log("PDF Generation: Signature client " . ($i + 1) . " - Données présentes (taille: " . strlen($locataire['signature_data']) . " octets)");
@@ -334,14 +327,14 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
         
         // Horodatage et IP avec margin-top augmenté pour éviter chevauchement avec signature
         if (!empty($locataire['signature_timestamp']) || !empty($locataire['signature_ip'])) {
-            $sig .= '<div style="margin-top: 15px;">';
+            $sig .= '<div style="margin-top: 45px;">';
             
             if (!empty($locataire['signature_timestamp'])) {
                 $timestamp = strtotime($locataire['signature_timestamp']);
                 if ($timestamp !== false) {
                     $formattedTimestamp = date('d/m/Y à H:i:s', $timestamp);
                     // white-space: nowrap pour forcer l'affichage sur une seule ligne
-                    $sig .= '<p style="font-size: 8pt; color: #666; white-space: nowrap; margin-bottom: 2px;"><em>Horodatage : ' . $formattedTimestamp . '</em></p>';
+                    $sig .= '<p style="font-size: 8pt; color: #666; white-space: nowrap; margin-bottom: 0;"><em>Horodatage : ' . $formattedTimestamp . '</em></p>';
                     error_log("PDF Generation: ✓ Horodatage affiché sur une seule ligne");
                 }
             }
@@ -432,7 +425,7 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                         $validationTimestamp = strtotime($contrat['date_validation']);
                         if ($validationTimestamp !== false) {
                             $dateValidation = date('d/m/Y à H:i:s', $validationTimestamp);
-                            $signatureAgence .= '<p style="font-size: 8pt; color: #666; margin-top: 15px;"><em>Validé le : ' . $dateValidation . '</em></p>';
+                            $signatureAgence .= '<p style="font-size: 8pt; color: #666; margin-top: 45px;"><em>Validé le : ' . $dateValidation . '</em></p>';
                         }
                     }
                     $signatureAgence .= '</div>';
@@ -462,7 +455,6 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
     // Colonne 1: Le bailleur
     $signaturesTable .= '<td style="width: ' . ($nbLocataires === 1 ? '50%' : '33.33%') . '; padding: 10px; border: none; background: transparent;">';
     $signaturesTable .= '<p style="margin: 0 0 10px 0;"><strong>Le bailleur</strong></p>';
-    $signaturesTable .= '<p style="margin: 0; font-size: 9pt;">MY INVEST IMMOBILIER<br>Représenté par M. ALEXANDRE<br>Lu et approuvé</p>';
     
     // Ajouter la signature agence si disponible
     if (!empty($signatureAgence)) {
@@ -488,16 +480,8 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
             error_log("PDF Generation: Table - Locataire " . ($i + 1) . "/" . $nbLocataires);
         }
         
-        // Nom du locataire et mention "Lu et approuvé" dans le même paragraphe
-        $signaturesTable .= '<p style="margin: 0; font-size: 9pt;">' . htmlspecialchars($locataire['prenom']) . ' ' . htmlspecialchars($locataire['nom']) . '<br>';
-        
-        // Mention "Lu et approuvé"
-        if (!empty($locataire['mention_lu_approuve'])) {
-            $signaturesTable .= htmlspecialchars($locataire['mention_lu_approuve']);
-        } else {
-            $signaturesTable .= 'Lu et approuvé';
-        }
-        $signaturesTable .= '</p>';
+        // Nom du locataire
+        $signaturesTable .= '<p style="margin: 0; font-size: 9pt;">' . htmlspecialchars($locataire['prenom']) . ' ' . htmlspecialchars($locataire['nom']) . '</p>';
         
         // Signature image
         if (!empty($locataire['signature_data'])) {
@@ -541,9 +525,9 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 $timestamp = strtotime($locataire['signature_timestamp']);
                 if ($timestamp !== false) {
                     $formattedTimestamp = date('d/m/Y à H:i:s', $timestamp);
-                    // margin-top: 10px to maintain spacing from signature image (as per requirements)
-                    // margin-bottom: 2px for minimal spacing before IP address line
-                    $signaturesTable .= '<p style="font-size: 8pt; color: #666; white-space: nowrap; margin: 10px 0 2px 0;"><em>Horodatage : ' . $formattedTimestamp . '</em></p>';
+                    // margin-top: 40px to lower timestamp by 30px (was 10px)
+                    // margin-bottom: 0 for minimal spacing before IP address line
+                    $signaturesTable .= '<p style="font-size: 8pt; color: #666; white-space: nowrap; margin: 40px 0 0 0;"><em>Horodatage : ' . $formattedTimestamp . '</em></p>';
                 }
             }
             if (!empty($locataire['signature_ip'])) {
@@ -961,9 +945,7 @@ class ContratBailPDF extends TCPDF {
         
         // Only show full details and signature when contract is validated
         if (isset($contrat['statut']) && $contrat['statut'] === 'valide') {
-            $this->Cell(0, 4, 'MY INVEST IMMOBILIER', 0, 1, 'L');
-            $this->Cell(0, 4, 'Représenté par M. ALEXANDRE', 0, 1, 'L');
-            $this->Cell(0, 4, 'Lu et approuvé', 0, 1, 'L');
+            // Text removed as per requirements - client-signed PDF should not have these texts
         }
         
         // Add company signature image if contract is validated and signature is enabled
@@ -1051,13 +1033,6 @@ class ContratBailPDF extends TCPDF {
             
             // Nom du locataire
             $this->Cell(0, 4, $locataire['prenom'] . ' ' . $locataire['nom'], 0, 1, 'L');
-            
-            // Mention "Lu et approuvé"
-            if (!empty($locataire['mention_lu_approuve'])) {
-                $this->Cell(0, 4, $locataire['mention_lu_approuve'], 0, 1, 'L');
-            } else {
-                $this->Cell(0, 4, 'Lu et approuvé', 0, 1, 'L');
-            }
             
             // Afficher la signature si disponible
             if (!empty($locataire['signature_data'])) {
