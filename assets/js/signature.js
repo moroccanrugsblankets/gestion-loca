@@ -9,6 +9,8 @@ let isDrawing = false;
 let lastX = 0;
 let lastY = 0;
 let emptyCanvasData = '';
+let tempCanvas; // Temporary canvas for JPEG conversion with white background
+let tempCtx;
 
 /**
  * Initialiser le canvas de signature
@@ -43,11 +45,14 @@ function initSignature() {
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2;
     
-    // Sauvegarder l'état vide du canvas avec fond blanc pour JPEG
-    const tempCanvas = document.createElement('canvas');
+    // Créer un canvas temporaire réutilisable pour la conversion JPEG avec fond blanc
+    tempCanvas = document.createElement('canvas');
     tempCanvas.width = canvas.width;
     tempCanvas.height = canvas.height;
-    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx = tempCanvas.getContext('2d');
+    console.log('- Canvas temporaire créé pour conversion JPEG');
+    
+    // Sauvegarder l'état vide du canvas avec fond blanc pour JPEG
     tempCtx.fillStyle = '#FFFFFF';
     tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
     tempCtx.drawImage(canvas, 0, 0);
@@ -169,12 +174,12 @@ function getSignatureData() {
         return '';
     }
     
-    // Create a temporary canvas with white background for JPEG conversion
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = canvas.width;
-    tempCanvas.height = canvas.height;
-    const tempCtx = tempCanvas.getContext('2d');
+    if (!tempCanvas || !tempCtx) {
+        console.error('Temporary canvas not initialized');
+        return '';
+    }
     
+    // Reuse the temporary canvas with white background for JPEG conversion
     // Fill with white background (JPEG doesn't support transparency)
     tempCtx.fillStyle = '#FFFFFF';
     tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
