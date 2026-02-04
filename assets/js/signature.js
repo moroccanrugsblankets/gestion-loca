@@ -3,12 +3,17 @@
  * My Invest Immobilier
  */
 
+// Configuration constants
+const JPEG_QUALITY = 0.95; // Quality for JPEG compression (0-1)
+
 let canvas;
 let ctx;
 let isDrawing = false;
 let lastX = 0;
 let lastY = 0;
 let emptyCanvasData = '';
+let tempCanvas; // Temporary canvas for JPEG conversion with white background
+let tempCtx;
 
 /**
  * Initialiser le canvas de signature
@@ -26,26 +31,46 @@ function initSignature() {
     ctx = canvas.getContext('2d');
     
     // Configuration du canvas
-    // IMPORTANT: No borders should be added to the canvas to avoid borders in the saved PNG
+    // IMPORTANT: No borders should be added to the canvas to avoid borders in the saved JPEG
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     
-    // Fond transparent (pas de fond blanc pour éviter les bordures)
-    // This ensures the saved PNG will have a transparent background with no borders
+    // Fond transparent pour le dessin (sera converti avec fond blanc lors de la sauvegarde JPEG)
+    // Clear canvas for drawing with transparent background
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    console.log('- Fond: transparent (clearRect appliqué)');
+    console.log('- Fond: transparent pour le dessin (converti en blanc lors de la sauvegarde JPEG)');
     console.log('- Style de trait: noir (#000000), largeur 2px');
     
     // Réinitialiser le style de dessin
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2;
     
-    // Sauvegarder l'état vide du canvas
-    emptyCanvasData = canvas.toDataURL();
-    console.log('- Canvas vide capturé (taille:', emptyCanvasData.length, 'bytes)');
+    // Créer un canvas temporaire réutilisable pour la conversion JPEG avec fond blanc
+    // Check if tempCanvas already exists to avoid memory leaks on reinitialization
+    if (!tempCanvas) {
+        tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+        tempCtx = tempCanvas.getContext('2d');
+        console.log('- Canvas temporaire créé pour conversion JPEG');
+    } else {
+        // Reuse existing canvas but update dimensions if needed
+        if (tempCanvas.width !== canvas.width || tempCanvas.height !== canvas.height) {
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            // Note: Resizing clears canvas content (expected - canvas is redrawn on each capture)
+            console.log('- Canvas temporaire redimensionné');
+        } else {
+            console.log('- Canvas temporaire réutilisé');
+        }
+    }
+    
+    // Sauvegarder l'état vide du canvas avec fond blanc pour JPEG
+    emptyCanvasData = canvasToJPEGWithWhiteBackground();
+    console.log('- Canvas vide capturé avec fond blanc (taille:', emptyCanvasData.length, 'bytes)');
     
     // Événements souris
     canvas.addEventListener('mousedown', startDrawing);
@@ -154,6 +179,22 @@ function clearSignature() {
 }
 
 /**
+ * Convertir le canvas de signature en JPEG avec fond blanc
+ * @returns {string} Data URL au format JPEG
+ */
+function canvasToJPEGWithWhiteBackground() {
+    // Fill temporary canvas with white background (JPEG doesn't support transparency)
+    tempCtx.fillStyle = '#FFFFFF';
+    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+    
+    // Draw the signature on top of the white background
+    tempCtx.drawImage(canvas, 0, 0);
+    
+    // Convert to JPEG with configured quality
+    return tempCanvas.toDataURL('image/jpeg', JPEG_QUALITY);
+}
+
+/**
  * Obtenir les données de la signature
  */
 function getSignatureData() {
@@ -162,7 +203,13 @@ function getSignatureData() {
         return '';
     }
     
-    const signatureData = canvas.toDataURL('image/png');
+    if (!tempCanvas) {
+        console.error('Temporary canvas not initialized. initSignature() must be called before capturing signature.');
+        return '';
+    }
+    
+    // Convert canvas to JPEG with white background using helper function
+    const signatureData = canvasToJPEGWithWhiteBackground();
     console.log('Signature captured:');
     console.log('- Data URI length:', signatureData.length, 'bytes');
     console.log('- Canvas dimensions:', canvas.width, 'x', canvas.height, 'px');

@@ -200,7 +200,7 @@ function createTenant($contratId, $ordre, $data) {
  */
 function updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve) {
     // Validate signature data size (LONGTEXT max is ~4GB, but we set a reasonable limit)
-    // Canvas PNG data URLs are typically 100-500KB
+    // Canvas JPEG data URLs are typically 50-300KB (smaller than PNG)
     $maxSize = 2 * 1024 * 1024; // 2MB limit
     if (strlen($signatureData) > $maxSize) {
         error_log("Signature data too large: " . strlen($signatureData) . " bytes for locataire ID: $locataireId");
@@ -234,7 +234,7 @@ function updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve)
     }
     
     // Generate unique filename
-    $filename = "tenant_locataire_{$locataireId}_" . time() . ".png";
+    $filename = "tenant_locataire_{$locataireId}_" . time() . ".jpg";
     $filepath = $uploadsDir . '/' . $filename;
     
     // Save physical file

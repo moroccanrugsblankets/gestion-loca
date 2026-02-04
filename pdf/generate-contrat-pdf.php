@@ -236,6 +236,15 @@ function buildSignaturesTable($contrat, $locataires) {
                 }
             }
         }
+        
+        // Afficher la date de validation et le nom de la société
+        if (!empty($contrat['date_validation'])) {
+            $timestamp = strtotime($contrat['date_validation']);
+            if ($timestamp !== false) {
+                $html .= 'Validé le : ' . date('d/m/Y H:i:s', $timestamp) . '<br>';
+            }
+        }
+        $html .= 'MY INVEST IMMOBILIER';
     }
     
     $html .= '</td>';
