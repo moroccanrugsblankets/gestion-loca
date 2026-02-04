@@ -113,7 +113,7 @@ function generateEtatDesLieuxPDF($contratId, $type = 'entree') {
 
         // Mettre à jour le statut de l'état des lieux
         if ($etatLieux && isset($etatLieux['id'])) {
-            $stmt = $pdo->prepare("UPDATE etats_lieux SET statut = 'finalise', updated_at = NOW() WHERE id = ?");
+            $stmt = $pdo->prepare("UPDATE etats_lieux SET statut = 'finalise' WHERE id = ?");
             $stmt->execute([$etatLieux['id']]);
         }
 

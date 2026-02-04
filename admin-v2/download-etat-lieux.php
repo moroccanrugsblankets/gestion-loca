@@ -52,6 +52,8 @@ try {
     
     // Sanitize filename
     $safeFilename = preg_replace('/[^\w\s\-\.àâäéèêëïîôöùûüÿçÀÂÄÉÈÊËÏÎÔÖÙÛÜŸÇ]/u', '_', $filename);
+    // Replace spaces with underscores for better compatibility
+    $safeFilename = str_replace(' ', '_', $safeFilename);
     $safeFilename = str_replace(["\r", "\n"], '', $safeFilename);
     
     // Send headers to force download
