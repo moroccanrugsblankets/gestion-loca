@@ -524,7 +524,16 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
         if ($key === $depotStatus) {
             $depotHTML .= "<p>$label</p>";
         } else {
-            $depotHTML .= "<p>☐ " . substr($label, strpos($label, ' - ') !== false ? strpos($label, ' - ') + 3 : strpos($label, ' ') + 1) . "</p>";
+            // Extract the label text after the checkbox symbol and dash
+            $labelText = $label;
+            if (strpos($label, ' - ') !== false) {
+                // Format: "☑ Text - More text" -> "More text"
+                $labelText = substr($label, strpos($label, ' - ') + 3);
+            } else {
+                // Format: "☑ Text" -> "Text"
+                $labelText = substr($label, strpos($label, ' ') + 1);
+            }
+            $depotHTML .= "<p>☐ " . $labelText . "</p>";
         }
     }
     
