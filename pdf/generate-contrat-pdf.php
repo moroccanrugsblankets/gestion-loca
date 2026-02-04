@@ -454,6 +454,111 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
     }
     error_log("PDF Generation: === FIN TRAITEMENT SIGNATURE AGENCE - " . (empty($signatureAgence) ? 'NON GÉNÉRÉE' : 'GÉNÉRÉE (longueur: ' . strlen($signatureAgence) . ')') . " ===");
     
+    // Créer le tableau de signatures alignées horizontalement
+    error_log("PDF Generation: === CRÉATION DU TABLEAU DE SIGNATURES ===");
+    $signaturesTable = '<table style="width: 100%; border-collapse: collapse; border: none;" cellpadding="0" cellspacing="0">';
+    $signaturesTable .= '<tr style="vertical-align: top; border: none;">';
+    
+    // Colonne 1: Le bailleur
+    $signaturesTable .= '<td style="width: ' . ($nbLocataires === 1 ? '50%' : '33.33%') . '; padding: 10px; border: none; background: transparent;">';
+    $signaturesTable .= '<p style="margin: 0 0 10px 0;"><strong>Le bailleur</strong></p>';
+    $signaturesTable .= '<p style="margin: 0; font-size: 9pt;">MY INVEST IMMOBILIER<br>Représenté par M. ALEXANDRE<br>Lu et approuvé</p>';
+    
+    // Ajouter la signature agence si disponible
+    if (!empty($signatureAgence)) {
+        // Extraire juste l'image et le texte de validation, sans le div wrapper avec margin-top
+        // Le signatureAgence contient: <div style="margin-top: 40px;"><img.../><p>Validé le...</p></div>
+        // On veut juste: <img.../><p>Validé le...</p>
+        $cleanSignatureAgence = preg_replace('/<div[^>]*>/', '', $signatureAgence);
+        $cleanSignatureAgence = str_replace('</div>', '', $cleanSignatureAgence);
+        $signaturesTable .= $cleanSignatureAgence;
+    }
+    $signaturesTable .= '</td>';
+    
+    // Colonnes pour les locataires
+    foreach ($locataires as $i => $locataire) {
+        $signaturesTable .= '<td style="width: ' . ($nbLocataires === 1 ? '50%' : '33.33%') . '; padding: 10px; border: none; background: transparent;">';
+        
+        // Titre du locataire
+        if ($nbLocataires === 1) {
+            $signaturesTable .= '<p style="margin: 0 0 10px 0;"><strong>Locataire :</strong></p>';
+            error_log("PDF Generation: Table - Locataire unique");
+        } else {
+            $signaturesTable .= '<p style="margin: 0 0 10px 0;"><strong>Locataire ' . ($i + 1) . ' :</strong></p>';
+            error_log("PDF Generation: Table - Locataire " . ($i + 1) . "/" . $nbLocataires);
+        }
+        
+        // Nom du locataire
+        $signaturesTable .= '<p style="margin: 0; font-size: 9pt;">' . htmlspecialchars($locataire['prenom']) . ' ' . htmlspecialchars($locataire['nom']) . '<br>';
+        
+        // Mention "Lu et approuvé"
+        if (!empty($locataire['mention_lu_approuve'])) {
+            $signaturesTable .= htmlspecialchars($locataire['mention_lu_approuve']);
+        } else {
+            $signaturesTable .= 'Lu et approuvé';
+        }
+        $signaturesTable .= '</p>';
+        
+        // Signature image
+        if (!empty($locataire['signature_data'])) {
+            $signatureImagePath = null;
+            
+            // Check if it's a physical file path (new format) or base64 data URI (legacy format)
+            if (preg_match('/^uploads\/signatures\//', $locataire['signature_data'])) {
+                // New format: physical file path - use directly
+                $baseDir = dirname(__DIR__);
+                $fullPath = $baseDir . '/' . $locataire['signature_data'];
+                
+                if (file_exists($fullPath)) {
+                    $signatureImagePath = $fullPath;
+                    error_log("PDF Generation: Table - Signature client " . ($i + 1) . " depuis fichier: " . $fullPath);
+                }
+            } elseif (preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $locataire['signature_data'])) {
+                // Legacy format: base64 data URI
+                $signatureImagePath = $locataire['signature_data'];
+                error_log("PDF Generation: Table - Signature client " . ($i + 1) . " format data URI");
+            }
+            
+            // Insert signature image with security validation
+            if ($signatureImagePath !== null) {
+                // Security: Validate file path
+                if (strpos($signatureImagePath, 'uploads/signatures/') !== false) {
+                    $normalizedPath = str_replace('\\', '/', $signatureImagePath);
+                    if (strpos($normalizedPath, '..') !== false) {
+                        error_log("PDF Generation: SÉCURITÉ - Path traversal détecté: " . $signatureImagePath);
+                        $signatureImagePath = null;
+                    }
+                }
+                
+                if ($signatureImagePath !== null) {
+                    // Updated style with margin-top: 10px as per requirements
+                    $tableSignatureStyle = 'width: 40mm; height: auto; display: block; margin-top: 10px; margin-bottom: 5px; border: none; border-style: none; background: transparent;';
+                    $signaturesTable .= '<img src="' . htmlspecialchars($signatureImagePath) . '" alt="Signature Locataire ' . ($i + 1) . '" style="' . $tableSignatureStyle . '">';
+                }
+            }
+        }
+        
+        // Horodatage et IP
+        if (!empty($locataire['signature_timestamp']) || !empty($locataire['signature_ip'])) {
+            if (!empty($locataire['signature_timestamp'])) {
+                $timestamp = strtotime($locataire['signature_timestamp']);
+                if ($timestamp !== false) {
+                    $formattedTimestamp = date('d/m/Y à H:i:s', $timestamp);
+                    $signaturesTable .= '<p style="font-size: 8pt; color: #666; white-space: nowrap; margin: 5px 0 2px 0;"><em>Horodatage : ' . $formattedTimestamp . '</em></p>';
+                }
+            }
+            if (!empty($locataire['signature_ip'])) {
+                $signaturesTable .= '<p style="font-size: 8pt; color: #666; white-space: nowrap; margin: 0;"><em>Adresse IP : ' . htmlspecialchars($locataire['signature_ip']) . '</em></p>';
+            }
+        }
+        
+        $signaturesTable .= '</td>';
+    }
+    
+    $signaturesTable .= '</tr>';
+    $signaturesTable .= '</table>';
+    error_log("PDF Generation: === FIN CRÉATION DU TABLEAU DE SIGNATURES ===");
+    
     // Préparer les dates
     $dateSignature = '___________';
     if (isset($contrat['date_signature']) && !empty($contrat['date_signature'])) {
@@ -487,6 +592,7 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
         '{{locataires_info}}' => $locatairesInfoHtml,
         '{{locataires_signatures}}' => $locatairesSignaturesHtml,
         '{{signature_agence}}' => $signatureAgence,
+        '{{signatures_table}}' => $signaturesTable,  // Nouvelle variable pour le tableau de signatures
         '{{adresse}}' => htmlspecialchars($contrat['adresse']),
         '{{appartement}}' => htmlspecialchars($contrat['appartement']),
         '{{type}}' => htmlspecialchars($contrat['type']),

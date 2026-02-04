@@ -357,17 +357,7 @@ function getDefaultContractTemplate() {
     
     <p>Fait à Annemasse, le {{date_signature}}</p>
     
-    <div style="margin-bottom: 30px;">
-        <p style="margin-bottom: 15px;"><strong>Le bailleur</strong><br>
-        MY INVEST IMMOBILIER<br>
-        Représenté par M. ALEXANDRE<br>
-        Lu et approuvé</p>
-        {{signature_agence}}
-    </div>
-    
-    <div style="margin-top: 40px;">
-        {{locataires_signatures}}
-    </div>
+    {{signatures_table}}
 
     <div class="footer" style="margin-top: 40px; font-size: 8pt; text-align: center; color: #666;">
         <p>Document généré électroniquement par MY Invest Immobilier</p>
@@ -561,6 +551,7 @@ HTML;
                 <div>
                     <span class="variable-tag" onclick="copyVariable('{{reference_unique}}')">{{reference_unique}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{locataires_info}}')">{{locataires_info}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{signatures_table}}')">{{signatures_table}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{locataires_signatures}}')">{{locataires_signatures}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{signature_agence}}')">{{signature_agence}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{adresse}}')">{{adresse}}</span>
@@ -668,6 +659,7 @@ HTML;
             let preview = template
                 .replace(/\{\{reference_unique\}\}/g, 'BAIL-2024-001')
                 .replace(/\{\{locataires_info\}\}/g, 'Jean DUPONT, né(e) le 01/01/1990<br>Email : jean.dupont@example.com')
+                .replace(/\{\{signatures_table\}\}/g, '<table style="width: 100%; border-collapse: collapse; border: none;"><tr style="vertical-align: top;"><td style="width: 50%; padding: 10px; border: none;"><p style="margin: 0 0 10px 0;"><strong>Le bailleur</strong></p><p style="margin: 0;">MY INVEST IMMOBILIER<br>Représenté par M. ALEXANDRE<br>Lu et approuvé</p></td><td style="width: 50%; padding: 10px; border: none;"><p style="margin: 0 0 10px 0;"><strong>Locataire :</strong></p><p style="margin: 0;">Jean DUPONT<br>Lu et approuvé</p></td></tr></table>')
                 .replace(/\{\{locataires_signatures\}\}/g, 'Jean DUPONT - Lu et approuvé')
                 .replace(/\{\{signature_agence\}\}/g, '<p><strong>MY INVEST IMMOBILIER</strong><br>Représenté par M. ALEXANDRE<br>Lu et approuvé</p>')
                 .replace(/\{\{adresse\}\}/g, '123 Rue de la République, 74100 Annemasse')
