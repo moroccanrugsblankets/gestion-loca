@@ -568,18 +568,35 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
             // Seulement autoriser les chemins qui pointent vers le répertoire uploads/signatures
             // Utiliser realpath() pour valider le chemin et éviter les attaques par traversée
             $baseDir = realpath(dirname(__DIR__)); // Utiliser realpath pour gérer les liens symboliques
-            $expectedSignaturePath = $baseDir . '/uploads/signatures/';
-            
-            // Résoudre le chemin réel pour détecter les tentatives de traversée
-            $resolvedPath = realpath($src);
-            $resolvedExpectedPath = realpath($expectedSignaturePath);
-            
-            // Vérifier que le chemin résolu existe et commence bien par le répertoire attendu
-            if ($resolvedPath !== false && $resolvedExpectedPath !== false && 
-                strpos($resolvedPath, $resolvedExpectedPath) === 0) {
-                error_log("PDF Generation: Image #$imageCount - Type: Chemin absolu système de fichiers (signature), conservé: $src");
-                $imageSuccessCount++;
-                return $matches[0];
+            if ($baseDir === false) {
+                error_log("PDF Generation: ERREUR - Impossible de résoudre le répertoire de base");
+            } else {
+                $expectedSignaturePath = $baseDir . '/uploads/signatures/';
+                
+                // Résoudre le chemin réel pour détecter les tentatives de traversée
+                $resolvedPath = realpath($src);
+                
+                // Si le fichier existe, vérifier qu'il est dans le bon répertoire
+                // Note: realpath() retourne false si le fichier n'existe pas
+                if ($resolvedPath !== false) {
+                    // Vérifier si le répertoire signatures existe
+                    $resolvedExpectedPath = realpath($expectedSignaturePath);
+                    if ($resolvedExpectedPath === false) {
+                        // Le répertoire n'existe pas encore, vérifier si le chemin commence par le pattern attendu
+                        if (strpos($resolvedPath, $baseDir . '/uploads/signatures/') === 0) {
+                            error_log("PDF Generation: Image #$imageCount - Type: Chemin absolu système de fichiers (signature), conservé: $src");
+                            $imageSuccessCount++;
+                            return $matches[0];
+                        }
+                    } else {
+                        // Le répertoire existe, vérifier que le fichier est dedans
+                        if (strpos($resolvedPath, $resolvedExpectedPath) === 0) {
+                            error_log("PDF Generation: Image #$imageCount - Type: Chemin absolu système de fichiers (signature), conservé: $src");
+                            $imageSuccessCount++;
+                            return $matches[0];
+                        }
+                    }
+                }
             }
             
             // Convertir les chemins relatifs en absolus
