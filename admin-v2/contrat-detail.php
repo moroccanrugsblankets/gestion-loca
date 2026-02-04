@@ -565,7 +565,7 @@ if ($contrat['validated_by']) {
                                             // Using preg_match for consistency with PDF generation code
                                             $signatureSrc = $locataire['signature_data'];
                                             $isDataUri = strpos($signatureSrc, 'data:') === 0;
-                                            $isHttpUrl = preg_match('/^https?:\/\//i', $signatureSrc);
+                                            $isHttpUrl = preg_match('/^https?:\/\//', $signatureSrc); // Case-sensitive, no /i flag needed
                                             $isAbsolutePath = strpos($signatureSrc, '/') === 0;
                                             
                                             if (!$isDataUri && !$isHttpUrl && !$isAbsolutePath) {
