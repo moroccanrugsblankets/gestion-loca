@@ -37,7 +37,7 @@ try {
         "ADD COLUMN reference_unique VARCHAR(100) UNIQUE NULL AFTER type",
         "ADD COLUMN adresse TEXT NULL AFTER date_etat",
         "ADD COLUMN appartement VARCHAR(50) NULL AFTER adresse",
-        "ADD COLUMN bailleur_nom VARCHAR(255) DEFAULT 'MY INVEST IMMOBILIER' AFTER appartement",
+        "ADD COLUMN bailleur_nom VARCHAR(255) NULL AFTER appartement",
         
         // Relevé des compteurs
         "ADD COLUMN compteur_electricite VARCHAR(50) NULL AFTER bailleur_representant",
@@ -179,7 +179,7 @@ try {
     INSERT IGNORE INTO parametres (cle, valeur, description, type, created_at) VALUES
     ('etat_lieux_email_subject', 'État des lieux - {{type}} - {{adresse}}', 'Sujet de l\'email pour l\'état des lieux', 'email', NOW()),
     ('etat_lieux_email_template', 
-        'Bonjour,\n\nVeuillez trouver ci-joint l''état des lieux {{type_label}} pour le logement situé au :\n{{adresse}}\n\nDate de l''état des lieux : {{date_etat}}\n\nCe document est à conserver précieusement.\n\nCordialement,\nMY INVEST IMMOBILIER',
+        'Bonjour,\n\nVeuillez trouver ci-joint l''état des lieux {{type_label}} pour le logement situé au :\n{{adresse}}\n\nDate de l''état des lieux : {{date_etat}}\n\nCe document est à conserver précieusement.\n\nCordialement,\n{{company_name}}',
         'Template email pour l\'état des lieux',
         'email',
         NOW()
@@ -187,6 +187,7 @@ try {
     ";
     $pdo->exec($sql);
     echo "  ✓ Email templates created\n";
+    echo "  Note: Email templates use {{company_name}} placeholder for portability\n";
     
     // Commit transaction
     $pdo->commit();
@@ -195,7 +196,10 @@ try {
     echo "Added $addedCount new columns to etats_lieux table\n";
     
 } catch (Exception $e) {
-    $pdo->rollBack();
+    // Only rollback if transaction is still active
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     echo "\n❌ Error during migration 026: " . $e->getMessage() . "\n";
     echo "Stack trace:\n" . $e->getTraceAsString() . "\n";
     exit(1);
