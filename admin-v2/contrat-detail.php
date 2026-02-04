@@ -559,7 +559,21 @@ if ($contrat['validated_by']) {
                                     <?php if ($locataire['signature_data']): ?>
                                         <div>
                                             <strong>Aperçu de la signature:</strong><br>
-                                            <img src="<?php echo htmlspecialchars($locataire['signature_data']); ?>" 
+                                            <?php 
+                                            // Fix path for admin-v2 directory - prepend ../ for relative paths
+                                            // Relative paths are those that don't start with 'data:', 'http://', 'https://', or '/'
+                                            // Using preg_match for consistency with PDF generation code
+                                            $signatureSrc = $locataire['signature_data'];
+                                            $isDataUri = strpos($signatureSrc, 'data:') === 0;
+                                            $isHttpUrl = preg_match('/^https?:\/\//', $signatureSrc); // Case-sensitive, no /i flag needed
+                                            $isAbsolutePath = strpos($signatureSrc, '/') === 0;
+                                            
+                                            if (!$isDataUri && !$isHttpUrl && !$isAbsolutePath) {
+                                                // Relative path - prepend ../ to make it relative to admin-v2
+                                                $signatureSrc = '../' . $signatureSrc;
+                                            }
+                                            ?>
+                                            <img src="<?php echo htmlspecialchars($signatureSrc); ?>" 
                                                  alt="Signature" 
                                                  class="signature-preview">
                                         </div>
