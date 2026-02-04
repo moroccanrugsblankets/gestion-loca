@@ -509,7 +509,11 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 $baseDir = dirname(__DIR__);
                 $fullPath = $baseDir . '/' . $locataire['signature_data'];
                 
-                if (file_exists($fullPath)) {
+                // Security: Validate file path to prevent path traversal attacks
+                $normalizedPath = str_replace('\\', '/', $fullPath);
+                if (strpos($normalizedPath, '..') !== false) {
+                    error_log("PDF Generation: SÉCURITÉ - Path traversal détecté: " . $fullPath);
+                } elseif (file_exists($fullPath)) {
                     $signatureImagePath = $fullPath;
                     error_log("PDF Generation: Table - Signature client " . ($i + 1) . " depuis fichier: " . $fullPath);
                 }
@@ -519,22 +523,11 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 error_log("PDF Generation: Table - Signature client " . ($i + 1) . " format data URI");
             }
             
-            // Insert signature image with security validation
+            // Insert signature image
             if ($signatureImagePath !== null) {
-                // Security: Validate file path
-                if (strpos($signatureImagePath, 'uploads/signatures/') !== false) {
-                    $normalizedPath = str_replace('\\', '/', $signatureImagePath);
-                    if (strpos($normalizedPath, '..') !== false) {
-                        error_log("PDF Generation: SÉCURITÉ - Path traversal détecté: " . $signatureImagePath);
-                        $signatureImagePath = null;
-                    }
-                }
-                
-                if ($signatureImagePath !== null) {
-                    // Updated style with margin-top: 10px as per requirements
-                    $tableSignatureStyle = 'width: 40mm; height: auto; display: block; margin-top: 10px; margin-bottom: 5px; border: none; border-style: none; background: transparent;';
-                    $signaturesTable .= '<img src="' . htmlspecialchars($signatureImagePath) . '" alt="Signature Locataire ' . ($i + 1) . '" style="' . $tableSignatureStyle . '">';
-                }
+                // Updated style with margin-top: 10px as per requirements
+                $tableSignatureStyle = 'width: 40mm; height: auto; display: block; margin-top: 10px; margin-bottom: 5px; border: none; border-style: none; background: transparent;';
+                $signaturesTable .= '<img src="' . htmlspecialchars($signatureImagePath) . '" alt="Signature Locataire ' . ($i + 1) . '" style="' . $tableSignatureStyle . '">';
             }
         }
         
@@ -544,6 +537,8 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 $timestamp = strtotime($locataire['signature_timestamp']);
                 if ($timestamp !== false) {
                     $formattedTimestamp = date('d/m/Y à H:i:s', $timestamp);
+                    // margin-top: 10px to maintain spacing from signature image (as per requirements)
+                    // margin-bottom: 2px for minimal spacing before IP address line
                     $signaturesTable .= '<p style="font-size: 8pt; color: #666; white-space: nowrap; margin: 10px 0 2px 0;"><em>Horodatage : ' . $formattedTimestamp . '</em></p>';
                 }
             }
