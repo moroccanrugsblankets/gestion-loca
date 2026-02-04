@@ -272,6 +272,8 @@ $isSortie = $etat['type'] === 'sortie';
             <input type="hidden" name="action" value="save">
             <input type="hidden" name="bailleur_signature_data" id="bailleur_signature_data">
             <input type="hidden" name="locataire_signature_data" id="locataire_signature_data">
+            <input type="hidden" id="existing_bailleur_signature" value="<?php echo htmlspecialchars($etat['signature_bailleur'] ?? ''); ?>">
+            <input type="hidden" id="existing_locataire_signature" value="<?php echo htmlspecialchars($etat['signature_locataire'] ?? ''); ?>">
             
             <!-- 1. Identification -->
             <div class="form-card">
@@ -713,6 +715,16 @@ $isSortie = $etat['type'] === 'sortie';
             tempCanvasBailleur.height = canvasBailleur.height;
             tempCtxBailleur = tempCanvasBailleur.getContext('2d');
             
+            // Load existing signature if available
+            const existingSignature = document.getElementById('existing_bailleur_signature').value;
+            if (existingSignature) {
+                const img = new Image();
+                img.onload = function() {
+                    ctxBailleur.drawImage(img, 0, 0, canvasBailleur.width, canvasBailleur.height);
+                };
+                img.src = existingSignature;
+            }
+            
             // Mouse events
             canvasBailleur.addEventListener('mousedown', (e) => {
                 isDrawingBailleur = true;
@@ -772,6 +784,16 @@ $isSortie = $etat['type'] === 'sortie';
             tempCanvasLocataire.width = canvasLocataire.width;
             tempCanvasLocataire.height = canvasLocataire.height;
             tempCtxLocataire = tempCanvasLocataire.getContext('2d');
+            
+            // Load existing signature if available
+            const existingSignature = document.getElementById('existing_locataire_signature').value;
+            if (existingSignature) {
+                const img = new Image();
+                img.onload = function() {
+                    ctxLocataire.drawImage(img, 0, 0, canvasLocataire.width, canvasLocataire.height);
+                };
+                img.src = existingSignature;
+            }
             
             // Mouse events
             canvasLocataire.addEventListener('mousedown', (e) => {
