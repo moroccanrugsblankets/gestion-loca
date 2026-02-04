@@ -70,6 +70,20 @@ function saveSignatureAsPhysicalFile($signatureData, $prefix, $contratId, $locat
 }
 
 /**
+ * Check if any client signatures exist in the locataires array
+ * @param array $locataires Array of tenant data
+ * @return bool True if at least one client signature exists
+ */
+function hasClientSignatures($locataires) {
+    foreach ($locataires as $loc) {
+        if (!empty($loc['signature_data'])) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * Générer le PDF du contrat de bail
  * @param int $contratId ID du contrat
  * @return string|false Chemin du fichier PDF généré ou false en cas d'erreur
@@ -449,13 +463,7 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
     error_log("PDF Generation: === FIN TRAITEMENT SIGNATURE AGENCE - " . (empty($signatureAgence) ? 'NON GÉNÉRÉE' : 'GÉNÉRÉE (longueur: ' . strlen($signatureAgence) . ')') . " ===");
     
     // Detect if any client signatures exist (PDF is "signed")
-    $hasClientSignatures = false;
-    foreach ($locataires as $loc) {
-        if (!empty($loc['signature_data'])) {
-            $hasClientSignatures = true;
-            break;
-        }
-    }
+    $hasClientSignatures = hasClientSignatures($locataires);
     error_log("PDF Generation: Client signatures present: " . ($hasClientSignatures ? 'OUI' : 'NON'));
     
     // Créer le tableau de signatures alignées horizontalement
@@ -969,13 +977,7 @@ class ContratBailPDF extends TCPDF {
         // Only show full details and signature when contract is validated
         if (isset($contrat['statut']) && $contrat['statut'] === 'valide') {
             // Detect if any client signatures exist
-            $hasClientSignatures = false;
-            foreach ($locataires as $loc) {
-                if (!empty($loc['signature_data'])) {
-                    $hasClientSignatures = true;
-                    break;
-                }
-            }
+            $hasClientSignatures = hasClientSignatures($locataires);
             
             // Add agency text ONLY when NO client signatures exist (validated PDF, not signed PDF)
             if (!$hasClientSignatures) {
@@ -1057,13 +1059,7 @@ class ContratBailPDF extends TCPDF {
         error_log("PDF Generation Legacy: === TRAITEMENT SIGNATURES CLIENTS ($nbLocataires locataire(s)) ===");
         
         // Detect if any client signatures exist
-        $hasClientSignatures = false;
-        foreach ($locataires as $loc) {
-            if (!empty($loc['signature_data'])) {
-                $hasClientSignatures = true;
-                break;
-            }
-        }
+        $hasClientSignatures = hasClientSignatures($locataires);
         
         foreach ($locataires as $i => $locataire) {
             $this->SetFont('helvetica', 'B', 9);

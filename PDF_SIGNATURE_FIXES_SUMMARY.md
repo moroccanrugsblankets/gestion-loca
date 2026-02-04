@@ -97,13 +97,15 @@ border: 0; border-width: 0; border-style: none; outline: none; box-shadow: none;
 | Ligne | Type de modification | Description |
 |-------|---------------------|-------------|
 | 19 | Modifié | Style SIGNATURE_IMG_STYLE amélioré (border: 0, border-width: 0, outline: none, box-shadow: none) |
-| 450-460 | Ajouté | Détection des signatures clients ($hasClientSignatures) |
-| 470-477 | Modifié | Texte agence affiché SEULEMENT si pas de signatures clients |
-| 501-507 | Modifié | "Lu et approuvé" tenant affiché SEULEMENT si pas de signatures clients |
-| 540 | Modifié | tableSignatureStyle amélioré (border: 0, border-width: 0, outline: none, box-shadow: none) |
-| 969-987 | Modifié | Texte agence (TCPDF legacy) affiché SEULEMENT si pas de signatures clients |
-| 1045-1050 | Ajouté | Détection des signatures clients (TCPDF legacy) |
-| 1085-1088 | Ajouté | "Lu et approuvé" tenant (TCPDF legacy) affiché SEULEMENT si pas de signatures clients |
+| 77-87 | Ajouté | Fonction helper hasClientSignatures() pour détecter signatures clients |
+| 465-467 | Modifié | Utilisation de hasClientSignatures() pour détection (HTML) |
+| 475-482 | Modifié | Texte agence affiché SEULEMENT si pas de signatures clients |
+| 506-512 | Modifié | "Lu et approuvé" tenant affiché SEULEMENT si pas de signatures clients |
+| 545 | Modifié | tableSignatureStyle amélioré (border: 0, border-width: 0, outline: none, box-shadow: none) |
+| 978-981 | Modifié | Utilisation de hasClientSignatures() (TCPDF legacy - agence) |
+| 988-996 | Modifié | Texte agence (TCPDF legacy) affiché SEULEMENT si pas de signatures clients |
+| 1062-1064 | Modifié | Utilisation de hasClientSignatures() (TCPDF legacy - locataires) |
+| 1090-1093 | Modifié | "Lu et approuvé" tenant (TCPDF legacy) affiché SEULEMENT si pas de signatures clients |
 
 ---
 
