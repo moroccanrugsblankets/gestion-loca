@@ -69,10 +69,7 @@ function initSignature() {
     }
     
     // Sauvegarder l'état vide du canvas avec fond blanc pour JPEG
-    tempCtx.fillStyle = '#FFFFFF';
-    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-    tempCtx.drawImage(canvas, 0, 0);
-    emptyCanvasData = tempCanvas.toDataURL('image/jpeg', JPEG_QUALITY);
+    emptyCanvasData = canvasToJPEGWithWhiteBackground();
     console.log('- Canvas vide capturé avec fond blanc (taille:', emptyCanvasData.length, 'bytes)');
     
     // Événements souris
@@ -182,6 +179,22 @@ function clearSignature() {
 }
 
 /**
+ * Convertir le canvas de signature en JPEG avec fond blanc
+ * @returns {string} Data URL au format JPEG
+ */
+function canvasToJPEGWithWhiteBackground() {
+    // Fill temporary canvas with white background (JPEG doesn't support transparency)
+    tempCtx.fillStyle = '#FFFFFF';
+    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+    
+    // Draw the signature on top of the white background
+    tempCtx.drawImage(canvas, 0, 0);
+    
+    // Convert to JPEG with configured quality
+    return tempCanvas.toDataURL('image/jpeg', JPEG_QUALITY);
+}
+
+/**
  * Obtenir les données de la signature
  */
 function getSignatureData() {
@@ -195,15 +208,8 @@ function getSignatureData() {
         return '';
     }
     
-    // Reuse the temporary canvas with white background for JPEG conversion
-    // Fill with white background (JPEG doesn't support transparency)
-    tempCtx.fillStyle = '#FFFFFF';
-    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-    
-    // Draw the signature on top of the white background
-    tempCtx.drawImage(canvas, 0, 0);
-    
-    const signatureData = tempCanvas.toDataURL('image/jpeg', JPEG_QUALITY);
+    // Convert canvas to JPEG with white background using helper function
+    const signatureData = canvasToJPEGWithWhiteBackground();
     console.log('Signature captured:');
     console.log('- Data URI length:', signatureData.length, 'bytes');
     console.log('- Canvas dimensions:', canvas.width, 'x', canvas.height, 'px');
