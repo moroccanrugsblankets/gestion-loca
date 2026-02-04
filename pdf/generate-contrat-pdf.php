@@ -564,6 +564,17 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 return $matches[0];
             }
             
+            // Ne pas modifier les chemins absolus du système de fichiers (pour les signatures)
+            // Détecté par la présence de '/uploads/signatures/' ou '/home/' ou 'C:\' etc.
+            if ((strpos($src, '/') === 0 && strpos($src, '/uploads/signatures/') !== false) ||
+                (strpos($src, '/home/') === 0) ||
+                (strpos($src, 'C:\\') === 0) ||
+                (strpos($src, '/var/') === 0)) {
+                error_log("PDF Generation: Image #$imageCount - Type: Chemin absolu système de fichiers, conservé: $src");
+                $imageSuccessCount++;
+                return $matches[0];
+            }
+            
             // Convertir les chemins relatifs en absolus
             $newSrc = $src;
             $pathType = '';
