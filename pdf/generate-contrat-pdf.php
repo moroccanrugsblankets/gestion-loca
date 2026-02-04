@@ -567,24 +567,19 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
             // Ne pas modifier les chemins absolus du système de fichiers pour les signatures
             // Seulement autoriser les chemins qui pointent vers le répertoire uploads/signatures
             // Utiliser realpath() pour valider le chemin et éviter les attaques par traversée
-            $baseDir = dirname(__DIR__);
+            $baseDir = realpath(dirname(__DIR__)); // Utiliser realpath pour gérer les liens symboliques
             $expectedSignaturePath = $baseDir . '/uploads/signatures/';
             
-            // Vérifier si le chemin commence par le répertoire attendu et valider avec realpath
-            if (strpos($src, $expectedSignaturePath) === 0) {
-                // Résoudre le chemin réel pour détecter les tentatives de traversée
-                $resolvedPath = realpath($src);
-                $resolvedExpectedPath = realpath($expectedSignaturePath);
-                
-                // Vérifier que le chemin résolu commence bien par le répertoire attendu
-                if ($resolvedPath !== false && $resolvedExpectedPath !== false && 
-                    strpos($resolvedPath, $resolvedExpectedPath) === 0) {
-                    error_log("PDF Generation: Image #$imageCount - Type: Chemin absolu système de fichiers (signature), conservé: $src");
-                    $imageSuccessCount++;
-                    return $matches[0];
-                } else {
-                    error_log("PDF Generation: SÉCURITÉ - Tentative d'accès en dehors du répertoire signatures: $src");
-                }
+            // Résoudre le chemin réel pour détecter les tentatives de traversée
+            $resolvedPath = realpath($src);
+            $resolvedExpectedPath = realpath($expectedSignaturePath);
+            
+            // Vérifier que le chemin résolu existe et commence bien par le répertoire attendu
+            if ($resolvedPath !== false && $resolvedExpectedPath !== false && 
+                strpos($resolvedPath, $resolvedExpectedPath) === 0) {
+                error_log("PDF Generation: Image #$imageCount - Type: Chemin absolu système de fichiers (signature), conservé: $src");
+                $imageSuccessCount++;
+                return $matches[0];
             }
             
             // Convertir les chemins relatifs en absolus
