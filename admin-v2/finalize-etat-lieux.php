@@ -57,16 +57,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         
         // Server settings
         $mail->isSMTP();
-        $mail->Host = $config['smtp']['host'];
-        $mail->SMTPAuth = true;
-        $mail->Username = $config['smtp']['username'];
-        $mail->Password = $config['smtp']['password'];
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port = $config['smtp']['port'];
+        $mail->Host = $config['SMTP_HOST'];
+        $mail->SMTPAuth = $config['SMTP_AUTH'];
+        $mail->Username = $config['SMTP_USERNAME'];
+        $mail->Password = $config['SMTP_PASSWORD'];
+        $mail->SMTPSecure = $config['SMTP_SECURE'];
+        $mail->Port = $config['SMTP_PORT'];
         $mail->CharSet = 'UTF-8';
         
         // Recipients
-        $mail->setFrom($config['email_from'], 'My Invest Immobilier');
+        $mail->setFrom($config['MAIL_FROM'], $config['MAIL_FROM_NAME']);
         $mail->addAddress($etat['locataire_email'], $etat['locataire_nom_complet']);
         $mail->addCC('gestion@myinvest-immobilier.com');
         

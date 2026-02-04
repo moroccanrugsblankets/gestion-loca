@@ -498,9 +498,9 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
     
     $depotStatus = $etatLieux['depot_garantie_status'] ?? 'non_applicable';
     $depotLabels = [
-        'restitution_totale' => '☑ Restitution totale du dépôt de garantie',
-        'restitution_partielle' => '☑ Restitution partielle du dépôt de garantie',
-        'retenue_totale' => '☑ Retenue totale du dépôt de garantie',
+        'restitution_totale' => '☑ Aucune dégradation imputable au(x) locataire(s) - Restitution totale du dépôt de garantie',
+        'restitution_partielle' => '☑ Dégradations mineures imputables au(x) locataire(s) - Restitution partielle du dépôt de garantie',
+        'retenue_totale' => '☑ Dégradations importantes imputables au(x) locataire(s) - Retenue totale du dépôt de garantie',
         'non_applicable' => '☐ Non applicable'
     ];
     $depotHTML = '';
@@ -508,7 +508,7 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
         if ($key === $depotStatus) {
             $depotHTML .= "<p>$label</p>";
         } else {
-            $depotHTML .= "<p>☐ " . substr($label, strpos($label, ' ') + 1) . "</p>";
+            $depotHTML .= "<p>☐ " . substr($label, strpos($label, ' - ') !== false ? strpos($label, ' - ') + 3 : strpos($label, ' ') + 1) . "</p>";
         }
     }
     
@@ -519,7 +519,7 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
     
     if (!empty($etatLieux['depot_garantie_motif_retenue'])) {
         $motifRetenue = nl2br(htmlspecialchars($etatLieux['depot_garantie_motif_retenue']));
-        $depotHTML .= "<p><strong>Motif de la retenue :</strong><br>$motifRetenue</p>";
+        $depotHTML .= "<p><strong>Justificatif / Motif de la retenue :</strong><br>$motifRetenue</p>";
     }
     
     // Signatures
