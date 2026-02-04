@@ -10,6 +10,9 @@ require_once '../includes/db.php';
 require_once '../includes/mail-templates.php';
 require_once '../pdf/generate-etat-lieux.php';
 
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
 // Get état des lieux ID
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
