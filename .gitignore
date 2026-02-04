@@ -64,3 +64,5 @@ cron/cron-log.txt
 includes/config.php.backup
 composer.phar
 FETCH_HEAD
+assets/images/logo-my-invest-immobilier-carre.jpg
+step2-signature.php
