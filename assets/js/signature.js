@@ -61,7 +61,7 @@ function initSignature() {
         if (tempCanvas.width !== canvas.width || tempCanvas.height !== canvas.height) {
             tempCanvas.width = canvas.width;
             tempCanvas.height = canvas.height;
-            // Note: Resizing canvas clears content but tempCtx reference remains valid
+            // Note: Resizing clears canvas content (expected - canvas is redrawn on each capture)
             console.log('- Canvas temporaire redimensionné');
         } else {
             console.log('- Canvas temporaire réutilisé');
@@ -190,7 +190,7 @@ function getSignatureData() {
         return '';
     }
     
-    if (!tempCanvas || !tempCtx) {
+    if (!tempCanvas) {
         console.error('Temporary canvas not initialized. initSignature() must be called before capturing signature.');
         return '';
     }
