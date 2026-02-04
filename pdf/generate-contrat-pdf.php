@@ -14,10 +14,11 @@ define('BASE64_OVERHEAD_RATIO', 4 / 3); // Base64 est ~33% plus grand que les do
 define('MAX_TENANT_SIGNATURE_SIZE', 5 * 1024 * 1024); // 5 MB pour signatures locataires
 define('MAX_COMPANY_SIGNATURE_SIZE', 2 * 1024 * 1024); // 2 MB pour signature société
 
-// Style CSS pour les images de signature (évite les bordures grises)
+// Style CSS pour les images de signature (évite les bordures grises et noires)
 // margin-bottom augmenté de 5mm à 15mm pour éviter chevauchement avec texte suivant
 // Additional border properties to ensure no borders in TCPDF rendering
-define('SIGNATURE_IMG_STYLE', 'width: 40mm; height: auto; display: block; margin-bottom: 15mm; border: 0; border-width: 0; border-style: none; outline: none; box-shadow: none; background: transparent;');
+// Includes explicit TCPDF border removal: border-color transparent, padding 0
+define('SIGNATURE_IMG_STYLE', 'width: 40mm; height: auto; display: block; margin-bottom: 15mm; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; box-shadow: none; padding: 0; background: transparent;');
 
 /**
  * Sauvegarder une signature data URI en fichier physique PNG

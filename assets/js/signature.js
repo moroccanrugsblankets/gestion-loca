@@ -26,12 +26,14 @@ function initSignature() {
     ctx = canvas.getContext('2d');
     
     // Configuration du canvas
+    // IMPORTANT: No borders should be added to the canvas to avoid borders in the saved PNG
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     
     // Fond transparent (pas de fond blanc pour éviter les bordures)
+    // This ensures the saved PNG will have a transparent background with no borders
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     console.log('- Fond: transparent (clearRect appliqué)');
