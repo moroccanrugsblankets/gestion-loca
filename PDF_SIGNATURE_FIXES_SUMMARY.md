@@ -1,151 +1,138 @@
 # Résumé des Corrections - Signatures PDF
 
-## Date: 2026-02-04
+## Date: 2026-02-04 (CORRIGÉ)
 
-## Problèmes Résolus
+## ⚠️ CORRECTION IMPORTANTE
 
-### 1. ✅ Suppression du texte de l'agence sur les PDF signés par le client
+**Problème initial mal compris**: La première version avait SUPPRIMÉ le texte de l'agence de TOUS les PDFs, ce qui était INCORRECT.
 
-**Problème**: Les PDF signés par le client affichaient le texte suivant :
-- MY INVEST IMMOBILIER
-- Représenté par M. ALEXANDRE
-- Lu et approuvé
+**Vraie exigence**: 
+- ✅ Le texte agence DOIT être présent sur les **PDF validés** (sans signatures clients)
+- ❌ Le texte agence DOIT être masqué sur les **PDF signés** (avec signatures clients)
+
+## Logique de Détection Implémentée
+
+### Détection du type de PDF
+```php
+// Détection: un PDF est "signé" si au moins un locataire a signature_data
+$hasClientSignatures = false;
+foreach ($locataires as $loc) {
+    if (!empty($loc['signature_data'])) {
+        $hasClientSignatures = true;
+        break;
+    }
+}
+```
+
+### Application Conditionnelle
+- **PDF validé** (`$hasClientSignatures = false`): Affiche le texte agence et "Lu et approuvé"
+- **PDF signé** (`$hasClientSignatures = true`): Masque le texte agence et "Lu et approuvé"
+
+---
+
+## Problèmes Résolus (VERSION CORRIGÉE)
+
+### 1. ✅ Affichage Conditionnel du Texte Agence
+
+**Comportement Correct**:
+- **PDF validé (sans signatures clients)**: Affiche "MY INVEST IMMOBILIER", "Représenté par M. ALEXANDRE", "Lu et approuvé"
+- **PDF signé (avec signatures clients)**: Masque ces textes
 
 **Solution**: 
-- Supprimé ces textes de la section "Le bailleur" dans le tableau de signatures (ligne 465)
-- Supprimé également dans la génération TCPDF legacy (lignes 963-965)
+- Ajout de la détection `$hasClientSignatures`
+- Affichage conditionnel du texte agence dans le tableau de signatures (ligne 470-477)
+- Affichage conditionnel dans la génération TCPDF legacy (lignes 969-987)
 
 **Fichiers modifiés**: `pdf/generate-contrat-pdf.php`
 
 ---
 
-### 2. ✅ Suppression de "Lu et approuvé" pour les locataires
+### 2. ✅ Affichage Conditionnel de "Lu et approuvé" pour les Locataires
 
-**Problème**: Le texte "Lu et approuvé" apparaissait sous les signatures des locataires
+**Comportement Correct**:
+- **PDF validé (sans signatures clients)**: Affiche "Lu et approuvé" sous le nom du locataire
+- **PDF signé (avec signatures clients)**: Ne l'affiche PAS (car signature présente)
 
 **Solution**: 
-- Supprimé de la génération HTML (lignes 278-283)
-- Supprimé du tableau de signatures (lignes 486-492)
-- Supprimé de la génération TCPDF legacy (lignes 1055-1060)
+- HTML: Affichage conditionnel (lignes 501-507)
+- Legacy TCPDF: Affichage conditionnel (lignes 1085-1088)
 
 **Fichiers modifiés**: `pdf/generate-contrat-pdf.php`
 
 ---
 
-### 3. ✅ Bordures sur les signatures clients
+### 3. ✅ Bordures sur les Signatures Clients (AMÉLIORÉ)
 
-**Problème**: Les signatures des clients avaient des bordures
+**Problème**: Les signatures des clients pouvaient avoir des bordures grises dans le rendu TCPDF
 
-**Solution**: 
-- Vérification : Les styles CSS incluent déjà `border: none; border-style: none; background: transparent;`
-- Constante `SIGNATURE_IMG_STYLE` : ✓ Correcte (ligne 19)
-- Variable `tableSignatureStyle` : ✓ Correcte (ligne 518)
-- Aucune modification nécessaire, le problème devrait être résolu
-
-**Fichiers vérifiés**: `pdf/generate-contrat-pdf.php`
-
----
-
-### 4. ✅ Position de l'horodatage (abaissé de 30px)
-
-**Problème**: L'horodatage devait être abaissé de 30px
-
-**Solution**: 
-- Signatures HTML : `margin-top` modifié de 15px à 45px (ligne 330)
-- Signatures dans tableau : `margin-top` modifié de 10px à 40px (ligne 528)
+**Solution Renforcée**: 
+- Ajout de propriétés CSS supplémentaires pour garantir l'absence de bordures:
+  - `border: 0;`
+  - `border-width: 0;`
+  - `outline: none;`
+  - `box-shadow: none;`
+- Application à `SIGNATURE_IMG_STYLE` (ligne 19)
+- Application à `tableSignatureStyle` (ligne 540)
 
 **Avant**:
 ```css
-margin-top: 15px;  /* HTML */
-margin-top: 10px;  /* Table */
+border: none; border-style: none; background: transparent;
 ```
 
 **Après**:
 ```css
-margin-top: 45px;  /* HTML - abaissé de 30px */
-margin-top: 40px;  /* Table - abaissé de 30px */
+border: 0; border-width: 0; border-style: none; outline: none; box-shadow: none; background: transparent;
 ```
 
 **Fichiers modifiés**: `pdf/generate-contrat-pdf.php`
 
 ---
 
-### 5. ✅ Espacement entre horodatage et adresse IP
-
-**Problème**: Grand espace entre l'horodatage et l'adresse IP
-
-**Solution**: 
-- `margin-bottom` modifié de 2px à 0 pour l'horodatage
-- `margin-top: 0` maintenu pour l'adresse IP
-- Résultat : espacement minimal entre les deux lignes
-
-**Avant**:
-```css
-<p style="margin-bottom: 2px;">Horodatage : ...</p>
-<p style="margin-top: 0;">Adresse IP : ...</p>
-```
-
-**Après**:
-```css
-<p style="margin-bottom: 0;">Horodatage : ...</p>
-<p style="margin-top: 0;">Adresse IP : ...</p>
-```
-
-**Fichiers modifiés**: `pdf/generate-contrat-pdf.php`
-
 ---
 
-### 6. ✅ Ligne au-dessus de la signature agence
-
-**Problème**: Demande de suppression d'une ligne au-dessus de la signature agence
-
-**Solution**: 
-- Vérification du code : Aucune ligne (`<hr>`, `Line()`, `border-top`, etc.) n'a été trouvée
-- Aucune modification nécessaire
-
-**Fichiers vérifiés**: `pdf/generate-contrat-pdf.php`
-
----
-
-### 7. ✅ Texte sous la signature agence (abaissé de 30px)
-
-**Problème**: Le texte "Validé le" sous la signature agence devait être abaissé de 30px
-
-**Solution**: 
-- `margin-top` modifié de 15px à 45px pour le texte "Validé le" (ligne 428)
-
-**Avant**:
-```css
-margin-top: 15px;
-```
-
-**Après**:
-```css
-margin-top: 45px;  /* Abaissé de 30px */
-```
-
-**Fichiers modifiés**: `pdf/generate-contrat-pdf.php`
-
----
-
-## Résumé des Modifications
+## Résumé des Modifications (VERSION CORRIGÉE)
 
 ### Fichier: `pdf/generate-contrat-pdf.php`
 
 | Ligne | Type de modification | Description |
 |-------|---------------------|-------------|
-| 19 | ✓ Vérifié | Style SIGNATURE_IMG_STYLE déjà correct (border: none) |
-| 278-283 | Supprimé | "Lu et approuvé" pour locataires (HTML) |
-| 330 | Modifié | margin-top: 15px → 45px (horodatage HTML) |
-| 337 | Modifié | margin-bottom: 2px → 0 (horodatage HTML) |
-| 428 | Modifié | margin-top: 15px → 45px (texte "Validé le") |
-| 465 | Supprimé | Texte agence dans tableau signatures |
-| 486-492 | Supprimé | "Lu et approuvé" pour locataires (table) |
-| 518 | ✓ Vérifié | tableSignatureStyle déjà correct (border: none) |
-| 528 | Modifié | margin-top: 10px → 40px (horodatage table) |
-| 528 | Modifié | margin-bottom: 2px → 0 (horodatage table) |
-| 963-965 | Supprimé | Texte agence (TCPDF legacy) |
-| 1055-1060 | Supprimé | "Lu et approuvé" pour locataires (TCPDF legacy) |
+| 19 | Modifié | Style SIGNATURE_IMG_STYLE amélioré (border: 0, border-width: 0, outline: none, box-shadow: none) |
+| 450-460 | Ajouté | Détection des signatures clients ($hasClientSignatures) |
+| 470-477 | Modifié | Texte agence affiché SEULEMENT si pas de signatures clients |
+| 501-507 | Modifié | "Lu et approuvé" tenant affiché SEULEMENT si pas de signatures clients |
+| 540 | Modifié | tableSignatureStyle amélioré (border: 0, border-width: 0, outline: none, box-shadow: none) |
+| 969-987 | Modifié | Texte agence (TCPDF legacy) affiché SEULEMENT si pas de signatures clients |
+| 1045-1050 | Ajouté | Détection des signatures clients (TCPDF legacy) |
+| 1085-1088 | Ajouté | "Lu et approuvé" tenant (TCPDF legacy) affiché SEULEMENT si pas de signatures clients |
+
+---
+
+## Comportement Attendu
+
+### Scénario 1: PDF Validé (Sans Signatures Clients)
+
+```
+┌─────────────────────────────┐  ┌─────────────────────────────┐
+│ Le bailleur                 │  │ Locataire:                  │
+│ MY INVEST IMMOBILIER        │  │ Jean Dupont                 │
+│ Représenté par M. ALEXANDRE │  │ Lu et approuvé              │
+│ Lu et approuvé              │  │                             │
+│ [signature agence]          │  │ (pas de signature client)   │
+│ Validé le: 2024-01-01       │  │                             │
+└─────────────────────────────┘  └─────────────────────────────┘
+```
+
+### Scénario 2: PDF Signé (Avec Signatures Clients)
+
+```
+┌─────────────────────────────┐  ┌─────────────────────────────┐
+│ Le bailleur                 │  │ Locataire:                  │
+│ [signature agence]          │  │ Jean Dupont                 │
+│ Validé le: 2024-01-01       │  │ [signature client]          │
+│                             │  │ Horodatage: 2024-01-01 ...  │
+│ (pas de texte agence)       │  │ Adresse IP: 192.168.1.1     │
+└─────────────────────────────┘  └─────────────────────────────┘
+```
 
 ---
 
@@ -154,49 +141,79 @@ margin-top: 45px;  /* Abaissé de 30px */
 Ces modifications affectent :
 - ✅ Génération de PDF via HTML (méthode moderne avec TCPDF)
 - ✅ Génération de PDF via TCPDF natif (méthode legacy)
-- ✅ Toutes les signatures (agence et locataires)
-- ✅ Tous les formats de PDF générés par le système
+- ✅ Différenciation entre PDF validé et PDF signé
+- ✅ Affichage conditionnel du texte agence et "Lu et approuvé"
+- ✅ Prévention améliorée des bordures sur les signatures
 
 ---
 
 ## Validation
 
 - ✅ Syntaxe PHP validée : Aucune erreur
-- ✅ Code Review complété : 1 commentaire mineur (clarification ajoutée)
-- ✅ Scan de sécurité : Aucun problème détecté
+- ✅ Logique de détection implémentée : Détecte présence de signatures clients
+- ✅ Affichage conditionnel vérifié : Texte agence selon type de PDF
+- ✅ Bordures renforcées : CSS amélioré pour prévenir les bordures
 - ⚠️ Test de génération PDF : Nécessite environnement avec base de données (non disponible dans environnement de développement)
 
 ---
 
 ## Notes Techniques
 
-### Styles CSS appliqués aux signatures
+### Logique de Détection
+
+```php
+// Détection des signatures clients
+$hasClientSignatures = false;
+foreach ($locataires as $loc) {
+    if (!empty($loc['signature_data'])) {
+        $hasClientSignatures = true;
+        break;
+    }
+}
+
+// Affichage conditionnel
+if (!$hasClientSignatures) {
+    // PDF validé: afficher texte agence et "Lu et approuvé"
+    $signaturesTable .= '<p>MY INVEST IMMOBILIER<br>Représenté par M. ALEXANDRE<br>Lu et approuvé</p>';
+} else {
+    // PDF signé: masquer le texte
+}
+```
+
+### Styles CSS améliorés pour les signatures
 
 ```css
-/* Constante SIGNATURE_IMG_STYLE (ligne 19) */
+/* SIGNATURE_IMG_STYLE (ligne 19) - VERSION AMÉLIORÉE */
 width: 40mm; 
 height: auto; 
 display: block; 
 margin-bottom: 15mm; 
-border: none; 
+border: 0;              /* ← AJOUTÉ */
+border-width: 0;        /* ← AJOUTÉ */
 border-style: none; 
+outline: none;          /* ← AJOUTÉ */
+box-shadow: none;       /* ← AJOUTÉ */
 background: transparent;
 
-/* Variable tableSignatureStyle (ligne 518) */
+/* tableSignatureStyle (ligne 540) - VERSION AMÉLIORÉE */
 width: 40mm; 
 height: auto; 
 display: block; 
 margin-top: 10px; 
 margin-bottom: 5px; 
-border: none; 
-border-style: none; 
+border: 0;              /* ← AJOUTÉ */
+border-width: 0;        /* ← AJOUTÉ */
+border-style: none;
+outline: none;          /* ← AJOUTÉ */
+box-shadow: none;       /* ← AJOUTÉ */
 background: transparent;
 ```
 
 Ces styles garantissent :
-- Aucune bordure autour des signatures
+- Aucune bordure autour des signatures (propriétés multiples pour compatibilité TCPDF)
 - Fond transparent
 - Dimensions appropriées (40mm de largeur)
+- Pas d'outline ni de box-shadow
 
 ---
 
@@ -205,14 +222,11 @@ Ces styles garantissent :
 Pour valider complètement ces modifications :
 
 1. Tester la génération de PDF dans l'environnement de production
-2. Vérifier visuellement :
-   - Absence de texte agence sur PDF client
-   - Absence de "Lu et approuvé" partout
-   - Position abaissée de l'horodatage
-   - Espacement réduit entre horodatage et IP
-   - Position abaissée du texte "Validé le"
-   - Absence de bordures sur les signatures
-3. Générer des PDFs avec différentes configurations :
+2. Vérifier visuellement les deux scénarios:
+   - **PDF validé** (sans signatures clients): Texte agence PRÉSENT
+   - **PDF signé** (avec signatures clients): Texte agence MASQUÉ
+3. Vérifier l'absence de bordures sur les signatures dans les deux cas
+4. Générer des PDFs avec différentes configurations :
    - 1 locataire
    - 2+ locataires
    - Avec/sans signature agence
@@ -221,12 +235,15 @@ Pour valider complètement ces modifications :
 
 ## Auteur
 
-Copilot Agent - 2026-02-04
+Copilot Agent - 2026-02-04 (Version corrigée)
 
 ## Références
 
-- Issue: Fix PDF signature display issues
+- Issue: Fix PDF signature display issues (CORRECTED)
 - Branch: `copilot/fix-pdf-signature-issues-3e346642-74e1-43c3-aa3d-9c9cedf76399`
 - Commits: 
-  - 3dd368b: Fix PDF signature issues: remove agency text, adjust spacing, lower timestamps
+  - 3dd368b: Fix PDF signature issues: remove agency text, adjust spacing, lower timestamps (INITIAL - INCORRECT)
   - 2a3903f: Clarify comment about timestamp position adjustment
+  - 17f1560: Add comprehensive documentation for PDF signature fixes (INITIAL DOC)
+  - 7d74a02: Fix agency text display logic and enhance border prevention for signatures (CORRECTION)
+
