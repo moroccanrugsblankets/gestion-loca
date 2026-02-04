@@ -63,8 +63,8 @@ foreach ($locataires as $locataire) {
         continue;
     }
     
-    // Generate unique filename
-    $filename = "tenant_locataire_{$id}_migrated_" . time() . ".png";
+    // Generate unique filename (always .jpg)
+    $filename = "tenant_locataire_{$id}_migrated_" . time() . ".jpg";
     $filepath = $uploadsDir . '/' . $filename;
     
     // Save physical file
