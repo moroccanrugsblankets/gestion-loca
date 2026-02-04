@@ -162,7 +162,7 @@ function getSignatureData() {
         return '';
     }
     
-    const signatureData = canvas.toDataURL('image/png');
+    const signatureData = canvas.toDataURL('image/jpeg', 0.95);
     console.log('Signature captured:');
     console.log('- Data URI length:', signatureData.length, 'bytes');
     console.log('- Canvas dimensions:', canvas.width, 'x', canvas.height, 'px');

@@ -234,7 +234,7 @@ function updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve)
     }
     
     // Generate unique filename
-    $filename = "tenant_locataire_{$locataireId}_" . time() . ".png";
+    $filename = "tenant_locataire_{$locataireId}_" . time() . ".jpg";
     $filepath = $uploadsDir . '/' . $filename;
     
     // Save physical file
