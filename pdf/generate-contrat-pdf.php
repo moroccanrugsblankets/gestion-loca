@@ -488,7 +488,7 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
             error_log("PDF Generation: Table - Locataire " . ($i + 1) . "/" . $nbLocataires);
         }
         
-        // Nom du locataire
+        // Nom du locataire et mention "Lu et approuvé" dans le même paragraphe
         $signaturesTable .= '<p style="margin: 0; font-size: 9pt;">' . htmlspecialchars($locataire['prenom']) . ' ' . htmlspecialchars($locataire['nom']) . '<br>';
         
         // Mention "Lu et approuvé"
@@ -512,10 +512,14 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 // Security: Validate file path to prevent path traversal attacks
                 $normalizedPath = str_replace('\\', '/', $fullPath);
                 if (strpos($normalizedPath, '..') !== false) {
-                    error_log("PDF Generation: SÉCURITÉ - Path traversal détecté: " . $fullPath);
+                    // Path traversal attack detected - reject this signature
+                    error_log("PDF Generation: SÉCURITÉ - Path traversal détecté et bloqué: " . $fullPath);
+                    // $signatureImagePath remains null, preventing image insertion
                 } elseif (file_exists($fullPath)) {
                     $signatureImagePath = $fullPath;
                     error_log("PDF Generation: Table - Signature client " . ($i + 1) . " depuis fichier: " . $fullPath);
+                } else {
+                    error_log("PDF Generation: AVERTISSEMENT - Fichier de signature introuvable: " . $fullPath);
                 }
             } elseif (preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $locataire['signature_data'])) {
                 // Legacy format: base64 data URI
