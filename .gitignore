@@ -59,3 +59,8 @@ test-upload.html
 test-candidature-evaluation.php
 test-candidature-evaluation-standalone.php
 test-cron-output.php
+contrat-bail.pdf
+cron/cron-log.txt
+includes/config.php.backup
+composer.phar
+FETCH_HEAD
