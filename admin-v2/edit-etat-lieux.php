@@ -117,14 +117,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             exit;
         }
         
-    } catch (PDOException $e) {
-        $pdo->rollBack();
-        error_log("Error updating état des lieux: " . $e->getMessage());
-        $_SESSION['error'] = "Erreur lors de l'enregistrement";
     } catch (Exception $e) {
         $pdo->rollBack();
         error_log("Error updating état des lieux: " . $e->getMessage());
-        $_SESSION['error'] = $e->getMessage();
+        $_SESSION['error'] = "Erreur lors de l'enregistrement: " . $e->getMessage();
     }
 }
 
@@ -691,7 +687,6 @@ $isSortie = $etat['type'] === 'sortie';
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../assets/js/signature.js"></script>
     <script>
         // Signature handling
         let canvasBailleur, ctxBailleur, isDrawingBailleur = false, lastXBailleur = 0, lastYBailleur = 0;
