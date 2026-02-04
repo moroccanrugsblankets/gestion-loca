@@ -564,13 +564,13 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 return $matches[0];
             }
             
-            // Ne pas modifier les chemins absolus du système de fichiers (pour les signatures)
-            // Détecté par la présence de '/uploads/signatures/' ou '/home/' ou 'C:\' etc.
-            if ((strpos($src, '/') === 0 && strpos($src, '/uploads/signatures/') !== false) ||
-                (strpos($src, '/home/') === 0) ||
-                (strpos($src, 'C:\\') === 0) ||
-                (strpos($src, '/var/') === 0)) {
-                error_log("PDF Generation: Image #$imageCount - Type: Chemin absolu système de fichiers, conservé: $src");
+            // Ne pas modifier les chemins absolus du système de fichiers pour les signatures
+            // Seulement autoriser les chemins qui pointent vers le répertoire uploads/signatures
+            // pour des raisons de sécurité
+            $baseDir = dirname(__DIR__);
+            $expectedSignaturePath = $baseDir . '/uploads/signatures/';
+            if (strpos($src, $expectedSignaturePath) === 0) {
+                error_log("PDF Generation: Image #$imageCount - Type: Chemin absolu système de fichiers (signature), conservé: $src");
                 $imageSuccessCount++;
                 return $matches[0];
             }

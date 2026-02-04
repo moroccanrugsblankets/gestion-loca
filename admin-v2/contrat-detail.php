@@ -561,8 +561,14 @@ if ($contrat['validated_by']) {
                                             <strong>Aperçu de la signature:</strong><br>
                                             <?php 
                                             // Fix path for admin-v2 directory - prepend ../ for relative paths
+                                            // Relative paths are those that don't start with 'data:', 'http', or '/'
                                             $signatureSrc = $locataire['signature_data'];
-                                            if (strpos($signatureSrc, 'data:') !== 0 && strpos($signatureSrc, 'http') !== 0 && strpos($signatureSrc, '/') !== 0) {
+                                            $isDataUri = strpos($signatureSrc, 'data:') === 0;
+                                            $isHttpUrl = strpos($signatureSrc, 'http') === 0;
+                                            $isAbsolutePath = strpos($signatureSrc, '/') === 0;
+                                            
+                                            if (!$isDataUri && !$isHttpUrl && !$isAbsolutePath) {
+                                                // Relative path - prepend ../ to make it relative to admin-v2
                                                 $signatureSrc = '../' . $signatureSrc;
                                             }
                                             ?>
