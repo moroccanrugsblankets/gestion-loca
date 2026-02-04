@@ -92,27 +92,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $newHeight = $originalHeight;
             }
             
-            // Create new image with transparency support for PNG
+            // Create new image with white background for JPEG
             $resizedImage = imagecreatetruecolor($newWidth, $newHeight);
             
-            // Preserve transparency for PNG
-            if ($file['type'] === 'image/png') {
-                imagealphablending($resizedImage, false);
-                imagesavealpha($resizedImage, true);
-                $transparent = imagecolorallocatealpha($resizedImage, 255, 255, 255, 127);
-                imagefilledrectangle($resizedImage, 0, 0, $newWidth, $newHeight, $transparent);
-            }
+            // Fill with white background (JPEG doesn't support transparency)
+            $white = imagecolorallocate($resizedImage, 255, 255, 255);
+            imagefilledrectangle($resizedImage, 0, 0, $newWidth, $newHeight, $white);
             
             // Resize the image
             imagecopyresampled($resizedImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $originalWidth, $originalHeight);
             
-            // Save resized image data
+            // Save resized image data as JPEG
             ob_start();
-            if ($file['type'] === 'image/png') {
-                imagepng($resizedImage, null, 6); // PNG compression level 6 (0-9): balance between file size and speed
-            } else {
-                imagejpeg($resizedImage, null, 90); // High quality JPEG
-            }
+            imagejpeg($resizedImage, null, 90); // High quality JPEG
             $imageData = ob_get_clean();
             
             // Clean up resources
@@ -142,8 +134,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
             }
             
-            // Generate unique filename for company signature
-            $filename = "company_signature_" . time() . ".png";
+            // Generate unique filename for company signature (always .jpg)
+            $filename = "company_signature_" . time() . ".jpg";
             $filepath = $uploadsDir . '/' . $filename;
             
             // Save physical file
