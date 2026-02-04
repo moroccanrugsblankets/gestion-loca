@@ -137,10 +137,21 @@ function replaceTemplateVariables($template, $contrat, $locataires) {
     $locatairesInfoHtml = implode('<br>', $locatairesInfo);
     
     // Formatter les dates
-    $datePriseEffet = !empty($contrat['date_prise_effet']) ? 
-        date('d/m/Y', strtotime($contrat['date_prise_effet'])) : 'N/A';
-    $dateSignature = !empty($contrat['date_signature']) ? 
-        date('d/m/Y', strtotime($contrat['date_signature'])) : date('d/m/Y');
+    $datePriseEffet = 'N/A';
+    if (!empty($contrat['date_prise_effet'])) {
+        $timestamp = strtotime($contrat['date_prise_effet']);
+        if ($timestamp !== false) {
+            $datePriseEffet = date('d/m/Y', $timestamp);
+        }
+    }
+    
+    $dateSignature = date('d/m/Y'); // Date actuelle par défaut
+    if (!empty($contrat['date_signature'])) {
+        $timestamp = strtotime($contrat['date_signature']);
+        if ($timestamp !== false) {
+            $dateSignature = date('d/m/Y', $timestamp);
+        }
+    }
     
     // Formatter les montants
     $loyer = number_format((float)$contrat['loyer'], 2, ',', ' ');
@@ -208,7 +219,7 @@ function buildSignaturesTable($contrat, $locataires) {
     
     // Colonne signature agence (bailleur)
     $html .= '<td style="width: ' . $colWidth . '%; vertical-align: top; padding: 10px;">';
-    $html .= '<p><strong>Le Bailleur :</strong></p>';
+    $html .= '<p><strong>Le bailleur :</strong></p>';
     
     // Signature agence si contrat validé
     if ($contrat['statut'] === 'valide') {
