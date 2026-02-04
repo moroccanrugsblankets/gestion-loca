@@ -12,40 +12,6 @@ if ($id < 1) {
     exit;
 }
 
-// Handle form submission for editing
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
-    $date_etat = $_POST['date_etat'];
-    $etat_general = $_POST['etat_general'] ?? '';
-    $observations = $_POST['observations'] ?? '';
-    
-    // Validate date format
-    $date = DateTime::createFromFormat('Y-m-d', $date_etat);
-    if (!$date || $date->format('Y-m-d') !== $date_etat) {
-        $_SESSION['error'] = "Format de date invalide";
-        header("Location: view-etat-lieux.php?id=$id");
-        exit;
-    }
-    
-    try {
-        $stmt = $pdo->prepare("
-            UPDATE etats_lieux 
-            SET date_etat = ?, 
-                etat_general = ?, 
-                observations = ?
-            WHERE id = ?
-        ");
-        $stmt->execute([$date_etat, $etat_general, $observations, $id]);
-        $_SESSION['success'] = "État des lieux mis à jour avec succès";
-        header("Location: view-etat-lieux.php?id=$id");
-        exit;
-    } catch (PDOException $e) {
-        error_log("Error updating état des lieux: " . $e->getMessage());
-        $_SESSION['error'] = "Erreur lors de la mise à jour";
-        header("Location: view-etat-lieux.php?id=$id");
-        exit;
-    }
-}
-
 // Get état des lieux details
 $stmt = $pdo->prepare("
     SELECT edl.*, 
@@ -69,8 +35,6 @@ if (!$etat) {
     header('Location: etats-lieux.php');
     exit;
 }
-
-$isEditing = isset($_GET['edit']) && $_GET['edit'] === '1';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -141,14 +105,12 @@ $isEditing = isset($_GET['edit']) && $_GET['edit'] === '1';
                     <a href="etats-lieux.php" class="btn btn-outline-secondary">
                         <i class="bi bi-arrow-left"></i> Retour
                     </a>
-                    <?php if (!$isEditing): ?>
-                        <a href="view-etat-lieux.php?id=<?php echo $id; ?>&edit=1" class="btn btn-warning">
-                            <i class="bi bi-pencil"></i> Modifier
-                        </a>
-                        <a href="download-etat-lieux.php?id=<?php echo $id; ?>" class="btn btn-primary" target="_blank">
-                            <i class="bi bi-download"></i> Télécharger PDF
-                        </a>
-                    <?php endif; ?>
+                    <a href="edit-etat-lieux.php?id=<?php echo $id; ?>" class="btn btn-warning">
+                        <i class="bi bi-pencil"></i> Modifier
+                    </a>
+                    <a href="download-etat-lieux.php?id=<?php echo $id; ?>" class="btn btn-primary" target="_blank">
+                        <i class="bi bi-download"></i> Télécharger PDF
+                    </a>
                 </div>
             </div>
         </div>
@@ -167,12 +129,6 @@ $isEditing = isset($_GET['edit']) && $_GET['edit'] === '1';
             </div>
         <?php endif; ?>
 
-        <?php if ($isEditing): ?>
-        <!-- Edit Form -->
-        <form method="POST" action="view-etat-lieux.php?id=<?php echo $id; ?>">
-            <input type="hidden" name="action" value="update">
-        <?php endif; ?>
-
         <div class="row">
             <!-- Left Column -->
             <div class="col-md-6">
@@ -189,14 +145,9 @@ $isEditing = isset($_GET['edit']) && $_GET['edit'] === '1';
                     </div>
 
                     <div class="info-label">Date de l'état des lieux</div>
-                    <?php if ($isEditing): ?>
-                        <input type="date" name="date_etat" class="form-control mb-3" 
-                               value="<?php echo htmlspecialchars($etat['date_etat']); ?>" required>
-                    <?php else: ?>
-                        <div class="info-value">
-                            <?php echo date('d/m/Y', strtotime($etat['date_etat'])); ?>
-                        </div>
-                    <?php endif; ?>
+                    <div class="info-value">
+                        <?php echo date('d/m/Y', strtotime($etat['date_etat'])); ?>
+                    </div>
 
                     <div class="info-label">Référence du contrat</div>
                     <div class="info-value"><?php echo htmlspecialchars($etat['contrat_ref']); ?></div>
@@ -249,37 +200,17 @@ $isEditing = isset($_GET['edit']) && $_GET['edit'] === '1';
                     </div>
                     
                     <div class="info-label">État général</div>
-                    <?php if ($isEditing): ?>
-                        <textarea name="etat_general" class="form-control mb-3" rows="4"><?php echo htmlspecialchars($etat['etat_general'] ?? ''); ?></textarea>
-                    <?php else: ?>
-                        <div class="info-value">
-                            <?php echo !empty($etat['etat_general']) ? nl2br(htmlspecialchars($etat['etat_general'])) : '<em class="text-muted">Aucune observation</em>'; ?>
-                        </div>
-                    <?php endif; ?>
+                    <div class="info-value">
+                        <?php echo !empty($etat['etat_general']) ? nl2br(htmlspecialchars($etat['etat_general'])) : '<em class="text-muted">Aucune observation</em>'; ?>
+                    </div>
 
                     <div class="info-label">Observations complémentaires</div>
-                    <?php if ($isEditing): ?>
-                        <textarea name="observations" class="form-control mb-3" rows="4"><?php echo htmlspecialchars($etat['observations'] ?? ''); ?></textarea>
-                    <?php else: ?>
-                        <div class="info-value">
-                            <?php echo !empty($etat['observations']) ? nl2br(htmlspecialchars($etat['observations'])) : '<em class="text-muted">Aucune observation</em>'; ?>
-                        </div>
-                    <?php endif; ?>
+                    <div class="info-value">
+                        <?php echo !empty($etat['observations']) ? nl2br(htmlspecialchars($etat['observations'])) : '<em class="text-muted">Aucune observation</em>'; ?>
+                    </div>
                 </div>
             </div>
         </div>
-
-        <?php if ($isEditing): ?>
-            <div class="text-end mt-3">
-                <a href="view-etat-lieux.php?id=<?php echo $id; ?>" class="btn btn-secondary">
-                    <i class="bi bi-x-circle"></i> Annuler
-                </a>
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-check-circle"></i> Enregistrer
-                </button>
-            </div>
-        </form>
-        <?php endif; ?>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
