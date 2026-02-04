@@ -131,6 +131,10 @@ $etats_lieux = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <a href="download-etat-lieux.php?id=<?php echo $etat['id']; ?>" class="btn btn-sm btn-outline-secondary" title="Télécharger" target="_blank">
                                     <i class="bi bi-download"></i>
                                 </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger" title="Supprimer" 
+                                        onclick="confirmDelete(<?php echo $etat['id']; ?>, '<?php echo htmlspecialchars($etat['type'], ENT_QUOTES); ?>')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -184,6 +188,36 @@ $etats_lieux = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Confirmer la suppression</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Êtes-vous sûr de vouloir supprimer cet état des lieux ?</p>
+                    <p class="text-danger"><strong>Cette action est irréversible.</strong></p>
+                </div>
+                <div class="modal-footer">
+                    <form id="deleteForm" method="POST" action="delete-etat-lieux.php">
+                        <input type="hidden" name="id" id="deleteId">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-danger">Supprimer</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function confirmDelete(id, type) {
+            document.getElementById('deleteId').value = id;
+            const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            modal.show();
+        }
+    </script>
 </body>
 </html>

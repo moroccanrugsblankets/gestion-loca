@@ -33,10 +33,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
     
-    // Verify contract exists
-    $stmt = $pdo->prepare("SELECT id FROM contrats WHERE id = ?");
+    // Verify contract exists and get details
+    $stmt = $pdo->prepare("
+        SELECT c.*, 
+               l.adresse, l.appartement,
+               CONCAT(cand.prenom, ' ', cand.nom) as locataire_nom,
+               cand.email as locataire_email
+        FROM contrats c
+        LEFT JOIN logements l ON c.logement_id = l.id
+        LEFT JOIN candidatures cand ON c.candidature_id = cand.id
+        WHERE c.id = ?
+    ");
     $stmt->execute([$contrat_id]);
-    if (!$stmt->fetch()) {
+    $contrat = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$contrat) {
         $_SESSION['error'] = "Contrat non trouvé";
         header('Location: etats-lieux.php');
         exit;
@@ -51,21 +62,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
     
-    // Insert new état des lieux
+    // Generate unique reference
+    $reference = 'EDL-' . strtoupper($type[0]) . '-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+    
+    // Insert new état des lieux with initial data
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO etats_lieux (contrat_id, type, date_etat, created_at) 
-            VALUES (?, ?, ?, NOW())
+            INSERT INTO etats_lieux (
+                contrat_id, type, date_etat, reference_unique,
+                adresse, appartement, 
+                bailleur_nom, locataire_nom_complet, locataire_email,
+                statut, created_at, created_by
+            ) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'brouillon', NOW(), ?)
         ");
-        $stmt->execute([$contrat_id, $type, $date_etat]);
-        $_SESSION['success'] = "État des lieux créé avec succès";
+        $stmt->execute([
+            $contrat_id, 
+            $type, 
+            $date_etat, 
+            $reference,
+            $contrat['adresse'],
+            $contrat['appartement'],
+            'SCI My Invest Immobilier, représentée par Maxime ALEXANDRE',
+            $contrat['locataire_nom'],
+            $contrat['locataire_email'],
+            $_SESSION['username'] ?? 'admin'
+        ]);
+        
+        $etat_lieux_id = $pdo->lastInsertId();
+        
+        // Redirect to comprehensive form
+        header("Location: edit-etat-lieux.php?id=$etat_lieux_id");
+        exit;
+        
     } catch (PDOException $e) {
         error_log("Error creating état des lieux: " . $e->getMessage());
         $_SESSION['error'] = "Erreur lors de la création de l'état des lieux";
+        header('Location: etats-lieux.php');
+        exit;
     }
-    
-    header('Location: etats-lieux.php');
-    exit;
 }
 
 header('Location: etats-lieux.php');
