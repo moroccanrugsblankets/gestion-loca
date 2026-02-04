@@ -544,7 +544,7 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
                 $timestamp = strtotime($locataire['signature_timestamp']);
                 if ($timestamp !== false) {
                     $formattedTimestamp = date('d/m/Y à H:i:s', $timestamp);
-                    $signaturesTable .= '<p style="font-size: 8pt; color: #666; white-space: nowrap; margin: 5px 0 2px 0;"><em>Horodatage : ' . $formattedTimestamp . '</em></p>';
+                    $signaturesTable .= '<p style="font-size: 8pt; color: #666; white-space: nowrap; margin: 10px 0 2px 0;"><em>Horodatage : ' . $formattedTimestamp . '</em></p>';
                 }
             }
             if (!empty($locataire['signature_ip'])) {
