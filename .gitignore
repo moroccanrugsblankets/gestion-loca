@@ -9,6 +9,7 @@ uploads/signatures/*
 pdf/*
 !pdf/generate-bail.php
 !pdf/generate-contrat-pdf.php
+!pdf/generate-etat-lieux.php
 !pdf/download.php
 
 # Configuration locale (peut contenir des credentials)
@@ -55,6 +56,7 @@ demo-emails/
 # Test files
 test-db-connection.php
 test-refactoring.php
+!test-etat-lieux-module.php
 test-upload.html
 test-candidature-evaluation.php
 test-candidature-evaluation-standalone.php
