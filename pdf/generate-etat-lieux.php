@@ -261,6 +261,9 @@ function generateEntreeHTML($contrat, $locataires, $etatLieux) {
     $salleEauWC = nl2br(htmlspecialchars($etatLieux['salle_eau_wc'] ?? ''));
     $etatGeneral = nl2br(htmlspecialchars($etatLieux['etat_general'] ?? ''));
     
+    // Observations complémentaires
+    $observations = nl2br(htmlspecialchars($etatLieux['observations'] ?? ''));
+    
     // Signatures
     $signaturesHTML = buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux);
     
@@ -434,6 +437,16 @@ HTML;
     <div class="section">
         <h2>5. SIGNATURES</h2>
         <p>Le présent état des lieux d'entrée a été établi contradictoirement entre les parties.</p>
+HTML;
+
+    if (!empty($observations)) {
+        $html .= <<<HTML
+        <p><strong>Observations complémentaires :</strong></p>
+        <p>$observations</p>
+HTML;
+    }
+
+    $html .= <<<HTML
         $signaturesHTML
     </div>
     
@@ -492,6 +505,9 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
     $coinCuisine = nl2br(htmlspecialchars($etatLieux['coin_cuisine'] ?? ''));
     $salleEauWC = nl2br(htmlspecialchars($etatLieux['salle_eau_wc'] ?? ''));
     $etatGeneral = nl2br(htmlspecialchars($etatLieux['etat_general'] ?? ''));
+    
+    // Observations complémentaires
+    $observations = nl2br(htmlspecialchars($etatLieux['observations'] ?? ''));
     
     // Conclusion
     $comparaisonEntree = nl2br(htmlspecialchars($etatLieux['comparaison_entree'] ?? 'Comparaison avec l\'état des lieux d\'entrée : [À compléter]'));
@@ -706,6 +722,16 @@ HTML;
     <div class="section">
         <h2>6. SIGNATURES</h2>
         <p>Le présent état des lieux de sortie a été établi contradictoirement entre les parties.</p>
+HTML;
+
+    if (!empty($observations)) {
+        $html .= <<<HTML
+        <p><strong>Observations complémentaires :</strong></p>
+        <p>$observations</p>
+HTML;
+    }
+
+    $html .= <<<HTML
         $signaturesHTML
     </div>
     
