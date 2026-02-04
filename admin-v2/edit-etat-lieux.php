@@ -43,6 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 etat_general_conforme = ?,
                 degradations_constatees = ?,
                 degradations_details = ?,
+                depot_garantie_status = ?,
+                depot_garantie_montant_retenu = ?,
+                depot_garantie_motif_retenue = ?,
                 lieu_signature = ?,
                 statut = ?,
                 updated_at = NOW()
@@ -68,6 +71,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $_POST['etat_general_conforme'] ?? 'non_applicable',
             isset($_POST['degradations_constatees']) ? 1 : 0,
             $_POST['degradations_details'] ?? '',
+            $_POST['depot_garantie_status'] ?? 'non_applicable',
+            isset($_POST['depot_garantie_montant_retenu']) && !empty($_POST['depot_garantie_montant_retenu']) ? (float)$_POST['depot_garantie_montant_retenu'] : null,
+            $_POST['depot_garantie_motif_retenue'] ?? '',
             $_POST['lieu_signature'] ?? '',
             $_POST['statut'] ?? 'brouillon',
             $id
@@ -514,10 +520,56 @@ $isSortie = $etat['type'] === 'sortie';
                 </div>
             </div>
 
-            <!-- 5. Signatures -->
+            <?php if ($isSortie): ?>
+            <!-- 5. Conclusion - Dépôt de garantie (Sortie uniquement) -->
             <div class="form-card">
                 <div class="section-title">
-                    <i class="bi bi-pen"></i> 5. Signatures
+                    <i class="bi bi-cash-coin"></i> 5. Conclusion - Dépôt de garantie
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Cette section permet de décider de la restitution du dépôt de garantie en fonction de l'état du logement.
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label required-field">Décision concernant le dépôt de garantie</label>
+                        <select name="depot_garantie_status" class="form-select" id="depot_garantie_status" onchange="toggleDepotDetails()" required>
+                            <option value="non_applicable" <?php echo ($etat['depot_garantie_status'] ?? 'non_applicable') === 'non_applicable' ? 'selected' : ''; ?>>-- Sélectionner --</option>
+                            <option value="restitution_totale" <?php echo ($etat['depot_garantie_status'] ?? '') === 'restitution_totale' ? 'selected' : ''; ?>>☑ Restitution totale du dépôt de garantie (aucune dégradation imputable)</option>
+                            <option value="restitution_partielle" <?php echo ($etat['depot_garantie_status'] ?? '') === 'restitution_partielle' ? 'selected' : ''; ?>>☑ Restitution partielle du dépôt de garantie (dégradations mineures)</option>
+                            <option value="retenue_totale" <?php echo ($etat['depot_garantie_status'] ?? '') === 'retenue_totale' ? 'selected' : ''; ?>>☑ Retenue totale du dépôt de garantie (dégradations importantes)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="depot_details_container" style="display: <?php echo (in_array($etat['depot_garantie_status'] ?? '', ['restitution_partielle', 'retenue_totale'])) ? 'block' : 'none'; ?>;">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Montant retenu (€)</label>
+                            <input type="number" name="depot_garantie_montant_retenu" class="form-control" 
+                                   value="<?php echo htmlspecialchars($etat['depot_garantie_montant_retenu'] ?? ''); ?>" 
+                                   step="0.01" min="0" placeholder="Ex: 150.00">
+                            <small class="text-muted">Montant en euros (sans le symbole €)</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Justificatif / Motif de la retenue</label>
+                            <textarea name="depot_garantie_motif_retenue" class="form-control" rows="4" 
+                                      placeholder="Détailler les dégradations constatées et le calcul du montant retenu"><?php echo htmlspecialchars($etat['depot_garantie_motif_retenue'] ?? ''); ?></textarea>
+                            <small class="text-muted">Exemple : Réparation de trous dans les murs (80€), remplacement de la peinture cuisine (120€), etc.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- <?php echo $isSortie ? '6' : '5'; ?>. Signatures -->
+            <div class="form-card">
+                <div class="section-title">
+                    <i class="bi bi-pen"></i> <?php echo $isSortie ? '6' : '5'; ?>. Signatures
                 </div>
                 
                 <div class="row">
@@ -575,6 +627,16 @@ $isSortie = $etat['type'] === 'sortie';
             const checkbox = document.getElementById('degradations_constatees');
             const container = document.getElementById('degradations_details_container');
             container.style.display = checkbox.checked ? 'block' : 'none';
+        }
+        
+        // Toggle deposit guarantee details
+        function toggleDepotDetails() {
+            const select = document.getElementById('depot_garantie_status');
+            const container = document.getElementById('depot_details_container');
+            const selectedValue = select.value;
+            
+            // Show details only if restitution_partielle or retenue_totale
+            container.style.display = (selectedValue === 'restitution_partielle' || selectedValue === 'retenue_totale') ? 'block' : 'none';
         }
         
         // Preview photos

@@ -261,6 +261,9 @@ function generateEntreeHTML($contrat, $locataires, $etatLieux) {
     $salleEauWC = nl2br(htmlspecialchars($etatLieux['salle_eau_wc'] ?? ''));
     $etatGeneral = nl2br(htmlspecialchars($etatLieux['etat_general'] ?? ''));
     
+    // Observations complémentaires
+    $observations = nl2br(htmlspecialchars($etatLieux['observations'] ?? ''));
+    
     // Signatures
     $signaturesHTML = buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux);
     
@@ -434,6 +437,16 @@ HTML;
     <div class="section">
         <h2>5. SIGNATURES</h2>
         <p>Le présent état des lieux d'entrée a été établi contradictoirement entre les parties.</p>
+HTML;
+
+    if (!empty($observations)) {
+        $html .= <<<HTML
+        <p><strong>Observations complémentaires :</strong></p>
+        <p>$observations</p>
+HTML;
+    }
+
+    $html .= <<<HTML
         $signaturesHTML
     </div>
     
@@ -493,14 +506,17 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
     $salleEauWC = nl2br(htmlspecialchars($etatLieux['salle_eau_wc'] ?? ''));
     $etatGeneral = nl2br(htmlspecialchars($etatLieux['etat_general'] ?? ''));
     
+    // Observations complémentaires
+    $observations = nl2br(htmlspecialchars($etatLieux['observations'] ?? ''));
+    
     // Conclusion
     $comparaisonEntree = nl2br(htmlspecialchars($etatLieux['comparaison_entree'] ?? 'Comparaison avec l\'état des lieux d\'entrée : [À compléter]'));
     
     $depotStatus = $etatLieux['depot_garantie_status'] ?? 'non_applicable';
     $depotLabels = [
-        'restitution_totale' => '☑ Restitution totale du dépôt de garantie',
-        'restitution_partielle' => '☑ Restitution partielle du dépôt de garantie',
-        'retenue_totale' => '☑ Retenue totale du dépôt de garantie',
+        'restitution_totale' => '☑ Aucune dégradation imputable au(x) locataire(s) - Restitution totale du dépôt de garantie',
+        'restitution_partielle' => '☑ Dégradations mineures imputables au(x) locataire(s) - Restitution partielle du dépôt de garantie',
+        'retenue_totale' => '☑ Dégradations importantes imputables au(x) locataire(s) - Retenue totale du dépôt de garantie',
         'non_applicable' => '☐ Non applicable'
     ];
     $depotHTML = '';
@@ -508,7 +524,18 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
         if ($key === $depotStatus) {
             $depotHTML .= "<p>$label</p>";
         } else {
-            $depotHTML .= "<p>☐ " . substr($label, strpos($label, ' ') + 1) . "</p>";
+            // Extract the label text after the checkbox symbol and optional dash
+            $labelText = $label;
+            if (strpos($label, ' - ') !== false) {
+                // Format: "☑ Text - More text" -> "More text"
+                // Offset 3 accounts for ' - ' (space, dash, space)
+                $labelText = substr($label, strpos($label, ' - ') + 3);
+            } else {
+                // Format: "☑ Text" -> "Text"
+                // Offset 1 accounts for the space after the checkbox symbol
+                $labelText = substr($label, strpos($label, ' ') + 1);
+            }
+            $depotHTML .= "<p>☐ " . $labelText . "</p>";
         }
     }
     
@@ -519,7 +546,7 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
     
     if (!empty($etatLieux['depot_garantie_motif_retenue'])) {
         $motifRetenue = nl2br(htmlspecialchars($etatLieux['depot_garantie_motif_retenue']));
-        $depotHTML .= "<p><strong>Motif de la retenue :</strong><br>$motifRetenue</p>";
+        $depotHTML .= "<p><strong>Justificatif / Motif de la retenue :</strong><br>$motifRetenue</p>";
     }
     
     // Signatures
@@ -706,6 +733,16 @@ HTML;
     <div class="section">
         <h2>6. SIGNATURES</h2>
         <p>Le présent état des lieux de sortie a été établi contradictoirement entre les parties.</p>
+HTML;
+
+    if (!empty($observations)) {
+        $html .= <<<HTML
+        <p><strong>Observations complémentaires :</strong></p>
+        <p>$observations</p>
+HTML;
+    }
+
+    $html .= <<<HTML
         $signaturesHTML
     </div>
     
