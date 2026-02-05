@@ -1010,7 +1010,7 @@ $isSortie = $etat['type'] === 'sortie';
             for (let i = 0; i < input.files.length; i++) {
                 const formData = new FormData();
                 formData.append('photo', input.files[i]);
-                formData.append('etat_lieux_id', <?php echo $id; ?>);
+                formData.append('etat_lieux_id', <?php echo (int)$id; ?>);
                 formData.append('categorie', category);
                 
                 const uploadPromise = fetch('upload-etat-lieux-photo.php', {
@@ -1033,18 +1033,19 @@ $isSortie = $etat['type'] === 'sortie';
                 .then(results => {
                     preview.innerHTML = '<div class="alert alert-success mb-0"><i class="bi bi-check-circle"></i> ' + results.length + ' photo(s) téléchargée(s) avec succès</div>';
                     
+                    // Reset the input so the same file can be selected again if needed
+                    input.value = '';
+                    
                     // Reload the page to show the uploaded photos
+                    const RELOAD_DELAY_MS = 1000;
                     setTimeout(() => {
                         window.location.reload();
-                    }, 1000);
+                    }, RELOAD_DELAY_MS);
                 })
                 .catch(error => {
                     console.error('Upload error:', error);
                     preview.innerHTML = '<div class="alert alert-danger mb-0"><i class="bi bi-exclamation-triangle"></i> Erreur: ' + error.message + '</div>';
                 });
-            
-            // Reset the input so the same file can be selected again if needed
-            input.value = '';
         }
         
         // Delete photo
