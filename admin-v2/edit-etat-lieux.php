@@ -183,7 +183,13 @@ if (!$etat) {
 // Generate reference_unique if missing
 if (empty($etat['reference_unique'])) {
     $type = $etat['type'];
-    $reference = 'EDL-' . strtoupper($type[0]) . '-' . date('Ymd') . '-' . str_pad(random_int(1, 9999), 4, '0', STR_PAD_LEFT);
+    try {
+        $randomPart = random_int(1, 9999);
+    } catch (Exception $e) {
+        // Fallback to time-based random if random_int fails
+        $randomPart = (int)(microtime(true) * 1000) % 10000;
+    }
+    $reference = 'EDL-' . strtoupper($type[0]) . '-' . date('Ymd') . '-' . str_pad($randomPart, 4, '0', STR_PAD_LEFT);
     $stmt = $pdo->prepare("UPDATE etats_lieux SET reference_unique = ? WHERE id = ?");
     $stmt->execute([$reference, $id]);
     $etat['reference_unique'] = $reference;

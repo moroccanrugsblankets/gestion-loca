@@ -222,6 +222,14 @@ function getDefaultPropertyDescriptions($type) {
 }
 
 /**
+ * Helper to get field value or default if empty
+ */
+function getValueOrDefault($etatLieux, $field, $default) {
+    $value = $etatLieux[$field] ?? '';
+    return nl2br(htmlspecialchars(empty(trim($value)) ? $default : $value));
+}
+
+/**
  * Générer le HTML pour l'état des lieux d'entrée
  */
 function generateEntreeHTML($contrat, $locataires, $etatLieux) {
@@ -257,17 +265,10 @@ function generateEntreeHTML($contrat, $locataires, $etatLieux) {
     
     // Description - use defaults if empty
     $defaultTexts = getDefaultPropertyDescriptions('entree');
-    
-    // Helper to get value or default if empty
-    $getValue = function($field, $default) use ($etatLieux) {
-        $value = $etatLieux[$field] ?? '';
-        return nl2br(htmlspecialchars(empty(trim($value)) ? $default : $value));
-    };
-    
-    $piecePrincipale = $getValue('piece_principale', $defaultTexts['piece_principale']);
-    $coinCuisine = $getValue('coin_cuisine', $defaultTexts['coin_cuisine']);
-    $salleEauWC = $getValue('salle_eau_wc', $defaultTexts['salle_eau_wc']);
-    $etatGeneral = $getValue('etat_general', $defaultTexts['etat_general']);
+    $piecePrincipale = getValueOrDefault($etatLieux, 'piece_principale', $defaultTexts['piece_principale']);
+    $coinCuisine = getValueOrDefault($etatLieux, 'coin_cuisine', $defaultTexts['coin_cuisine']);
+    $salleEauWC = getValueOrDefault($etatLieux, 'salle_eau_wc', $defaultTexts['salle_eau_wc']);
+    $etatGeneral = getValueOrDefault($etatLieux, 'etat_general', $defaultTexts['etat_general']);
     
     // Observations complémentaires
     $observations = nl2br(htmlspecialchars($etatLieux['observations'] ?? ''));
@@ -509,17 +510,10 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
     
     // Description - use defaults if empty
     $defaultTexts = getDefaultPropertyDescriptions('sortie');
-    
-    // Helper to get value or default if empty
-    $getValue = function($field, $default) use ($etatLieux) {
-        $value = $etatLieux[$field] ?? '';
-        return nl2br(htmlspecialchars(empty(trim($value)) ? $default : $value));
-    };
-    
-    $piecePrincipale = $getValue('piece_principale', $defaultTexts['piece_principale']);
-    $coinCuisine = $getValue('coin_cuisine', $defaultTexts['coin_cuisine']);
-    $salleEauWC = $getValue('salle_eau_wc', $defaultTexts['salle_eau_wc']);
-    $etatGeneral = $getValue('etat_general', $defaultTexts['etat_general']);
+    $piecePrincipale = getValueOrDefault($etatLieux, 'piece_principale', $defaultTexts['piece_principale']);
+    $coinCuisine = getValueOrDefault($etatLieux, 'coin_cuisine', $defaultTexts['coin_cuisine']);
+    $salleEauWC = getValueOrDefault($etatLieux, 'salle_eau_wc', $defaultTexts['salle_eau_wc']);
+    $etatGeneral = getValueOrDefault($etatLieux, 'etat_general', $defaultTexts['etat_general']);
     
     // Observations complémentaires
     $observations = nl2br(htmlspecialchars($etatLieux['observations'] ?? ''));
