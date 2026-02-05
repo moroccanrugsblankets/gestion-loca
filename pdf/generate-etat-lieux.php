@@ -223,10 +223,11 @@ function getDefaultPropertyDescriptions($type) {
 
 /**
  * Helper to get field value or default if empty
+ * Trims whitespace and returns default if empty
  */
 function getValueOrDefault($etatLieux, $field, $default) {
-    $value = $etatLieux[$field] ?? '';
-    return nl2br(htmlspecialchars(empty(trim($value)) ? $default : $value));
+    $value = trim($etatLieux[$field] ?? '');
+    return nl2br(htmlspecialchars(empty($value) ? $default : $value));
 }
 
 /**

@@ -183,7 +183,7 @@ if (!$etat) {
 // Generate reference_unique if missing
 if (empty($etat['reference_unique'])) {
     $type = $etat['type'] ?? 'entree';  // Default to 'entree' if type is missing
-    $typePrefix = !empty($type) ? strtoupper($type[0]) : 'E';
+    $typePrefix = strtoupper($type[0]);  // Safe to access since $type is guaranteed to have a value
     try {
         $randomPart = random_int(1, 9999);
     } catch (Exception $e) {
