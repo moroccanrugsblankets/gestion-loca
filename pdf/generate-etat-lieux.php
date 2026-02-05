@@ -769,39 +769,43 @@ HTML;
 function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
     global $pdo, $config;
 
-    $nbCols = count($locataires) + 1; // +1 pour le bailleur
+    // Get tenants from etat_lieux_locataires table for this specific état des lieux
+    $etatLieuxTenants = [];
+    if ($etatLieux && isset($etatLieux['id'])) {
+        $stmt = $pdo->prepare("
+            SELECT * FROM etat_lieux_locataires 
+            WHERE etat_lieux_id = ? 
+            ORDER BY ordre ASC
+        ");
+        $stmt->execute([$etatLieux['id']]);
+        $etatLieuxTenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    // Use etat_lieux_locataires if available, otherwise fall back to locataires
+    $tenantsToDisplay = !empty($etatLieuxTenants) ? $etatLieuxTenants : $locataires;
+    
+    $nbCols = count($tenantsToDisplay) + 1; // +1 for landlord
     $colWidth = 100 / $nbCols;
 
     $html = '<table class="signature-table" style="width: 100%; border-collapse: collapse; margin-top: 20px;"><tr>';
 
-    // Bailleur
+    // Landlord column - ALWAYS use signature from parametres
     $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px;">';
     $html .= '<p><strong>Le bailleur :</strong></p>';
     
-    // Signature du bailleur - check signature_bailleur field first, then fall back to parametres
-    if ($etatLieux && !empty($etatLieux['signature_bailleur'])) {
-        // Use signature from etatLieux table (data URL or file path)
-        $signatureBailleur = $etatLieux['signature_bailleur'];
-        
-        if (preg_match('/^data:image\/(jpeg|jpg|png);base64,/', $signatureBailleur)) {
-            // It's a data URL, use it directly
-            $html .= '<div class="signature-box"><img src="' . htmlspecialchars($signatureBailleur) . '" alt="Signature Bailleur" style="max-width:150px; max-height:60px;"></div>';
-        } elseif (preg_match('/^uploads\/signatures\//', $signatureBailleur)) {
-            // It's a file path
-            $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($signatureBailleur, '/');
-            $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" style="max-width:150px; max-height:60px;"></div>';
-        } else {
-            $html .= '<div class="signature-box">&nbsp;</div>';
-        }
-    } elseif ($etatLieux && $etatLieux['statut'] === 'finalise') {
-        // Fall back to signature from parametres
-        $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_image'");
-        $stmt->execute();
-        $signatureSociete = $stmt->fetchColumn();
+    // Get landlord signature from parametres (company signature)
+    $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_image'");
+    $stmt->execute();
+    $landlordSigPath = $stmt->fetchColumn();
 
-        if (!empty($signatureSociete) && preg_match('/^uploads\/signatures\//', $signatureSociete)) {
-            $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($signatureSociete, '/');
-            $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" style="max-width:150px; max-height:60px;"></div>';
+    if (!empty($landlordSigPath)) {
+        if (preg_match('/^uploads\/signatures\//', $landlordSigPath)) {
+            $fullPath = dirname(__DIR__) . '/' . $landlordSigPath;
+            if (file_exists($fullPath)) {
+                $html .= '<div class="signature-box"><img src="' . htmlspecialchars($fullPath) . '" alt="Signature Bailleur" style="max-width:120px; max-height:50px;"></div>';
+            } else {
+                $html .= '<div class="signature-box">&nbsp;</div>';
+            }
         } else {
             $html .= '<div class="signature-box">&nbsp;</div>';
         }
@@ -809,78 +813,51 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
         $html .= '<div class="signature-box">&nbsp;</div>';
     }
     
-    $lieuSignature = !empty($etatLieux['lieu_signature']) ? htmlspecialchars($etatLieux['lieu_signature']) : '';
-    if ($lieuSignature) {
-        $html .= '<p style="font-size:8pt;">Fait à ' . $lieuSignature . '</p>';
-    }
+    $placeSignature = !empty($etatLieux['lieu_signature']) ? htmlspecialchars($etatLieux['lieu_signature']) : 'Annemasse';
+    $html .= '<p style="font-size:8pt;">Fait à ' . $placeSignature . '</p>';
     
-    if (!empty($etatLieux['date_signature'])) {
-        $dateSign = date('d/m/Y', strtotime($etatLieux['date_signature']));
-        $html .= '<p style="font-size:8pt;">Le ' . $dateSign . '</p>';
+    if (!empty($etatLieux['date_etat'])) {
+        $signDate = date('d/m/Y', strtotime($etatLieux['date_etat']));
+        $html .= '<p style="font-size:8pt;">Le ' . $signDate . '</p>';
     }
     
     $html .= '<p style="font-size:9pt;">' . htmlspecialchars($etatLieux['bailleur_nom'] ?? $config['COMPANY_NAME']) . '</p>';
     $html .= '</td>';
 
-    // Locataires
-    foreach ($locataires as $i => $loc) {
+    // Tenant columns
+    foreach ($tenantsToDisplay as $idx => $tenantInfo) {
         $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px;">';
 
-        if ($nbCols === 2) {
-            $html .= '<p><strong>Locataire :</strong></p>';
-        } else {
-            $html .= '<p><strong>Locataire ' . ($i + 1) . ' :</strong></p>';
-        }
+        $tenantLabel = ($nbCols === 2) ? 'Locataire :' : 'Locataire ' . ($idx + 1) . ' :';
+        $html .= '<p><strong>' . $tenantLabel . '</strong></p>';
 
-        // Check if signature is in the etats_lieux table first (signature_locataire field)
-        if ($etatLieux && !empty($etatLieux['signature_locataire'])) {
-            $signatureLocataire = $etatLieux['signature_locataire'];
-            
-            if (preg_match('/^data:image\/(jpeg|jpg|png);base64,/', $signatureLocataire)) {
-                // It's a data URL, use it directly
-                $html .= '<div class="signature-box"><img src="' . htmlspecialchars($signatureLocataire) . '" alt="Signature Locataire" style="max-width:150px; max-height:60px;"></div>';
-            } elseif (preg_match('/^uploads\/signatures\//', $signatureLocataire)) {
-                // It's a file path
-                $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($signatureLocataire, '/');
-                $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" style="max-width:150px; max-height:60px;"></div>';
-            } else {
-                $html .= '<div class="signature-box">&nbsp;</div>';
-            }
-            
-            if (!empty($etatLieux['date_signature'])) {
-                $dateSign = date('d/m/Y à H:i', strtotime($etatLieux['date_signature']));
-                $html .= '<p style="font-size:8pt;">Signé le ' . $dateSign . '</p>';
-            }
-        } elseif ($etatLieux && isset($etatLieux['id'])) {
-            // Fall back to checking etat_lieux_locataires table
-            $stmt = $pdo->prepare("
-                SELECT signature_data, signature_timestamp, signature_ip 
-                FROM etat_lieux_locataires 
-                WHERE etat_lieux_id = ? AND locataire_id = ?
-            ");
-            $stmt->execute([$etatLieux['id'], $loc['id']]);
-            $locSignature = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if ($locSignature && !empty($locSignature['signature_data'])) {
-                if (preg_match('/^uploads\/signatures\//', $locSignature['signature_data'])) {
-                    $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($locSignature['signature_data'], '/');
-                    $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" style="max-width:150px; max-height:60px;"></div>';
+        // Display tenant signature if available
+        if (!empty($tenantInfo['signature_data'])) {
+            if (preg_match('/^data:image\/(jpeg|jpg|png);base64,/', $tenantInfo['signature_data'])) {
+                // Data URL format
+                $html .= '<div class="signature-box"><img src="' . htmlspecialchars($tenantInfo['signature_data']) . '" alt="Signature Locataire" style="max-width:120px; max-height:50px;"></div>';
+            } elseif (preg_match('/^uploads\/signatures\//', $tenantInfo['signature_data'])) {
+                // File path format
+                $fullPath = dirname(__DIR__) . '/' . $tenantInfo['signature_data'];
+                if (file_exists($fullPath)) {
+                    $html .= '<div class="signature-box"><img src="' . htmlspecialchars($fullPath) . '" alt="Signature Locataire" style="max-width:120px; max-height:50px;"></div>';
                 } else {
                     $html .= '<div class="signature-box">&nbsp;</div>';
                 }
-                
-                if (!empty($locSignature['signature_timestamp'])) {
-                    $dateSign = date('d/m/Y à H:i', strtotime($locSignature['signature_timestamp']));
-                    $html .= '<p style="font-size:8pt;">Signé le ' . $dateSign . '</p>';
-                }
             } else {
                 $html .= '<div class="signature-box">&nbsp;</div>';
+            }
+            
+            if (!empty($tenantInfo['signature_timestamp'])) {
+                $signDate = date('d/m/Y à H:i', strtotime($tenantInfo['signature_timestamp']));
+                $html .= '<p style="font-size:8pt;">Signé le ' . $signDate . '</p>';
             }
         } else {
             $html .= '<div class="signature-box">&nbsp;</div>';
         }
 
-        $html .= '<p style="font-size:9pt;">' . htmlspecialchars($loc['prenom']) . ' ' . htmlspecialchars($loc['nom']) . '</p>';
+        $tenantName = htmlspecialchars(($tenantInfo['prenom'] ?? '') . ' ' . ($tenantInfo['nom'] ?? ''));
+        $html .= '<p style="font-size:9pt;">' . $tenantName . '</p>';
         $html .= '</td>';
     }
 

@@ -22,27 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     try {
         $pdo->beginTransaction();
         
-        // Handle signature data
-        $bailleurSignature = null;
-        $locataireSignature = null;
-        
-        if (!empty($_POST['bailleur_signature_data'])) {
-            $bailleurSignature = $_POST['bailleur_signature_data'];
-            // Validate it's a proper data URL
-            if (!preg_match('/^data:image\/(jpeg|jpg);base64,/', $bailleurSignature)) {
-                throw new Exception("Format de signature bailleur invalide");
-            }
-        }
-        
-        if (!empty($_POST['locataire_signature_data'])) {
-            $locataireSignature = $_POST['locataire_signature_data'];
-            // Validate it's a proper data URL
-            if (!preg_match('/^data:image\/(jpeg|jpg);base64,/', $locataireSignature)) {
-                throw new Exception("Format de signature locataire invalide");
-            }
-        }
-        
-        // Update état des lieux
+        // Update état des lieux (no more manual signature fields for bailleur/locataire)
         $stmt = $pdo->prepare("
             UPDATE etats_lieux SET
                 date_etat = ?,
@@ -67,16 +47,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 depot_garantie_montant_retenu = ?,
                 depot_garantie_motif_retenue = ?,
                 lieu_signature = ?,
-                signature_bailleur = ?,
-                signature_locataire = ?,
-                date_signature = ?,
                 statut = ?,
                 updated_at = NOW()
             WHERE id = ?
         ");
-        
-        // Set date_signature if either signature is provided
-        $dateSignature = ($bailleurSignature || $locataireSignature) ? date('Y-m-d H:i:s') : null;
         
         $stmt->execute([
             $_POST['date_etat'],
@@ -101,47 +75,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             isset($_POST['depot_garantie_montant_retenu']) && !empty($_POST['depot_garantie_montant_retenu']) ? (float)$_POST['depot_garantie_montant_retenu'] : null,
             $_POST['depot_garantie_motif_retenue'] ?? '',
             $_POST['lieu_signature'] ?? '',
-            $bailleurSignature,
-            $locataireSignature,
-            $dateSignature,
             $_POST['statut'] ?? 'brouillon',
             $id
         ]);
         
-        // Handle multiple tenants if provided
+        // Update tenant signatures
         if (isset($_POST['tenants']) && is_array($_POST['tenants'])) {
-            // First, delete existing tenants for this état des lieux
-            $stmt = $pdo->prepare("DELETE FROM etat_lieux_locataires WHERE etat_lieux_id = ?");
-            $stmt->execute([$id]);
-            
-            // Insert new tenants
-            $ordre = 1;
-            foreach ($_POST['tenants'] as $tenantData) {
-                if (empty($tenantData['nom']) || empty($tenantData['prenom'])) {
-                    continue; // Skip incomplete entries
+            foreach ($_POST['tenants'] as $tenantId => $tenantInfo) {
+                if (!empty($tenantInfo['signature'])) {
+                    // Validate signature format
+                    if (!preg_match('/^data:image\/(jpeg|jpg|png);base64,/', $tenantInfo['signature'])) {
+                        continue;
+                    }
+                    
+                    $updateStmt = $pdo->prepare("
+                        UPDATE etat_lieux_locataires 
+                        SET signature_data = ?,
+                            signature_timestamp = NOW(),
+                            signature_ip = ?
+                        WHERE id = ? AND etat_lieux_id = ?
+                    ");
+                    $updateStmt->execute([
+                        $tenantInfo['signature'],
+                        $_SERVER['REMOTE_ADDR'] ?? null,
+                        $tenantId,
+                        $id
+                    ]);
                 }
-                
-                // Note: locataire_id is set to 0 as a placeholder since we're storing tenant info directly
-                // in this table without requiring a reference to the main locataires table
-                $stmt = $pdo->prepare("
-                    INSERT INTO etat_lieux_locataires 
-                    (etat_lieux_id, locataire_id, ordre, nom, prenom, email, signature_data, signature_timestamp, signature_ip)
-                    VALUES (?, 0, ?, ?, ?, ?, ?, ?, ?)
-                ");
-                
-                $signatureTimestamp = !empty($tenantData['signature']) ? date('Y-m-d H:i:s') : null;
-                $signatureIp = $_SERVER['REMOTE_ADDR'] ?? null;
-                
-                $stmt->execute([
-                    $id,
-                    $ordre++,
-                    $tenantData['nom'],
-                    $tenantData['prenom'],
-                    $tenantData['email'] ?? '',
-                    $tenantData['signature'] ?? null,
-                    $signatureTimestamp,
-                    $signatureIp
-                ]);
             }
         }
         
@@ -355,10 +315,6 @@ $isSortie = $etat['type'] === 'sortie';
 
         <form method="POST" action="" id="etatLieuxForm" enctype="multipart/form-data">
             <input type="hidden" name="action" value="save">
-            <input type="hidden" name="bailleur_signature_data" id="bailleur_signature_data">
-            <input type="hidden" name="locataire_signature_data" id="locataire_signature_data">
-            <input type="hidden" id="existing_bailleur_signature" value="<?php echo htmlspecialchars($etat['signature_bailleur'] ?? ''); ?>">
-            <input type="hidden" id="existing_locataire_signature" value="<?php echo htmlspecialchars($etat['signature_locataire'] ?? ''); ?>">
             
             <!-- 1. Identification -->
             <div class="form-card">
@@ -390,91 +346,25 @@ $isSortie = $etat['type'] === 'sortie';
                     </div>
                     
                     <div class="col-md-6 mb-3">
-                        <label class="form-label required-field">Locataire(s)</label>
+                        <label class="form-label">Locataire(s)</label>
+                        <?php 
+                        // Build tenant names from etat_lieux_locataires
+                        $locataire_noms = array_map(function($t) {
+                            return $t['prenom'] . ' ' . $t['nom'];
+                        }, $existing_tenants);
+                        $locataire_nom_complet = implode(' et ', $locataire_noms);
+                        ?>
                         <input type="text" name="locataire_nom_complet" class="form-control" 
-                               value="<?php echo htmlspecialchars($etat['locataire_nom_complet'] ?? ''); ?>" 
-                               placeholder="Nom et prénom du ou des locataires" required>
-                        <small class="text-muted">Pour un seul locataire. Pour plusieurs, utilisez la section ci-dessous.</small>
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label required-field">Email du locataire</label>
-                        <input type="email" name="locataire_email" class="form-control" 
-                               value="<?php echo htmlspecialchars($etat['locataire_email'] ?? ''); ?>" 
-                               placeholder="email@example.com" required>
-                        <small class="text-muted">Le PDF sera envoyé à cette adresse</small>
-                    </div>
-                </div>
-                
-                <!-- Multi-tenant management section -->
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <div class="alert alert-info">
-                            <i class="bi bi-people"></i> 
-                            <strong>Gestion multi-locataires</strong>
-                            <p class="mb-0 mt-2">Si ce logement a plusieurs locataires, vous pouvez les ajouter ci-dessous. Chaque locataire pourra signer individuellement l'état des lieux.</p>
-                        </div>
-                        <button type="button" class="btn btn-outline-primary btn-sm mb-3" onclick="addTenant()">
-                            <i class="bi bi-person-plus"></i> Ajouter un locataire
-                        </button>
-                        <div id="tenantsContainer">
-                            <?php if (!empty($existing_tenants)): ?>
-                                <?php foreach ($existing_tenants as $index => $tenant): ?>
-                                <div class="card mb-3" id="tenant_<?php echo $index + 1; ?>">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-center mb-3">
-                                            <h6 class="mb-0"><i class="bi bi-person"></i> Locataire #<?php echo $index + 1; ?></h6>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeTenant(<?php echo $index + 1; ?>)">
-                                                <i class="bi bi-trash"></i> Supprimer
-                                            </button>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-4 mb-2">
-                                                <label class="form-label">Nom</label>
-                                                <input type="text" name="tenants[<?php echo $index + 1; ?>][nom]" class="form-control" 
-                                                       value="<?php echo htmlspecialchars($tenant['nom']); ?>" placeholder="Nom">
-                                            </div>
-                                            <div class="col-md-4 mb-2">
-                                                <label class="form-label">Prénom</label>
-                                                <input type="text" name="tenants[<?php echo $index + 1; ?>][prenom]" class="form-control" 
-                                                       value="<?php echo htmlspecialchars($tenant['prenom']); ?>" placeholder="Prénom">
-                                            </div>
-                                            <div class="col-md-4 mb-2">
-                                                <label class="form-label">Email</label>
-                                                <input type="email" name="tenants[<?php echo $index + 1; ?>][email]" class="form-control" 
-                                                       value="<?php echo htmlspecialchars($tenant['email']); ?>" placeholder="email@example.com">
-                                            </div>
-                                        </div>
-                                        <div class="row mt-2">
-                                            <div class="col-12">
-                                                <label class="form-label">Signature</label>
-                                                <?php if (!empty($tenant['signature_data'])): ?>
-                                                    <div class="mb-2">
-                                                        <img src="<?php echo htmlspecialchars($tenant['signature_data']); ?>" 
-                                                             alt="Signature" style="max-width: 300px; border: 1px solid #dee2e6; padding: 5px;">
-                                                        <p class="text-muted small mb-0">
-                                                            Signé le <?php echo date('d/m/Y à H:i', strtotime($tenant['signature_timestamp'])); ?>
-                                                        </p>
-                                                    </div>
-                                                <?php endif; ?>
-                                                <div class="signature-container" style="max-width: 300px;">
-                                                    <canvas id="tenantCanvas_<?php echo $index + 1; ?>" width="300" height="150"></canvas>
-                                                </div>
-                                                <input type="hidden" name="tenants[<?php echo $index + 1; ?>][signature]" 
-                                                       id="tenantSignature_<?php echo $index + 1; ?>" 
-                                                       value="<?php echo htmlspecialchars($tenant['signature_data'] ?? ''); ?>">
-                                                <button type="button" class="btn btn-warning btn-sm mt-2" onclick="clearTenantSignature(<?php echo $index + 1; ?>)">
-                                                    <i class="bi bi-eraser"></i> Effacer signature
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <?php endforeach; ?>
+                               value="<?php echo htmlspecialchars($locataire_nom_complet); ?>" 
+                               readonly>
+                        <input type="hidden" name="locataire_email" value="<?php echo htmlspecialchars($existing_tenants[0]['email'] ?? ''); ?>">
+                        <small class="text-muted">
+                            <?php if (count($existing_tenants) > 1): ?>
+                                Locataires : <?php echo implode(', ', array_map(function($t) { return $t['email']; }, $existing_tenants)); ?>
+                            <?php else: ?>
+                                Email : <?php echo htmlspecialchars($existing_tenants[0]['email'] ?? ''); ?>
                             <?php endif; ?>
-                        </div>
+                        </small>
                     </div>
                 </div>
             </div>
@@ -785,43 +675,60 @@ $isSortie = $etat['type'] === 'sortie';
                     
                     <div class="col-md-12 mb-3">
                         <label class="form-label">Observations complémentaires</label>
-                        <textarea name="observations" class="form-control" rows="3"><?php echo htmlspecialchars($etat['observations'] ?? ''); ?></textarea>
-                    </div>
-                </div>
-                
-                <div class="section-subtitle">Signature du bailleur</div>
-                <div class="row">
-                    <div class="col-md-12 mb-3">
-                        <label class="form-label">Veuillez signer dans le cadre ci-dessous :</label>
-                        <div class="signature-container" style="max-width: 300px;">
-                            <canvas id="signatureCanvasBailleur" width="300" height="150" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
-                        </div>
-                        <div class="mt-2">
-                            <button type="button" class="btn btn-warning btn-sm" onclick="clearSignatureBailleur()">
-                                <i class="bi bi-eraser"></i> Effacer
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="section-subtitle">Signature du locataire</div>
-                <div class="row">
-                    <div class="col-md-12 mb-3">
-                        <label class="form-label">Veuillez signer dans le cadre ci-dessous :</label>
-                        <div class="signature-container" style="max-width: 300px;">
-                            <canvas id="signatureCanvasLocataire" width="300" height="150" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
-                        </div>
-                        <div class="mt-2">
-                            <button type="button" class="btn btn-warning btn-sm" onclick="clearSignatureLocataire()">
-                                <i class="bi bi-eraser"></i> Effacer
-                            </button>
-                        </div>
+                        <textarea name="observations" class="form-control" rows="3" 
+                                  placeholder="Remarques ou observations supplémentaires..."><?php echo htmlspecialchars($etat['observations'] ?? ''); ?></textarea>
                     </div>
                 </div>
                 
                 <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i> Les signatures sont capturées en format .jpg et seront incluses dans le PDF généré.
+                    <i class="bi bi-info-circle"></i> 
+                    <strong>Signatures</strong> : 
+                    La signature du bailleur sera ajoutée automatiquement depuis les paramètres de l'entreprise. 
+                    Les locataires peuvent signer ci-dessous.
                 </div>
+                
+                <!-- Tenant Signatures (1 or 2) -->
+                <?php foreach ($existing_tenants as $index => $tenant): ?>
+                <div class="section-subtitle">
+                    Signature locataire <?php echo $index + 1; ?> - <?php echo htmlspecialchars($tenant['prenom'] . ' ' . $tenant['nom']); ?>
+                </div>
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <?php if (!empty($tenant['signature_data'])): ?>
+                            <div class="alert alert-success mb-2">
+                                <i class="bi bi-check-circle"></i> 
+                                Signé le <?php echo date('d/m/Y à H:i', strtotime($tenant['signature_timestamp'])); ?>
+                            </div>
+                            <div class="mb-2">
+                                <img src="<?php echo htmlspecialchars($tenant['signature_data']); ?>" 
+                                     alt="Signature" style="max-width: 200px; max-height: 80px; border: 1px solid #dee2e6; padding: 5px;">
+                            </div>
+                        <?php endif; ?>
+                        <label class="form-label">Veuillez signer dans le cadre ci-dessous :</label>
+                        <div class="signature-container" style="max-width: 200px;">
+                            <canvas id="tenantCanvas_<?php echo $tenant['id']; ?>" width="200" height="80" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
+                        </div>
+                        <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][signature]" 
+                               id="tenantSignature_<?php echo $tenant['id']; ?>" 
+                               value="<?php echo htmlspecialchars($tenant['signature_data'] ?? ''); ?>">
+                        <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][locataire_id]" 
+                               value="<?php echo $tenant['locataire_id']; ?>">
+                        <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][ordre]" 
+                               value="<?php echo $tenant['ordre']; ?>">
+                        <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][nom]" 
+                               value="<?php echo htmlspecialchars($tenant['nom']); ?>">
+                        <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][prenom]" 
+                               value="<?php echo htmlspecialchars($tenant['prenom']); ?>">
+                        <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][email]" 
+                               value="<?php echo htmlspecialchars($tenant['email']); ?>">
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-warning btn-sm" onclick="clearTenantSignature(<?php echo $tenant['id']; ?>)">
+                                <i class="bi bi-eraser"></i> Effacer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <?php endforeach; ?>
             </div>
 
             <!-- Sticky Actions -->
@@ -848,10 +755,8 @@ $isSortie = $etat['type'] === 'sortie';
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Signature handling
-        let canvasBailleur, ctxBailleur, isDrawingBailleur = false, lastXBailleur = 0, lastYBailleur = 0;
-        let canvasLocataire, ctxLocataire, isDrawingLocataire = false, lastXLocataire = 0, lastYLocataire = 0;
-        let tempCanvasBailleur, tempCtxBailleur, tempCanvasLocataire, tempCtxLocataire;
+        // Tenant signature management system
+        const signatureControllers = new Map();
         
         function initSignatureBailleur() {
             canvasBailleur = document.getElementById('signatureCanvasBailleur');
