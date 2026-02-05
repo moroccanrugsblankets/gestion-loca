@@ -64,25 +64,37 @@ try {
     error_log("Contrat ref: " . ($etat['contrat_ref'] ?? 'NULL'));
     
     // Fix missing address from logement if available
+    $needsUpdate = false;
+    $fieldsToUpdate = [];
+    
     if (empty($etat['adresse']) && !empty($etat['logement_adresse'])) {
         error_log("Address is NULL, populating from logement: " . $etat['logement_adresse']);
         $etat['adresse'] = $etat['logement_adresse'];
-        
-        // Update the database to persist the fix
-        $updateStmt = $pdo->prepare("UPDATE etats_lieux SET adresse = ? WHERE id = ?");
-        $updateStmt->execute([$etat['adresse'], $id]);
-        error_log("Updated database with address from logement");
+        $fieldsToUpdate['adresse'] = $etat['adresse'];
+        $needsUpdate = true;
     }
     
-    // Fix missing appartement from logement if available
     if (empty($etat['appartement']) && !empty($etat['logement_appartement'])) {
         error_log("Appartement is NULL, populating from logement: " . $etat['logement_appartement']);
         $etat['appartement'] = $etat['logement_appartement'];
+        $fieldsToUpdate['appartement'] = $etat['appartement'];
+        $needsUpdate = true;
+    }
+    
+    // Update database with all missing fields in a single query
+    if ($needsUpdate) {
+        $setParts = [];
+        $params = [];
+        foreach ($fieldsToUpdate as $field => $value) {
+            $setParts[] = "$field = ?";
+            $params[] = $value;
+        }
+        $params[] = $id;
         
-        // Update the database to persist the fix
-        $updateStmt = $pdo->prepare("UPDATE etats_lieux SET appartement = ? WHERE id = ?");
-        $updateStmt->execute([$etat['appartement'], $id]);
-        error_log("Updated database with appartement from logement");
+        $sql = "UPDATE etats_lieux SET " . implode(', ', $setParts) . " WHERE id = ?";
+        $updateStmt = $pdo->prepare($sql);
+        $updateStmt->execute($params);
+        error_log("Updated database with: " . implode(', ', array_keys($fieldsToUpdate)));
     }
     
     // Check for missing required fields

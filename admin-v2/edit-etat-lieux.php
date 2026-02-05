@@ -145,17 +145,34 @@ if (!$etat) {
 }
 
 // Fix missing address from logement if available
+$needsUpdate = false;
+$fieldsToUpdate = [];
+
 if (empty($etat['adresse']) && !empty($etat['logement_adresse'])) {
     $etat['adresse'] = $etat['logement_adresse'];
-    $stmt = $pdo->prepare("UPDATE etats_lieux SET adresse = ? WHERE id = ?");
-    $stmt->execute([$etat['adresse'], $id]);
+    $fieldsToUpdate['adresse'] = $etat['adresse'];
+    $needsUpdate = true;
 }
 
-// Fix missing appartement from logement if available
 if (empty($etat['appartement']) && !empty($etat['logement_appartement'])) {
     $etat['appartement'] = $etat['logement_appartement'];
-    $stmt = $pdo->prepare("UPDATE etats_lieux SET appartement = ? WHERE id = ?");
-    $stmt->execute([$etat['appartement'], $id]);
+    $fieldsToUpdate['appartement'] = $etat['appartement'];
+    $needsUpdate = true;
+}
+
+// Update database with all missing fields in a single query
+if ($needsUpdate) {
+    $setParts = [];
+    $params = [];
+    foreach ($fieldsToUpdate as $field => $value) {
+        $setParts[] = "$field = ?";
+        $params[] = $value;
+    }
+    $params[] = $id;
+    
+    $sql = "UPDATE etats_lieux SET " . implode(', ', $setParts) . " WHERE id = ?";
+    $updateStmt = $pdo->prepare($sql);
+    $updateStmt->execute($params);
 }
 
 // Generate reference_unique if missing
