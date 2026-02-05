@@ -162,17 +162,25 @@ if (empty($etat['appartement']) && !empty($etat['logement_appartement'])) {
 
 // Update database with all missing fields in a single query
 if ($needsUpdate) {
+    // Whitelist of allowed fields to prevent SQL injection
+    $allowedFields = ['adresse', 'appartement'];
+    
     $setParts = [];
     $params = [];
     foreach ($fieldsToUpdate as $field => $value) {
-        $setParts[] = "$field = ?";
-        $params[] = $value;
+        // Only allow whitelisted fields
+        if (in_array($field, $allowedFields, true)) {
+            $setParts[] = "$field = ?";
+            $params[] = $value;
+        }
     }
-    $params[] = $id;
     
-    $sql = "UPDATE etats_lieux SET " . implode(', ', $setParts) . " WHERE id = ?";
-    $updateStmt = $pdo->prepare($sql);
-    $updateStmt->execute($params);
+    if (!empty($setParts)) {
+        $params[] = $id;
+        $sql = "UPDATE etats_lieux SET " . implode(', ', $setParts) . " WHERE id = ?";
+        $updateStmt = $pdo->prepare($sql);
+        $updateStmt->execute($params);
+    }
 }
 
 // Generate reference_unique if missing
