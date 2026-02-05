@@ -38,12 +38,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         SELECT c.*, 
                l.adresse, l.appartement,
                l.default_cles_appartement, l.default_cles_boite_lettres,
-               l.default_etat_piece_principale, l.default_etat_cuisine, l.default_etat_salle_eau,
-               CONCAT(cand.prenom, ' ', cand.nom) as locataire_nom,
-               cand.email as locataire_email
+               l.default_etat_piece_principale, l.default_etat_cuisine, l.default_etat_salle_eau
         FROM contrats c
         LEFT JOIN logements l ON c.logement_id = l.id
-        LEFT JOIN candidatures cand ON c.candidature_id = cand.id
         WHERE c.id = ?
     ");
     $stmt->execute([$contrat_id]);
@@ -54,6 +51,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: etats-lieux.php');
         exit;
     }
+    
+    // Get tenant(s) from contract
+    $stmt = $pdo->prepare("SELECT * FROM locataires WHERE contrat_id = ? ORDER BY ordre ASC LIMIT 2");
+    $stmt->execute([$contrat_id]);
+    $locataires = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    if (empty($locataires)) {
+        $_SESSION['error'] = "Aucun locataire trouvé pour ce contrat";
+        header('Location: etats-lieux.php');
+        exit;
+    }
+    
+    // Build locataire_nom_complet from all tenants
+    $locataire_noms = array_map(function($loc) {
+        return $loc['prenom'] . ' ' . $loc['nom'];
+    }, $locataires);
+    $locataire_nom_complet = implode(' et ', $locataire_noms);
+    $locataire_email = $locataires[0]['email']; // Use first tenant's email
     
     // Check for duplicate
     $stmt = $pdo->prepare("SELECT id FROM etats_lieux WHERE contrat_id = ? AND type = ?");
@@ -132,8 +147,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $contrat['adresse'],
             $contrat['appartement'],
             'SCI My Invest Immobilier, représentée par Maxime ALEXANDRE',
-            $contrat['locataire_nom'],
-            $contrat['locataire_email'],
+            $locataire_nom_complet,
+            $locataire_email,
             $default_cles_appartement,
             $default_cles_boite_lettres,
             $default_cles_total,
