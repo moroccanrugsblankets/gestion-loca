@@ -182,14 +182,15 @@ if (!$etat) {
 
 // Generate reference_unique if missing
 if (empty($etat['reference_unique'])) {
-    $type = $etat['type'];
+    $type = $etat['type'] ?? 'entree';  // Default to 'entree' if type is missing
+    $typePrefix = !empty($type) ? strtoupper($type[0]) : 'E';
     try {
         $randomPart = random_int(1, 9999);
     } catch (Exception $e) {
         // Fallback to time-based random if random_int fails
         $randomPart = (int)(microtime(true) * 1000) % 10000;
     }
-    $reference = 'EDL-' . strtoupper($type[0]) . '-' . date('Ymd') . '-' . str_pad($randomPart, 4, '0', STR_PAD_LEFT);
+    $reference = 'EDL-' . $typePrefix . '-' . date('Ymd') . '-' . str_pad($randomPart, 4, '0', STR_PAD_LEFT);
     $stmt = $pdo->prepare("UPDATE etats_lieux SET reference_unique = ? WHERE id = ?");
     $stmt->execute([$reference, $id]);
     $etat['reference_unique'] = $reference;
@@ -206,13 +207,15 @@ if (empty($existing_tenants) && !empty($etat['contrat_id'])) {
     $stmt->execute([$etat['contrat_id']]);
     $contract_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
+    // Prepare statement once, outside the loop
+    $insertStmt = $pdo->prepare("
+        INSERT INTO etat_lieux_locataires (etat_lieux_id, locataire_id, ordre, nom, prenom, email)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ");
+    
     // Insert tenants into etat_lieux_locataires
     foreach ($contract_tenants as $tenant) {
-        $stmt = $pdo->prepare("
-            INSERT INTO etat_lieux_locataires (etat_lieux_id, locataire_id, ordre, nom, prenom, email)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ");
-        $stmt->execute([
+        $insertStmt->execute([
             $id,
             $tenant['id'],
             $tenant['ordre'],
