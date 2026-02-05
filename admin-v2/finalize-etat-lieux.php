@@ -91,7 +91,7 @@ try {
         foreach ($fieldsToUpdate as $field => $value) {
             // Only allow whitelisted fields
             if (in_array($field, $allowedFields, true)) {
-                $setParts[] = "$field = ?";
+                $setParts[] = "`$field` = ?";
                 $params[] = $value;
             }
         }
