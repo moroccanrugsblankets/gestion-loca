@@ -108,6 +108,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $id
         ]);
         
+        // Handle multiple tenants if provided
+        if (isset($_POST['tenants']) && is_array($_POST['tenants'])) {
+            // First, delete existing tenants for this état des lieux
+            $stmt = $pdo->prepare("DELETE FROM etat_lieux_locataires WHERE etat_lieux_id = ?");
+            $stmt->execute([$id]);
+            
+            // Insert new tenants
+            $ordre = 1;
+            foreach ($_POST['tenants'] as $tenantData) {
+                if (empty($tenantData['nom']) || empty($tenantData['prenom'])) {
+                    continue; // Skip incomplete entries
+                }
+                
+                $stmt = $pdo->prepare("
+                    INSERT INTO etat_lieux_locataires 
+                    (etat_lieux_id, locataire_id, ordre, nom, prenom, email, signature_data, signature_timestamp, signature_ip)
+                    VALUES (?, 0, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                
+                $signatureTimestamp = !empty($tenantData['signature']) ? date('Y-m-d H:i:s') : null;
+                $signatureIp = $_SERVER['REMOTE_ADDR'] ?? null;
+                
+                $stmt->execute([
+                    $id,
+                    $ordre++,
+                    $tenantData['nom'],
+                    $tenantData['prenom'],
+                    $tenantData['email'] ?? '',
+                    $tenantData['signature'] ?? null,
+                    $signatureTimestamp,
+                    $signatureIp
+                ]);
+            }
+        }
+        
         $pdo->commit();
         $_SESSION['success'] = "État des lieux enregistré avec succès";
         
@@ -142,6 +177,12 @@ if (!$etat) {
     header('Location: etats-lieux.php');
     exit;
 }
+
+// Get existing tenants for this état des lieux
+$stmt = $pdo->prepare("SELECT * FROM etat_lieux_locataires WHERE etat_lieux_id = ? ORDER BY ordre ASC");
+$stmt->execute([$id]);
+$existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 
 $isEntree = $etat['type'] === 'entree';
 $isSortie = $etat['type'] === 'sortie';
@@ -305,6 +346,7 @@ $isSortie = $etat['type'] === 'sortie';
                         <input type="text" name="locataire_nom_complet" class="form-control" 
                                value="<?php echo htmlspecialchars($etat['locataire_nom_complet'] ?? ''); ?>" 
                                placeholder="Nom et prénom du ou des locataires" required>
+                        <small class="text-muted">Pour un seul locataire. Pour plusieurs, utilisez la section ci-dessous.</small>
                     </div>
                 </div>
                 
@@ -315,6 +357,76 @@ $isSortie = $etat['type'] === 'sortie';
                                value="<?php echo htmlspecialchars($etat['locataire_email'] ?? ''); ?>" 
                                placeholder="email@example.com" required>
                         <small class="text-muted">Le PDF sera envoyé à cette adresse</small>
+                    </div>
+                </div>
+                
+                <!-- Multi-tenant management section -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="bi bi-people"></i> 
+                            <strong>Gestion multi-locataires</strong>
+                            <p class="mb-0 mt-2">Si ce logement a plusieurs locataires, vous pouvez les ajouter ci-dessous. Chaque locataire pourra signer individuellement l'état des lieux.</p>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm mb-3" onclick="addTenant()">
+                            <i class="bi bi-person-plus"></i> Ajouter un locataire
+                        </button>
+                        <div id="tenantsContainer">
+                            <?php if (!empty($existing_tenants)): ?>
+                                <?php foreach ($existing_tenants as $index => $tenant): ?>
+                                <div class="card mb-3" id="tenant_<?php echo $index + 1; ?>">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h6 class="mb-0"><i class="bi bi-person"></i> Locataire #<?php echo $index + 1; ?></h6>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeTenant(<?php echo $index + 1; ?>)">
+                                                <i class="bi bi-trash"></i> Supprimer
+                                            </button>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-4 mb-2">
+                                                <label class="form-label">Nom</label>
+                                                <input type="text" name="tenants[<?php echo $index + 1; ?>][nom]" class="form-control" 
+                                                       value="<?php echo htmlspecialchars($tenant['nom']); ?>" placeholder="Nom">
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <label class="form-label">Prénom</label>
+                                                <input type="text" name="tenants[<?php echo $index + 1; ?>][prenom]" class="form-control" 
+                                                       value="<?php echo htmlspecialchars($tenant['prenom']); ?>" placeholder="Prénom">
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <label class="form-label">Email</label>
+                                                <input type="email" name="tenants[<?php echo $index + 1; ?>][email]" class="form-control" 
+                                                       value="<?php echo htmlspecialchars($tenant['email']); ?>" placeholder="email@example.com">
+                                            </div>
+                                        </div>
+                                        <div class="row mt-2">
+                                            <div class="col-12">
+                                                <label class="form-label">Signature</label>
+                                                <?php if (!empty($tenant['signature_data'])): ?>
+                                                    <div class="mb-2">
+                                                        <img src="<?php echo htmlspecialchars($tenant['signature_data']); ?>" 
+                                                             alt="Signature" style="max-width: 300px; border: 1px solid #dee2e6; padding: 5px;">
+                                                        <p class="text-muted small mb-0">
+                                                            Signé le <?php echo date('d/m/Y à H:i', strtotime($tenant['signature_timestamp'])); ?>
+                                                        </p>
+                                                    </div>
+                                                <?php endif; ?>
+                                                <div class="signature-container" style="max-width: 300px;">
+                                                    <canvas id="tenantCanvas_<?php echo $index + 1; ?>" width="300" height="150"></canvas>
+                                                </div>
+                                                <input type="hidden" name="tenants[<?php echo $index + 1; ?>][signature]" 
+                                                       id="tenantSignature_<?php echo $index + 1; ?>" 
+                                                       value="<?php echo htmlspecialchars($tenant['signature_data'] ?? ''); ?>">
+                                                <button type="button" class="btn btn-warning btn-sm mt-2" onclick="clearTenantSignature(<?php echo $index + 1; ?>)">
+                                                    <i class="bi bi-eraser"></i> Effacer signature
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -902,11 +1014,140 @@ $isSortie = $etat['type'] === 'sortie';
             }
         }
         
+        // Multi-tenant management
+        let tenantCounter = 0;
+        
+        function addTenant() {
+            tenantCounter++;
+            const container = document.getElementById('tenantsContainer');
+            const tenantDiv = document.createElement('div');
+            tenantDiv.className = 'card mb-3';
+            tenantDiv.id = `tenant_${tenantCounter}`;
+            tenantDiv.innerHTML = `
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0"><i class="bi bi-person"></i> Locataire #${tenantCounter}</h6>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeTenant(${tenantCounter})">
+                            <i class="bi bi-trash"></i> Supprimer
+                        </button>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Nom</label>
+                            <input type="text" name="tenants[${tenantCounter}][nom]" class="form-control" placeholder="Nom">
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Prénom</label>
+                            <input type="text" name="tenants[${tenantCounter}][prenom]" class="form-control" placeholder="Prénom">
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="tenants[${tenantCounter}][email]" class="form-control" placeholder="email@example.com">
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <label class="form-label">Signature</label>
+                            <div class="signature-container" style="max-width: 300px;">
+                                <canvas id="tenantCanvas_${tenantCounter}" width="300" height="150"></canvas>
+                            </div>
+                            <input type="hidden" name="tenants[${tenantCounter}][signature]" id="tenantSignature_${tenantCounter}">
+                            <button type="button" class="btn btn-warning btn-sm mt-2" onclick="clearTenantSignature(${tenantCounter})">
+                                <i class="bi bi-eraser"></i> Effacer signature
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(tenantDiv);
+            
+            // Initialize signature canvas for this tenant
+            initTenantSignature(tenantCounter);
+        }
+        
+        function removeTenant(id) {
+            const tenant = document.getElementById(`tenant_${id}`);
+            if (tenant) {
+                tenant.remove();
+            }
+        }
+        
+        function initTenantSignature(id) {
+            const canvas = document.getElementById(`tenantCanvas_${id}`);
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            let isDrawing = false;
+            
+            canvas.addEventListener('mousedown', (e) => {
+                isDrawing = true;
+                ctx.beginPath();
+                ctx.moveTo(e.offsetX, e.offsetY);
+            });
+            
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isDrawing) return;
+                ctx.lineTo(e.offsetX, e.offsetY);
+                ctx.stroke();
+            });
+            
+            canvas.addEventListener('mouseup', () => {
+                isDrawing = false;
+                saveTenantSignature(id);
+            });
+            
+            // Touch support
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                isDrawing = true;
+                ctx.beginPath();
+                ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+            });
+            
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (!isDrawing) return;
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+                ctx.stroke();
+            });
+            
+            canvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                isDrawing = false;
+                saveTenantSignature(id);
+            });
+        }
+        
+        function saveTenantSignature(id) {
+            const canvas = document.getElementById(`tenantCanvas_${id}`);
+            const signatureData = canvas.toDataURL('image/jpeg');
+            document.getElementById(`tenantSignature_${id}`).value = signatureData;
+        }
+        
+        function clearTenantSignature(id) {
+            const canvas = document.getElementById(`tenantCanvas_${id}`);
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            document.getElementById(`tenantSignature_${id}`).value = '';
+        }
+        
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             calculateTotalKeys();
             initSignatureBailleur();
             initSignatureLocataire();
+            
+            // Initialize existing tenant signatures
+            <?php if (!empty($existing_tenants)): ?>
+                <?php foreach ($existing_tenants as $index => $tenant): ?>
+                    initTenantSignature(<?php echo $index + 1; ?>);
+                    tenantCounter = Math.max(tenantCounter, <?php echo $index + 1; ?>);
+                <?php endforeach; ?>
+            <?php endif; ?>
         });
         
         // Handle form submission
