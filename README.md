@@ -72,6 +72,7 @@ Application web PHP complète pour la gestion des candidatures locatives avec wo
 - Composer (gestionnaire de dépendances PHP)
 - Serveur web Apache ou Nginx
 - Extension PHP : PDO, GD, mbstring, fileinfo
+- (Optionnel) wkhtmltopdf pour génération PDF avancée
 
 ### Étapes d'installation
 
