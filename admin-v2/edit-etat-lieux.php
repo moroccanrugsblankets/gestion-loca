@@ -1010,7 +1010,7 @@ $isSortie = $etat['type'] === 'sortie';
             for (let i = 0; i < input.files.length; i++) {
                 const formData = new FormData();
                 formData.append('photo', input.files[i]);
-                formData.append('etat_lieux_id', <?php echo json_encode((int)$id, JSON_NUMERIC_CHECK); ?>);
+                formData.append('etat_lieux_id', <?php echo json_encode((int)$id); ?>);
                 formData.append('categorie', category);
                 
                 const uploadPromise = fetch('upload-etat-lieux-photo.php', {
