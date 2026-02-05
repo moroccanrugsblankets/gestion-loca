@@ -69,9 +69,9 @@ Application web PHP complète pour la gestion des candidatures locatives avec wo
 
 - PHP 7.4 ou supérieur
 - MySQL 5.7 ou supérieur
+- Composer (gestionnaire de dépendances PHP)
 - Serveur web Apache ou Nginx
 - Extension PHP : PDO, GD, mbstring, fileinfo
-- (Optionnel) wkhtmltopdf pour génération PDF avancée
 
 ### Étapes d'installation
 
@@ -81,7 +81,16 @@ Application web PHP complète pour la gestion des candidatures locatives avec wo
    cd contrat-de-bail
    ```
 
-2. **Importer la base de données unique**
+2. **Installer les dépendances Composer**
+   ```bash
+   composer install
+   ```
+   
+   Cette étape installe les bibliothèques nécessaires:
+   - TCPDF (génération de PDF)
+   - PHPMailer (envoi d'emails)
+
+3. **Importer la base de données unique**
    ```bash
    mysql -u root -p < database.sql
    ```
@@ -94,7 +103,7 @@ Application web PHP complète pour la gestion des candidatures locatives avec wo
    - Logement de test RP-01
    - Vues SQL pour statistiques et workflow
 
-3. **Configurer la connexion**
+4. **Configurer la connexion**
    
    Éditer `includes/config.php`:
    ```php
@@ -105,14 +114,14 @@ Application web PHP complète pour la gestion des candidatures locatives avec wo
    define('SITE_URL', 'http://votre-domaine.com');
    ```
 
-4. **Créer les dossiers uploads**
+5. **Créer les dossiers uploads**
    ```bash
    mkdir -p uploads/candidatures
    chmod 755 uploads
    chmod 755 uploads/candidatures
    ```
 
-5. **Configurer le cron (traitement automatique)**
+6. **Configurer le cron (traitement automatique)**
    ```bash
    # Ajouter au crontab
    crontab -e
@@ -123,7 +132,7 @@ Application web PHP complète pour la gestion des candidatures locatives avec wo
    
    Voir [cron/README.md](cron/README.md) pour plus de détails.
 
-6. **Tester l'installation**
+7. **Tester l'installation**
    - Formulaire candidat: `http://votre-domaine.com/candidature/`
    - Interface admin: `http://votre-domaine.com/admin-v2/login.php`
    - Login: `admin` / `password` (à changer!)
@@ -346,6 +355,18 @@ Voir [LISEZ-MOI-DABORD.md](LISEZ-MOI-DABORD.md) pour les procédures de test dé
 
 ## 🐛 Dépannage
 
+### Erreur "TCPDF ERROR:"
+```bash
+# Installer les dépendances Composer si ce n'est pas déjà fait
+composer install
+
+# Vérifier que vendor/ existe
+ls -la vendor/
+
+# Vérifier que TCPDF est installé
+ls -la vendor/tecnickcom/tcpdf/
+```
+
 ### Erreur "Database connection failed"
 ```php
 // Vérifier includes/config-v2.php
@@ -443,7 +464,14 @@ Propriétaire - MY Invest Immobilier
    cd contrat-de-bail
    ```
 
-2. **Configurer la base de données**
+2. **Installer les dépendances Composer**
+   ```bash
+   composer install
+   ```
+   
+   Cette étape installe les bibliothèques nécessaires (TCPDF, PHPMailer).
+
+3. **Configurer la base de données**
    ```bash
    mysql -u root -p < database.sql
    ```
@@ -453,7 +481,7 @@ Propriétaire - MY Invest Immobilier
    - Les tables nécessaires (logements, contrats, locataires, logs)
    - Un logement de test (RP-01)
 
-3. **Configurer l'application**
+4. **Configurer l'application**
    
    Éditer le fichier `includes/config.php` et ajuster :
    ```php
@@ -467,13 +495,13 @@ Propriétaire - MY Invest Immobilier
    define('SITE_URL', 'http://votre-domaine.com');
    ```
 
-4. **Créer les dossiers et permissions**
+5. **Créer les dossiers et permissions**
    ```bash
    chmod 755 uploads/
    chmod 755 pdf/
    ```
 
-5. **Configurer le serveur web**
+6. **Configurer le serveur web**
    
    Pour Apache, le fichier `.htaccess` est déjà fourni.
    
@@ -486,7 +514,7 @@ Propriétaire - MY Invest Immobilier
    }
    ```
 
-6. **Configurer l'envoi d'emails**
+7. **Configurer l'envoi d'emails**
    
    Par défaut, l'application utilise la fonction `mail()` de PHP.
    Pour un environnement de production, il est recommandé de configurer SMTP.
