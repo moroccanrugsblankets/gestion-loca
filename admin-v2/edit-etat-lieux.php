@@ -180,10 +180,56 @@ if (!$etat) {
     exit;
 }
 
+// Generate reference_unique if missing
+if (empty($etat['reference_unique'])) {
+    $type = $etat['type'] ?? 'entree';  // Default to 'entree' if type is missing
+    $typePrefix = strtoupper($type[0]);  // Safe to access since $type is guaranteed to have a value
+    try {
+        $randomPart = random_int(1, 9999);
+    } catch (Exception $e) {
+        // Fallback to time-based random if random_int fails
+        $randomPart = (int)(microtime(true) * 1000) % 10000;
+    }
+    $reference = 'EDL-' . $typePrefix . '-' . date('Ymd') . '-' . str_pad($randomPart, 4, '0', STR_PAD_LEFT);
+    $stmt = $pdo->prepare("UPDATE etats_lieux SET reference_unique = ? WHERE id = ?");
+    $stmt->execute([$reference, $id]);
+    $etat['reference_unique'] = $reference;
+}
+
 // Get existing tenants for this état des lieux
 $stmt = $pdo->prepare("SELECT * FROM etat_lieux_locataires WHERE etat_lieux_id = ? ORDER BY ordre ASC");
 $stmt->execute([$id]);
 $existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// If no tenants linked yet, auto-populate from contract
+if (empty($existing_tenants) && !empty($etat['contrat_id'])) {
+    $stmt = $pdo->prepare("SELECT * FROM locataires WHERE contrat_id = ? ORDER BY ordre ASC");
+    $stmt->execute([$etat['contrat_id']]);
+    $contract_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Prepare statement once, outside the loop
+    $insertStmt = $pdo->prepare("
+        INSERT INTO etat_lieux_locataires (etat_lieux_id, locataire_id, ordre, nom, prenom, email)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ");
+    
+    // Insert tenants into etat_lieux_locataires
+    foreach ($contract_tenants as $tenant) {
+        $insertStmt->execute([
+            $id,
+            $tenant['id'],
+            $tenant['ordre'],
+            $tenant['nom'],
+            $tenant['prenom'],
+            $tenant['email']
+        ]);
+    }
+    
+    // Reload tenants
+    $stmt = $pdo->prepare("SELECT * FROM etat_lieux_locataires WHERE etat_lieux_id = ? ORDER BY ordre ASC");
+    $stmt->execute([$id]);
+    $existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 
 
 $isEntree = $etat['type'] === 'entree';
