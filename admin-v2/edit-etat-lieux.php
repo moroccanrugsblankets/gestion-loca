@@ -446,7 +446,7 @@ $isSortie = $etat['type'] === 'sortie';
                                 <div class="d-flex flex-wrap gap-2">
                                     <?php foreach ($photos_by_category['compteur_electricite'] as $photo): ?>
                                         <div class="position-relative">
-                                            <img src="/<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
+                                            <img src="../<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
                                                  alt="Photo compteur électrique" 
                                                  style="max-width: 150px; max-height: 100px; border: 1px solid #dee2e6; border-radius: 4px;">
                                             <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0" 
@@ -491,7 +491,7 @@ $isSortie = $etat['type'] === 'sortie';
                                 <div class="d-flex flex-wrap gap-2">
                                     <?php foreach ($photos_by_category['compteur_eau'] as $photo): ?>
                                         <div class="position-relative">
-                                            <img src="/<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
+                                            <img src="../<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
                                                  alt="Photo compteur eau" 
                                                  style="max-width: 150px; max-height: 100px; border: 1px solid #dee2e6; border-radius: 4px;">
                                             <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0" 
@@ -582,7 +582,7 @@ $isSortie = $etat['type'] === 'sortie';
                                 <div class="d-flex flex-wrap gap-2">
                                     <?php foreach ($photos_by_category['cles'] as $photo): ?>
                                         <div class="position-relative">
-                                            <img src="/<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
+                                            <img src="../<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
                                                  alt="Photo clés" 
                                                  style="max-width: 150px; max-height: 100px; border: 1px solid #dee2e6; border-radius: 4px;">
                                             <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0" 
@@ -636,7 +636,7 @@ $isSortie = $etat['type'] === 'sortie';
                                 <div class="d-flex flex-wrap gap-2">
                                     <?php foreach ($photos_by_category['piece_principale'] as $photo): ?>
                                         <div class="position-relative">
-                                            <img src="/<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
+                                            <img src="../<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
                                                  alt="Photo pièce principale" 
                                                  style="max-width: 150px; max-height: 100px; border: 1px solid #dee2e6; border-radius: 4px;">
                                             <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0" 
@@ -683,7 +683,7 @@ $isSortie = $etat['type'] === 'sortie';
                                 <div class="d-flex flex-wrap gap-2">
                                     <?php foreach ($photos_by_category['cuisine'] as $photo): ?>
                                         <div class="position-relative">
-                                            <img src="/<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
+                                            <img src="../<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
                                                  alt="Photo cuisine" 
                                                  style="max-width: 150px; max-height: 100px; border: 1px solid #dee2e6; border-radius: 4px;">
                                             <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0" 
@@ -730,7 +730,7 @@ $isSortie = $etat['type'] === 'sortie';
                                 <div class="d-flex flex-wrap gap-2">
                                     <?php foreach ($photos_by_category['salle_eau'] as $photo): ?>
                                         <div class="position-relative">
-                                            <img src="/<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
+                                            <img src="../<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
                                                  alt="Photo salle d'eau" 
                                                  style="max-width: 150px; max-height: 100px; border: 1px solid #dee2e6; border-radius: 4px;">
                                             <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0" 
@@ -999,13 +999,33 @@ $isSortie = $etat['type'] === 'sortie';
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: 'photo_id=' + photoId
+                body: 'photo_id=' + encodeURIComponent(photoId)
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Remove the photo element from the page
-                    button.closest('.position-relative').remove();
+                    // Get the parent container
+                    const photoContainer = button.closest('.position-relative');
+                    const photosWrapper = photoContainer.parentElement;
+                    
+                    // Remove the photo element
+                    photoContainer.remove();
+                    
+                    // Update count or remove alert if no photos left
+                    const alertElement = photosWrapper.previousElementSibling;
+                    if (alertElement && alertElement.classList.contains('alert-success')) {
+                        const remainingPhotos = photosWrapper.querySelectorAll('.position-relative').length;
+                        if (remainingPhotos === 0) {
+                            // Remove both alert and photos wrapper
+                            alertElement.parentElement.remove();
+                        } else {
+                            // Update count
+                            const countSpan = alertElement.querySelector('span');
+                            if (countSpan) {
+                                countSpan.innerHTML = `<i class="bi bi-check-circle"></i> ${remainingPhotos} photo(s) enregistrée(s)`;
+                            }
+                        }
+                    }
                     
                     // Show success message
                     const alert = document.createElement('div');
