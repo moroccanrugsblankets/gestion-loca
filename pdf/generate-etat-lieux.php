@@ -818,12 +818,9 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
 
     if (!empty($landlordSigPath)) {
         if (preg_match('/^uploads\/signatures\//', $landlordSigPath)) {
-            $fullPath = dirname(__DIR__) . '/' . $landlordSigPath;
-            if (file_exists($fullPath)) {
-                $html .= '<div class="signature-box"><img src="' . $fullPath . '" alt="Signature Bailleur" style="max-width:120px; max-height:50px;"></div>';
-            } else {
-                $html .= '<div class="signature-box">&nbsp;</div>';
-            }
+            // Use public URL for TCPDF (not file path)
+            $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($landlordSigPath, '/');
+            $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" style="max-width:120px; max-height:50px;"></div>';
         } else {
             $html .= '<div class="signature-box">&nbsp;</div>';
         }
@@ -855,13 +852,9 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
                 // Data URL format - TCPDF can handle this directly
                 $html .= '<div class="signature-box"><img src="' . $tenantInfo['signature_data'] . '" alt="Signature Locataire" style="max-width:120px; max-height:50px;"></div>';
             } elseif (preg_match('/^uploads\/signatures\//', $tenantInfo['signature_data'])) {
-                // File path format
-                $fullPath = dirname(__DIR__) . '/' . $tenantInfo['signature_data'];
-                if (file_exists($fullPath)) {
-                    $html .= '<div class="signature-box"><img src="' . $fullPath . '" alt="Signature Locataire" style="max-width:120px; max-height:50px;"></div>';
-                } else {
-                    $html .= '<div class="signature-box">&nbsp;</div>';
-                }
+                // File path format - convert to public URL for TCPDF
+                $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($tenantInfo['signature_data'], '/');
+                $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" style="max-width:120px; max-height:50px;"></div>';
             } else {
                 $html .= '<div class="signature-box">&nbsp;</div>';
             }
