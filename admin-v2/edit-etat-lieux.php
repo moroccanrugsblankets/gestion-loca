@@ -32,6 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 compteur_eau_froide = ?,
                 cles_appartement = ?,
                 cles_boite_lettres = ?,
+                cles_autre = ?,
                 cles_total = ?,
                 cles_conformite = ?,
                 cles_observations = ?,
@@ -60,6 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $_POST['compteur_eau_froide'] ?? '',
             (int)($_POST['cles_appartement'] ?? 0),
             (int)($_POST['cles_boite_lettres'] ?? 0),
+            (int)($_POST['cles_autre'] ?? 0),
             (int)($_POST['cles_total'] ?? 0),
             $_POST['cles_conformite'] ?? 'non_applicable',
             $_POST['cles_observations'] ?? '',
@@ -430,21 +432,28 @@ $isSortie = $etat['type'] === 'sortie';
                 </div>
                 
                 <div class="row">
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-3 mb-3">
                         <label class="form-label required-field">Clés de l'appartement</label>
                         <input type="number" name="cles_appartement" class="form-control" 
                                value="<?php echo htmlspecialchars($etat['cles_appartement'] ?? ''); ?>" 
                                min="0" required oninput="calculateTotalKeys()">
                     </div>
                     
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-3 mb-3">
                         <label class="form-label required-field">Clé(s) de la boîte aux lettres</label>
                         <input type="number" name="cles_boite_lettres" class="form-control" 
                                value="<?php echo htmlspecialchars($etat['cles_boite_lettres'] ?? '1'); ?>" 
                                min="0" required oninput="calculateTotalKeys()">
                     </div>
                     
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Autre</label>
+                        <input type="number" name="cles_autre" class="form-control" 
+                               value="<?php echo htmlspecialchars($etat['cles_autre'] ?? '0'); ?>" 
+                               min="0" oninput="calculateTotalKeys()">
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
                         <label class="form-label">Total des clés</label>
                         <input type="number" name="cles_total" id="cles_total" class="form-control" 
                                value="<?php echo htmlspecialchars($etat['cles_total'] ?? ''); ?>" 
@@ -762,7 +771,8 @@ $isSortie = $etat['type'] === 'sortie';
         function calculateTotalKeys() {
             const appart = parseInt(document.querySelector('[name="cles_appartement"]').value) || 0;
             const boite = parseInt(document.querySelector('[name="cles_boite_lettres"]').value) || 0;
-            document.getElementById('cles_total').value = appart + boite;
+            const autre = parseInt(document.querySelector('[name="cles_autre"]').value) || 0;
+            document.getElementById('cles_total').value = appart + boite + autre;
         }
         
         // Toggle degradations details
