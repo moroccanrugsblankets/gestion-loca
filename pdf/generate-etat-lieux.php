@@ -195,9 +195,14 @@ function createDefaultEtatLieux($contratId, $type, $contrat, $locataires) {
         error_log("Generated reference: $referenceUnique");
         
         // Get first locataire for email
+        if (empty($locataires)) {
+            error_log("ERROR: No locataires provided to createDefaultEtatLieux");
+            throw new Exception("Aucun locataire fourni pour créer l'état des lieux");
+        }
+        
         $firstLocataire = $locataires[0];
         $locataireEmail = $firstLocataire['email'] ?? '';
-        $locataireNomComplet = ($firstLocataire['prenom'] ?? '') . ' ' . ($firstLocataire['nom'] ?? '');
+        $locataireNomComplet = trim(($firstLocataire['prenom'] ?? '') . ' ' . ($firstLocataire['nom'] ?? ''));
         
         error_log("First locataire: $locataireNomComplet ($locataireEmail)");
         

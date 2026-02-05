@@ -114,7 +114,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         error_log("SMTP Host: " . $config['SMTP_HOST']);
         error_log("SMTP Port: " . $config['SMTP_PORT']);
         error_log("SMTP Username: " . $config['SMTP_USERNAME']);
-        error_log("SMTP Password configured: " . (!empty($config['SMTP_PASSWORD']) ? 'Yes' : 'No'));
         
         $mail->isSMTP();
         $mail->Host = $config['SMTP_HOST'];
