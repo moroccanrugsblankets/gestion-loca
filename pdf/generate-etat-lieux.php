@@ -818,9 +818,15 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
 
     if (!empty($landlordSigPath)) {
         if (preg_match('/^uploads\/signatures\//', $landlordSigPath)) {
-            // Use public URL for TCPDF (not file path)
-            $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($landlordSigPath, '/');
-            $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" style="max-width:120px; max-height:50px;"></div>';
+            // Verify file exists before adding to PDF
+            $fullPath = dirname(__DIR__) . '/' . $landlordSigPath;
+            if (file_exists($fullPath)) {
+                // Use public URL for TCPDF (not file path)
+                $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($landlordSigPath, '/');
+                $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" style="max-width:120px; max-height:50px;"></div>';
+            } else {
+                $html .= '<div class="signature-box">&nbsp;</div>';
+            }
         } else {
             $html .= '<div class="signature-box">&nbsp;</div>';
         }
@@ -852,9 +858,14 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
                 // Data URL format - TCPDF can handle this directly
                 $html .= '<div class="signature-box"><img src="' . $tenantInfo['signature_data'] . '" alt="Signature Locataire" style="max-width:120px; max-height:50px;"></div>';
             } elseif (preg_match('/^uploads\/signatures\//', $tenantInfo['signature_data'])) {
-                // File path format - convert to public URL for TCPDF
-                $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($tenantInfo['signature_data'], '/');
-                $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" style="max-width:120px; max-height:50px;"></div>';
+                // File path format - verify file exists then convert to public URL for TCPDF
+                $fullPath = dirname(__DIR__) . '/' . $tenantInfo['signature_data'];
+                if (file_exists($fullPath)) {
+                    $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($tenantInfo['signature_data'], '/');
+                    $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" style="max-width:120px; max-height:50px;"></div>';
+                } else {
+                    $html .= '<div class="signature-box">&nbsp;</div>';
+                }
             } else {
                 $html .= '<div class="signature-box">&nbsp;</div>';
             }
