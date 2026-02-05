@@ -85,6 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 if (!empty($tenantInfo['signature'])) {
                     // Validate signature format
                     if (!preg_match('/^data:image\/(jpeg|jpg|png);base64,/', $tenantInfo['signature'])) {
+                        error_log("Invalid signature format for tenant ID $tenantId - skipping");
                         continue;
                     }
                     
@@ -360,9 +361,11 @@ $isSortie = $etat['type'] === 'sortie';
                         <input type="hidden" name="locataire_email" value="<?php echo htmlspecialchars($existing_tenants[0]['email'] ?? ''); ?>">
                         <small class="text-muted">
                             <?php if (count($existing_tenants) > 1): ?>
-                                Locataires : <?php echo implode(', ', array_map(function($t) { return $t['email']; }, $existing_tenants)); ?>
+                                Emails : <?php echo implode(', ', array_map(function($t) { return $t['email']; }, $existing_tenants)); ?>
+                            <?php elseif(!empty($existing_tenants[0]['email'])): ?>
+                                Email : <?php echo htmlspecialchars($existing_tenants[0]['email']); ?>
                             <?php else: ?>
-                                Email : <?php echo htmlspecialchars($existing_tenants[0]['email'] ?? ''); ?>
+                                Email : Non renseigné
                             <?php endif; ?>
                         </small>
                     </div>

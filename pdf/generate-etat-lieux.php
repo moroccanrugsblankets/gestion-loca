@@ -813,7 +813,7 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
         $html .= '<div class="signature-box">&nbsp;</div>';
     }
     
-    $placeSignature = !empty($etatLieux['lieu_signature']) ? htmlspecialchars($etatLieux['lieu_signature']) : 'Annemasse';
+    $placeSignature = !empty($etatLieux['lieu_signature']) ? htmlspecialchars($etatLieux['lieu_signature']) : htmlspecialchars($config['DEFAULT_SIGNATURE_LOCATION'] ?? 'Annemasse');
     $html .= '<p style="font-size:8pt;">Fait à ' . $placeSignature . '</p>';
     
     if (!empty($etatLieux['date_etat'])) {
