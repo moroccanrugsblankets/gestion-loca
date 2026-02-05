@@ -128,7 +128,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 $stmt = $pdo->prepare("
     SELECT edl.*, 
            c.reference_unique as contrat_ref,
-           l.adresse as logement_adresse
+           l.adresse as logement_adresse,
+           l.appartement as logement_appartement
     FROM etats_lieux edl
     LEFT JOIN contrats c ON edl.contrat_id = c.id
     LEFT JOIN logements l ON c.logement_id = l.id
@@ -141,6 +142,20 @@ if (!$etat) {
     $_SESSION['error'] = "État des lieux non trouvé";
     header('Location: etats-lieux.php');
     exit;
+}
+
+// Fix missing address from logement if available
+if (empty($etat['adresse']) && !empty($etat['logement_adresse'])) {
+    $etat['adresse'] = $etat['logement_adresse'];
+    $stmt = $pdo->prepare("UPDATE etats_lieux SET adresse = ? WHERE id = ?");
+    $stmt->execute([$etat['adresse'], $id]);
+}
+
+// Fix missing appartement from logement if available
+if (empty($etat['appartement']) && !empty($etat['logement_appartement'])) {
+    $etat['appartement'] = $etat['logement_appartement'];
+    $stmt = $pdo->prepare("UPDATE etats_lieux SET appartement = ? WHERE id = ?");
+    $stmt->execute([$etat['appartement'], $id]);
 }
 
 // Generate reference_unique if missing

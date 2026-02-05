@@ -34,9 +34,12 @@ try {
     $stmt = $pdo->prepare("
         SELECT edl.*, 
                c.id as contrat_id,
-               c.reference_unique as contrat_ref
+               c.reference_unique as contrat_ref,
+               l.adresse as logement_adresse,
+               l.appartement as logement_appartement
         FROM etats_lieux edl
         LEFT JOIN contrats c ON edl.contrat_id = c.id
+        LEFT JOIN logements l ON c.logement_id = l.id
         WHERE edl.id = ?
     ");
     $stmt->execute([$id]);
@@ -59,6 +62,28 @@ try {
     error_log("Adresse: " . ($etat['adresse'] ?? 'NULL'));
     error_log("Date etat: " . ($etat['date_etat'] ?? 'NULL'));
     error_log("Contrat ref: " . ($etat['contrat_ref'] ?? 'NULL'));
+    
+    // Fix missing address from logement if available
+    if (empty($etat['adresse']) && !empty($etat['logement_adresse'])) {
+        error_log("Address is NULL, populating from logement: " . $etat['logement_adresse']);
+        $etat['adresse'] = $etat['logement_adresse'];
+        
+        // Update the database to persist the fix
+        $updateStmt = $pdo->prepare("UPDATE etats_lieux SET adresse = ? WHERE id = ?");
+        $updateStmt->execute([$etat['adresse'], $id]);
+        error_log("Updated database with address from logement");
+    }
+    
+    // Fix missing appartement from logement if available
+    if (empty($etat['appartement']) && !empty($etat['logement_appartement'])) {
+        error_log("Appartement is NULL, populating from logement: " . $etat['logement_appartement']);
+        $etat['appartement'] = $etat['logement_appartement'];
+        
+        // Update the database to persist the fix
+        $updateStmt = $pdo->prepare("UPDATE etats_lieux SET appartement = ? WHERE id = ?");
+        $updateStmt->execute([$etat['appartement'], $id]);
+        error_log("Updated database with appartement from logement");
+    }
     
     // Check for missing required fields
     $missingFields = [];
