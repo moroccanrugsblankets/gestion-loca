@@ -180,10 +180,47 @@ if (!$etat) {
     exit;
 }
 
+// Generate reference_unique if missing
+if (empty($etat['reference_unique'])) {
+    $type = $etat['type'];
+    $reference = 'EDL-' . strtoupper($type[0]) . '-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+    $stmt = $pdo->prepare("UPDATE etats_lieux SET reference_unique = ? WHERE id = ?");
+    $stmt->execute([$reference, $id]);
+    $etat['reference_unique'] = $reference;
+}
+
 // Get existing tenants for this état des lieux
 $stmt = $pdo->prepare("SELECT * FROM etat_lieux_locataires WHERE etat_lieux_id = ? ORDER BY ordre ASC");
 $stmt->execute([$id]);
 $existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// If no tenants linked yet, auto-populate from contract
+if (empty($existing_tenants) && !empty($etat['contrat_id'])) {
+    $stmt = $pdo->prepare("SELECT * FROM locataires WHERE contrat_id = ? ORDER BY ordre ASC");
+    $stmt->execute([$etat['contrat_id']]);
+    $contract_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Insert tenants into etat_lieux_locataires
+    foreach ($contract_tenants as $tenant) {
+        $stmt = $pdo->prepare("
+            INSERT INTO etat_lieux_locataires (etat_lieux_id, locataire_id, ordre, nom, prenom, email)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->execute([
+            $id,
+            $tenant['id'],
+            $tenant['ordre'],
+            $tenant['nom'],
+            $tenant['prenom'],
+            $tenant['email']
+        ]);
+    }
+    
+    // Reload tenants
+    $stmt = $pdo->prepare("SELECT * FROM etat_lieux_locataires WHERE etat_lieux_id = ? ORDER BY ordre ASC");
+    $stmt->execute([$id]);
+    $existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 
 
 $isEntree = $etat['type'] === 'entree';

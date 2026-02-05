@@ -255,11 +255,26 @@ function generateEntreeHTML($contrat, $locataires, $etatLieux) {
     $clesTotal = (int)($etatLieux['cles_total'] ?? 0);
     if ($clesTotal === 0) $clesTotal = $clesAppart + $clesBoite;
     
-    // Description
-    $piecePrincipale = nl2br(htmlspecialchars($etatLieux['piece_principale'] ?? ''));
-    $coinCuisine = nl2br(htmlspecialchars($etatLieux['coin_cuisine'] ?? ''));
-    $salleEauWC = nl2br(htmlspecialchars($etatLieux['salle_eau_wc'] ?? ''));
-    $etatGeneral = nl2br(htmlspecialchars($etatLieux['etat_general'] ?? ''));
+    // Description - use defaults if empty
+    $defaultTexts = getDefaultPropertyDescriptions('entree');
+    $piecePrincipale = nl2br(htmlspecialchars($etatLieux['piece_principale'] ?? $defaultTexts['piece_principale']));
+    $coinCuisine = nl2br(htmlspecialchars($etatLieux['coin_cuisine'] ?? $defaultTexts['coin_cuisine']));
+    $salleEauWC = nl2br(htmlspecialchars($etatLieux['salle_eau_wc'] ?? $defaultTexts['salle_eau_wc']));
+    $etatGeneral = nl2br(htmlspecialchars($etatLieux['etat_general'] ?? $defaultTexts['etat_general']));
+    
+    // If fields exist but are empty, use defaults
+    if (empty(trim($etatLieux['piece_principale'] ?? ''))) {
+        $piecePrincipale = nl2br(htmlspecialchars($defaultTexts['piece_principale']));
+    }
+    if (empty(trim($etatLieux['coin_cuisine'] ?? ''))) {
+        $coinCuisine = nl2br(htmlspecialchars($defaultTexts['coin_cuisine']));
+    }
+    if (empty(trim($etatLieux['salle_eau_wc'] ?? ''))) {
+        $salleEauWC = nl2br(htmlspecialchars($defaultTexts['salle_eau_wc']));
+    }
+    if (empty(trim($etatLieux['etat_general'] ?? ''))) {
+        $etatGeneral = nl2br(htmlspecialchars($defaultTexts['etat_general']));
+    }
     
     // Observations complémentaires
     $observations = nl2br(htmlspecialchars($etatLieux['observations'] ?? ''));
@@ -385,12 +400,12 @@ HTML;
             <tr>
                 <td>Électricité</td>
                 <td>$compteurElec</td>
-                <td>Photo facultative (conservée dans dossier interne)</td>
+                <td></td>
             </tr>
             <tr>
                 <td>Eau froide</td>
                 <td>$compteurEau</td>
-                <td>Photo facultative (conservée dans dossier interne)</td>
+                <td></td>
             </tr>
         </table>
     </div>
@@ -415,7 +430,6 @@ HTML;
                 <td><strong>$clesTotal</strong></td>
             </tr>
         </table>
-        <p><em>Photo facultative (conservée dans dossier interne)</em></p>
     </div>
     
     <div class="section">
@@ -500,11 +514,26 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
     $clesConformiteHTML = $conformiteLabels[$clesConformite] ?? '☐ Non vérifié';
     $clesObservations = htmlspecialchars($etatLieux['cles_observations'] ?? '');
     
-    // Description
-    $piecePrincipale = nl2br(htmlspecialchars($etatLieux['piece_principale'] ?? ''));
-    $coinCuisine = nl2br(htmlspecialchars($etatLieux['coin_cuisine'] ?? ''));
-    $salleEauWC = nl2br(htmlspecialchars($etatLieux['salle_eau_wc'] ?? ''));
-    $etatGeneral = nl2br(htmlspecialchars($etatLieux['etat_general'] ?? ''));
+    // Description - use defaults if empty
+    $defaultTexts = getDefaultPropertyDescriptions('sortie');
+    $piecePrincipale = nl2br(htmlspecialchars($etatLieux['piece_principale'] ?? $defaultTexts['piece_principale']));
+    $coinCuisine = nl2br(htmlspecialchars($etatLieux['coin_cuisine'] ?? $defaultTexts['coin_cuisine']));
+    $salleEauWC = nl2br(htmlspecialchars($etatLieux['salle_eau_wc'] ?? $defaultTexts['salle_eau_wc']));
+    $etatGeneral = nl2br(htmlspecialchars($etatLieux['etat_general'] ?? $defaultTexts['etat_general']));
+    
+    // If fields exist but are empty, use defaults
+    if (empty(trim($etatLieux['piece_principale'] ?? ''))) {
+        $piecePrincipale = nl2br(htmlspecialchars($defaultTexts['piece_principale']));
+    }
+    if (empty(trim($etatLieux['coin_cuisine'] ?? ''))) {
+        $coinCuisine = nl2br(htmlspecialchars($defaultTexts['coin_cuisine']));
+    }
+    if (empty(trim($etatLieux['salle_eau_wc'] ?? ''))) {
+        $salleEauWC = nl2br(htmlspecialchars($defaultTexts['salle_eau_wc']));
+    }
+    if (empty(trim($etatLieux['etat_general'] ?? ''))) {
+        $etatGeneral = nl2br(htmlspecialchars($defaultTexts['etat_general']));
+    }
     
     // Observations complémentaires
     $observations = nl2br(htmlspecialchars($etatLieux['observations'] ?? ''));
@@ -664,12 +693,12 @@ HTML;
             <tr>
                 <td>Électricité</td>
                 <td>$compteurElec</td>
-                <td>Photo facultative (conservée dans dossier interne)</td>
+                <td></td>
             </tr>
             <tr>
                 <td>Eau froide</td>
                 <td>$compteurEau</td>
-                <td>Photo facultative (conservée dans dossier interne)</td>
+                <td></td>
             </tr>
         </table>
     </div>
