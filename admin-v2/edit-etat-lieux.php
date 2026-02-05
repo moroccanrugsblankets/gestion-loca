@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $id
         ]);
         
-        // Update tenant signatures
+        // Update tenant signatures - save as physical files like contract signatures
         if (isset($_POST['tenants']) && is_array($_POST['tenants'])) {
             foreach ($_POST['tenants'] as $tenantId => $tenantInfo) {
                 if (!empty($tenantInfo['signature'])) {
@@ -91,19 +91,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         continue;
                     }
                     
-                    $updateStmt = $pdo->prepare("
-                        UPDATE etat_lieux_locataires 
-                        SET signature_data = ?,
-                            signature_timestamp = NOW(),
-                            signature_ip = ?
-                        WHERE id = ? AND etat_lieux_id = ?
-                    ");
-                    $updateStmt->execute([
-                        $tenantInfo['signature'],
-                        $_SERVER['REMOTE_ADDR'] ?? null,
-                        $tenantId,
-                        $id
-                    ]);
+                    // Use the new function to save signature as physical file
+                    if (!updateEtatLieuxTenantSignature($tenantId, $tenantInfo['signature'], $id)) {
+                        error_log("Failed to save signature for etat_lieux_locataire ID: $tenantId");
+                    }
                 }
             }
         }
@@ -232,6 +223,20 @@ if (empty($existing_tenants) && !empty($etat['contrat_id'])) {
     $stmt = $pdo->prepare("SELECT * FROM etat_lieux_locataires WHERE etat_lieux_id = ? ORDER BY ordre ASC");
     $stmt->execute([$id]);
     $existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Load existing photos for this état des lieux
+$stmt = $pdo->prepare("SELECT * FROM etat_lieux_photos WHERE etat_lieux_id = ? ORDER BY categorie, ordre ASC");
+$stmt->execute([$id]);
+$existing_photos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Group photos by category for easy access
+$photos_by_category = [];
+foreach ($existing_photos as $photo) {
+    if (!isset($photos_by_category[$photo['categorie']])) {
+        $photos_by_category[$photo['categorie']] = [];
+    }
+    $photos_by_category[$photo['categorie']][] = $photo;
 }
 
 
@@ -432,6 +437,29 @@ $isSortie = $etat['type'] === 'sortie';
                     
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Photo du compteur électrique <em>(optionnel)</em></label>
+                        
+                        <?php if (isset($photos_by_category['compteur_electricite']) && !empty($photos_by_category['compteur_electricite'])): ?>
+                            <div class="mb-2">
+                                <div class="alert alert-success d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-check-circle"></i> <?php echo count($photos_by_category['compteur_electricite']); ?> photo(s) enregistrée(s)</span>
+                                </div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <?php foreach ($photos_by_category['compteur_electricite'] as $photo): ?>
+                                        <div class="position-relative">
+                                            <img src="../<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
+                                                 alt="Photo compteur électrique" 
+                                                 style="max-width: 150px; max-height: 100px; border: 1px solid #dee2e6; border-radius: 4px;">
+                                            <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0" 
+                                                    style="padding: 2px 6px; font-size: 10px;"
+                                                    onclick="deletePhoto(<?php echo $photo['id']; ?>, this)">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        
                         <div class="photo-upload-zone" onclick="document.getElementById('photo_compteur_elec').click()">
                             <i class="bi bi-camera" style="font-size: 2rem; color: #6c757d;"></i>
                             <p class="mb-0 mt-2">Cliquer pour ajouter une photo</p>
@@ -454,6 +482,29 @@ $isSortie = $etat['type'] === 'sortie';
                     
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Photo du compteur d'eau <em>(optionnel)</em></label>
+                        
+                        <?php if (isset($photos_by_category['compteur_eau']) && !empty($photos_by_category['compteur_eau'])): ?>
+                            <div class="mb-2">
+                                <div class="alert alert-success d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-check-circle"></i> <?php echo count($photos_by_category['compteur_eau']); ?> photo(s) enregistrée(s)</span>
+                                </div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <?php foreach ($photos_by_category['compteur_eau'] as $photo): ?>
+                                        <div class="position-relative">
+                                            <img src="../<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
+                                                 alt="Photo compteur eau" 
+                                                 style="max-width: 150px; max-height: 100px; border: 1px solid #dee2e6; border-radius: 4px;">
+                                            <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0" 
+                                                    style="padding: 2px 6px; font-size: 10px;"
+                                                    onclick="deletePhoto(<?php echo $photo['id']; ?>, this)">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        
                         <div class="photo-upload-zone" onclick="document.getElementById('photo_compteur_eau').click()">
                             <i class="bi bi-camera" style="font-size: 2rem; color: #6c757d;"></i>
                             <p class="mb-0 mt-2">Cliquer pour ajouter une photo</p>
@@ -522,6 +573,29 @@ $isSortie = $etat['type'] === 'sortie';
                 <div class="row">
                     <div class="col-12 mb-3">
                         <label class="form-label">Photo des clés <em>(optionnel)</em></label>
+                        
+                        <?php if (isset($photos_by_category['cles']) && !empty($photos_by_category['cles'])): ?>
+                            <div class="mb-2">
+                                <div class="alert alert-success d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-check-circle"></i> <?php echo count($photos_by_category['cles']); ?> photo(s) enregistrée(s)</span>
+                                </div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <?php foreach ($photos_by_category['cles'] as $photo): ?>
+                                        <div class="position-relative">
+                                            <img src="../<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
+                                                 alt="Photo clés" 
+                                                 style="max-width: 150px; max-height: 100px; border: 1px solid #dee2e6; border-radius: 4px;">
+                                            <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0" 
+                                                    style="padding: 2px 6px; font-size: 10px;"
+                                                    onclick="deletePhoto(<?php echo $photo['id']; ?>, this)">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        
                         <div class="photo-upload-zone" onclick="document.getElementById('photo_cles').click()">
                             <i class="bi bi-camera" style="font-size: 2rem; color: #6c757d;"></i>
                             <p class="mb-0 mt-2">Cliquer pour ajouter une photo</p>
@@ -553,6 +627,29 @@ $isSortie = $etat['type'] === 'sortie';
                     
                     <div class="col-md-12 mb-3">
                         <label class="form-label">Photos de la pièce principale <em>(optionnel)</em></label>
+                        
+                        <?php if (isset($photos_by_category['piece_principale']) && !empty($photos_by_category['piece_principale'])): ?>
+                            <div class="mb-2">
+                                <div class="alert alert-success d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-check-circle"></i> <?php echo count($photos_by_category['piece_principale']); ?> photo(s) enregistrée(s)</span>
+                                </div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <?php foreach ($photos_by_category['piece_principale'] as $photo): ?>
+                                        <div class="position-relative">
+                                            <img src="../<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
+                                                 alt="Photo pièce principale" 
+                                                 style="max-width: 150px; max-height: 100px; border: 1px solid #dee2e6; border-radius: 4px;">
+                                            <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0" 
+                                                    style="padding: 2px 6px; font-size: 10px;"
+                                                    onclick="deletePhoto(<?php echo $photo['id']; ?>, this)">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        
                         <div class="photo-upload-zone" onclick="document.getElementById('photo_piece_principale').click()">
                             <i class="bi bi-camera" style="font-size: 2rem; color: #6c757d;"></i>
                             <p class="mb-0 mt-2">Cliquer pour ajouter des photos</p>
@@ -577,6 +674,29 @@ $isSortie = $etat['type'] === 'sortie';
                     
                     <div class="col-md-12 mb-3">
                         <label class="form-label">Photos du coin cuisine <em>(optionnel)</em></label>
+                        
+                        <?php if (isset($photos_by_category['cuisine']) && !empty($photos_by_category['cuisine'])): ?>
+                            <div class="mb-2">
+                                <div class="alert alert-success d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-check-circle"></i> <?php echo count($photos_by_category['cuisine']); ?> photo(s) enregistrée(s)</span>
+                                </div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <?php foreach ($photos_by_category['cuisine'] as $photo): ?>
+                                        <div class="position-relative">
+                                            <img src="../<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
+                                                 alt="Photo cuisine" 
+                                                 style="max-width: 150px; max-height: 100px; border: 1px solid #dee2e6; border-radius: 4px;">
+                                            <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0" 
+                                                    style="padding: 2px 6px; font-size: 10px;"
+                                                    onclick="deletePhoto(<?php echo $photo['id']; ?>, this)">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        
                         <div class="photo-upload-zone" onclick="document.getElementById('photo_cuisine').click()">
                             <i class="bi bi-camera" style="font-size: 2rem; color: #6c757d;"></i>
                             <p class="mb-0 mt-2">Cliquer pour ajouter des photos</p>
@@ -601,6 +721,29 @@ $isSortie = $etat['type'] === 'sortie';
                     
                     <div class="col-md-12 mb-3">
                         <label class="form-label">Photos de la salle d'eau et WC <em>(optionnel)</em></label>
+                        
+                        <?php if (isset($photos_by_category['salle_eau']) && !empty($photos_by_category['salle_eau'])): ?>
+                            <div class="mb-2">
+                                <div class="alert alert-success d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-check-circle"></i> <?php echo count($photos_by_category['salle_eau']); ?> photo(s) enregistrée(s)</span>
+                                </div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <?php foreach ($photos_by_category['salle_eau'] as $photo): ?>
+                                        <div class="position-relative">
+                                            <img src="../<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
+                                                 alt="Photo salle d'eau" 
+                                                 style="max-width: 150px; max-height: 100px; border: 1px solid #dee2e6; border-radius: 4px;">
+                                            <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0" 
+                                                    style="padding: 2px 6px; font-size: 10px;"
+                                                    onclick="deletePhoto(<?php echo $photo['id']; ?>, this)">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        
                         <div class="photo-upload-zone" onclick="document.getElementById('photo_salle_eau').click()">
                             <i class="bi bi-camera" style="font-size: 2rem; color: #6c757d;"></i>
                             <p class="mb-0 mt-2">Cliquer pour ajouter des photos</p>
@@ -843,6 +986,63 @@ $isSortie = $etat['type'] === 'sortie';
                 fileList.innerHTML = `<i class="bi bi-check-circle"></i> ${input.files.length} fichier(s) sélectionné(s)`;
                 preview.appendChild(fileList);
             }
+        }
+        
+        // Delete photo
+        function deletePhoto(photoId, button) {
+            if (!confirm('Voulez-vous vraiment supprimer cette photo ?')) {
+                return;
+            }
+            
+            fetch('delete-etat-lieux-photo.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'photo_id=' + encodeURIComponent(photoId)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Get the parent container
+                    const photoContainer = button.closest('.position-relative');
+                    const photosWrapper = photoContainer.parentElement;
+                    
+                    // Remove the photo element
+                    photoContainer.remove();
+                    
+                    // Update count or remove alert if no photos left
+                    const alertElement = photosWrapper.previousElementSibling;
+                    if (alertElement && alertElement.classList.contains('alert-success')) {
+                        const remainingPhotos = photosWrapper.querySelectorAll('.position-relative').length;
+                        if (remainingPhotos === 0) {
+                            // Remove both alert and photos wrapper
+                            alertElement.parentElement.remove();
+                        } else {
+                            // Update count
+                            const countSpan = alertElement.querySelector('span');
+                            if (countSpan) {
+                                countSpan.innerHTML = `<i class="bi bi-check-circle"></i> ${remainingPhotos} photo(s) enregistrée(s)`;
+                            }
+                        }
+                    }
+                    
+                    // Show success message
+                    const alert = document.createElement('div');
+                    alert.className = 'alert alert-success alert-dismissible fade show';
+                    alert.innerHTML = '<i class="bi bi-check-circle"></i> Photo supprimée avec succès <button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+                    document.querySelector('.main-content').insertBefore(alert, document.querySelector('.form-card'));
+                    
+                    // Auto-dismiss after 3 seconds
+                    setTimeout(() => alert.remove(), 3000);
+                } else {
+                    alert('Erreur lors de la suppression: ' + (data.error || 'Erreur inconnue'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Erreur lors de la suppression de la photo');
+            });
         }
         
         

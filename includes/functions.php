@@ -267,6 +267,79 @@ function updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve)
 }
 
 /**
+ * Mettre à jour la signature d'un locataire pour état des lieux
+ * @param int $etatLieuxLocataireId ID from etat_lieux_locataires table
+ * @param string $signatureData Base64 encoded signature data
+ * @param int $etatLieuxId ID of the état des lieux
+ * @return bool
+ */
+function updateEtatLieuxTenantSignature($etatLieuxLocataireId, $signatureData, $etatLieuxId) {
+    // Validate signature data size
+    $maxSize = 2 * 1024 * 1024; // 2MB limit
+    if (strlen($signatureData) > $maxSize) {
+        error_log("Signature data too large: " . strlen($signatureData) . " bytes for etat_lieux_locataire ID: $etatLieuxLocataireId");
+        return false;
+    }
+    
+    // Validate that signature data is a valid data URL
+    if (!preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $signatureData, $matches)) {
+        error_log("Invalid signature data format for etat_lieux_locataire ID: $etatLieuxLocataireId");
+        return false;
+    }
+    
+    $imageFormat = $matches[1];
+    $base64Data = $matches[2];
+    
+    // Decode base64 to image data
+    $imageData = base64_decode($base64Data);
+    if ($imageData === false) {
+        error_log("Failed to decode base64 signature for etat_lieux_locataire ID: $etatLieuxLocataireId");
+        return false;
+    }
+    
+    // Create uploads directory if it doesn't exist
+    $baseDir = dirname(__DIR__);
+    $uploadsDir = $baseDir . '/uploads/signatures';
+    if (!is_dir($uploadsDir)) {
+        if (!mkdir($uploadsDir, 0755, true)) {
+            error_log("Failed to create signatures directory for etat_lieux_locataire ID: $etatLieuxLocataireId");
+            return false;
+        }
+    }
+    
+    // Generate unique filename
+    $filename = "etat_lieux_tenant_{$etatLieuxId}_{$etatLieuxLocataireId}_" . time() . ".jpg";
+    $filepath = $uploadsDir . '/' . $filename;
+    
+    // Save physical file
+    if (file_put_contents($filepath, $imageData) === false) {
+        error_log("Failed to save signature file for etat_lieux_locataire ID: $etatLieuxLocataireId");
+        return false;
+    }
+    
+    // Store relative path instead of base64
+    $relativePath = 'uploads/signatures/' . $filename;
+    error_log("État des lieux signature saved as physical file: $relativePath for etat_lieux_locataire ID: $etatLieuxLocataireId");
+    
+    $sql = "UPDATE etat_lieux_locataires 
+            SET signature_data = ?, signature_ip = ?, signature_timestamp = NOW()
+            WHERE id = ? AND etat_lieux_id = ?";
+    
+    $stmt = executeQuery($sql, [$relativePath, getClientIp(), $etatLieuxLocataireId, $etatLieuxId]);
+    
+    if ($stmt === false) {
+        error_log("Failed to update signature for etat_lieux_locataire ID: $etatLieuxLocataireId");
+        // Clean up the file if database update failed
+        if (file_exists($filepath)) {
+            unlink($filepath);
+        }
+        return false;
+    }
+    
+    return true;
+}
+
+/**
  * Mettre à jour les pièces d'identité d'un locataire
  * @param int $locataireId
  * @param string $recto
