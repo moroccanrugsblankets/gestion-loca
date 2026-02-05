@@ -98,7 +98,15 @@ function generateEtatDesLieuxPDF($contratId, $type = 'entree') {
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
         $pdf->AddPage();
-        $pdf->writeHTML($html, true, false, true, false, '');
+        
+        // Write HTML to PDF with error handling
+        try {
+            $pdf->writeHTML($html, true, false, true, false, '');
+        } catch (Exception $htmlException) {
+            error_log("TCPDF writeHTML error: " . $htmlException->getMessage());
+            error_log("HTML content length: " . strlen($html));
+            throw new Exception("Erreur lors de la conversion HTML vers PDF: " . $htmlException->getMessage());
+        }
 
         // Sauvegarder le PDF
         $pdfDir = dirname(__DIR__) . '/pdf/etat_des_lieux/';
@@ -261,8 +269,9 @@ function generateEntreeHTML($contrat, $locataires, $etatLieux) {
     // Clés
     $clesAppart = (int)($etatLieux['cles_appartement'] ?? 0);
     $clesBoite = (int)($etatLieux['cles_boite_lettres'] ?? 0);
+    $clesAutre = (int)($etatLieux['cles_autre'] ?? 0);
     $clesTotal = (int)($etatLieux['cles_total'] ?? 0);
-    if ($clesTotal === 0) $clesTotal = $clesAppart + $clesBoite;
+    if ($clesTotal === 0) $clesTotal = $clesAppart + $clesBoite + $clesAutre;
     
     // Description - use defaults if empty
     $defaultTexts = getDefaultPropertyDescriptions('entree');
@@ -421,6 +430,10 @@ HTML;
                 <td>$clesBoite</td>
             </tr>
             <tr>
+                <td>Autre</td>
+                <td>$clesAutre</td>
+            </tr>
+            <tr>
                 <td><strong>TOTAL</strong></td>
                 <td><strong>$clesTotal</strong></td>
             </tr>
@@ -497,8 +510,9 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
     // Clés
     $clesAppart = (int)($etatLieux['cles_appartement'] ?? 0);
     $clesBoite = (int)($etatLieux['cles_boite_lettres'] ?? 0);
+    $clesAutre = (int)($etatLieux['cles_autre'] ?? 0);
     $clesTotal = (int)($etatLieux['cles_total'] ?? 0);
-    if ($clesTotal === 0) $clesTotal = $clesAppart + $clesBoite;
+    if ($clesTotal === 0) $clesTotal = $clesAppart + $clesBoite + $clesAutre;
     
     $clesConformite = $etatLieux['cles_conformite'] ?? 'non_applicable';
     $conformiteLabels = [
@@ -700,6 +714,10 @@ HTML;
                 <td>$clesBoite</td>
             </tr>
             <tr>
+                <td>Autre</td>
+                <td>$clesAutre</td>
+            </tr>
+            <tr>
                 <td><strong>TOTAL</strong></td>
                 <td><strong>$clesTotal</strong></td>
             </tr>
@@ -802,7 +820,7 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
         if (preg_match('/^uploads\/signatures\//', $landlordSigPath)) {
             $fullPath = dirname(__DIR__) . '/' . $landlordSigPath;
             if (file_exists($fullPath)) {
-                $html .= '<div class="signature-box"><img src="' . htmlspecialchars($fullPath) . '" alt="Signature Bailleur" style="max-width:120px; max-height:50px;"></div>';
+                $html .= '<div class="signature-box"><img src="' . $fullPath . '" alt="Signature Bailleur" style="max-width:120px; max-height:50px;"></div>';
             } else {
                 $html .= '<div class="signature-box">&nbsp;</div>';
             }
@@ -834,13 +852,13 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
         // Display tenant signature if available
         if (!empty($tenantInfo['signature_data'])) {
             if (preg_match('/^data:image\/(jpeg|jpg|png);base64,/', $tenantInfo['signature_data'])) {
-                // Data URL format
-                $html .= '<div class="signature-box"><img src="' . htmlspecialchars($tenantInfo['signature_data']) . '" alt="Signature Locataire" style="max-width:120px; max-height:50px;"></div>';
+                // Data URL format - TCPDF can handle this directly
+                $html .= '<div class="signature-box"><img src="' . $tenantInfo['signature_data'] . '" alt="Signature Locataire" style="max-width:120px; max-height:50px;"></div>';
             } elseif (preg_match('/^uploads\/signatures\//', $tenantInfo['signature_data'])) {
                 // File path format
                 $fullPath = dirname(__DIR__) . '/' . $tenantInfo['signature_data'];
                 if (file_exists($fullPath)) {
-                    $html .= '<div class="signature-box"><img src="' . htmlspecialchars($fullPath) . '" alt="Signature Locataire" style="max-width:120px; max-height:50px;"></div>';
+                    $html .= '<div class="signature-box"><img src="' . $fullPath . '" alt="Signature Locataire" style="max-width:120px; max-height:50px;"></div>';
                 } else {
                     $html .= '<div class="signature-box">&nbsp;</div>';
                 }

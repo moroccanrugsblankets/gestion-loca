@@ -241,6 +241,22 @@ $adresse = $etat_entree['adresse'] ?? $etat_sortie['adresse'] ?? 'N/A';
                         </td>
                     </tr>
                     <tr>
+                        <td class="field-name">Autre</td>
+                        <td class="value-entry"><?php echo (int)($etat_entree['cles_autre'] ?? 0); ?></td>
+                        <td class="value-exit">
+                            <?php 
+                            $keys_exit = (int)($etat_sortie['cles_autre'] ?? 0);
+                            $keys_entry = (int)($etat_entree['cles_autre'] ?? 0);
+                            echo $keys_exit;
+                            if ($keys_exit === $keys_entry) {
+                                echo " <span class='match'>✓ Conforme</span>";
+                            } else {
+                                echo " <span class='difference'>⚠ Non conforme ($keys_entry attendu)</span>";
+                            }
+                            ?>
+                        </td>
+                    </tr>
+                    <tr>
                         <td class="field-name">Conformité</td>
                         <td class="value-entry">-</td>
                         <td class="value-exit">
