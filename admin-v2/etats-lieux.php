@@ -20,6 +20,21 @@ $etats_lieux = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // Separate by type for tabs
 $etats_entree = array_filter($etats_lieux, function($e) { return $e['type'] === 'entree'; });
 $etats_sortie = array_filter($etats_lieux, function($e) { return $e['type'] === 'sortie'; });
+
+// Find contracts with both entry and exit for comparison
+$contracts_with_both = [];
+foreach ($etats_lieux as $etat) {
+    $contrat_id = $etat['contrat_id'];
+    if (!isset($contracts_with_both[$contrat_id])) {
+        $contracts_with_both[$contrat_id] = ['entree' => false, 'sortie' => false];
+    }
+    $contracts_with_both[$contrat_id][$etat['type']] = true;
+}
+
+// Filter to only those with both
+$comparable_contracts = array_filter($contracts_with_both, function($status) {
+    return $status['entree'] && $status['sortie'];
+});
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -188,6 +203,11 @@ $etats_sortie = array_filter($etats_lieux, function($e) { return $e['type'] === 
                                         <a href="view-etat-lieux.php?id=<?php echo $etat['id']; ?>" class="btn btn-sm btn-outline-info" title="Voir">
                                             <i class="bi bi-eye"></i>
                                         </a>
+                                        <?php if (isset($comparable_contracts[$etat['contrat_id']])): ?>
+                                        <a href="compare-etat-lieux.php?contrat_id=<?php echo $etat['contrat_id']; ?>" class="btn btn-sm btn-outline-warning" title="Comparer entrée/sortie">
+                                            <i class="bi bi-arrows-angle-contract"></i>
+                                        </a>
+                                        <?php endif; ?>
                                         <a href="download-etat-lieux.php?id=<?php echo $etat['id']; ?>" class="btn btn-sm btn-outline-secondary" title="Télécharger" target="_blank">
                                             <i class="bi bi-download"></i>
                                         </a>
@@ -279,6 +299,11 @@ $etats_sortie = array_filter($etats_lieux, function($e) { return $e['type'] === 
                                         <a href="view-etat-lieux.php?id=<?php echo $etat['id']; ?>" class="btn btn-sm btn-outline-info" title="Voir">
                                             <i class="bi bi-eye"></i>
                                         </a>
+                                        <?php if (isset($comparable_contracts[$etat['contrat_id']])): ?>
+                                        <a href="compare-etat-lieux.php?contrat_id=<?php echo $etat['contrat_id']; ?>" class="btn btn-sm btn-outline-warning" title="Comparer entrée/sortie">
+                                            <i class="bi bi-arrows-angle-contract"></i>
+                                        </a>
+                                        <?php endif; ?>
                                         <a href="download-etat-lieux.php?id=<?php echo $etat['id']; ?>" class="btn btn-sm btn-outline-secondary" title="Télécharger" target="_blank">
                                             <i class="bi bi-download"></i>
                                         </a>
