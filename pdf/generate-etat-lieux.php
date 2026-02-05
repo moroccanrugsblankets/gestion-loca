@@ -257,24 +257,17 @@ function generateEntreeHTML($contrat, $locataires, $etatLieux) {
     
     // Description - use defaults if empty
     $defaultTexts = getDefaultPropertyDescriptions('entree');
-    $piecePrincipale = nl2br(htmlspecialchars($etatLieux['piece_principale'] ?? $defaultTexts['piece_principale']));
-    $coinCuisine = nl2br(htmlspecialchars($etatLieux['coin_cuisine'] ?? $defaultTexts['coin_cuisine']));
-    $salleEauWC = nl2br(htmlspecialchars($etatLieux['salle_eau_wc'] ?? $defaultTexts['salle_eau_wc']));
-    $etatGeneral = nl2br(htmlspecialchars($etatLieux['etat_general'] ?? $defaultTexts['etat_general']));
     
-    // If fields exist but are empty, use defaults
-    if (empty(trim($etatLieux['piece_principale'] ?? ''))) {
-        $piecePrincipale = nl2br(htmlspecialchars($defaultTexts['piece_principale']));
-    }
-    if (empty(trim($etatLieux['coin_cuisine'] ?? ''))) {
-        $coinCuisine = nl2br(htmlspecialchars($defaultTexts['coin_cuisine']));
-    }
-    if (empty(trim($etatLieux['salle_eau_wc'] ?? ''))) {
-        $salleEauWC = nl2br(htmlspecialchars($defaultTexts['salle_eau_wc']));
-    }
-    if (empty(trim($etatLieux['etat_general'] ?? ''))) {
-        $etatGeneral = nl2br(htmlspecialchars($defaultTexts['etat_general']));
-    }
+    // Helper to get value or default if empty
+    $getValue = function($field, $default) use ($etatLieux) {
+        $value = $etatLieux[$field] ?? '';
+        return nl2br(htmlspecialchars(empty(trim($value)) ? $default : $value));
+    };
+    
+    $piecePrincipale = $getValue('piece_principale', $defaultTexts['piece_principale']);
+    $coinCuisine = $getValue('coin_cuisine', $defaultTexts['coin_cuisine']);
+    $salleEauWC = $getValue('salle_eau_wc', $defaultTexts['salle_eau_wc']);
+    $etatGeneral = $getValue('etat_general', $defaultTexts['etat_general']);
     
     // Observations complémentaires
     $observations = nl2br(htmlspecialchars($etatLieux['observations'] ?? ''));
@@ -516,24 +509,17 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
     
     // Description - use defaults if empty
     $defaultTexts = getDefaultPropertyDescriptions('sortie');
-    $piecePrincipale = nl2br(htmlspecialchars($etatLieux['piece_principale'] ?? $defaultTexts['piece_principale']));
-    $coinCuisine = nl2br(htmlspecialchars($etatLieux['coin_cuisine'] ?? $defaultTexts['coin_cuisine']));
-    $salleEauWC = nl2br(htmlspecialchars($etatLieux['salle_eau_wc'] ?? $defaultTexts['salle_eau_wc']));
-    $etatGeneral = nl2br(htmlspecialchars($etatLieux['etat_general'] ?? $defaultTexts['etat_general']));
     
-    // If fields exist but are empty, use defaults
-    if (empty(trim($etatLieux['piece_principale'] ?? ''))) {
-        $piecePrincipale = nl2br(htmlspecialchars($defaultTexts['piece_principale']));
-    }
-    if (empty(trim($etatLieux['coin_cuisine'] ?? ''))) {
-        $coinCuisine = nl2br(htmlspecialchars($defaultTexts['coin_cuisine']));
-    }
-    if (empty(trim($etatLieux['salle_eau_wc'] ?? ''))) {
-        $salleEauWC = nl2br(htmlspecialchars($defaultTexts['salle_eau_wc']));
-    }
-    if (empty(trim($etatLieux['etat_general'] ?? ''))) {
-        $etatGeneral = nl2br(htmlspecialchars($defaultTexts['etat_general']));
-    }
+    // Helper to get value or default if empty
+    $getValue = function($field, $default) use ($etatLieux) {
+        $value = $etatLieux[$field] ?? '';
+        return nl2br(htmlspecialchars(empty(trim($value)) ? $default : $value));
+    };
+    
+    $piecePrincipale = $getValue('piece_principale', $defaultTexts['piece_principale']);
+    $coinCuisine = $getValue('coin_cuisine', $defaultTexts['coin_cuisine']);
+    $salleEauWC = $getValue('salle_eau_wc', $defaultTexts['salle_eau_wc']);
+    $etatGeneral = $getValue('etat_general', $defaultTexts['etat_general']);
     
     // Observations complémentaires
     $observations = nl2br(htmlspecialchars($etatLieux['observations'] ?? ''));

@@ -183,7 +183,7 @@ if (!$etat) {
 // Generate reference_unique if missing
 if (empty($etat['reference_unique'])) {
     $type = $etat['type'];
-    $reference = 'EDL-' . strtoupper($type[0]) . '-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+    $reference = 'EDL-' . strtoupper($type[0]) . '-' . date('Ymd') . '-' . str_pad(random_int(1, 9999), 4, '0', STR_PAD_LEFT);
     $stmt = $pdo->prepare("UPDATE etats_lieux SET reference_unique = ? WHERE id = ?");
     $stmt->execute([$reference, $id]);
     $etat['reference_unique'] = $reference;
