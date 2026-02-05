@@ -22,20 +22,24 @@ require_once __DIR__ . '/../includes/mail-templates.php';
 function generateEtatDesLieuxPDF($contratId, $type = 'entree') {
     global $config, $pdo;
 
+    error_log("=== generateEtatDesLieuxPDF - START ===");
+    error_log("Input - Contrat ID: $contratId, Type: $type");
+
     // Validation
     $contratId = (int)$contratId;
     if ($contratId <= 0) {
-        error_log("Erreur: ID de contrat invalide");
+        error_log("ERROR: ID de contrat invalide: $contratId");
         return false;
     }
 
     if (!in_array($type, ['entree', 'sortie'])) {
-        error_log("Erreur: Type invalide (doit être 'entree' ou 'sortie')");
+        error_log("ERROR: Type invalide: $type (doit être 'entree' ou 'sortie')");
         return false;
     }
 
     try {
         // Récupérer les données du contrat
+        error_log("Fetching contrat data from database...");
         $stmt = $pdo->prepare("
             SELECT c.*, 
                    l.reference,
@@ -55,38 +59,61 @@ function generateEtatDesLieuxPDF($contratId, $type = 'entree') {
         $contrat = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$contrat) {
-            error_log("Erreur: Contrat #$contratId non trouvé");
+            error_log("ERROR: Contrat #$contratId non trouvé");
             return false;
         }
+        
+        error_log("Contrat found - Reference: " . ($contrat['reference'] ?? 'NULL'));
+        error_log("Logement - Adresse: " . ($contrat['adresse'] ?? 'NULL'));
 
         // Récupérer les locataires
+        error_log("Fetching locataires...");
         $stmt = $pdo->prepare("SELECT * FROM locataires WHERE contrat_id = ? ORDER BY ordre ASC");
         $stmt->execute([$contratId]);
         $locataires = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (empty($locataires)) {
-            error_log("Erreur: Aucun locataire trouvé");
+            error_log("ERROR: Aucun locataire trouvé pour contrat #$contratId");
             return false;
         }
+        
+        error_log("Found " . count($locataires) . " locataire(s)");
 
         // Vérifier si un état des lieux existe déjà
+        error_log("Checking for existing état des lieux...");
         $stmt = $pdo->prepare("SELECT * FROM etats_lieux WHERE contrat_id = ? AND type = ? ORDER BY created_at DESC LIMIT 1");
         $stmt->execute([$contratId, $type]);
         $etatLieux = $stmt->fetch(PDO::FETCH_ASSOC);
 
         // Si pas d'état des lieux, créer un brouillon avec données par défaut
         if (!$etatLieux) {
+            error_log("No existing état des lieux found, creating default...");
             $etatLieux = createDefaultEtatLieux($contratId, $type, $contrat, $locataires);
+            if (!$etatLieux) {
+                error_log("ERROR: Failed to create default état des lieux");
+                return false;
+            }
+        } else {
+            error_log("Existing état des lieux found - ID: " . $etatLieux['id']);
         }
 
         // Générer le HTML
+        error_log("Generating HTML content...");
         if ($type === 'entree') {
             $html = generateEntreeHTML($contrat, $locataires, $etatLieux);
         } else {
             $html = generateSortieHTML($contrat, $locataires, $etatLieux);
         }
+        
+        if (!$html) {
+            error_log("ERROR: HTML generation failed");
+            return false;
+        }
+        
+        error_log("HTML generated - Length: " . strlen($html) . " characters");
 
         // Créer le PDF avec TCPDF
+        error_log("Creating TCPDF instance...");
         $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
         $pdf->SetCreator('MY INVEST IMMOBILIER');
         
@@ -100,36 +127,56 @@ function generateEtatDesLieuxPDF($contratId, $type = 'entree') {
         $pdf->AddPage();
         
         // Write HTML to PDF with error handling
+        error_log("Writing HTML to PDF...");
         try {
             $pdf->writeHTML($html, true, false, true, false, '');
+            error_log("HTML written to PDF successfully");
         } catch (Exception $htmlException) {
-            error_log("TCPDF writeHTML error: " . $htmlException->getMessage());
+            error_log("TCPDF writeHTML ERROR: " . $htmlException->getMessage());
             error_log("HTML content length: " . strlen($html));
+            error_log("Stack trace: " . $htmlException->getTraceAsString());
             throw new Exception("Erreur lors de la conversion HTML vers PDF: " . $htmlException->getMessage());
         }
 
         // Sauvegarder le PDF
+        error_log("Saving PDF to file...");
         $pdfDir = dirname(__DIR__) . '/pdf/etat_des_lieux/';
         if (!is_dir($pdfDir)) {
+            error_log("Creating directory: $pdfDir");
             mkdir($pdfDir, 0755, true);
         }
 
         $dateStr = date('Ymd');
         $filename = "etat_lieux_{$type}_{$contrat['reference']}_{$dateStr}.pdf";
         $filepath = $pdfDir . $filename;
+        
+        error_log("Saving to: $filepath");
         $pdf->Output($filepath, 'F');
+        
+        if (!file_exists($filepath)) {
+            error_log("ERROR: PDF file not created at: $filepath");
+            return false;
+        }
+        
+        error_log("PDF file created successfully - Size: " . filesize($filepath) . " bytes");
 
         // Mettre à jour le statut de l'état des lieux
         if ($etatLieux && isset($etatLieux['id'])) {
+            error_log("Updating etat_lieux status to 'finalise'...");
             $stmt = $pdo->prepare("UPDATE etats_lieux SET statut = 'finalise' WHERE id = ?");
             $stmt->execute([$etatLieux['id']]);
         }
 
-        error_log("PDF État des lieux généré: $filepath");
+        error_log("=== generateEtatDesLieuxPDF - SUCCESS ===");
+        error_log("PDF Generated: $filepath");
         return $filepath;
 
     } catch (Exception $e) {
-        error_log("Erreur génération PDF État des lieux: " . $e->getMessage());
+        error_log("=== generateEtatDesLieuxPDF - ERROR ===");
+        error_log("Exception type: " . get_class($e));
+        error_log("Error message: " . $e->getMessage());
+        error_log("Error file: " . $e->getFile() . ":" . $e->getLine());
+        error_log("Stack trace: " . $e->getTraceAsString());
         return false;
     }
 }
@@ -140,72 +187,112 @@ function generateEtatDesLieuxPDF($contratId, $type = 'entree') {
 function createDefaultEtatLieux($contratId, $type, $contrat, $locataires) {
     global $pdo, $config;
 
-    $referenceUnique = 'EDL-' . strtoupper($type) . '-' . $contrat['reference'] . '-' . date('YmdHis');
-    
-    $stmt = $pdo->prepare("
-        INSERT INTO etats_lieux (
-            contrat_id, 
-            type, 
-            reference_unique,
-            date_etat,
-            adresse,
-            appartement,
-            bailleur_nom,
-            bailleur_representant,
-            piece_principale,
-            coin_cuisine,
-            salle_eau_wc,
-            etat_general,
-            lieu_signature,
-            statut
-        ) VALUES (?, ?, ?, CURDATE(), ?, ?, ?, ?, ?, ?, ?, ?, ?, 'brouillon')
-    ");
-    
-    $defaultTexts = getDefaultPropertyDescriptions($type);
-    
-    $stmt->execute([
-        $contratId,
-        $type,
-        $referenceUnique,
-        $contrat['adresse'],
-        $contrat['appartement'] ?? '',
-        $config['COMPANY_NAME'] ?? 'MY INVEST IMMOBILIER',
-        $config['BAILLEUR_REPRESENTANT'] ?? '',
-        $defaultTexts['piece_principale'],
-        $defaultTexts['coin_cuisine'],
-        $defaultTexts['salle_eau_wc'],
-        $defaultTexts['etat_general'],
-        '' // lieu_signature
-    ]);
-    
-    $etatLieuxId = $pdo->lastInsertId();
-    
-    // Ajouter les locataires
-    foreach ($locataires as $i => $loc) {
+    error_log("=== createDefaultEtatLieux - START ===");
+    error_log("Creating default état des lieux for contrat #$contratId, type: $type");
+
+    try {
+        $referenceUnique = 'EDL-' . strtoupper($type) . '-' . $contrat['reference'] . '-' . date('YmdHis');
+        error_log("Generated reference: $referenceUnique");
+        
+        // Get first locataire for email
+        if (empty($locataires)) {
+            error_log("ERROR: No locataires provided to createDefaultEtatLieux");
+            throw new Exception("Aucun locataire fourni pour créer l'état des lieux");
+        }
+        
+        $firstLocataire = $locataires[0];
+        $locataireEmail = $firstLocataire['email'] ?? '';
+        $locataireNomComplet = trim(($firstLocataire['prenom'] ?? '') . ' ' . ($firstLocataire['nom'] ?? ''));
+        
+        error_log("First locataire: $locataireNomComplet ($locataireEmail)");
+        
         $stmt = $pdo->prepare("
-            INSERT INTO etat_lieux_locataires (
-                etat_lieux_id,
-                locataire_id,
-                ordre,
-                nom,
-                prenom,
-                email
-            ) VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO etats_lieux (
+                contrat_id, 
+                type, 
+                reference_unique,
+                date_etat,
+                adresse,
+                appartement,
+                bailleur_nom,
+                bailleur_representant,
+                locataire_email,
+                locataire_nom_complet,
+                piece_principale,
+                coin_cuisine,
+                salle_eau_wc,
+                etat_general,
+                lieu_signature,
+                statut
+            ) VALUES (?, ?, ?, CURDATE(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'brouillon')
         ");
-        $stmt->execute([
-            $etatLieuxId,
-            $loc['id'],
-            $i + 1,
-            $loc['nom'],
-            $loc['prenom'],
-            $loc['email']
-        ]);
-    }
+        
+        $defaultTexts = getDefaultPropertyDescriptions($type);
+        
+        $params = [
+            $contratId,
+            $type,
+            $referenceUnique,
+            $contrat['adresse'],
+            $contrat['appartement'] ?? '',
+            $config['COMPANY_NAME'] ?? 'MY INVEST IMMOBILIER',
+            $config['BAILLEUR_REPRESENTANT'] ?? '',
+            $locataireEmail,
+            $locataireNomComplet,
+            $defaultTexts['piece_principale'],
+            $defaultTexts['coin_cuisine'],
+            $defaultTexts['salle_eau_wc'],
+            $defaultTexts['etat_general'],
+            '' // lieu_signature
+        ];
+        
+        error_log("Executing INSERT with " . count($params) . " parameters");
+        $stmt->execute($params);
+        
+        $etatLieuxId = $pdo->lastInsertId();
+        error_log("État des lieux created with ID: $etatLieuxId");
+        
+        // Ajouter les locataires
+        error_log("Adding " . count($locataires) . " locataire(s)...");
+        foreach ($locataires as $i => $loc) {
+            $stmt = $pdo->prepare("
+                INSERT INTO etat_lieux_locataires (
+                    etat_lieux_id,
+                    locataire_id,
+                    ordre,
+                    nom,
+                    prenom,
+                    email
+                ) VALUES (?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([
+                $etatLieuxId,
+                $loc['id'],
+                $i + 1,
+                $loc['nom'],
+                $loc['prenom'],
+                $loc['email']
+            ]);
+            error_log("Added locataire " . ($i+1) . ": " . $loc['prenom'] . ' ' . $loc['nom']);
+        }
     
-    // Récupérer l'état des lieux créé
-    $stmt = $pdo->prepare("SELECT * FROM etats_lieux WHERE id = ?");
-    $stmt->execute([$etatLieuxId]);
-    return $stmt->fetch(PDO::FETCH_ASSOC);
+        // Récupérer l'état des lieux créé
+        error_log("Fetching created état des lieux...");
+        $stmt = $pdo->prepare("SELECT * FROM etats_lieux WHERE id = ?");
+        $stmt->execute([$etatLieuxId]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        error_log("=== createDefaultEtatLieux - SUCCESS ===");
+        return $result;
+        
+    } catch (Exception $e) {
+        error_log("=== createDefaultEtatLieux - ERROR ===");
+        error_log("Exception type: " . get_class($e));
+        error_log("Error message: " . $e->getMessage());
+        error_log("Error file: " . $e->getFile() . ":" . $e->getLine());
+        error_log("Stack trace: " . $e->getTraceAsString());
+        throw $e;
+    }
 }
 
 /**

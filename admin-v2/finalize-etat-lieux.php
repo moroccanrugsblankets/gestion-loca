@@ -16,46 +16,105 @@ use PHPMailer\PHPMailer\Exception;
 // Get état des lieux ID
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
+// Log the request
+error_log("=== FINALIZE ETAT LIEUX - START ===");
+error_log("Requested ID: " . $id);
+
 if ($id < 1) {
+    error_log("ERROR: Invalid ID provided - " . $id);
     $_SESSION['error'] = "ID de l'état des lieux invalide";
     header('Location: etats-lieux.php');
     exit;
 }
 
 // Get état des lieux details
-$stmt = $pdo->prepare("
-    SELECT edl.*, 
-           c.id as contrat_id,
-           c.reference_unique as contrat_ref
-    FROM etats_lieux edl
-    LEFT JOIN contrats c ON edl.contrat_id = c.id
-    WHERE edl.id = ?
-");
-$stmt->execute([$id]);
-$etat = $stmt->fetch(PDO::FETCH_ASSOC);
+try {
+    error_log("Fetching etat des lieux from database with ID: " . $id);
+    
+    $stmt = $pdo->prepare("
+        SELECT edl.*, 
+               c.id as contrat_id,
+               c.reference_unique as contrat_ref
+        FROM etats_lieux edl
+        LEFT JOIN contrats c ON edl.contrat_id = c.id
+        WHERE edl.id = ?
+    ");
+    $stmt->execute([$id]);
+    $etat = $stmt->fetch(PDO::FETCH_ASSOC);
 
-if (!$etat) {
-    $_SESSION['error'] = "État des lieux non trouvé";
+    if (!$etat) {
+        error_log("ERROR: État des lieux not found in database for ID: " . $id);
+        $_SESSION['error'] = "État des lieux non trouvé";
+        header('Location: etats-lieux.php');
+        exit;
+    }
+    
+    // Log retrieved data for debugging
+    error_log("État des lieux found - ID: " . $etat['id']);
+    error_log("Contrat ID: " . ($etat['contrat_id'] ?? 'NULL'));
+    error_log("Type: " . ($etat['type'] ?? 'NULL'));
+    error_log("Reference unique: " . ($etat['reference_unique'] ?? 'NULL'));
+    error_log("Locataire email: " . ($etat['locataire_email'] ?? 'NULL'));
+    error_log("Locataire nom complet: " . ($etat['locataire_nom_complet'] ?? 'NULL'));
+    error_log("Adresse: " . ($etat['adresse'] ?? 'NULL'));
+    error_log("Date etat: " . ($etat['date_etat'] ?? 'NULL'));
+    error_log("Contrat ref: " . ($etat['contrat_ref'] ?? 'NULL'));
+    
+    // Check for missing required fields
+    $missingFields = [];
+    $requiredFields = ['contrat_id', 'type', 'locataire_email', 'locataire_nom_complet', 'adresse', 'date_etat'];
+    foreach ($requiredFields as $field) {
+        if (empty($etat[$field])) {
+            $missingFields[] = $field;
+        }
+    }
+    
+    if (!empty($missingFields)) {
+        error_log("WARNING: Missing required fields: " . implode(', ', $missingFields));
+    }
+    
+} catch (PDOException $e) {
+    error_log("DATABASE ERROR while fetching etat des lieux: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
+    $_SESSION['error'] = "Erreur de base de données: " . $e->getMessage();
     header('Location: etats-lieux.php');
     exit;
 }
 
 // Handle finalization
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'finalize') {
+    error_log("=== FINALIZE ETAT LIEUX - POST REQUEST ===");
+    error_log("Action: finalize");
+    
     try {
+        error_log("Starting transaction...");
         $pdo->beginTransaction();
         
         // Generate PDF
+        error_log("Generating PDF for contrat_id: " . $etat['contrat_id'] . ", type: " . $etat['type']);
         $pdfPath = generateEtatDesLieuxPDF($etat['contrat_id'], $etat['type']);
         
         if (!$pdfPath || !file_exists($pdfPath)) {
+            error_log("ERROR: PDF generation failed. Path returned: " . ($pdfPath ?? 'NULL'));
+            if ($pdfPath && !file_exists($pdfPath)) {
+                error_log("ERROR: PDF path returned but file does not exist: " . $pdfPath);
+            }
             throw new Exception("Erreur lors de la génération du PDF");
         }
         
+        error_log("PDF generated successfully: " . $pdfPath);
+        error_log("PDF file size: " . filesize($pdfPath) . " bytes");
+        
         // Prepare email
+        error_log("Preparing email with PHPMailer...");
         $mail = new PHPMailer(true);
         
         // Server settings
+        error_log("Configuring SMTP settings...");
+        error_log("SMTP Host: " . $config['SMTP_HOST']);
+        error_log("SMTP Port: " . $config['SMTP_PORT']);
+        error_log("SMTP Username: " . $config['SMTP_USERNAME']);
+        
         $mail->isSMTP();
         $mail->Host = $config['SMTP_HOST'];
         $mail->SMTPAuth = $config['SMTP_AUTH'];
@@ -66,6 +125,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $mail->CharSet = 'UTF-8';
         
         // Recipients
+        error_log("Setting email recipients...");
+        error_log("From: " . $config['MAIL_FROM'] . " (" . $config['MAIL_FROM_NAME'] . ")");
+        error_log("To: " . $etat['locataire_email'] . " (" . $etat['locataire_nom_complet'] . ")");
+        
         $mail->setFrom($config['MAIL_FROM'], $config['MAIL_FROM_NAME']);
         $mail->addAddress($etat['locataire_email'], $etat['locataire_nom_complet']);
         $mail->addCC('gestion@myinvest-immobilier.com');
@@ -73,6 +136,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         // Content
         $typeLabel = $etat['type'] === 'entree' ? "d'entrée" : "de sortie";
         $mail->Subject = "État des lieux {$typeLabel} - {$etat['adresse']}";
+        
+        error_log("Email subject: " . $mail->Subject);
         
         $mail->Body = "Bonjour,\n\n";
         $mail->Body .= "Veuillez trouver ci-joint l'état des lieux {$typeLabel} pour le logement situé au :\n";
@@ -85,12 +150,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         
         // Attach PDF
         $filename = 'etat_lieux_' . $etat['type'] . '_' . $etat['contrat_ref'] . '.pdf';
+        error_log("Attaching PDF as: " . $filename);
         $mail->addAttachment($pdfPath, $filename);
         
         // Send email
+        error_log("Sending email...");
         $mail->send();
+        error_log("Email sent successfully!");
         
         // Update status
+        error_log("Updating database status...");
         $stmt = $pdo->prepare("
             UPDATE etats_lieux 
             SET statut = 'envoye', 
@@ -99,23 +168,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             WHERE id = ?
         ");
         $stmt->execute([$id]);
+        error_log("Database updated successfully");
         
         $pdo->commit();
+        error_log("Transaction committed");
         
         // Clean up temporary PDF if needed
         if (strpos($pdfPath, '/tmp/') !== false) {
+            error_log("Cleaning up temporary PDF: " . $pdfPath);
             @unlink($pdfPath);
         }
         
+        error_log("=== FINALIZE ETAT LIEUX - SUCCESS ===");
         $_SESSION['success'] = "État des lieux finalisé et envoyé avec succès à " . htmlspecialchars($etat['locataire_email']);
         header('Location: etats-lieux.php');
         exit;
         
     } catch (Exception $e) {
         if ($pdo->inTransaction()) {
+            error_log("Rolling back transaction...");
             $pdo->rollBack();
         }
-        error_log("Error finalizing état des lieux: " . $e->getMessage());
+        error_log("=== FINALIZE ETAT LIEUX - ERROR ===");
+        error_log("Exception type: " . get_class($e));
+        error_log("Error message: " . $e->getMessage());
+        error_log("Error code: " . $e->getCode());
+        error_log("Error file: " . $e->getFile() . ":" . $e->getLine());
+        error_log("Stack trace: " . $e->getTraceAsString());
+        
         $_SESSION['error'] = "Erreur lors de la finalisation: " . $e->getMessage();
     }
 }
