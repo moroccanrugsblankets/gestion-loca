@@ -401,7 +401,7 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
             if ($('#tableEntree').length) {
                 tableEntree = $('#tableEntree').DataTable({
                     language: {
-                        url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
+                        url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
                     },
                     order: [[4, 'desc']], // Sort by date
                     pageLength: 25,
@@ -422,7 +422,7 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
             if ($('#tableSortie').length) {
                 tableSortie = $('#tableSortie').DataTable({
                     language: {
-                        url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
+                        url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
                     },
                     order: [[4, 'desc']], // Sort by date
                     pageLength: 25,

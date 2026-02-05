@@ -121,6 +121,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     continue; // Skip incomplete entries
                 }
                 
+                // Note: locataire_id is set to 0 as a placeholder since we're storing tenant info directly
+                // in this table without requiring a reference to the main locataires table
                 $stmt = $pdo->prepare("
                     INSERT INTO etat_lieux_locataires 
                     (etat_lieux_id, locataire_id, ordre, nom, prenom, email, signature_data, signature_timestamp, signature_ip)

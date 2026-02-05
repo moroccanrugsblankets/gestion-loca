@@ -82,11 +82,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $default_cles_boite_lettres = (int)($contrat['default_cles_boite_lettres'] ?? 1);
         $default_cles_total = $default_cles_appartement + $default_cles_boite_lettres;
         
-        $default_piece_principale = $contrat['default_etat_piece_principale'] ?? 
-            "• Revêtement de sol : parquet très bon état d'usage\n• Murs : peintures très bon état\n• Plafond : peintures très bon état\n• Installations électriques et plomberie : fonctionnelles";
+        // Default room description template - used for main room and kitchen
+        $default_room_description = "• Revêtement de sol : parquet très bon état d'usage\n• Murs : peintures très bon état\n• Plafond : peintures très bon état\n• Installations électriques et plomberie : fonctionnelles";
         
-        $default_coin_cuisine = $contrat['default_etat_cuisine'] ?? 
-            "• Revêtement de sol : parquet très bon état d'usage\n• Murs : peintures très bon état\n• Plafond : peintures très bon état\n• Installations électriques et plomberie : fonctionnelles";
+        $default_piece_principale = $contrat['default_etat_piece_principale'] ?? $default_room_description;
+        
+        $default_coin_cuisine = $contrat['default_etat_cuisine'] ?? $default_room_description;
         
         $default_salle_eau_wc = $contrat['default_etat_salle_eau'] ?? 
             "• Revêtement de sol : carrelage très bon état d'usage\n• Faïence : très bon état\n• Plafond : peintures très bon état\n• Installations électriques et plomberie : fonctionnelles";
