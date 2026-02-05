@@ -34,9 +34,12 @@ try {
     $stmt = $pdo->prepare("
         SELECT edl.*, 
                c.id as contrat_id,
-               c.reference_unique as contrat_ref
+               c.reference_unique as contrat_ref,
+               l.adresse as logement_adresse,
+               l.appartement as logement_appartement
         FROM etats_lieux edl
         LEFT JOIN contrats c ON edl.contrat_id = c.id
+        LEFT JOIN logements l ON c.logement_id = l.id
         WHERE edl.id = ?
     ");
     $stmt->execute([$id]);
@@ -59,6 +62,48 @@ try {
     error_log("Adresse: " . ($etat['adresse'] ?? 'NULL'));
     error_log("Date etat: " . ($etat['date_etat'] ?? 'NULL'));
     error_log("Contrat ref: " . ($etat['contrat_ref'] ?? 'NULL'));
+    
+    // Fix missing address from logement if available
+    $needsUpdate = false;
+    $fieldsToUpdate = [];
+    
+    if (empty($etat['adresse']) && !empty($etat['logement_adresse'])) {
+        error_log("Address is NULL, populating from logement: " . $etat['logement_adresse']);
+        $etat['adresse'] = $etat['logement_adresse'];
+        $fieldsToUpdate['adresse'] = $etat['adresse'];
+        $needsUpdate = true;
+    }
+    
+    if (empty($etat['appartement']) && !empty($etat['logement_appartement'])) {
+        error_log("Appartement is NULL, populating from logement: " . $etat['logement_appartement']);
+        $etat['appartement'] = $etat['logement_appartement'];
+        $fieldsToUpdate['appartement'] = $etat['appartement'];
+        $needsUpdate = true;
+    }
+    
+    // Update database with all missing fields in a single query
+    if ($needsUpdate) {
+        // Whitelist of allowed fields to prevent SQL injection
+        $allowedFields = ['adresse', 'appartement'];
+        
+        $setParts = [];
+        $params = [];
+        foreach ($fieldsToUpdate as $field => $value) {
+            // Only allow whitelisted fields
+            if (in_array($field, $allowedFields, true)) {
+                $setParts[] = "`$field` = ?";
+                $params[] = $value;
+            }
+        }
+        
+        if (!empty($setParts)) {
+            $params[] = $id;
+            $sql = "UPDATE etats_lieux SET " . implode(', ', $setParts) . " WHERE id = ?";
+            $updateStmt = $pdo->prepare($sql);
+            $updateStmt->execute($params);
+            error_log("Updated database with: " . implode(', ', array_keys($fieldsToUpdate)));
+        }
+    }
     
     // Check for missing required fields
     $missingFields = [];
