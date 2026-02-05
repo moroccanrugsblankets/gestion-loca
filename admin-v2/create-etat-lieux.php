@@ -33,10 +33,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
     
-    // Verify contract exists and get details
+    // Verify contract exists and get details including logement defaults
     $stmt = $pdo->prepare("
         SELECT c.*, 
                l.adresse, l.appartement,
+               l.default_cles_appartement, l.default_cles_boite_lettres,
+               l.default_etat_piece_principale, l.default_etat_cuisine, l.default_etat_salle_eau,
                CONCAT(cand.prenom, ' ', cand.nom) as locataire_nom,
                cand.email as locataire_email
         FROM contrats c
@@ -65,6 +67,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Generate unique reference
     $reference = 'EDL-' . strtoupper($type[0]) . '-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
     
+    // Prepare default values
+    $default_cles_appartement = null;
+    $default_cles_boite_lettres = null;
+    $default_cles_total = null;
+    $default_piece_principale = null;
+    $default_coin_cuisine = null;
+    $default_salle_eau_wc = null;
+    $default_etat_general = null;
+    
+    // For entry: use logement defaults
+    if ($type === 'entree') {
+        $default_cles_appartement = (int)($contrat['default_cles_appartement'] ?? 2);
+        $default_cles_boite_lettres = (int)($contrat['default_cles_boite_lettres'] ?? 1);
+        $default_cles_total = $default_cles_appartement + $default_cles_boite_lettres;
+        
+        // Default room description template - used for main room and kitchen
+        $default_room_description = "• Revêtement de sol : parquet très bon état d'usage\n• Murs : peintures très bon état\n• Plafond : peintures très bon état\n• Installations électriques et plomberie : fonctionnelles";
+        
+        $default_piece_principale = $contrat['default_etat_piece_principale'] ?? $default_room_description;
+        
+        $default_coin_cuisine = $contrat['default_etat_cuisine'] ?? $default_room_description;
+        
+        $default_salle_eau_wc = $contrat['default_etat_salle_eau'] ?? 
+            "• Revêtement de sol : carrelage très bon état d'usage\n• Faïence : très bon état\n• Plafond : peintures très bon état\n• Installations électriques et plomberie : fonctionnelles";
+        
+        $default_etat_general = "Le logement a fait l'objet d'une remise en état générale avant l'entrée dans les lieux.\nIl est propre, entretenu et ne présente aucune dégradation apparente au jour de l'état des lieux.\nAucune anomalie constatée.";
+    }
+    // For exit: try to copy from entry state
+    else if ($type === 'sortie') {
+        $stmt = $pdo->prepare("SELECT * FROM etats_lieux WHERE contrat_id = ? AND type = 'entree' ORDER BY date_etat DESC LIMIT 1");
+        $stmt->execute([$contrat_id]);
+        $etat_entree = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($etat_entree) {
+            $default_cles_appartement = $etat_entree['cles_appartement'];
+            $default_cles_boite_lettres = $etat_entree['cles_boite_lettres'];
+            $default_cles_total = $etat_entree['cles_total'];
+            $default_piece_principale = $etat_entree['piece_principale'];
+            $default_coin_cuisine = $etat_entree['coin_cuisine'];
+            $default_salle_eau_wc = $etat_entree['salle_eau_wc'];
+            $default_etat_general = "À compléter lors de l'état des lieux de sortie (anomalies constatées, traces d'usage, dégradations éventuelles).";
+        }
+    }
+    
     // Insert new état des lieux with initial data
     try {
         $stmt = $pdo->prepare("
@@ -72,9 +118,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 contrat_id, type, date_etat, reference_unique,
                 adresse, appartement, 
                 bailleur_nom, locataire_nom_complet, locataire_email,
+                cles_appartement, cles_boite_lettres, cles_total,
+                piece_principale, coin_cuisine, salle_eau_wc, etat_general,
                 statut, created_at, created_by
             ) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'brouillon', NOW(), ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'brouillon', NOW(), ?)
         ");
         $stmt->execute([
             $contrat_id, 
@@ -86,6 +134,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'SCI My Invest Immobilier, représentée par Maxime ALEXANDRE',
             $contrat['locataire_nom'],
             $contrat['locataire_email'],
+            $default_cles_appartement,
+            $default_cles_boite_lettres,
+            $default_cles_total,
+            $default_piece_principale,
+            $default_coin_cuisine,
+            $default_salle_eau_wc,
+            $default_etat_general,
             $_SESSION['username'] ?? 'admin'
         ]);
         
