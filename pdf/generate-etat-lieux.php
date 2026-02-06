@@ -941,9 +941,6 @@ HTML;
     $html .= <<<HTML
     </div>
     
-    $html .= <<<HTML
-    </div>
-    
     <div class="section">
         <h2>4. DESCRIPTION DU LOGEMENT</h2>
         
