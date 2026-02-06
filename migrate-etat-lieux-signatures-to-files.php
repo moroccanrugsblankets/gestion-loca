@@ -38,11 +38,13 @@ if (empty($tenants)) {
     
     $converted = 0;
     $failed = 0;
+    $counter = 0;
     
     foreach ($tenants as $tenant) {
         $id = $tenant['id'];
         $etatLieuxId = $tenant['etat_lieux_id'];
         $signatureData = $tenant['signature_data'];
+        $counter++;
         
         echo "Processing etat_lieux_locataire ID $id (etat_lieux ID: $etatLieuxId)...\n";
         
@@ -53,7 +55,6 @@ if (empty($tenants)) {
             continue;
         }
         
-        $imageFormat = $matches[1];
         $base64Data = $matches[2];
         
         // Decode base64
@@ -65,12 +66,14 @@ if (empty($tenants)) {
         }
         
         // Generate unique filename (always .jpg)
-        $filename = "tenant_etat_lieux_{$etatLieuxId}_{$id}_migrated_" . time() . ".jpg";
+        $filename = "tenant_etat_lieux_{$etatLieuxId}_{$id}_migrated_" . time() . "_{$counter}.jpg";
         $filepath = $uploadsDir . '/' . $filename;
         
         // Save physical file
         if (file_put_contents($filepath, $imageData) === false) {
-            echo "  ✗ Failed to save file: $filepath\n";
+            $lastError = error_get_last();
+            $errorMsg = $lastError ? $lastError['message'] : 'unknown error';
+            echo "  ✗ Failed to save file: $filepath ($errorMsg)\n";
             $failed++;
             continue;
         }
@@ -91,9 +94,6 @@ if (empty($tenants)) {
             }
             $failed++;
         }
-        
-        // Small delay to ensure unique timestamps
-        usleep(10000); // 10ms
     }
     
     echo "\n--- Tenant Signatures Migration Summary ---\n";
@@ -108,9 +108,11 @@ echo "=== Part 2: Migrating Landlord Signatures ===\n\n";
 $paramKeys = ['signature_societe_etat_lieux_image', 'signature_societe_image'];
 $convertedParams = 0;
 $failedParams = 0;
+$paramCounter = 0;
 
 foreach ($paramKeys as $paramKey) {
     echo "Checking parameter: $paramKey...\n";
+    $paramCounter++;
     
     $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = ?");
     $stmt->execute([$paramKey]);
@@ -135,7 +137,6 @@ foreach ($paramKeys as $paramKey) {
         continue;
     }
     
-    $imageFormat = $matches[1];
     $base64Data = $matches[2];
     
     // Decode base64
@@ -147,12 +148,14 @@ foreach ($paramKeys as $paramKey) {
     }
     
     // Generate unique filename (always .jpg)
-    $filename = "landlord_{$paramKey}_migrated_" . time() . ".jpg";
+    $filename = "landlord_{$paramKey}_migrated_" . time() . "_{$paramCounter}.jpg";
     $filepath = $uploadsDir . '/' . $filename;
     
     // Save physical file
     if (file_put_contents($filepath, $imageData) === false) {
-        echo "  ✗ Failed to save file: $filepath\n";
+        $lastError = error_get_last();
+        $errorMsg = $lastError ? $lastError['message'] : 'unknown error';
+        echo "  ✗ Failed to save file: $filepath ($errorMsg)\n";
         $failedParams++;
         continue;
     }
@@ -173,9 +176,6 @@ foreach ($paramKeys as $paramKey) {
         }
         $failedParams++;
     }
-    
-    // Small delay to ensure unique timestamps
-    usleep(10000); // 10ms
 }
 
 echo "\n--- Landlord Signatures Migration Summary ---\n";
