@@ -274,6 +274,8 @@ function updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve)
  * @return bool
  */
 function updateEtatLieuxTenantSignature($etatLieuxLocataireId, $signatureData, $etatLieuxId) {
+    global $pdo;
+    
     // Validate signature data size
     $maxSize = 2 * 1024 * 1024; // 2MB limit
     if (strlen($signatureData) > $maxSize) {
