@@ -414,9 +414,11 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
     $clesAppart = (int)($etatLieux['cles_appartement'] ?? 0);
     $clesBoite = (int)($etatLieux['cles_boite_lettres'] ?? 0);
     $clesAutre = (int)($etatLieux['cles_autre'] ?? 0);
-    $clesTotal = (int)($etatLieux['cles_total'] ?? 0);
-    if ($clesTotal === 0) {
+    // Only auto-calculate total if not explicitly set in database
+    if (!isset($etatLieux['cles_total']) || $etatLieux['cles_total'] === null || $etatLieux['cles_total'] === '') {
         $clesTotal = $clesAppart + $clesBoite + $clesAutre;
+    } else {
+        $clesTotal = (int)$etatLieux['cles_total'];
     }
     
     // Lieu de signature
