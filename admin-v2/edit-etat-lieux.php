@@ -899,19 +899,23 @@ $isSortie = $etat['type'] === 'sortie';
                                 <?php
                                 // Handle signature path - prepend ../ for relative paths since we're in admin-v2 directory
                                 $signatureSrc = $tenant['signature_data'];
-                                if (preg_match('/^data:image/', $signatureSrc)) {
-                                    // Data URL - use as is
+                                if (preg_match('/^data:image\/[a-z]+;base64,/', $signatureSrc)) {
+                                    // Data URL - use as is (validated format)
                                     $displaySrc = $signatureSrc;
-                                } elseif (preg_match('/^uploads\//', $signatureSrc)) {
-                                    // Relative path - prepend ../
+                                } elseif (preg_match('/^uploads\/signatures\/[a-zA-Z0-9_\-\.]+\.(jpg|jpeg|png)$/', $signatureSrc)) {
+                                    // Relative path - validate it's within expected directory and prepend ../
+                                    // Pattern ensures no directory traversal and only allowed file extensions
                                     $displaySrc = '../' . $signatureSrc;
                                 } else {
-                                    // Absolute URL or other format - use as is
-                                    $displaySrc = $signatureSrc;
+                                    // Invalid or unexpected format - don't display to prevent security issues
+                                    error_log("Invalid signature path format: " . $signatureSrc);
+                                    $displaySrc = '';
                                 }
                                 ?>
+                                <?php if (!empty($displaySrc)): ?>
                                 <img src="<?php echo htmlspecialchars($displaySrc); ?>" 
                                      alt="Signature" style="max-width: 200px; max-height: 80px; border: 1px solid #dee2e6; padding: 5px;">
+                                <?php endif; ?>
                             </div>
                         <?php endif; ?>
                         <label class="form-label">Veuillez signer dans le cadre ci-dessous :</label>
