@@ -908,8 +908,9 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
             // Verify file exists before adding to PDF
             $fullPath = dirname(__DIR__) . '/' . $landlordSigPath;
             if (file_exists($fullPath)) {
-                // TCPDF requires @ prefix for local file paths
-                $html .= '<div class="signature-box"><img src="@' . $fullPath . '" alt="Signature Bailleur" style="max-width:120px; max-height:50px;"></div>';
+                // Use public URL for signature image (like contract PDF does)
+                $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($landlordSigPath, '/');
+                $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" style="max-width:120px; max-height:50px;"></div>';
             } else {
                 error_log("Landlord signature file not found: $fullPath");
                 $html .= '<div class="signature-box">&nbsp;</div>';
@@ -945,11 +946,12 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
                 // Data URL format - TCPDF can handle this directly
                 $html .= '<div class="signature-box"><img src="' . $tenantInfo['signature_data'] . '" alt="Signature Locataire" style="max-width:120px; max-height:50px;"></div>';
             } elseif (preg_match('/^uploads\/signatures\//', $tenantInfo['signature_data'])) {
-                // File path format - use local file path with @ prefix for TCPDF
+                // File path format - verify file exists before using public URL
                 $fullPath = dirname(__DIR__) . '/' . $tenantInfo['signature_data'];
                 if (file_exists($fullPath)) {
-                    // TCPDF requires @ prefix for local file paths
-                    $html .= '<div class="signature-box"><img src="@' . $fullPath . '" alt="Signature Locataire" style="max-width:120px; max-height:50px;"></div>';
+                    // Use public URL (like contract PDF does)
+                    $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($tenantInfo['signature_data'], '/');
+                    $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" style="max-width:120px; max-height:50px;"></div>';
                 } else {
                     error_log("Tenant signature file not found: $fullPath");
                     $html .= '<div class="signature-box">&nbsp;</div>';
