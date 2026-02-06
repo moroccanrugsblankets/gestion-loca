@@ -58,6 +58,7 @@ test-db-connection.php
 test-refactoring.php
 !test-etat-lieux-module.php
 test-upload.html
+test-signature-fix.html
 test-candidature-evaluation.php
 test-candidature-evaluation-standalone.php
 test-cron-output.php
