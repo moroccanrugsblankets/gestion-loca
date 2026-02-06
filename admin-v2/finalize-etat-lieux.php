@@ -162,7 +162,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         error_log("Sending email with template: $templateId");
         
         // Send email to tenant using template
-        require_once __DIR__ . '/../includes/functions.php';
         $emailSent = sendTemplatedEmail($templateId, $etat['locataire_email'], $emailVariables, $pdfPath);
         
         if (!$emailSent) {
