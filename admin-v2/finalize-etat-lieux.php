@@ -297,15 +297,6 @@ try {
             </div>
         </div>
 
-        <!-- Info about template configuration -->
-        <div class="alert alert-info alert-dismissible fade show">
-            <i class="bi bi-info-circle"></i>
-            <strong>Configuration du template :</strong> 
-            Vous pouvez personnaliser le modèle d'état des lieux (contenu, mise en forme, signature) dans 
-            <a href="etat-lieux-configuration.php" class="alert-link"><strong>Configuration du Template d'État des Lieux</strong></a>.
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-
         <?php if (isset($_SESSION['error'])): ?>
             <div class="alert alert-danger alert-dismissible fade show">
                 <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>

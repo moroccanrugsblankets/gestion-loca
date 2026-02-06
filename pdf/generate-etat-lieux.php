@@ -21,6 +21,9 @@ if (file_exists(__DIR__ . '/../admin-v2/etat-lieux-configuration.php')) {
 define('ETAT_LIEUX_SIGNATURE_MAX_WIDTH', '30mm');
 define('ETAT_LIEUX_SIGNATURE_MAX_HEIGHT', '15mm');
 
+// Style CSS pour les images de signature (sans bordures) - identique aux contrats
+define('ETAT_LIEUX_SIGNATURE_IMG_STYLE', 'max-width: 30mm; max-height: 15mm; display: block; border: 0; outline: none; box-shadow: none; background: transparent; padding: 0; margin: 0 auto;');
+
 /**
  * Générer le PDF de l'état des lieux
  * 
@@ -1259,8 +1262,7 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
             if (file_exists($fullPath)) {
                 // Use public URL for signature image
                 $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($landlordSigPath, '/');
-                $sigStyle = 'max-width:' . ETAT_LIEUX_SIGNATURE_MAX_WIDTH . '; max-height:' . ETAT_LIEUX_SIGNATURE_MAX_HEIGHT . '; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;';
-                $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" border="0" style="' . $sigStyle . '"></div>';
+                $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" border="0" style="' . ETAT_LIEUX_SIGNATURE_IMG_STYLE . '"></div>';
             } else {
                 error_log("Landlord signature file not found: $fullPath");
                 $html .= '<div class="signature-box">&nbsp;</div>';
@@ -1291,18 +1293,17 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
         $html .= '<p><strong>' . $tenantLabel . '</strong></p>';
 
         // Display tenant signature if available
-        $sigStyle = 'max-width:' . ETAT_LIEUX_SIGNATURE_MAX_WIDTH . '; max-height:' . ETAT_LIEUX_SIGNATURE_MAX_HEIGHT . '; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;';
         if (!empty($tenantInfo['signature_data'])) {
             if (preg_match('/^data:image\/(jpeg|jpg|png);base64,/', $tenantInfo['signature_data'])) {
                 // Data URL format - TCPDF can handle this directly
-                $html .= '<div class="signature-box"><img src="' . $tenantInfo['signature_data'] . '" alt="Signature Locataire" border="0" style="' . $sigStyle . '"></div>';
+                $html .= '<div class="signature-box"><img src="' . $tenantInfo['signature_data'] . '" alt="Signature Locataire" border="0" style="' . ETAT_LIEUX_SIGNATURE_IMG_STYLE . '"></div>';
             } elseif (preg_match('/^uploads\/signatures\//', $tenantInfo['signature_data'])) {
                 // File path format - verify file exists before using public URL
                 $fullPath = dirname(__DIR__) . '/' . $tenantInfo['signature_data'];
                 if (file_exists($fullPath)) {
                     // Use public URL
                     $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($tenantInfo['signature_data'], '/');
-                    $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" border="0" style="' . $sigStyle . '"></div>';
+                    $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" border="0" style="' . ETAT_LIEUX_SIGNATURE_IMG_STYLE . '"></div>';
                 } else {
                     error_log("Tenant signature file not found: $fullPath");
                     $html .= '<div class="signature-box">&nbsp;</div>';
