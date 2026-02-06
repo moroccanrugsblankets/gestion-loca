@@ -426,6 +426,12 @@ $signatureEnabled = $stmt->fetchColumn() === 'true';
                     <span class="variable-tag" onclick="copyVariable('{{bailleur_nom}}')">{{bailleur_nom}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{bailleur_representant}}')">{{bailleur_representant}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{locataires_info}}')">{{locataires_info}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{compteur_electricite}}')">{{compteur_electricite}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{compteur_eau_froide}}')">{{compteur_eau_froide}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{cles_appartement}}')">{{cles_appartement}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{cles_boite_lettres}}')">{{cles_boite_lettres}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{cles_autre}}')">{{cles_autre}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{cles_total}}')">{{cles_total}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{piece_principale}}')">{{piece_principale}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{coin_cuisine}}')">{{coin_cuisine}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{salle_eau_wc}}')">{{salle_eau_wc}}</span>

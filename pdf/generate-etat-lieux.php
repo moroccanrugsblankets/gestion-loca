@@ -406,6 +406,19 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
     $observations = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $observations);
     $observationsEscaped = nl2br(htmlspecialchars($observations));
     
+    // Compteurs (Meter readings)
+    $compteurElec = htmlspecialchars($etatLieux['compteur_electricite'] ?? '');
+    $compteurEau = htmlspecialchars($etatLieux['compteur_eau_froide'] ?? '');
+    
+    // Clés (Keys)
+    $clesAppart = (int)($etatLieux['cles_appartement'] ?? 0);
+    $clesBoite = (int)($etatLieux['cles_boite_lettres'] ?? 0);
+    $clesAutre = (int)($etatLieux['cles_autre'] ?? 0);
+    $clesTotal = (int)($etatLieux['cles_total'] ?? 0);
+    if ($clesTotal === 0) {
+        $clesTotal = $clesAppart + $clesBoite + $clesAutre;
+    }
+    
     // Lieu de signature
     $lieuSignature = htmlspecialchars(!empty($etatLieux['lieu_signature']) ? $etatLieux['lieu_signature'] : ($config['DEFAULT_SIGNATURE_LOCATION'] ?? 'Annemasse'));
     
@@ -428,6 +441,12 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
         '{{bailleur_nom}}' => $bailleurNom,
         '{{bailleur_representant}}' => $bailleurRepresentant,
         '{{locataires_info}}' => $locatairesInfo,
+        '{{compteur_electricite}}' => $compteurElec,
+        '{{compteur_eau_froide}}' => $compteurEau,
+        '{{cles_appartement}}' => $clesAppart,
+        '{{cles_boite_lettres}}' => $clesBoite,
+        '{{cles_autre}}' => $clesAutre,
+        '{{cles_total}}' => $clesTotal,
         '{{piece_principale}}' => $piecePrincipale,
         '{{coin_cuisine}}' => $coinCuisine,
         '{{salle_eau_wc}}' => $salleEauWC,
