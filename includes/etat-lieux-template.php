@@ -177,7 +177,41 @@ function getDefaultEtatLieuxTemplate() {
         {{locataires_info}}
     </table>
 
-    <h2 class="no-border">4. Description de l'état du logement</h2>
+    <h2>4. Relevé des compteurs</h2>
+    
+    <table>
+        <tr>
+            <td class="info-label">Électricité :</td>
+            <td>{{compteur_electricite}}</td>
+        </tr>
+        <tr>
+            <td class="info-label">Eau froide :</td>
+            <td>{{compteur_eau_froide}}</td>
+        </tr>
+    </table>
+
+    <h2>5. Remise des clés</h2>
+    
+    <table>
+        <tr>
+            <td class="info-label">Clés de l'appartement :</td>
+            <td>{{cles_appartement}}</td>
+        </tr>
+        <tr>
+            <td class="info-label">Clés de la boîte aux lettres :</td>
+            <td>{{cles_boite_lettres}}</td>
+        </tr>
+        <tr>
+            <td class="info-label">Autre :</td>
+            <td>{{cles_autre}}</td>
+        </tr>
+        <tr>
+            <td class="info-label">TOTAL :</td>
+            <td>{{cles_total}}</td>
+        </tr>
+    </table>
+
+    <h2 class="no-border">6. Description de l'état du logement</h2>
     
     <h3>Pièce principale</h3>
     <p class="observations">{{piece_principale}}</p>
@@ -193,7 +227,7 @@ function getDefaultEtatLieuxTemplate() {
     
     {{observations_section}}
 
-    <h2 class="no-border">5. Signatures</h2>
+    <h2 class="no-border">7. Signatures</h2>
     
     <p>Fait à {{lieu_signature}}, le {{date_signature}}</p>
     
