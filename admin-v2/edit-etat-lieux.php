@@ -903,10 +903,10 @@ $isSortie = $etat['type'] === 'sortie';
                                 // Validate data URL format with length check (max 2MB)
                                 if (preg_match('/^data:image\/(jpeg|jpg|png);base64,([A-Za-z0-9+\/=]+)$/', $signatureSrc, $matches)) {
                                     // Data URL - validate base64 content and size
-                                    if (strlen($signatureSrc) <= 2 * 1024 * 1024) {
+                                    if (strlen($signatureSrc) <= 2 * 1024 * 1024 && base64_decode($matches[2], true) !== false) {
                                         $displaySrc = $signatureSrc;
                                     } else {
-                                        error_log("Signature data URL too large for tenant ID: " . (int)$tenant['id']);
+                                        error_log("Invalid or oversized signature data URL for tenant ID: " . (int)$tenant['id']);
                                         $displaySrc = '';
                                     }
                                 } elseif (preg_match('/^uploads\/signatures\/[a-zA-Z0-9_][a-zA-Z0-9_\-]*\.(jpg|jpeg|png)$/', $signatureSrc)) {
