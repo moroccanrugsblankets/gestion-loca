@@ -16,11 +16,11 @@ require_once __DIR__ . '/../includes/mail-templates.php';
 require_once __DIR__ . '/../includes/etat-lieux-template.php';
 
 // Signature image display size constants (for PDF rendering)
-define('ETAT_LIEUX_SIGNATURE_MAX_WIDTH', '50mm');
-define('ETAT_LIEUX_SIGNATURE_MAX_HEIGHT', '25mm');
+define('ETAT_LIEUX_SIGNATURE_MAX_WIDTH', '20mm');
+define('ETAT_LIEUX_SIGNATURE_MAX_HEIGHT', '10mm');
 
 // Style CSS pour les images de signature (sans bordures) - matching generate-contrat-pdf.php style
-define('ETAT_LIEUX_SIGNATURE_IMG_STYLE', 'max-width: 150px; border: none; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;');
+define('ETAT_LIEUX_SIGNATURE_IMG_STYLE', 'max-width: 75px; max-height: 40px; border: none; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;');
 
 /**
  * Générer le PDF de l'état des lieux
@@ -384,6 +384,16 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
     $coinCuisine = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $coinCuisine);
     $salleEauWC = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $salleEauWC);
     $etatGeneral = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $etatGeneral);
+    
+    // Convert sentence-ending periods into line breaks
+    // Pattern matches: period + space + uppercase letter
+    // Excludes: digits (decimal numbers) and common French abbreviations via fixed-length lookbehinds
+    // The lookbehind checks the characters immediately before the period (e.g., 'M', 'Mr', 'Mme', etc.)
+    $sentencePattern = '/(?<!\d)(?<!M)(?<!Mr)(?<!Ms)(?<!Dr)(?<!St)(?<!Mme)(?<!Mrs)(?<!Ste)(?<!Mlle)\.\s+(?=[A-ZÀÂÄÇÉÈÊËÏÎÔÙÛÜ])/';
+    $piecePrincipale = preg_replace($sentencePattern, ".\n", $piecePrincipale);
+    $coinCuisine = preg_replace($sentencePattern, ".\n", $coinCuisine);
+    $salleEauWC = preg_replace($sentencePattern, ".\n", $salleEauWC);
+    $etatGeneral = preg_replace($sentencePattern, ".\n", $etatGeneral);
     
     // Escape HTML for descriptions (preserve newlines)
     $piecePrincipale = nl2br(htmlspecialchars($piecePrincipale));
