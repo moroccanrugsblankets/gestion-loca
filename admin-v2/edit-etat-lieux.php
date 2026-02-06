@@ -7,6 +7,7 @@
 require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
+require_once '../includes/functions.php';
 
 // Get état des lieux ID
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -975,17 +976,74 @@ $isSortie = $etat['type'] === 'sortie';
             container.style.display = (selectedValue === 'restitution_partielle' || selectedValue === 'retenue_totale') ? 'block' : 'none';
         }
         
-        // Preview photos
+        // Upload and preview photos
         function previewPhoto(input, previewId) {
             const preview = document.getElementById(previewId);
             preview.innerHTML = '';
             
-            if (input.files && input.files.length > 0) {
-                const fileList = document.createElement('div');
-                fileList.className = 'alert alert-success mb-0';
-                fileList.innerHTML = `<i class="bi bi-check-circle"></i> ${input.files.length} fichier(s) sélectionné(s)`;
-                preview.appendChild(fileList);
+            if (!input.files || input.files.length === 0) {
+                return;
             }
+            
+            // Determine category from input ID
+            const categoryMap = {
+                'photo_compteur_elec': 'compteur_electricite',
+                'photo_compteur_eau': 'compteur_eau',
+                'photo_cles': 'cles',
+                'photo_piece_principale': 'piece_principale',
+                'photo_cuisine': 'cuisine',
+                'photo_salle_eau': 'salle_eau',
+                'photo_etat_general': 'autre'
+            };
+            
+            const category = categoryMap[input.id];
+            if (!category) {
+                console.error('Unknown category for input:', input.id);
+                return;
+            }
+            
+            // Show uploading message
+            preview.innerHTML = '<div class="alert alert-info mb-0"><i class="bi bi-hourglass-split"></i> Téléchargement en cours...</div>';
+            
+            // Upload each file
+            const uploadPromises = [];
+            for (let i = 0; i < input.files.length; i++) {
+                const formData = new FormData();
+                formData.append('photo', input.files[i]);
+                formData.append('etat_lieux_id', <?php echo json_encode((int)$id); ?>);
+                formData.append('categorie', category);
+                
+                const uploadPromise = fetch('upload-etat-lieux-photo.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        throw new Error(data.error || 'Erreur inconnue');
+                    }
+                    return data;
+                });
+                
+                uploadPromises.push(uploadPromise);
+            }
+            
+            // Wait for all uploads to complete
+            Promise.all(uploadPromises)
+                .then(results => {
+                    preview.innerHTML = '<div class="alert alert-success mb-0"><i class="bi bi-check-circle"></i> ' + results.length + ' photo(s) téléchargée(s) avec succès</div>';
+                    
+                    // Reload the page to show the uploaded photos
+                    // Note: This will refresh the entire form. Users should save their changes before uploading photos if needed.
+                    const RELOAD_DELAY_MS = 1000;
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, RELOAD_DELAY_MS);
+                })
+                .catch(error => {
+                    console.error('Upload error:', error);
+                    preview.innerHTML = '<div class="alert alert-danger mb-0"><i class="bi bi-exclamation-triangle"></i> Erreur: ' + error.message + '</div>';
+                });
         }
         
         // Delete photo
