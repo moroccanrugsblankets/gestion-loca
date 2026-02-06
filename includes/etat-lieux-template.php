@@ -88,17 +88,32 @@ function getDefaultEtatLieuxTemplate() {
         .signature-box {
             margin: 10px auto;
         }
+        /* Signature image styles - must match ETAT_LIEUX_SIGNATURE_IMG_STYLE in pdf/generate-etat-lieux.php */
         .signature-box img {
+            max-width: 20mm !important;
+            max-height: 10mm !important;
+            display: block !important;
             border: 0 !important;
+            border-width: 0 !important;
+            border-style: none !important;
+            border-color: transparent !important;
             outline: none !important;
+            outline-width: 0 !important;
             box-shadow: none !important;
             background: transparent !important;
+            padding: 0 !important;
+            margin: 0 auto !important;
         }
+        /* Signature table - ensure no borders on table or cells */
         .signature-table {
             border: 0 !important;
+            border-collapse: collapse !important;
         }
         .signature-table td {
             border: 0 !important;
+            border-width: 0 !important;
+            border-style: none !important;
+            padding: 10px !important;
         }
     </style>
 </head>
