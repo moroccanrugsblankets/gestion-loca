@@ -178,7 +178,7 @@ function buildSignaturesTable($contrat, $locataires) {
 
         if (!empty($signatureSociete) && preg_match('/^uploads\/signatures\//', $signatureSociete)) {
             $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($signatureSociete, '/');
-$html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Société" border="0" style="max-width: 100px; max-height: 50px; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;">';
+$html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Société" border="0" style="max-width: 150px; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;">';
         }
 
         if (!empty($contrat['date_validation'])) {
@@ -205,7 +205,7 @@ $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Sociét
 
         if (!empty($loc['signature_data']) && preg_match('/^uploads\/signatures\//', $loc['signature_data'])) {
             $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($loc['signature_data'], '/');
-			$html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" border="0" style="max-width: 100px; max-height: 50px; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;">';
+			$html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" border="0" style="max-width: 150px; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;">';
         }
 
         if (!empty($loc['signature_timestamp']) || !empty($loc['signature_ip'])) {
