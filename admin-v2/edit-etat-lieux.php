@@ -1134,6 +1134,13 @@ $isSortie = $etat['type'] === 'sortie';
             if (!canvas) return;
             
             const ctx = canvas.getContext('2d');
+            
+            // Set drawing style for black signature lines
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
             let isDrawing = false;
             
             canvas.addEventListener('mousedown', (e) => {
@@ -1181,7 +1188,23 @@ $isSortie = $etat['type'] === 'sortie';
         
         function saveTenantSignature(id) {
             const canvas = document.getElementById(`tenantCanvas_${id}`);
-            const signatureData = canvas.toDataURL('image/jpeg');
+            
+            // Create a temporary canvas to add white background before JPEG conversion
+            // JPEG doesn't support transparency, so we need to fill with white
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // Fill with white background (JPEG doesn't support transparency)
+            tempCtx.fillStyle = '#FFFFFF';
+            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            
+            // Draw the signature on top of the white background
+            tempCtx.drawImage(canvas, 0, 0);
+            
+            // Convert to JPEG with white background
+            const signatureData = tempCanvas.toDataURL('image/jpeg', 0.95);
             document.getElementById(`tenantSignature_${id}`).value = signatureData;
         }
         
