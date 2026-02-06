@@ -7,11 +7,8 @@
 require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
-require_once '../includes/mail-templates.php';
+require_once '../includes/functions.php';
 require_once '../pdf/generate-etat-lieux.php';
-
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
 
 // Get état des lieux ID
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -150,58 +147,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         error_log("PDF generated successfully: " . $pdfPath);
         error_log("PDF file size: " . filesize($pdfPath) . " bytes");
         
-        // Prepare email
-        error_log("Preparing email with PHPMailer...");
-        $mail = new PHPMailer(true);
-        
-        // Server settings
-        error_log("Configuring SMTP settings...");
-        error_log("SMTP Host: " . $config['SMTP_HOST']);
-        error_log("SMTP Port: " . $config['SMTP_PORT']);
-        error_log("SMTP Username: " . $config['SMTP_USERNAME']);
-        
-        $mail->isSMTP();
-        $mail->Host = $config['SMTP_HOST'];
-        $mail->SMTPAuth = $config['SMTP_AUTH'];
-        $mail->Username = $config['SMTP_USERNAME'];
-        $mail->Password = $config['SMTP_PASSWORD'];
-        $mail->SMTPSecure = $config['SMTP_SECURE'];
-        $mail->Port = $config['SMTP_PORT'];
-        $mail->CharSet = 'UTF-8';
-        
-        // Recipients
-        error_log("Setting email recipients...");
-        error_log("From: " . $config['MAIL_FROM'] . " (" . $config['MAIL_FROM_NAME'] . ")");
-        error_log("To: " . $etat['locataire_email'] . " (" . $etat['locataire_nom_complet'] . ")");
-        
-        $mail->setFrom($config['MAIL_FROM'], $config['MAIL_FROM_NAME']);
-        $mail->addAddress($etat['locataire_email'], $etat['locataire_nom_complet']);
-        $mail->addCC('gestion@myinvest-immobilier.com');
-        
-        // Content
+        // Prepare email data with template variables
         $typeLabel = $etat['type'] === 'entree' ? "d'entrée" : "de sortie";
-        $mail->Subject = "État des lieux {$typeLabel} - {$etat['adresse']}";
+        $templateId = $etat['type'] === 'entree' ? 'etat_lieux_entree_envoye' : 'etat_lieux_sortie_envoye';
         
-        error_log("Email subject: " . $mail->Subject);
+        $emailVariables = [
+            'locataire_nom' => $etat['locataire_nom_complet'],
+            'adresse' => $etat['adresse'],
+            'date_etat' => date('d/m/Y', strtotime($etat['date_etat'])),
+            'reference' => $etat['reference_unique'] ?? 'N/A',
+            'type' => $typeLabel
+        ];
         
-        $mail->Body = "Bonjour,\n\n";
-        $mail->Body .= "Veuillez trouver ci-joint l'état des lieux {$typeLabel} pour le logement situé au :\n";
-        $mail->Body .= "{$etat['adresse']}\n\n";
-        $mail->Body .= "Date de l'état des lieux : " . date('d/m/Y', strtotime($etat['date_etat'])) . "\n\n";
-        $mail->Body .= "Ce document est à conserver précieusement.\n\n";
-        $mail->Body .= "Cordialement,\n";
-        $mail->Body .= "SCI My Invest Immobilier\n";
-        $mail->Body .= "Représentée par Maxime ALEXANDRE";
+        error_log("Sending email with template: $templateId");
         
-        // Attach PDF
-        $filename = 'etat_lieux_' . $etat['type'] . '_' . $etat['contrat_ref'] . '.pdf';
-        error_log("Attaching PDF as: " . $filename);
-        $mail->addAttachment($pdfPath, $filename);
+        // Send email to tenant using template
+        $emailSent = sendTemplatedEmail($templateId, $etat['locataire_email'], $emailVariables, $pdfPath);
         
-        // Send email
-        error_log("Sending email...");
-        $mail->send();
-        error_log("Email sent successfully!");
+        if (!$emailSent) {
+            error_log("ERROR: Failed to send email to tenant using template");
+            throw new Exception("Erreur lors de l'envoi de l'email au locataire");
+        }
+        
+        error_log("Email sent successfully to tenant!");
+        
+        // Send copy to admin using admin template
+        $adminEmailVariables = array_merge($emailVariables, [
+            'type' => $typeLabel
+        ]);
+        
+        $adminEmailSent = sendTemplatedEmail('etat_lieux_admin_copie', ADMIN_EMAIL, $adminEmailVariables, $pdfPath, true);
+        
+        if ($adminEmailSent) {
+            error_log("Admin copy email sent successfully to: " . ADMIN_EMAIL);
+        } else {
+            error_log("WARNING: Failed to send admin copy email");
+            // Don't fail the whole process if admin email fails
+        }
         
         // Update status
         error_log("Updating database status...");

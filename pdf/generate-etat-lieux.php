@@ -12,6 +12,15 @@ require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/mail-templates.php';
 
+// Import the default template function from configuration
+if (file_exists(__DIR__ . '/../admin-v2/etat-lieux-configuration.php')) {
+    require_once __DIR__ . '/../admin-v2/etat-lieux-configuration.php';
+}
+
+// Signature image display size constants (for PDF rendering)
+define('ETAT_LIEUX_SIGNATURE_MAX_WIDTH', '30mm');
+define('ETAT_LIEUX_SIGNATURE_MAX_HEIGHT', '15mm');
+
 /**
  * Générer le PDF de l'état des lieux
  * 
@@ -97,13 +106,28 @@ function generateEtatDesLieuxPDF($contratId, $type = 'entree') {
             error_log("Existing état des lieux found - ID: " . $etatLieux['id']);
         }
 
-        // Générer le HTML
-        error_log("Generating HTML content...");
-        if ($type === 'entree') {
-            $html = generateEntreeHTML($contrat, $locataires, $etatLieux);
+        // Récupérer le template HTML depuis la base de données
+        error_log("Fetching HTML template from database...");
+        $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'etat_lieux_template_html'");
+        $stmt->execute();
+        $templateHtml = $stmt->fetchColumn();
+        
+        // Si pas de template en base, utiliser le template par défaut
+        if (empty($templateHtml)) {
+            error_log("No template found in database, using default template");
+            if (function_exists('getDefaultEtatLieuxTemplate')) {
+                $templateHtml = getDefaultEtatLieuxTemplate();
+            } else {
+                error_log("ERROR: getDefaultEtatLieuxTemplate function not found");
+                return false;
+            }
         } else {
-            $html = generateSortieHTML($contrat, $locataires, $etatLieux);
+            error_log("Template loaded from database - Length: " . strlen($templateHtml) . " characters");
         }
+        
+        // Générer le HTML en remplaçant les variables
+        error_log("Replacing template variables...");
+        $html = replaceEtatLieuxTemplateVariables($templateHtml, $contrat, $locataires, $etatLieux, $type);
         
         if (!$html) {
             error_log("ERROR: HTML generation failed");
@@ -302,6 +326,127 @@ function createDefaultEtatLieux($contratId, $type, $contrat, $locataires) {
 }
 
 /**
+ * Remplacer les variables dans le template HTML de l'état des lieux
+ * 
+ * @param string $template Template HTML avec variables
+ * @param array $contrat Données du contrat
+ * @param array $locataires Liste des locataires
+ * @param array $etatLieux Données de l'état des lieux
+ * @param string $type Type: 'entree' ou 'sortie'
+ * @return string HTML avec variables remplacées
+ */
+function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $etatLieux, $type) {
+    global $config;
+    
+    // Type label
+    $typeLabel = ($type === 'entree') ? "D'ENTRÉE" : "DE SORTIE";
+    
+    // Dates
+    $dateEtat = !empty($etatLieux['date_etat']) ? date('d/m/Y', strtotime($etatLieux['date_etat'])) : date('d/m/Y');
+    $dateSignature = !empty($etatLieux['date_signature']) ? date('d/m/Y', strtotime($etatLieux['date_signature'])) : $dateEtat;
+    
+    // Reference
+    $reference = htmlspecialchars($etatLieux['reference_unique'] ?? $contrat['reference'] ?? 'N/A');
+    
+    // Adresse
+    $adresse = htmlspecialchars($etatLieux['adresse'] ?? $contrat['adresse'] ?? '');
+    $appartement = htmlspecialchars($etatLieux['appartement'] ?? $contrat['appartement'] ?? '');
+    $typeLogement = htmlspecialchars($contrat['type_logement'] ?? $contrat['type'] ?? '');
+    $surface = htmlspecialchars($contrat['surface'] ?? '');
+    
+    // Bailleur
+    $bailleurNom = htmlspecialchars($etatLieux['bailleur_nom'] ?? $config['COMPANY_NAME'] ?? 'MY INVEST IMMOBILIER');
+    $bailleurRepresentant = htmlspecialchars($etatLieux['bailleur_representant'] ?? $config['BAILLEUR_REPRESENTANT'] ?? '');
+    
+    // Locataires - build table rows
+    $locatairesInfo = '';
+    foreach ($locataires as $i => $loc) {
+        $locatairesInfo .= '<tr>';
+        $locatairesInfo .= '<td class="info-label">Locataire' . (count($locataires) > 1 ? ' ' . ($i + 1) : '') . ' :</td>';
+        $locatairesInfo .= '<td>' . htmlspecialchars($loc['prenom']) . ' ' . htmlspecialchars($loc['nom']);
+        if (!empty($loc['email'])) {
+            $locatairesInfo .= '<br>Email : ' . htmlspecialchars($loc['email']);
+        }
+        $locatairesInfo .= '</td>';
+        $locatairesInfo .= '</tr>';
+    }
+    
+    // Description - use defaults if empty
+    $defaultTexts = getDefaultPropertyDescriptions($type);
+    $piecePrincipale = getValueOrDefault($etatLieux, 'piece_principale', $defaultTexts['piece_principale']);
+    $coinCuisine = getValueOrDefault($etatLieux, 'coin_cuisine', $defaultTexts['coin_cuisine']);
+    $salleEauWC = getValueOrDefault($etatLieux, 'salle_eau_wc', $defaultTexts['salle_eau_wc']);
+    $etatGeneral = getValueOrDefault($etatLieux, 'etat_general', $defaultTexts['etat_general']);
+    
+    // Escape HTML for descriptions (preserve newlines)
+    $piecePrincipale = htmlspecialchars($piecePrincipale);
+    $coinCuisine = htmlspecialchars($coinCuisine);
+    $salleEauWC = htmlspecialchars($salleEauWC);
+    $etatGeneral = htmlspecialchars($etatGeneral);
+    
+    // Observations - trim and escape once for HTML output
+    $observations = trim($etatLieux['observations'] ?? '');
+    $observationsEscaped = htmlspecialchars($observations);
+    
+    // Lieu de signature
+    $lieuSignature = htmlspecialchars(!empty($etatLieux['lieu_signature']) ? $etatLieux['lieu_signature'] : ($config['DEFAULT_SIGNATURE_LOCATION'] ?? 'Annemasse'));
+    
+    // Build signatures table
+    $signaturesTable = buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux);
+    
+    // Company name for signature section
+    $companyName = htmlspecialchars($config['COMPANY_NAME'] ?? 'MY INVEST IMMOBILIER');
+    
+    // Prepare variable replacements
+    $vars = [
+        '{{reference}}' => $reference,
+        '{{type}}' => strtolower($type),
+        '{{type_label}}' => $typeLabel,
+        '{{date_etat}}' => $dateEtat,
+        '{{adresse}}' => $adresse,
+        '{{appartement}}' => $appartement,
+        '{{type_logement}}' => $typeLogement,
+        '{{surface}}' => $surface,
+        '{{bailleur_nom}}' => $bailleurNom,
+        '{{bailleur_representant}}' => $bailleurRepresentant,
+        '{{locataires_info}}' => $locatairesInfo,
+        '{{piece_principale}}' => $piecePrincipale,
+        '{{coin_cuisine}}' => $coinCuisine,
+        '{{salle_eau_wc}}' => $salleEauWC,
+        '{{etat_general}}' => $etatGeneral,
+        '{{observations}}' => $observationsEscaped,
+        '{{lieu_signature}}' => $lieuSignature,
+        '{{date_signature}}' => $dateSignature,
+        '{{signatures_table}}' => $signaturesTable,
+        '{{signature_agence}}' => $companyName,
+    ];
+    
+    // Handle conditional rows (use already-escaped variables)
+    if (!empty($appartement)) {
+        $vars['{{appartement_row}}'] = '<tr><td class="info-label">Appartement :</td><td>' . $appartement . '</td></tr>';
+    } else {
+        $vars['{{appartement_row}}'] = '';
+    }
+    
+    if (!empty($bailleurRepresentant)) {
+        $vars['{{bailleur_representant_row}}'] = '<tr><td class="info-label">Représenté par :</td><td>' . $bailleurRepresentant . '</td></tr>';
+    } else {
+        $vars['{{bailleur_representant_row}}'] = '';
+    }
+    
+    if (!empty($observations)) {
+        $vars['{{observations_section}}'] = '<h3>Observations complémentaires</h3><p class="observations">' . $observationsEscaped . '</p>';
+    } else {
+        $vars['{{observations_section}}'] = '';
+    }
+    
+    // Replace all variables
+    $html = str_replace(array_keys($vars), array_values($vars), $template);
+    
+    return $html;
+}
+
+/**
  * Obtenir les descriptions par défaut du logement
  */
 function getDefaultPropertyDescriptions($type) {
@@ -332,7 +477,180 @@ function getValueOrDefault($etatLieux, $field, $default) {
 }
 
 /**
+ * Get default template HTML for État des Lieux (fallback if not in configuration file)
+ * This should match the template in admin-v2/etat-lieux-configuration.php
+ */
+if (!function_exists('getDefaultEtatLieuxTemplate')) {
+    function getDefaultEtatLieuxTemplate() {
+        return <<<'HTML'
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>État des lieux {{type}} - {{reference}}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 9.5pt;
+            line-height: 1.4;
+            color: #000;
+            margin: 0;
+            padding: 15px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 13pt;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        h2 {
+            font-size: 11pt;
+            margin-top: 12px;
+            margin-bottom: 6px;
+            font-weight: bold;
+            border-bottom: 1px solid #333;
+            padding-bottom: 3px;
+        }
+        h3 {
+            font-size: 10pt;
+            margin-top: 10px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .subtitle {
+            text-align: center;
+            font-style: italic;
+            margin-bottom: 20px;
+        }
+        p {
+            margin: 4px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0;
+        }
+        table td {
+            padding: 4px 6px;
+            vertical-align: top;
+        }
+        .info-label {
+            font-weight: bold;
+            width: 35%;
+        }
+        .observations {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .signatures-section {
+            margin-top: 20px;
+        }
+        .signature-block {
+            display: inline-block;
+            width: 48%;
+            vertical-align: top;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>MY INVEST IMMOBILIER</h1>
+    </div>
+    
+    <div class="subtitle">
+        ÉTAT DES LIEUX {{type_label}}<br>
+        Référence : {{reference}}
+    </div>
+
+    <h2>1. Informations générales</h2>
+    
+    <table>
+        <tr>
+            <td class="info-label">Date de l'état des lieux :</td>
+            <td>{{date_etat}}</td>
+        </tr>
+        <tr>
+            <td class="info-label">Type :</td>
+            <td>{{type_label}}</td>
+        </tr>
+    </table>
+
+    <h2>2. Bien loué</h2>
+    
+    <table>
+        <tr>
+            <td class="info-label">Adresse :</td>
+            <td>{{adresse}}</td>
+        </tr>
+        {{appartement_row}}
+        <tr>
+            <td class="info-label">Type de logement :</td>
+            <td>{{type_logement}}</td>
+        </tr>
+        <tr>
+            <td class="info-label">Surface :</td>
+            <td>{{surface}} m²</td>
+        </tr>
+    </table>
+
+    <h2>3. Parties</h2>
+    
+    <h3>Bailleur</h3>
+    <table>
+        <tr>
+            <td class="info-label">Nom :</td>
+            <td>{{bailleur_nom}}</td>
+        </tr>
+        {{bailleur_representant_row}}
+    </table>
+    
+    <h3>Locataire(s)</h3>
+    <table>
+        {{locataires_info}}
+    </table>
+
+    <h2>4. Description de l'état du logement</h2>
+    
+    <h3>Pièce principale</h3>
+    <p class="observations">{{piece_principale}}</p>
+    
+    <h3>Coin cuisine</h3>
+    <p class="observations">{{coin_cuisine}}</p>
+    
+    <h3>Salle d'eau / WC</h3>
+    <p class="observations">{{salle_eau_wc}}</p>
+    
+    <h3>État général</h3>
+    <p class="observations">{{etat_general}}</p>
+    
+    {{observations_section}}
+
+    <h2>5. Signatures</h2>
+    
+    <p>Fait à {{lieu_signature}}, le {{date_signature}}</p>
+    
+    <div class="signatures-section">
+        {{signatures_table}}
+    </div>
+
+    <div style="margin-top: 30px; font-size: 8pt; text-align: center; color: #666;">
+        <p>Document généré électroniquement par MY Invest Immobilier</p>
+        <p>État des lieux - Référence : {{reference}}</p>
+    </div>
+</body>
+</html>
+HTML;
+    }
+}
+
+/**
  * Générer le HTML pour l'état des lieux d'entrée
+ * @deprecated Use replaceEtatLieuxTemplateVariables() instead
  */
 function generateEntreeHTML($contrat, $locataires, $etatLieux) {
     global $config;
@@ -570,6 +888,7 @@ HTML;
 
 /**
  * Générer le HTML pour l'état des lieux de sortie
+ * @deprecated Use replaceEtatLieuxTemplateVariables() instead
  */
 function generateSortieHTML($contrat, $locataires, $etatLieux) {
     global $config;
@@ -892,23 +1211,31 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
 
     $html = '<table class="signature-table" style="width: 100%; border-collapse: collapse; margin-top: 20px;"><tr>';
 
-    // Landlord column - ALWAYS use signature from parametres
+    // Landlord column - Use signature_societe_etat_lieux_image from parametres
     $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px;">';
     $html .= '<p><strong>Le bailleur :</strong></p>';
     
-    // Get landlord signature from parametres (company signature)
-    $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_image'");
+    // Get landlord signature from parametres - use etat_lieux specific signature
+    $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_etat_lieux_image'");
     $stmt->execute();
     $landlordSigPath = $stmt->fetchColumn();
+    
+    // Fallback to general signature if etat_lieux specific one not found
+    if (empty($landlordSigPath)) {
+        $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_image'");
+        $stmt->execute();
+        $landlordSigPath = $stmt->fetchColumn();
+    }
 
     if (!empty($landlordSigPath)) {
         if (preg_match('/^uploads\/signatures\//', $landlordSigPath)) {
             // Verify file exists before adding to PDF
             $fullPath = dirname(__DIR__) . '/' . $landlordSigPath;
             if (file_exists($fullPath)) {
-                // Use public URL for signature image (like contract PDF does)
+                // Use public URL for signature image
                 $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($landlordSigPath, '/');
-                $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" style="max-width:80px; max-height:40px;"></div>';
+                $sigStyle = 'max-width:' . ETAT_LIEUX_SIGNATURE_MAX_WIDTH . '; max-height:' . ETAT_LIEUX_SIGNATURE_MAX_HEIGHT . '; border:0; outline:none;';
+                $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" style="' . $sigStyle . '"></div>';
             } else {
                 error_log("Landlord signature file not found: $fullPath");
                 $html .= '<div class="signature-box">&nbsp;</div>';
@@ -939,17 +1266,18 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
         $html .= '<p><strong>' . $tenantLabel . '</strong></p>';
 
         // Display tenant signature if available
+        $sigStyle = 'max-width:' . ETAT_LIEUX_SIGNATURE_MAX_WIDTH . '; max-height:' . ETAT_LIEUX_SIGNATURE_MAX_HEIGHT . '; border:0; outline:none;';
         if (!empty($tenantInfo['signature_data'])) {
             if (preg_match('/^data:image\/(jpeg|jpg|png);base64,/', $tenantInfo['signature_data'])) {
                 // Data URL format - TCPDF can handle this directly
-                $html .= '<div class="signature-box"><img src="' . $tenantInfo['signature_data'] . '" alt="Signature Locataire" style="max-width:80px; max-height:40px;"></div>';
+                $html .= '<div class="signature-box"><img src="' . $tenantInfo['signature_data'] . '" alt="Signature Locataire" style="' . $sigStyle . '"></div>';
             } elseif (preg_match('/^uploads\/signatures\//', $tenantInfo['signature_data'])) {
                 // File path format - verify file exists before using public URL
                 $fullPath = dirname(__DIR__) . '/' . $tenantInfo['signature_data'];
                 if (file_exists($fullPath)) {
-                    // Use public URL (like contract PDF does)
+                    // Use public URL
                     $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($tenantInfo['signature_data'], '/');
-                    $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" style="max-width:80px; max-height:40px;"></div>';
+                    $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" style="' . $sigStyle . '"></div>';
                 } else {
                     error_log("Tenant signature file not found: $fullPath");
                     $html .= '<div class="signature-box">&nbsp;</div>';

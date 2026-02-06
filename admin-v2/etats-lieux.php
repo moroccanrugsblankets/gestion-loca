@@ -200,7 +200,7 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                                         <a href="edit-etat-lieux.php?id=<?php echo $etat['id']; ?>" class="btn btn-sm btn-outline-primary" title="Modifier">
                                             <i class="bi bi-pencil"></i>
                                         </a>
-                                        <a href="view-etat-lieux.php?id=<?php echo $etat['id']; ?>" class="btn btn-sm btn-outline-info" title="Voir">
+                                        <a href="download-etat-lieux.php?id=<?php echo $etat['id']; ?>" class="btn btn-sm btn-outline-info" title="Voir PDF" target="_blank">
                                             <i class="bi bi-eye"></i>
                                         </a>
                                         <?php if (isset($comparable_contracts[$etat['contrat_id']])): ?>
@@ -296,7 +296,7 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                                         <a href="edit-etat-lieux.php?id=<?php echo $etat['id']; ?>" class="btn btn-sm btn-outline-primary" title="Modifier">
                                             <i class="bi bi-pencil"></i>
                                         </a>
-                                        <a href="view-etat-lieux.php?id=<?php echo $etat['id']; ?>" class="btn btn-sm btn-outline-info" title="Voir">
+                                        <a href="download-etat-lieux.php?id=<?php echo $etat['id']; ?>" class="btn btn-sm btn-outline-info" title="Voir PDF" target="_blank">
                                             <i class="bi bi-eye"></i>
                                         </a>
                                         <?php if (isset($comparable_contracts[$etat['contrat_id']])): ?>

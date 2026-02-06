@@ -56,9 +56,9 @@ try {
     $safeFilename = str_replace(' ', '_', $safeFilename);
     $safeFilename = str_replace(["\r", "\n"], '', $safeFilename);
     
-    // Send headers to force download
+    // Send headers to display PDF inline
     header('Content-Type: application/pdf');
-    header('Content-Disposition: attachment; filename="' . $safeFilename . '"');
+    header('Content-Disposition: inline; filename="' . $safeFilename . '"');
     header('Content-Length: ' . $filesize);
     header('Cache-Control: no-cache, must-revalidate');
     header('Pragma: no-cache');
