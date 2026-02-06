@@ -415,7 +415,7 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
     $clesBoite = (int)($etatLieux['cles_boite_lettres'] ?? 0);
     $clesAutre = (int)($etatLieux['cles_autre'] ?? 0);
     // Only auto-calculate total if not explicitly set in database
-    if (!isset($etatLieux['cles_total']) || $etatLieux['cles_total'] === null || $etatLieux['cles_total'] === '') {
+    if (!array_key_exists('cles_total', $etatLieux) || $etatLieux['cles_total'] === null || $etatLieux['cles_total'] === '') {
         $clesTotal = $clesAppart + $clesBoite + $clesAutre;
     } else {
         $clesTotal = (int)$etatLieux['cles_total'];
