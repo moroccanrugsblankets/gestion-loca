@@ -660,46 +660,16 @@ HTML;
     
     <div class="section" style="margin-top: 10px;">
         <h2>2. RELEVÉ DES COMPTEURS</h2>
-        <table class="data-table">
-            <tr>
-                <th>Type de compteur</th>
-                <th>Index relevé</th>
-            </tr>
-            <tr>
-                <td>Électricité</td>
-                <td>$compteurElec</td>
-            </tr>
-            <tr>
-                <td>Eau froide</td>
-                <td>$compteurEau</td>
-            </tr>
-        </table>
+        <p><strong>Électricité :</strong> $compteurElec</p>
+        <p><strong>Eau froide :</strong> $compteurEau</p>
     </div>
     
     <div class="section">
         <h2>3. REMISE DES CLÉS</h2>
-        <table class="data-table">
-            <tr>
-                <th>Type de clé</th>
-                <th>Nombre remis</th>
-            </tr>
-            <tr>
-                <td>Clés de l'appartement</td>
-                <td>$clesAppart</td>
-            </tr>
-            <tr>
-                <td>Clés de la boîte aux lettres</td>
-                <td>$clesBoite</td>
-            </tr>
-            <tr>
-                <td>Autre</td>
-                <td>$clesAutre</td>
-            </tr>
-            <tr>
-                <td><strong>TOTAL</strong></td>
-                <td><strong>$clesTotal</strong></td>
-            </tr>
-        </table>
+        <p><strong>Clés de l'appartement :</strong> $clesAppart</p>
+        <p><strong>Clés de la boîte aux lettres :</strong> $clesBoite</p>
+        <p><strong>Autre :</strong> $clesAutre</p>
+        <p><strong>TOTAL :</strong> $clesTotal</p>
     </div>
     
     <div class="section">
@@ -951,46 +921,16 @@ HTML;
     
     <div class="section" style="margin-top: 10px;">
         <h2>2. RELEVÉ DES COMPTEURS À LA SORTIE</h2>
-        <table class="data-table">
-            <tr>
-                <th>Type de compteur</th>
-                <th>Index relevé</th>
-            </tr>
-            <tr>
-                <td>Électricité</td>
-                <td>$compteurElec</td>
-            </tr>
-            <tr>
-                <td>Eau froide</td>
-                <td>$compteurEau</td>
-            </tr>
-        </table>
+        <p><strong>Électricité :</strong> $compteurElec</p>
+        <p><strong>Eau froide :</strong> $compteurEau</p>
     </div>
     
     <div class="section">
         <h2>3. RESTITUTION DES CLÉS</h2>
-        <table class="data-table">
-            <tr>
-                <th>Type de clé</th>
-                <th>Nombre restitué</th>
-            </tr>
-            <tr>
-                <td>Clés de l'appartement</td>
-                <td>$clesAppart</td>
-            </tr>
-            <tr>
-                <td>Clés de la boîte aux lettres</td>
-                <td>$clesBoite</td>
-            </tr>
-            <tr>
-                <td>Autre</td>
-                <td>$clesAutre</td>
-            </tr>
-            <tr>
-                <td><strong>TOTAL</strong></td>
-                <td><strong>$clesTotal</strong></td>
-            </tr>
-        </table>
+        <p><strong>Clés de l'appartement :</strong> $clesAppart</p>
+        <p><strong>Clés de la boîte aux lettres :</strong> $clesBoite</p>
+        <p><strong>Autre :</strong> $clesAutre</p>
+        <p><strong>TOTAL :</strong> $clesTotal</p>
         <p><strong>Conformité :</strong> $clesConformiteHTML</p>
 HTML;
 
