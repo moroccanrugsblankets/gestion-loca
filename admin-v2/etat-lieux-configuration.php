@@ -307,6 +307,21 @@ function getDefaultEtatLieuxTemplate() {
             vertical-align: top;
             text-align: center;
         }
+        .signature-box {
+            margin: 10px auto;
+        }
+        .signature-box img {
+            border: 0 !important;
+            outline: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+        }
+        .signature-table {
+            border: 0 !important;
+        }
+        .signature-table td {
+            border: 0 !important;
+        }
     </style>
 </head>
 <body>
