@@ -1166,6 +1166,8 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
                 // Use public URL for signature image
                 $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($landlordSigPath, '/');
                 $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" border="0" style="' . ETAT_LIEUX_SIGNATURE_IMG_STYLE . '">';
+            } else {
+                error_log("Landlord signature file not found: $fullPath");
             }
         } else {
             // Still base64 after conversion attempt - use as fallback but log warning
@@ -1218,6 +1220,8 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
                     // Use public URL
                     $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($signatureData, '/');
                     $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" border="0" style="' . ETAT_LIEUX_SIGNATURE_IMG_STYLE . '">';
+                } else {
+                    error_log("Tenant signature file not found: $fullPath");
                 }
             } else {
                 // Still base64 after conversion attempt - use as fallback but log warning
