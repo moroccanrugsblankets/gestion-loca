@@ -1041,6 +1041,62 @@ HTML;
 }
 
 /**
+ * Convert base64 signature to physical file
+ * Returns file path or original data if conversion fails
+ */
+function convertSignatureToPhysicalFile($signatureData, $prefix, $etatLieuxId, $tenantId = null) {
+    // If already a file path, return it
+    if (!preg_match('/^data:image\/(jpeg|jpg|png);base64,/', $signatureData)) {
+        return $signatureData;
+    }
+    
+    error_log("Converting base64 signature to physical file for {$prefix}");
+    
+    // Extract base64 data
+    if (!preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $signatureData, $matches)) {
+        error_log("Invalid data URI format for signature");
+        return $signatureData; // Return original if invalid
+    }
+    
+    $imageFormat = $matches[1];
+    $base64Data = $matches[2];
+    
+    // Decode base64
+    $imageData = base64_decode($base64Data, true);
+    if ($imageData === false) {
+        error_log("Failed to decode base64 signature");
+        return $signatureData;
+    }
+    
+    // Create uploads/signatures directory if it doesn't exist
+    $uploadsDir = dirname(__DIR__) . '/uploads/signatures';
+    if (!is_dir($uploadsDir)) {
+        if (!mkdir($uploadsDir, 0755, true)) {
+            error_log("Failed to create signatures directory");
+            return $signatureData;
+        }
+    }
+    
+    // Generate unique filename
+    $timestamp = time();
+    $suffix = $tenantId ? "_tenant_{$tenantId}" : "";
+    $filename = "{$prefix}_etat_lieux_{$etatLieuxId}{$suffix}_{$timestamp}.jpg";
+    $filepath = $uploadsDir . '/' . $filename;
+    
+    // Save physical file
+    if (file_put_contents($filepath, $imageData) === false) {
+        error_log("Failed to save signature file: $filepath");
+        return $signatureData;
+    }
+    
+    // Return relative path
+    $relativePath = 'uploads/signatures/' . $filename;
+    error_log("✓ Signature converted to physical file: $relativePath");
+    
+    return $relativePath;
+}
+
+/**
  * Construire le tableau de signatures pour l'état des lieux
  */
 function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
@@ -1083,6 +1139,26 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
     }
 
     if (!empty($landlordSigPath)) {
+        // Convert base64 to physical file if needed
+        $etatLieuxId = $etatLieux['id'] ?? 0;
+        $landlordSigPath = convertSignatureToPhysicalFile($landlordSigPath, 'landlord', $etatLieuxId);
+        
+        // Update database with physical path if it was converted
+        if (!empty($etatLieuxId) && !preg_match('/^data:image/', $landlordSigPath) && preg_match('/^uploads\/signatures\//', $landlordSigPath)) {
+            // Update the parameter with the new physical path
+            $paramKey = 'signature_societe_etat_lieux_image';
+            $updateStmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = ?");
+            $updateStmt->execute([$paramKey]);
+            $currentValue = $updateStmt->fetchColumn();
+            
+            // Only update if current value is base64 (to avoid overwriting if already updated)
+            if ($currentValue && preg_match('/^data:image/', $currentValue)) {
+                $updateStmt = $pdo->prepare("UPDATE parametres SET valeur = ? WHERE cle = ?");
+                $updateStmt->execute([$landlordSigPath, $paramKey]);
+                error_log("✓ Updated landlord signature in database to physical file");
+            }
+        }
+        
         if (preg_match('/^uploads\/signatures\//', $landlordSigPath)) {
             // Verify file exists before adding to PDF
             $fullPath = dirname(__DIR__) . '/' . $landlordSigPath;
@@ -1095,7 +1171,9 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
                 $html .= '<div class="signature-box">&nbsp;</div>';
             }
         } else {
-            $html .= '<div class="signature-box">&nbsp;</div>';
+            // Still base64 after conversion attempt - use as fallback but log warning
+            error_log("WARNING: Using base64 signature for landlord (conversion may have failed)");
+            $html .= '<div class="signature-box"><img src="' . htmlspecialchars($landlordSigPath) . '" alt="Signature Bailleur" border="0" style="' . ETAT_LIEUX_SIGNATURE_IMG_STYLE . '"></div>';
         }
     } else {
         $html .= '<div class="signature-box">&nbsp;</div>';
@@ -1121,22 +1199,38 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
 
         // Display tenant signature if available
         if (!empty($tenantInfo['signature_data'])) {
-            if (preg_match('/^data:image\/(jpeg|jpg|png);base64,/', $tenantInfo['signature_data'])) {
-                // Data URL format - TCPDF can handle this directly
-                $html .= '<div class="signature-box"><img src="' . $tenantInfo['signature_data'] . '" alt="Signature Locataire" border="0" style="' . ETAT_LIEUX_SIGNATURE_IMG_STYLE . '"></div>';
-            } elseif (preg_match('/^uploads\/signatures\//', $tenantInfo['signature_data'])) {
+            $signatureData = $tenantInfo['signature_data'];
+            $tenantDbId = $tenantInfo['id'] ?? null;
+            $etatLieuxId = $etatLieux['id'] ?? 0;
+            
+            // Convert base64 to physical file if needed
+            $signatureData = convertSignatureToPhysicalFile($signatureData, 'tenant', $etatLieuxId, $tenantDbId);
+            
+            // Update database if signature was converted from base64
+            if ($tenantDbId && !preg_match('/^data:image/', $signatureData) && preg_match('/^uploads\/signatures\//', $signatureData)) {
+                // Check if this is the original base64
+                if (preg_match('/^data:image/', $tenantInfo['signature_data'])) {
+                    $updateStmt = $pdo->prepare("UPDATE etat_lieux_locataires SET signature_data = ? WHERE id = ?");
+                    $updateStmt->execute([$signatureData, $tenantDbId]);
+                    error_log("✓ Updated tenant signature in database to physical file");
+                }
+            }
+            
+            if (preg_match('/^uploads\/signatures\//', $signatureData)) {
                 // File path format - verify file exists before using public URL
-                $fullPath = dirname(__DIR__) . '/' . $tenantInfo['signature_data'];
+                $fullPath = dirname(__DIR__) . '/' . $signatureData;
                 if (file_exists($fullPath)) {
                     // Use public URL
-                    $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($tenantInfo['signature_data'], '/');
+                    $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($signatureData, '/');
                     $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" border="0" style="' . ETAT_LIEUX_SIGNATURE_IMG_STYLE . '"></div>';
                 } else {
                     error_log("Tenant signature file not found: $fullPath");
                     $html .= '<div class="signature-box">&nbsp;</div>';
                 }
             } else {
-                $html .= '<div class="signature-box">&nbsp;</div>';
+                // Still base64 after conversion attempt - use as fallback but log warning
+                error_log("WARNING: Using base64 signature for tenant (conversion may have failed)");
+                $html .= '<div class="signature-box"><img src="' . htmlspecialchars($signatureData) . '" alt="Signature Locataire" border="0" style="' . ETAT_LIEUX_SIGNATURE_IMG_STYLE . '"></div>';
             }
             
             if (!empty($tenantInfo['signature_timestamp'])) {
