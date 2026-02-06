@@ -899,12 +899,19 @@ $isSortie = $etat['type'] === 'sortie';
                                 <?php
                                 // Handle signature path - prepend ../ for relative paths since we're in admin-v2 directory
                                 $signatureSrc = $tenant['signature_data'];
-                                if (preg_match('/^data:image\/[a-z]+;base64,/', $signatureSrc)) {
-                                    // Data URL - use as is (validated format)
-                                    $displaySrc = $signatureSrc;
-                                } elseif (preg_match('/^uploads\/signatures\/[a-zA-Z0-9_\-]+\.(jpg|jpeg|png)$/', $signatureSrc)) {
+                                
+                                // Validate data URL format with length check (max 2MB)
+                                if (preg_match('/^data:image\/(jpeg|jpg|png);base64,([A-Za-z0-9+\/=]+)$/', $signatureSrc, $matches)) {
+                                    // Data URL - validate base64 content and size
+                                    if (strlen($signatureSrc) <= 2 * 1024 * 1024) {
+                                        $displaySrc = $signatureSrc;
+                                    } else {
+                                        error_log("Signature data URL too large for tenant ID: " . (int)$tenant['id']);
+                                        $displaySrc = '';
+                                    }
+                                } elseif (preg_match('/^uploads\/signatures\/[a-zA-Z0-9_][a-zA-Z0-9_\-]*\.(jpg|jpeg|png)$/', $signatureSrc)) {
                                     // Relative path - validate it's within expected directory and prepend ../
-                                    // Pattern ensures no directory traversal, no multiple dots, and only allowed file extensions
+                                    // Pattern ensures no directory traversal, no leading hyphen, no multiple dots, and only allowed file extensions
                                     $displaySrc = '../' . $signatureSrc;
                                 } else {
                                     // Invalid or unexpected format - don't display to prevent security issues
