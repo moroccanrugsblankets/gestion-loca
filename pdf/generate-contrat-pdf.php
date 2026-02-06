@@ -9,7 +9,7 @@ require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 
 // Style CSS pour les images de signature (sans bordures)
-define('SIGNATURE_IMG_STYLE', 'width: 25mm; height: auto; display: block; margin-bottom: 15mm; border: 0; outline: none; box-shadow: none; background: transparent;');
+define('SIGNATURE_IMG_STYLE', 'width: 25mm; height: auto; display: block; margin-bottom: 15mm; border: none; outline: none; box-shadow: none; background: transparent;');
 
 /**
  * Générer le PDF du contrat de bail
@@ -166,10 +166,10 @@ function buildSignaturesTable($contrat, $locataires) {
     $nbCols = count($locataires) + 1; // +1 pour le bailleur
     $colWidth = 100 / $nbCols;
 
-    $html = '<table border="0" style="width: 100%; border-collapse: collapse; border: 0; border-width: 0; border-style: none; margin-top: 20px;"><tr>';
+    $html = '<table border="0" style="width: 100%; border-collapse: collapse; border: none; border-width: 0; border-style: none; margin-top: 20px;"><tr>';
 
     // Bailleur
-    $html .= '<td border="0" style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px; border: 0; border-width: 0; border-style: none;">';
+    $html .= '<td border="0" style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px; border: none; border-width: 0; border-style: none;">';
     $html .= '<p><strong>Le bailleur :</strong></p>';
     if ($contrat['statut'] === 'valide') {
         $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_image'");
@@ -178,7 +178,7 @@ function buildSignaturesTable($contrat, $locataires) {
 
         if (!empty($signatureSociete) && preg_match('/^uploads\/signatures\//', $signatureSociete)) {
             $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($signatureSociete, '/');
-$html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Société" border="0" style="max-width: 150px; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;">';
+$html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Société" border="0" style="max-width: 150px; border: none; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;">';
         }
 
         if (!empty($contrat['date_validation'])) {
@@ -193,7 +193,7 @@ $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Sociét
 
     // Locataires
     foreach ($locataires as $i => $loc) {
-        $html .= '<td border="0" style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px; border: 0; border-width: 0; border-style: none;">';
+        $html .= '<td border="0" style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px; border: none; border-width: 0; border-style: none;">';
 
         if ($nbCols === 2) {
             $html .= '<p><strong>Locataire :</strong></p>';
@@ -205,7 +205,7 @@ $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Sociét
 
         if (!empty($loc['signature_data']) && preg_match('/^uploads\/signatures\//', $loc['signature_data'])) {
             $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($loc['signature_data'], '/');
-			$html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" border="0" style="max-width: 150px; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;">';
+			$html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" border="0" style="max-width: 150px; border: none; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;">';
         }
 
         if (!empty($loc['signature_timestamp']) || !empty($loc['signature_ip'])) {

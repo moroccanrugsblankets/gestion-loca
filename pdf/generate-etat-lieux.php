@@ -20,7 +20,7 @@ define('ETAT_LIEUX_SIGNATURE_MAX_WIDTH', '50mm');
 define('ETAT_LIEUX_SIGNATURE_MAX_HEIGHT', '25mm');
 
 // Style CSS pour les images de signature (sans bordures) - matching generate-contrat-pdf.php style
-define('ETAT_LIEUX_SIGNATURE_IMG_STYLE', 'max-width: 150px; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;');
+define('ETAT_LIEUX_SIGNATURE_IMG_STYLE', 'max-width: 150px; border: none; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;');
 
 /**
  * Générer le PDF de l'état des lieux
@@ -1120,10 +1120,10 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
     $nbCols = count($tenantsToDisplay) + 1; // +1 for landlord
     $colWidth = 100 / $nbCols;
 
-    $html = '<table class="signature-table" border="0" style="width: 100%; border-collapse: collapse; border: 0; border-width: 0; border-style: none; margin-top: 20px;"><tr>';
+    $html = '<table class="signature-table" border="0" style="width: 100%; border-collapse: collapse; border: none; border-width: 0; border-style: none; margin-top: 20px;"><tr>';
 
     // Landlord column - Use signature_societe_etat_lieux_image from parametres
-    $html .= '<td border="0" style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px; border: 0; border-width: 0; border-style: none;">';
+    $html .= '<td border="0" style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px; border: none; border-width: 0; border-style: none;">';
     $html .= '<p><strong>Le bailleur :</strong></p>';
     
     // Get landlord signature from parametres - use etat_lieux specific signature
@@ -1189,7 +1189,7 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
 
     // Tenant columns
     foreach ($tenantsToDisplay as $idx => $tenantInfo) {
-        $html .= '<td border="0" style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px; border: 0; border-width: 0; border-style: none;">';
+        $html .= '<td border="0" style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px; border: none; border-width: 0; border-style: none;">';
 
         $tenantLabel = ($nbCols === 2) ? 'Locataire :' : 'Locataire ' . ($idx + 1) . ' :';
         $html .= '<p><strong>' . $tenantLabel . '</strong></p>';
