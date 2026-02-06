@@ -9,7 +9,7 @@ require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 
 // Style CSS pour les images de signature (sans bordures)
-define('SIGNATURE_IMG_STYLE', 'width: 40mm; height: auto; display: block; margin-bottom: 15mm; border: 0; outline: none; box-shadow: none; background: transparent;');
+define('SIGNATURE_IMG_STYLE', 'width: 25mm; height: auto; display: block; margin-bottom: 15mm; border: 0; outline: none; box-shadow: none; background: transparent;');
 
 /**
  * Générer le PDF du contrat de bail
