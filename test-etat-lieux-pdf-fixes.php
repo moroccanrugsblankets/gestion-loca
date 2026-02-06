@@ -14,6 +14,9 @@ ini_set('display_errors', 1);
 
 echo "=== Test État des lieux PDF Formatting Fixes ===\n\n";
 
+// Track test failures
+$failures = 0;
+
 // Check that the file exists
 $filePath = __DIR__ . '/pdf/generate-etat-lieux.php';
 if (!file_exists($filePath)) {
@@ -34,6 +37,7 @@ if ($matches >= 2) {
     echo "✓ h2 margin-top est défini à 0 (trouvé $matches fois - entry et exit)\n";
 } else {
     echo "❌ ERREUR: h2 margin-top devrait être 0 (trouvé $matches fois)\n";
+    $failures++;
 }
 
 // Test 2: Check signature-box has no border-bottom
@@ -51,6 +55,7 @@ if ($noBorderMatches >= 2 && $hasBorderMatches == 0) {
     if ($hasBorderMatches > 0) {
         echo "   Trouvé $hasBorderMatches définitions avec border-bottom\n";
     }
+    $failures++;
 }
 
 // Test 3: Check tenant signature size is 80px × 40px
@@ -67,6 +72,7 @@ if ($correctSizeMatches >= 3 && $wrongSizeMatches == 0) {
     echo "❌ ERREUR: Taille signature locataire incorrecte\n";
     echo "   Bonnes tailles (80×40): $correctSizeMatches\n";
     echo "   Mauvaises tailles (120×50): $wrongSizeMatches\n";
+    $failures++;
 }
 
 // Test 4: Check signature data is included in INSERT
@@ -76,6 +82,7 @@ if (preg_match($insertPattern, $content)) {
     echo "✓ signature_data, signature_timestamp et signature_ip sont inclus dans l'INSERT\n";
 } else {
     echo "❌ ERREUR: signature_data devrait être inclus dans l'INSERT\n";
+    $failures++;
 }
 
 // Test 5: Check VALUES includes signature fields
@@ -85,13 +92,21 @@ if (preg_match($valuesPattern, $content)) {
     echo "✓ signature_data est utilisé dans les VALUES\n";
 } else {
     echo "❌ ERREUR: signature_data devrait être dans les VALUES\n";
+    $failures++;
 }
 
 // Summary
 echo "\n=== RÉSUMÉ ===\n";
-echo "Tous les correctifs ont été appliqués:\n";
-echo "  1. Espace en haut des titres de section supprimé (margin-top: 0)\n";
-echo "  2. Bordure après signatures supprimée (pas de border-bottom)\n";
-echo "  3. Taille signatures ajustée à 80px × 40px pour correspondre au contrat\n";
-echo "  4. Données de signature client incluses dans l'insertion DB\n";
-echo "\n✓ Tests terminés avec succès!\n";
+if ($failures == 0) {
+    echo "Tous les correctifs ont été appliqués:\n";
+    echo "  1. Espace en haut des titres de section supprimé (margin-top: 0)\n";
+    echo "  2. Bordure après signatures supprimée (pas de border-bottom)\n";
+    echo "  3. Taille signatures ajustée à 80px × 40px pour correspondre au contrat\n";
+    echo "  4. Données de signature client incluses dans l'insertion DB\n";
+    echo "\n✓ Tests terminés avec succès!\n";
+    exit(0);
+} else {
+    echo "❌ $failures test(s) échoué(s)\n";
+    echo "Les correctifs ne sont pas tous appliqués correctement.\n";
+    exit(1);
+}
