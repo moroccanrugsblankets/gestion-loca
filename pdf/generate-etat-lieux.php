@@ -386,9 +386,9 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
     $etatGeneral = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $etatGeneral);
     
     // Convert sentence-ending periods into line breaks
-    // Uses negative lookbehind to exclude common abbreviations (M., Mme., Dr., etc.)
-    // and lookahead to ensure uppercase letter follows (indicating new sentence)
-    $sentencePattern = '/(?<!M|Mme|Mlle|Dr|Mr|Mrs|Ms|St|Ste)\.\s+(?=[A-ZÀÂÄÇÉÈÊËÏÎÔÙÛÜ])/';
+    // Excludes decimal numbers (digit before period) and common abbreviations
+    // Only breaks when period is followed by space + uppercase letter (new sentence)
+    $sentencePattern = '/(?<!\d)(?<!M)(?<!Mr)(?<!Ms)(?<!Dr)(?<!St)(?<!Mme)(?<!Mrs)(?<!Ste)(?<!Mlle)\.\s+(?=[A-ZÀÂÄÇÉÈÊËÏÎÔÙÛÜ])/';
     $piecePrincipale = preg_replace($sentencePattern, ".\n", $piecePrincipale);
     $coinCuisine = preg_replace($sentencePattern, ".\n", $coinCuisine);
     $salleEauWC = preg_replace($sentencePattern, ".\n", $salleEauWC);
