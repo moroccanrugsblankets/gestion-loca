@@ -896,8 +896,33 @@ $isSortie = $etat['type'] === 'sortie';
                                 Signé le <?php echo date('d/m/Y à H:i', strtotime($tenant['signature_timestamp'])); ?>
                             </div>
                             <div class="mb-2">
-                                <img src="<?php echo htmlspecialchars($tenant['signature_data']); ?>" 
+                                <?php
+                                // Handle signature path - prepend ../ for relative paths since we're in admin-v2 directory
+                                $signatureSrc = $tenant['signature_data'];
+                                
+                                // Validate data URL format with length check (max 2MB)
+                                if (preg_match('/^data:image\/(jpeg|jpg|png);base64,([A-Za-z0-9+\/=]+)$/', $signatureSrc, $matches)) {
+                                    // Data URL - validate base64 content and size
+                                    if (strlen($signatureSrc) <= 2 * 1024 * 1024 && base64_decode($matches[2], true) !== false) {
+                                        $displaySrc = $signatureSrc;
+                                    } else {
+                                        error_log("Invalid or oversized signature data URL for tenant ID: " . (int)$tenant['id']);
+                                        $displaySrc = '';
+                                    }
+                                } elseif (preg_match('/^uploads\/signatures\/[a-zA-Z0-9_][a-zA-Z0-9_\-]*\.(jpg|jpeg|png)$/', $signatureSrc)) {
+                                    // Relative path - validate it's within expected directory and prepend ../
+                                    // Pattern ensures no directory traversal, no leading hyphen, no multiple dots, and only allowed file extensions
+                                    $displaySrc = '../' . $signatureSrc;
+                                } else {
+                                    // Invalid or unexpected format - don't display to prevent security issues
+                                    error_log("Invalid signature path format detected for tenant ID: " . (int)$tenant['id']);
+                                    $displaySrc = '';
+                                }
+                                ?>
+                                <?php if (!empty($displaySrc)): ?>
+                                <img src="<?php echo htmlspecialchars($displaySrc); ?>" 
                                      alt="Signature" style="max-width: 200px; max-height: 80px; border: 1px solid #dee2e6; padding: 5px;">
+                                <?php endif; ?>
                             </div>
                         <?php endif; ?>
                         <label class="form-label">Veuillez signer dans le cadre ci-dessous :</label>
