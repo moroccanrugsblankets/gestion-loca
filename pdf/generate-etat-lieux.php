@@ -480,23 +480,20 @@ HTML;
         <p><strong>Locataire(s) :</strong><br>$locatairesHTML</p>
     </div>
     
-    <div class="section">
+    <div class="section" style="margin-top: 10px;">
         <h2>2. RELEVÉ DES COMPTEURS</h2>
         <table class="data-table">
             <tr>
                 <th>Type de compteur</th>
                 <th>Index relevé</th>
-                <th>Observations</th>
             </tr>
             <tr>
                 <td>Électricité</td>
                 <td>$compteurElec</td>
-                <td></td>
             </tr>
             <tr>
                 <td>Eau froide</td>
                 <td>$compteurEau</td>
-                <td></td>
             </tr>
         </table>
     </div>
@@ -764,23 +761,20 @@ HTML;
         <p><strong>Locataire(s) sortant(s) :</strong><br>$locatairesHTML</p>
     </div>
     
-    <div class="section">
+    <div class="section" style="margin-top: 10px;">
         <h2>2. RELEVÉ DES COMPTEURS À LA SORTIE</h2>
         <table class="data-table">
             <tr>
                 <th>Type de compteur</th>
                 <th>Index relevé</th>
-                <th>Observations</th>
             </tr>
             <tr>
                 <td>Électricité</td>
                 <td>$compteurElec</td>
-                <td></td>
             </tr>
             <tr>
                 <td>Eau froide</td>
                 <td>$compteurEau</td>
-                <td></td>
             </tr>
         </table>
     </div>
@@ -910,7 +904,7 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
             if (file_exists($fullPath)) {
                 // Use public URL for signature image (like contract PDF does)
                 $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($landlordSigPath, '/');
-                $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" style="max-width:120px; max-height:50px;"></div>';
+                $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" style="max-width:80px; max-height:40px;"></div>';
             } else {
                 error_log("Landlord signature file not found: $fullPath");
                 $html .= '<div class="signature-box">&nbsp;</div>';

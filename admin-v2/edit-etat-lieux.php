@@ -896,7 +896,21 @@ $isSortie = $etat['type'] === 'sortie';
                                 Signé le <?php echo date('d/m/Y à H:i', strtotime($tenant['signature_timestamp'])); ?>
                             </div>
                             <div class="mb-2">
-                                <img src="<?php echo htmlspecialchars($tenant['signature_data']); ?>" 
+                                <?php
+                                // Handle signature path - prepend ../ for relative paths since we're in admin-v2 directory
+                                $signatureSrc = $tenant['signature_data'];
+                                if (preg_match('/^data:image/', $signatureSrc)) {
+                                    // Data URL - use as is
+                                    $displaySrc = $signatureSrc;
+                                } elseif (preg_match('/^uploads\//', $signatureSrc)) {
+                                    // Relative path - prepend ../
+                                    $displaySrc = '../' . $signatureSrc;
+                                } else {
+                                    // Absolute URL or other format - use as is
+                                    $displaySrc = $signatureSrc;
+                                }
+                                ?>
+                                <img src="<?php echo htmlspecialchars($displaySrc); ?>" 
                                      alt="Signature" style="max-width: 200px; max-height: 80px; border: 1px solid #dee2e6; padding: 5px;">
                             </div>
                         <?php endif; ?>
