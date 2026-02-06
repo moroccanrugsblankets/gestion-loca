@@ -380,14 +380,18 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
     $salleEauWC = htmlspecialchars($salleEauWC);
     $etatGeneral = htmlspecialchars($etatGeneral);
     
-    // Observations
+    // Observations (already trimmed and will be escaped once)
     $observations = trim($etatLieux['observations'] ?? '');
+    $observationsEscaped = htmlspecialchars($observations);
     
     // Lieu de signature
     $lieuSignature = htmlspecialchars(!empty($etatLieux['lieu_signature']) ? $etatLieux['lieu_signature'] : ($config['DEFAULT_SIGNATURE_LOCATION'] ?? 'Annemasse'));
     
     // Build signatures table
     $signaturesTable = buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux);
+    
+    // Company name for signature section
+    $companyName = htmlspecialchars($config['COMPANY_NAME'] ?? 'MY INVEST IMMOBILIER');
     
     // Prepare variable replacements
     $vars = [
@@ -406,13 +410,14 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
         '{{coin_cuisine}}' => $coinCuisine,
         '{{salle_eau_wc}}' => $salleEauWC,
         '{{etat_general}}' => $etatGeneral,
-        '{{observations}}' => htmlspecialchars($observations),
+        '{{observations}}' => $observationsEscaped,
         '{{lieu_signature}}' => $lieuSignature,
         '{{date_signature}}' => $dateSignature,
         '{{signatures_table}}' => $signaturesTable,
+        '{{signature_agence}}' => $companyName,
     ];
     
-    // Handle conditional rows
+    // Handle conditional rows (use already-escaped variables)
     if (!empty($appartement)) {
         $vars['{{appartement_row}}'] = '<tr><td class="info-label">Appartement :</td><td>' . $appartement . '</td></tr>';
     } else {
@@ -426,7 +431,7 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
     }
     
     if (!empty($observations)) {
-        $vars['{{observations_section}}'] = '<h3>Observations complémentaires</h3><p class="observations">' . htmlspecialchars($observations) . '</p>';
+        $vars['{{observations_section}}'] = '<h3>Observations complémentaires</h3><p class="observations">' . $observationsEscaped . '</p>';
     } else {
         $vars['{{observations_section}}'] = '';
     }
