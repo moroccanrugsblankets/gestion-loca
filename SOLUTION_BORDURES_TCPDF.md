@@ -69,36 +69,33 @@ box-shadow: none;
 **Status :** ✅ Implémenté dans tous les fichiers  
 **Efficacité :** ⚠️ Partielle - Améliore mais ne résout pas complètement le problème
 
-### Solution 2 : Méthode TCPDF Native `$pdf->Image()` (Recommandé mais Non Implémenté)
+### Solution 2 : Méthode TCPDF Native `$pdf->Image()` (NON RECOMMANDÉE)
 
-Au lieu d'utiliser des balises HTML `<img>`, utiliser la méthode native TCPDF :
+⚠️ **Cette solution n'est PAS utilisée dans ce projet.**
+
+**Raison :** Avec `$pdf->Image()`, on ne peut pas contrôler la position si on change la template. La méthode HTML `<img>` est préférable car elle permet une meilleure flexibilité lors des modifications de template.
 
 ```php
-// AVANT (HTML avec bordures potentielles)
-$html .= '<img src="data:image/png;base64,..." style="border:0">';
-$pdf->writeHTML($html);
-
-// APRÈS (Méthode native sans bordures)
-$html .= '<div style="height: 20mm;"></div>'; // Espace réservé
-$pdf->writeHTML($html);
-// Ensuite, insérer l'image directement
+// Exemple de ce qu'on NE FAIT PAS :
 $pdf->Image('@' . $imageData, $x, $y, $width, $height, 'PNG', '', '', false, 300, '', false, false, 0);
-//                                                                                              ↑
-//                                                                                      border = 0
+//                            ↑   ↑
+//                       Positions fixes en coordonnées absolues
+//                       → Problème si le template change !
 ```
 
-**Avantages :**
-- ✅ Contrôle total sur le paramètre `border` (position 14 de la méthode Image())
-- ✅ Qualité supérieure (DPI configurables)
-- ✅ Position précise (coordonnées X, Y en mm)
-- ✅ Pas de dépendance au moteur HTML de TCPDF
+**Pourquoi HTML `<img>` est meilleur :**
+- ✅ **Flexibilité de positionnement** - S'adapte automatiquement au template
+- ✅ **Maintenance facile** - Pas besoin de recalculer les coordonnées X, Y
+- ✅ **Cohérence avec le HTML** - Même rendu dans preview et PDF
+- ✅ **Template-driven** - Les modifications de template n'affectent pas le code
 
-**Inconvénients :**
-- ❌ Nécessite une refonte du code de génération
-- ❌ Plus complexe à implémenter
-- ❌ Nécessite le calcul manuel des positions
-
-**Documentation :** Voir `AVANT_APRES_SIGNATURES_TCPDF.md` pour les détails d'implémentation
+**Solution actuelle (CORRECTE) :**
+```php
+// On utilise des balises HTML <img> dans le template
+$html .= '<img src="' . $imageUrl . '" style="max-width: 150px; border: 0; ...">';
+$pdf->writeHTML($html);
+// → La position est gérée par le flux HTML, pas par des coordonnées fixes
+```
 
 ### Solution 3 : Conversion en PNG avec Fond Blanc
 
@@ -150,19 +147,44 @@ imagepng($output, $newPath);
 
 ## Recommandations
 
-### Court Terme (Implémenté)
+### Court Terme (Implémenté) ✅
 1. ✅ Augmenter les tailles des signatures pour meilleure visibilité
 2. ✅ Maintenir toutes les propriétés CSS anti-bordure
 3. ✅ Créer des fichiers de test pour diagnostic
+4. ✅ **Utiliser HTML `<img>` tags** pour flexibilité de template
 
-### Moyen Terme (À Implémenter)
-1. 🔲 Implémenter la méthode `$pdf->Image()` native pour les signatures
-2. 🔲 Tester avec différentes versions de TCPDF
-3. 🔲 Considérer l'utilisation d'une bibliothèque PDF alternative (ex: DomPDF, mPDF)
+### Approche Actuelle (CORRECTE) ✅
+
+**HTML `<img>` est la bonne solution** pour ce projet car :
+
+1. **Flexibilité de positionnement** - Les signatures s'adaptent automatiquement au template
+2. **Pas de coordonnées fixes** - Si le template change, les signatures restent correctement positionnées
+3. **Maintenance simplifiée** - Pas besoin de recalculer X, Y à chaque modification
+
+**Exemple d'implémentation correcte (déjà en place) :**
+```php
+// generate-contrat-pdf.php (ligne 181)
+$html .= '<img src="' . htmlspecialchars($publicUrl) . '" 
+          alt="Signature Société" 
+          border="0" 
+          style="max-width: 150px; border: 0; border-width: 0; border-style: none; ...">';
+```
+
+### ⚠️ Ce qu'on NE FAIT PAS
+
+**`$pdf->Image()` avec coordonnées fixes** - NON recommandé car :
+- ❌ Position fixe (X, Y en mm) - Problème si template change
+- ❌ Nécessite recalcul à chaque modification de template
+- ❌ Moins flexible pour maintenance
+
+### Moyen Terme (À Considérer)
+1. 🔲 Tester avec différentes versions de TCPDF
+2. 🔲 Optimiser les propriétés CSS pour meilleur rendu TCPDF
+3. 🔲 Considérer bibliothèques alternatives si bordures persistent (DomPDF, mPDF)
 
 ### Long Terme
-1. 🔲 Migrer vers une solution de génération PDF plus moderne
-2. 🔲 Implémenter un système de génération PDF en deux passes (HTML preview + PDF final)
+1. 🔲 Évaluer migration vers solution PDF plus moderne si nécessaire
+2. 🔲 Système de génération en deux passes (HTML preview + PDF final) si requis
 
 ## Comment Tester
 
@@ -215,9 +237,14 @@ Le problème de bordures **n'est pas dû au HTML** mais bien au moteur de rendu 
 1. ✅ **HTML correct** - Aucune bordure dans le preview
 2. ❌ **PDF incorrect** - Bordures apparaissent après traitement TCPDF
 
-**Solution complète :** Implémenter la méthode `$pdf->Image()` native au lieu des balises HTML `<img>` (voir `AVANT_APRES_SIGNATURES_TCPDF.md`)
+**Solution actuelle (CORRECTE) :** Utiliser HTML `<img>` tags avec tailles de signatures augmentées
 
-**Solution actuelle :** Augmentation des tailles des signatures pour meilleure visibilité malgré les bordures
+**Pourquoi on garde HTML `<img>` :**
+- ✅ **Flexibilité de template** - Position automatique, pas de coordonnées fixes
+- ✅ **Maintenance facile** - Modifications de template ne cassent rien
+- ✅ **Déjà implémenté** - Fonctionne dans tous les fichiers PDF
+
+**Ce qu'on NE FAIT PAS :** `$pdf->Image()` avec coordonnées X, Y fixes (perte de flexibilité template)
 
 ## Fichiers Modifiés
 

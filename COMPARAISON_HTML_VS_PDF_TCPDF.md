@@ -241,14 +241,43 @@ Comparez :
 
 ---
 
-## 🎯 Solution Requise
+## 🎯 Solution Actuelle (CORRECTE)
 
-Pour éliminer complètement les bordures, il faut :
+**L'approche HTML `<img>` est la bonne solution** pour ce projet.
 
-1. **Abandonner les balises HTML `<img>`** dans le HTML passé à `writeHTML()`
-2. **Utiliser `$pdf->Image()` natif** après `writeHTML()` avec le paramètre `border=0`
+### Pourquoi HTML `<img>` est utilisé :
 
-Voir `SOLUTION_BORDURES_TCPDF.md` et `AVANT_APRES_SIGNATURES_TCPDF.md` pour les détails d'implémentation.
+1. ✅ **Flexibilité de positionnement** - S'adapte automatiquement au template
+2. ✅ **Pas de coordonnées fixes** - Si le template change, les signatures restent bien positionnées
+3. ✅ **Maintenance simplifiée** - Pas besoin de recalculer X, Y à chaque modification
+4. ✅ **Cohérence** - Même rendu dans HTML preview et PDF
+
+### ⚠️ Ce qu'on NE FAIT PAS
+
+**`$pdf->Image()` avec coordonnées fixes** - NON utilisé dans ce projet car :
+
+```php
+// On NE FAIT PAS ça :
+$pdf->Image('@' . $imageData, 20, 200, 40, 20, 'PNG', ...);
+//                            ↑   ↑
+//                       X   Y (positions fixes en mm)
+//                       → Problème si template change !
+```
+
+**Inconvénients de `$pdf->Image()` :**
+- ❌ Position absolue (X, Y) - Casse si le template HTML change
+- ❌ Nécessite recalcul manuel des coordonnées
+- ❌ Couplage fort avec la structure du template
+
+**Implémentation actuelle (CORRECTE) :**
+```php
+// On utilise HTML <img> (comme dans generate-contrat-pdf.php)
+$html .= '<img src="' . $imageUrl . '" style="max-width: 150px; border: 0; ...">';
+$pdf->writeHTML($html);
+// → La position est gérée par le flux HTML, pas par des coordonnées fixes
+```
+
+Voir `generate-contrat-pdf.php` comme référence de l'implémentation correcte.
 
 ---
 
@@ -275,4 +304,4 @@ Voir `SOLUTION_BORDURES_TCPDF.md` et `AVANT_APRES_SIGNATURES_TCPDF.md` pour les 
 
 **Créé le :** 2026-02-06  
 **Auteur :** GitHub Copilot  
-**Status :** En Cours - Solution complète nécessite refonte avec $pdf->Image()
+**Status :** ✅ Complet - HTML `<img>` est la solution correcte pour ce projet

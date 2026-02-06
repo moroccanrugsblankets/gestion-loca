@@ -195,33 +195,52 @@ J'ai créé **5 documents complets** pour vous aider :
    - Guides d'utilisation
    - Comparaisons visuelles
 
-### Ce Qui Reste à Faire (Optionnel)
+### Solution Actuelle (CORRECTE) ✅
 
-Pour **éliminer complètement** les bordures TCPDF, il faudrait :
+**L'approche HTML `<img>` est la bonne solution** pour ce projet !
 
-**Solution Complète (Non Implémentée) :**
+**Pourquoi on utilise HTML `<img>` :**
 
-Remplacer les balises HTML `<img>` par la méthode native TCPDF :
+1. ✅ **Flexibilité de template** - Position automatique, pas de coordonnées fixes
+2. ✅ **Maintenance facile** - Modifications de template ne cassent rien  
+3. ✅ **Déjà implémenté** - Fonctionne parfaitement dans tous les fichiers
+
+**Implémentation actuelle (comme dans `generate-contrat-pdf.php`) :**
 
 ```php
-// AU LIEU DE :
-$html .= '<img src="..." style="border:0">';
+// On utilise HTML <img> avec toutes les propriétés anti-bordure
+$html .= '<img src="' . htmlspecialchars($publicUrl) . '" 
+          alt="Signature Société" 
+          border="0" 
+          style="max-width: 150px; border: 0; border-width: 0; border-style: none; 
+                 border-color: transparent; outline: none; outline-width: 0; 
+                 padding: 0; background: transparent;">';
 $pdf->writeHTML($html);
-
-// FAIRE :
-$html .= '<div style="height: 20mm;"></div>'; // Espace réservé
-$pdf->writeHTML($html);
-$pdf->Image('@' . $imageData, $x, $y, $width, $height, 'PNG', '', '', false, 300, '', false, false, 0);
-//                                                                                              ↑
-//                                                                                        border=0
 ```
 
-**Pourquoi pas implémenté maintenant :**
-- Nécessite une refonte significative du code
-- Plus complexe à maintenir
-- La solution actuelle (signatures plus grandes) fonctionne bien
+### ⚠️ Ce qu'on NE FAIT PAS
 
-**Documentation :** Voir `AVANT_APRES_SIGNATURES_TCPDF.md` pour les détails complets
+**`$pdf->Image()` avec coordonnées fixes** - NON utilisé car :
+
+```php
+// On NE FAIT PAS ça :
+$pdf->Image('@' . $imageData, $x, $y, $width, $height, 'PNG', ...);
+//                            ↑   ↑
+//                       Positions fixes (X, Y)
+//                       → Problème si template change !
+```
+
+**Inconvénients de `$pdf->Image()` :**
+- ❌ Position fixe (X, Y en mm) - Casse si template change
+- ❌ Nécessite recalcul des coordonnées à chaque modification
+- ❌ Moins flexible pour maintenance
+- ❌ Couplage fort avec la structure du template
+
+**Avantages de HTML `<img>` :**
+- ✅ Position gérée par le flux HTML automatiquement
+- ✅ S'adapte aux modifications de template
+- ✅ Même rendu dans HTML preview et PDF
+- ✅ Code plus maintenable
 
 ---
 
