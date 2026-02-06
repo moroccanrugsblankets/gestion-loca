@@ -119,9 +119,18 @@ if (file_exists($pdfFile)) {
         }
     }
     
-    // Check for image path handling
-    if (strpos($pdfContent, '@') !== false && strpos($pdfContent, 'TCPDF requires @ prefix') !== false) {
-        $success[] = "✓ Les chemins d'image TCPDF utilisent le préfixe @";
+    // Check for correct image path handling (should use public URLs, not @ prefix)
+    if (strpos($pdfContent, "SITE_URL") !== false && strpos($pdfContent, "publicUrl") !== false) {
+        $success[] = "✓ Les images utilisent des URLs publiques (fix TCPDF appliqué)";
+    } else {
+        $warnings[] = "⚠ Les images pourraient ne pas utiliser des URLs publiques";
+    }
+    
+    // Check that @ prefix is NOT used with local paths (old problematic method)
+    if (preg_match('/@.*fullPath|@.*dirname\(__DIR__\)/', $pdfContent)) {
+        $errors[] = "❌ Préfixe @ trouvé avec chemins locaux - cela cause des erreurs TCPDF";
+    } else {
+        $success[] = "✓ Pas de préfixe @ avec chemins locaux (fix TCPDF correct)";
     }
 }
 
@@ -149,7 +158,9 @@ $filesToCheck = [
 foreach ($filesToCheck as $file) {
     $fullPath = __DIR__ . '/' . $file;
     if (file_exists($fullPath)) {
-        exec("php -l $fullPath 2>&1", $output, $returnCode);
+        // Use PHP_BINARY constant to get the full path to PHP executable
+        $phpBinary = PHP_BINARY;
+        exec(escapeshellarg($phpBinary) . " -l " . escapeshellarg($fullPath) . " 2>&1", $output, $returnCode);
         if ($returnCode === 0) {
             $success[] = "✓ Syntaxe PHP valide pour $file";
         } else {
