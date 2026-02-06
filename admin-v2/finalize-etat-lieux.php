@@ -13,6 +13,124 @@ require_once '../pdf/generate-etat-lieux.php';
 // Get état des lieux ID
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
+// Handle finalization BEFORE any output
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'finalize') {
+    error_log("=== FINALIZE ETAT LIEUX - POST REQUEST ===");
+    error_log("Action: finalize");
+    
+    // Need to fetch etat data for processing
+    if ($id > 0) {
+        try {
+            $stmt = $pdo->prepare("
+                SELECT edl.*, 
+                       c.id as contrat_id,
+                       c.reference_unique as contrat_ref,
+                       l.adresse as logement_adresse,
+                       l.appartement as logement_appartement
+                FROM etats_lieux edl
+                LEFT JOIN contrats c ON edl.contrat_id = c.id
+                LEFT JOIN logements l ON c.logement_id = l.id
+                WHERE edl.id = ?
+            ");
+            $stmt->execute([$id]);
+            $etat = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($etat) {
+                error_log("Starting transaction...");
+                $pdo->beginTransaction();
+                
+                // Generate PDF
+                error_log("Generating PDF for contrat_id: " . $etat['contrat_id'] . ", type: " . $etat['type']);
+                $pdfPath = generateEtatDesLieuxPDF($etat['contrat_id'], $etat['type']);
+                
+                if (!$pdfPath || !file_exists($pdfPath)) {
+                    error_log("ERROR: PDF generation failed. Path returned: " . ($pdfPath ?? 'NULL'));
+                    throw new Exception("Erreur lors de la génération du PDF");
+                }
+                
+                error_log("PDF generated successfully: " . $pdfPath);
+                error_log("PDF file size: " . filesize($pdfPath) . " bytes");
+                
+                // Prepare email data with template variables
+                $typeLabel = $etat['type'] === 'entree' ? "d'entrée" : "de sortie";
+                $templateId = $etat['type'] === 'entree' ? 'etat_lieux_entree_envoye' : 'etat_lieux_sortie_envoye';
+                
+                $emailVariables = [
+                    'locataire_nom' => $etat['locataire_nom_complet'],
+                    'adresse' => $etat['adresse'],
+                    'date_etat' => date('d/m/Y', strtotime($etat['date_etat'])),
+                    'reference' => $etat['reference_unique'] ?? 'N/A',
+                    'type' => $typeLabel
+                ];
+                
+                error_log("Sending email with template: $templateId");
+                
+                // Send email to tenant using template
+                $emailSent = sendTemplatedEmail($templateId, $etat['locataire_email'], $emailVariables, $pdfPath);
+                
+                if (!$emailSent) {
+                    error_log("ERROR: Failed to send email to tenant using template");
+                    throw new Exception("Erreur lors de l'envoi de l'email au locataire");
+                }
+                
+                error_log("Email sent successfully to tenant!");
+                
+                // Send copy to admin using admin template
+                $adminEmailVariables = array_merge($emailVariables, [
+                    'type' => $typeLabel
+                ]);
+                
+                $adminEmailSent = sendTemplatedEmail('etat_lieux_admin_copie', ADMIN_EMAIL, $adminEmailVariables, $pdfPath, true);
+                
+                if ($adminEmailSent) {
+                    error_log("Admin copy email sent successfully to: " . ADMIN_EMAIL);
+                } else {
+                    error_log("WARNING: Failed to send admin copy email");
+                }
+                
+                // Update status
+                error_log("Updating database status...");
+                $stmt = $pdo->prepare("
+                    UPDATE etats_lieux 
+                    SET statut = 'envoye', 
+                        email_envoye = TRUE, 
+                        date_envoi_email = NOW() 
+                    WHERE id = ?
+                ");
+                $stmt->execute([$id]);
+                error_log("Database updated successfully");
+                
+                $pdo->commit();
+                error_log("Transaction committed");
+                
+                // Clean up temporary PDF if needed
+                if (strpos($pdfPath, '/tmp/') !== false) {
+                    error_log("Cleaning up temporary PDF: " . $pdfPath);
+                    @unlink($pdfPath);
+                }
+                
+                error_log("=== FINALIZE ETAT LIEUX - SUCCESS ===");
+                $_SESSION['success'] = "État des lieux finalisé et envoyé avec succès à " . htmlspecialchars($etat['locataire_email']);
+                header('Location: etats-lieux.php');
+                exit;
+            }
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                error_log("Rolling back transaction...");
+                $pdo->rollBack();
+            }
+            error_log("=== FINALIZE ETAT LIEUX - ERROR ===");
+            error_log("Exception type: " . get_class($e));
+            error_log("Error message: " . $e->getMessage());
+            error_log("Error code: " . $e->getCode());
+            error_log("Error file: " . $e->getFile() . ":" . $e->getLine());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            
+            $_SESSION['error'] = "Erreur lors de la finalisation: " . $e->getMessage();
+        }
+    }
+}
+
 // Log the request
 error_log("=== FINALIZE ETAT LIEUX - START ===");
 error_log("Requested ID: " . $id);
@@ -121,110 +239,6 @@ try {
     $_SESSION['error'] = "Erreur de base de données: " . $e->getMessage();
     header('Location: etats-lieux.php');
     exit;
-}
-
-// Handle finalization
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'finalize') {
-    error_log("=== FINALIZE ETAT LIEUX - POST REQUEST ===");
-    error_log("Action: finalize");
-    
-    try {
-        error_log("Starting transaction...");
-        $pdo->beginTransaction();
-        
-        // Generate PDF
-        error_log("Generating PDF for contrat_id: " . $etat['contrat_id'] . ", type: " . $etat['type']);
-        $pdfPath = generateEtatDesLieuxPDF($etat['contrat_id'], $etat['type']);
-        
-        if (!$pdfPath || !file_exists($pdfPath)) {
-            error_log("ERROR: PDF generation failed. Path returned: " . ($pdfPath ?? 'NULL'));
-            if ($pdfPath && !file_exists($pdfPath)) {
-                error_log("ERROR: PDF path returned but file does not exist: " . $pdfPath);
-            }
-            throw new Exception("Erreur lors de la génération du PDF");
-        }
-        
-        error_log("PDF generated successfully: " . $pdfPath);
-        error_log("PDF file size: " . filesize($pdfPath) . " bytes");
-        
-        // Prepare email data with template variables
-        $typeLabel = $etat['type'] === 'entree' ? "d'entrée" : "de sortie";
-        $templateId = $etat['type'] === 'entree' ? 'etat_lieux_entree_envoye' : 'etat_lieux_sortie_envoye';
-        
-        $emailVariables = [
-            'locataire_nom' => $etat['locataire_nom_complet'],
-            'adresse' => $etat['adresse'],
-            'date_etat' => date('d/m/Y', strtotime($etat['date_etat'])),
-            'reference' => $etat['reference_unique'] ?? 'N/A',
-            'type' => $typeLabel
-        ];
-        
-        error_log("Sending email with template: $templateId");
-        
-        // Send email to tenant using template
-        $emailSent = sendTemplatedEmail($templateId, $etat['locataire_email'], $emailVariables, $pdfPath);
-        
-        if (!$emailSent) {
-            error_log("ERROR: Failed to send email to tenant using template");
-            throw new Exception("Erreur lors de l'envoi de l'email au locataire");
-        }
-        
-        error_log("Email sent successfully to tenant!");
-        
-        // Send copy to admin using admin template
-        $adminEmailVariables = array_merge($emailVariables, [
-            'type' => $typeLabel
-        ]);
-        
-        $adminEmailSent = sendTemplatedEmail('etat_lieux_admin_copie', ADMIN_EMAIL, $adminEmailVariables, $pdfPath, true);
-        
-        if ($adminEmailSent) {
-            error_log("Admin copy email sent successfully to: " . ADMIN_EMAIL);
-        } else {
-            error_log("WARNING: Failed to send admin copy email");
-            // Don't fail the whole process if admin email fails
-        }
-        
-        // Update status
-        error_log("Updating database status...");
-        $stmt = $pdo->prepare("
-            UPDATE etats_lieux 
-            SET statut = 'envoye', 
-                email_envoye = TRUE, 
-                date_envoi_email = NOW() 
-            WHERE id = ?
-        ");
-        $stmt->execute([$id]);
-        error_log("Database updated successfully");
-        
-        $pdo->commit();
-        error_log("Transaction committed");
-        
-        // Clean up temporary PDF if needed
-        if (strpos($pdfPath, '/tmp/') !== false) {
-            error_log("Cleaning up temporary PDF: " . $pdfPath);
-            @unlink($pdfPath);
-        }
-        
-        error_log("=== FINALIZE ETAT LIEUX - SUCCESS ===");
-        $_SESSION['success'] = "État des lieux finalisé et envoyé avec succès à " . htmlspecialchars($etat['locataire_email']);
-        header('Location: etats-lieux.php');
-        exit;
-        
-    } catch (Exception $e) {
-        if ($pdo->inTransaction()) {
-            error_log("Rolling back transaction...");
-            $pdo->rollBack();
-        }
-        error_log("=== FINALIZE ETAT LIEUX - ERROR ===");
-        error_log("Exception type: " . get_class($e));
-        error_log("Error message: " . $e->getMessage());
-        error_log("Error code: " . $e->getCode());
-        error_log("Error file: " . $e->getFile() . ":" . $e->getLine());
-        error_log("Stack trace: " . $e->getTraceAsString());
-        
-        $_SESSION['error'] = "Erreur lors de la finalisation: " . $e->getMessage();
-    }
 }
 ?>
 <!DOCTYPE html>

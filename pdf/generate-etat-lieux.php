@@ -378,15 +378,22 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
     $salleEauWC = getValueOrDefault($etatLieux, 'salle_eau_wc', $defaultTexts['salle_eau_wc']);
     $etatGeneral = getValueOrDefault($etatLieux, 'etat_general', $defaultTexts['etat_general']);
     
-    // Escape HTML for descriptions (preserve newlines)
-    $piecePrincipale = htmlspecialchars($piecePrincipale);
-    $coinCuisine = htmlspecialchars($coinCuisine);
-    $salleEauWC = htmlspecialchars($salleEauWC);
-    $etatGeneral = htmlspecialchars($etatGeneral);
+    // Replace <br> tags with newlines before escaping HTML
+    $piecePrincipale = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $piecePrincipale);
+    $coinCuisine = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $coinCuisine);
+    $salleEauWC = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $salleEauWC);
+    $etatGeneral = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $etatGeneral);
     
-    // Observations - trim and escape once for HTML output
+    // Escape HTML for descriptions (preserve newlines)
+    $piecePrincipale = nl2br(htmlspecialchars($piecePrincipale));
+    $coinCuisine = nl2br(htmlspecialchars($coinCuisine));
+    $salleEauWC = nl2br(htmlspecialchars($salleEauWC));
+    $etatGeneral = nl2br(htmlspecialchars($etatGeneral));
+    
+    // Observations - trim, replace <br> with newlines, escape and convert to <br> for HTML
     $observations = trim($etatLieux['observations'] ?? '');
-    $observationsEscaped = htmlspecialchars($observations);
+    $observations = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $observations);
+    $observationsEscaped = nl2br(htmlspecialchars($observations));
     
     // Lieu de signature
     $lieuSignature = htmlspecialchars(!empty($etatLieux['lieu_signature']) ? $etatLieux['lieu_signature'] : ($config['DEFAULT_SIGNATURE_LOCATION'] ?? 'Annemasse'));
@@ -691,8 +698,16 @@ function generateEntreeHTML($contrat, $locataires, $etatLieux) {
     $salleEauWC = getValueOrDefault($etatLieux, 'salle_eau_wc', $defaultTexts['salle_eau_wc']);
     $etatGeneral = getValueOrDefault($etatLieux, 'etat_general', $defaultTexts['etat_general']);
     
-    // Observations complémentaires
-    $observations = nl2br(htmlspecialchars($etatLieux['observations'] ?? ''));
+    // Replace <br> tags with newlines before processing
+    $piecePrincipale = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $piecePrincipale);
+    $coinCuisine = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $coinCuisine);
+    $salleEauWC = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $salleEauWC);
+    $etatGeneral = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $etatGeneral);
+    
+    // Observations complémentaires - replace <br> with newlines
+    $observations = $etatLieux['observations'] ?? '';
+    $observations = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $observations);
+    $observations = nl2br(htmlspecialchars($observations));
     
     // Signatures
     $signaturesHTML = buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux);
@@ -938,11 +953,21 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
     $salleEauWC = getValueOrDefault($etatLieux, 'salle_eau_wc', $defaultTexts['salle_eau_wc']);
     $etatGeneral = getValueOrDefault($etatLieux, 'etat_general', $defaultTexts['etat_general']);
     
-    // Observations complémentaires
-    $observations = nl2br(htmlspecialchars($etatLieux['observations'] ?? ''));
+    // Replace <br> tags with newlines before processing
+    $piecePrincipale = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $piecePrincipale);
+    $coinCuisine = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $coinCuisine);
+    $salleEauWC = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $salleEauWC);
+    $etatGeneral = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $etatGeneral);
     
-    // Conclusion
-    $comparaisonEntree = nl2br(htmlspecialchars($etatLieux['comparaison_entree'] ?? 'Comparaison avec l\'état des lieux d\'entrée : [À compléter]'));
+    // Observations complémentaires - replace <br> with newlines
+    $observations = $etatLieux['observations'] ?? '';
+    $observations = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $observations);
+    $observations = nl2br(htmlspecialchars($observations));
+    
+    // Conclusion - replace <br> with newlines
+    $comparaisonEntree = $etatLieux['comparaison_entree'] ?? 'Comparaison avec l\'état des lieux d\'entrée : [À compléter]';
+    $comparaisonEntree = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $comparaisonEntree);
+    $comparaisonEntree = nl2br(htmlspecialchars($comparaisonEntree));
     
     $depotStatus = $etatLieux['depot_garantie_status'] ?? 'non_applicable';
     $depotLabels = [
@@ -1234,8 +1259,8 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
             if (file_exists($fullPath)) {
                 // Use public URL for signature image
                 $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($landlordSigPath, '/');
-                $sigStyle = 'max-width:' . ETAT_LIEUX_SIGNATURE_MAX_WIDTH . '; max-height:' . ETAT_LIEUX_SIGNATURE_MAX_HEIGHT . '; border:0; outline:none;';
-                $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" style="' . $sigStyle . '"></div>';
+                $sigStyle = 'max-width:' . ETAT_LIEUX_SIGNATURE_MAX_WIDTH . '; max-height:' . ETAT_LIEUX_SIGNATURE_MAX_HEIGHT . '; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;';
+                $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" border="0" style="' . $sigStyle . '"></div>';
             } else {
                 error_log("Landlord signature file not found: $fullPath");
                 $html .= '<div class="signature-box">&nbsp;</div>';
@@ -1266,18 +1291,18 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
         $html .= '<p><strong>' . $tenantLabel . '</strong></p>';
 
         // Display tenant signature if available
-        $sigStyle = 'max-width:' . ETAT_LIEUX_SIGNATURE_MAX_WIDTH . '; max-height:' . ETAT_LIEUX_SIGNATURE_MAX_HEIGHT . '; border:0; outline:none;';
+        $sigStyle = 'max-width:' . ETAT_LIEUX_SIGNATURE_MAX_WIDTH . '; max-height:' . ETAT_LIEUX_SIGNATURE_MAX_HEIGHT . '; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;';
         if (!empty($tenantInfo['signature_data'])) {
             if (preg_match('/^data:image\/(jpeg|jpg|png);base64,/', $tenantInfo['signature_data'])) {
                 // Data URL format - TCPDF can handle this directly
-                $html .= '<div class="signature-box"><img src="' . $tenantInfo['signature_data'] . '" alt="Signature Locataire" style="' . $sigStyle . '"></div>';
+                $html .= '<div class="signature-box"><img src="' . $tenantInfo['signature_data'] . '" alt="Signature Locataire" border="0" style="' . $sigStyle . '"></div>';
             } elseif (preg_match('/^uploads\/signatures\//', $tenantInfo['signature_data'])) {
                 // File path format - verify file exists before using public URL
                 $fullPath = dirname(__DIR__) . '/' . $tenantInfo['signature_data'];
                 if (file_exists($fullPath)) {
                     // Use public URL
                     $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($tenantInfo['signature_data'], '/');
-                    $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" style="' . $sigStyle . '"></div>';
+                    $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" border="0" style="' . $sigStyle . '"></div>';
                 } else {
                     error_log("Tenant signature file not found: $fullPath");
                     $html .= '<div class="signature-box">&nbsp;</div>';
