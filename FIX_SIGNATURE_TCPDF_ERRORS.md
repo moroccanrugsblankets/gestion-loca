@@ -54,13 +54,15 @@ function updateEtatLieuxTenantSignature($etatLieuxLocataireId, $signatureData, $
    php test-signature-tcpdf-fixes.php
    ```
 
-3. **Test the functionality**:
-   - Navigate to `/admin-v2/edit-etat-lieux.php?id=1`
+3. **Test the functionality** (use a test record, not production data):
+   - Navigate to `/admin-v2/edit-etat-lieux.php?id=<TEST_ID>` (replace with an actual test état des lieux ID)
    - Try signing as a tenant and save the form
    - Verify signature is saved correctly
-   - Navigate to `/admin-v2/finalize-etat-lieux.php?id=1`
+   - Navigate to `/admin-v2/finalize-etat-lieux.php?id=<TEST_ID>`
    - Finalize and send the document
    - Verify PDF is generated without TCPDF errors
+   
+   **Note**: Create a test état des lieux record or use an existing test record. Do not test on production data.
 
 ## Technical Details
 
