@@ -902,13 +902,13 @@ $isSortie = $etat['type'] === 'sortie';
                                 if (preg_match('/^data:image\/[a-z]+;base64,/', $signatureSrc)) {
                                     // Data URL - use as is (validated format)
                                     $displaySrc = $signatureSrc;
-                                } elseif (preg_match('/^uploads\/signatures\/[a-zA-Z0-9_\-\.]+\.(jpg|jpeg|png)$/', $signatureSrc)) {
+                                } elseif (preg_match('/^uploads\/signatures\/[a-zA-Z0-9_\-]+\.(jpg|jpeg|png)$/', $signatureSrc)) {
                                     // Relative path - validate it's within expected directory and prepend ../
-                                    // Pattern ensures no directory traversal and only allowed file extensions
+                                    // Pattern ensures no directory traversal, no multiple dots, and only allowed file extensions
                                     $displaySrc = '../' . $signatureSrc;
                                 } else {
                                     // Invalid or unexpected format - don't display to prevent security issues
-                                    error_log("Invalid signature path format: " . $signatureSrc);
+                                    error_log("Invalid signature path format detected for tenant ID: " . (int)$tenant['id']);
                                     $displaySrc = '';
                                 }
                                 ?>
