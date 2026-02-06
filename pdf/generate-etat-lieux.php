@@ -20,7 +20,7 @@ define('ETAT_LIEUX_SIGNATURE_MAX_WIDTH', '30mm');
 define('ETAT_LIEUX_SIGNATURE_MAX_HEIGHT', '15mm');
 
 // Style CSS pour les images de signature (sans bordures) - identique aux contrats
-define('ETAT_LIEUX_SIGNATURE_IMG_STYLE', 'max-width: 30mm; max-height: 15mm; display: block; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; box-shadow: none; background: transparent; padding: 0; margin: 0 auto;');
+define('ETAT_LIEUX_SIGNATURE_IMG_STYLE', 'max-width: 20mm; max-height: 10mm; display: block; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; box-shadow: none; background: transparent; padding: 0; margin: 0 auto;');
 
 /**
  * Générer le PDF de l'état des lieux
