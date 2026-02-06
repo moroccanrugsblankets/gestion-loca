@@ -208,7 +208,7 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                                             <i class="bi bi-arrows-angle-contract"></i>
                                         </a>
                                         <?php endif; ?>
-                                        <a href="download-etat-lieux.php?id=<?php echo $etat['id']; ?>" class="btn btn-sm btn-outline-secondary" title="Télécharger" target="_blank">
+                                        <a href="download-etat-lieux.php?id=<?php echo $etat['id']; ?>&download=1" class="btn btn-sm btn-outline-secondary" title="Télécharger">
                                             <i class="bi bi-download"></i>
                                         </a>
                                         <button type="button" class="btn btn-sm btn-outline-danger" title="Supprimer" 
@@ -304,7 +304,7 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                                             <i class="bi bi-arrows-angle-contract"></i>
                                         </a>
                                         <?php endif; ?>
-                                        <a href="download-etat-lieux.php?id=<?php echo $etat['id']; ?>" class="btn btn-sm btn-outline-secondary" title="Télécharger" target="_blank">
+                                        <a href="download-etat-lieux.php?id=<?php echo $etat['id']; ?>&download=1" class="btn btn-sm btn-outline-secondary" title="Télécharger">
                                             <i class="bi bi-download"></i>
                                         </a>
                                         <button type="button" class="btn btn-sm btn-outline-danger" title="Supprimer" 

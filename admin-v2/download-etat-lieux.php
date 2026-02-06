@@ -56,9 +56,16 @@ try {
     $safeFilename = str_replace(' ', '_', $safeFilename);
     $safeFilename = str_replace(["\r", "\n"], '', $safeFilename);
     
-    // Send headers to display PDF inline
+    // Check if download is forced
+    $forceDownload = isset($_GET['download']) && $_GET['download'] == '1';
+    
+    // Send headers - inline or attachment based on parameter
     header('Content-Type: application/pdf');
-    header('Content-Disposition: inline; filename="' . $safeFilename . '"');
+    if ($forceDownload) {
+        header('Content-Disposition: attachment; filename="' . $safeFilename . '"');
+    } else {
+        header('Content-Disposition: inline; filename="' . $safeFilename . '"');
+    }
     header('Content-Length: ' . $filesize);
     header('Cache-Control: no-cache, must-revalidate');
     header('Pragma: no-cache');
