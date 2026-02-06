@@ -17,6 +17,10 @@ if (file_exists(__DIR__ . '/../admin-v2/etat-lieux-configuration.php')) {
     require_once __DIR__ . '/../admin-v2/etat-lieux-configuration.php';
 }
 
+// Signature image display size constants (for PDF rendering)
+define('ETAT_LIEUX_SIGNATURE_MAX_WIDTH', '30mm');
+define('ETAT_LIEUX_SIGNATURE_MAX_HEIGHT', '15mm');
+
 /**
  * Générer le PDF de l'état des lieux
  * 
@@ -380,7 +384,7 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
     $salleEauWC = htmlspecialchars($salleEauWC);
     $etatGeneral = htmlspecialchars($etatGeneral);
     
-    // Observations (already trimmed and will be escaped once)
+    // Observations - trim and escape once for HTML output
     $observations = trim($etatLieux['observations'] ?? '');
     $observationsEscaped = htmlspecialchars($observations);
     
@@ -1228,9 +1232,10 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
             // Verify file exists before adding to PDF
             $fullPath = dirname(__DIR__) . '/' . $landlordSigPath;
             if (file_exists($fullPath)) {
-                // Use public URL for signature image - REDUCED SIZE (30mm max width)
+                // Use public URL for signature image
                 $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($landlordSigPath, '/');
-                $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" style="max-width:30mm; max-height:15mm; border:0; outline:none;"></div>';
+                $sigStyle = 'max-width:' . ETAT_LIEUX_SIGNATURE_MAX_WIDTH . '; max-height:' . ETAT_LIEUX_SIGNATURE_MAX_HEIGHT . '; border:0; outline:none;';
+                $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" style="' . $sigStyle . '"></div>';
             } else {
                 error_log("Landlord signature file not found: $fullPath");
                 $html .= '<div class="signature-box">&nbsp;</div>';
@@ -1260,18 +1265,19 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
         $tenantLabel = ($nbCols === 2) ? 'Locataire :' : 'Locataire ' . ($idx + 1) . ' :';
         $html .= '<p><strong>' . $tenantLabel . '</strong></p>';
 
-        // Display tenant signature if available - REDUCED SIZE (30mm max width)
+        // Display tenant signature if available
+        $sigStyle = 'max-width:' . ETAT_LIEUX_SIGNATURE_MAX_WIDTH . '; max-height:' . ETAT_LIEUX_SIGNATURE_MAX_HEIGHT . '; border:0; outline:none;';
         if (!empty($tenantInfo['signature_data'])) {
             if (preg_match('/^data:image\/(jpeg|jpg|png);base64,/', $tenantInfo['signature_data'])) {
                 // Data URL format - TCPDF can handle this directly
-                $html .= '<div class="signature-box"><img src="' . $tenantInfo['signature_data'] . '" alt="Signature Locataire" style="max-width:30mm; max-height:15mm; border:0; outline:none;"></div>';
+                $html .= '<div class="signature-box"><img src="' . $tenantInfo['signature_data'] . '" alt="Signature Locataire" style="' . $sigStyle . '"></div>';
             } elseif (preg_match('/^uploads\/signatures\//', $tenantInfo['signature_data'])) {
                 // File path format - verify file exists before using public URL
                 $fullPath = dirname(__DIR__) . '/' . $tenantInfo['signature_data'];
                 if (file_exists($fullPath)) {
                     // Use public URL
                     $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($tenantInfo['signature_data'], '/');
-                    $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" style="max-width:30mm; max-height:15mm; border:0; outline:none;"></div>';
+                    $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" style="' . $sigStyle . '"></div>';
                 } else {
                     error_log("Tenant signature file not found: $fullPath");
                     $html .= '<div class="signature-box">&nbsp;</div>';
