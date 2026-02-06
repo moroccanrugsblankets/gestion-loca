@@ -262,8 +262,11 @@ function createDefaultEtatLieux($contratId, $type, $contrat, $locataires) {
                     ordre,
                     nom,
                     prenom,
-                    email
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                    email,
+                    signature_data,
+                    signature_timestamp,
+                    signature_ip
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
                 $etatLieuxId,
@@ -271,7 +274,10 @@ function createDefaultEtatLieux($contratId, $type, $contrat, $locataires) {
                 $i + 1,
                 $loc['nom'],
                 $loc['prenom'],
-                $loc['email']
+                $loc['email'],
+                $loc['signature_data'] ?? null,
+                $loc['signature_timestamp'] ?? null,
+                $loc['signature_ip'] ?? null
             ]);
             error_log("Added locataire " . ($i+1) . ": " . $loc['prenom'] . ' ' . $loc['nom']);
         }
@@ -395,7 +401,7 @@ function generateEntreeHTML($contrat, $locataires, $etatLieux) {
         }
         h2 { 
             font-size: 12pt; 
-            margin-top: 20px; 
+            margin-top: 0; 
             margin-bottom: 10px; 
             font-weight: bold; 
             border-bottom: 2px solid #000;
@@ -442,7 +448,6 @@ function generateEntreeHTML($contrat, $locataires, $etatLieux) {
         }
         .signature-box { 
             min-height: 80px; 
-            border-bottom: 1px solid #000; 
             margin-bottom: 5px; 
         }
         .text-field { 
@@ -682,7 +687,7 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
         }
         h2 { 
             font-size: 12pt; 
-            margin-top: 20px; 
+            margin-top: 0; 
             margin-bottom: 10px; 
             font-weight: bold; 
             border-bottom: 2px solid #000;
@@ -729,7 +734,6 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
         }
         .signature-box { 
             min-height: 80px; 
-            border-bottom: 1px solid #000; 
             margin-bottom: 5px; 
         }
     </style>
@@ -938,14 +942,14 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
         if (!empty($tenantInfo['signature_data'])) {
             if (preg_match('/^data:image\/(jpeg|jpg|png);base64,/', $tenantInfo['signature_data'])) {
                 // Data URL format - TCPDF can handle this directly
-                $html .= '<div class="signature-box"><img src="' . $tenantInfo['signature_data'] . '" alt="Signature Locataire" style="max-width:120px; max-height:50px;"></div>';
+                $html .= '<div class="signature-box"><img src="' . $tenantInfo['signature_data'] . '" alt="Signature Locataire" style="max-width:80px; max-height:40px;"></div>';
             } elseif (preg_match('/^uploads\/signatures\//', $tenantInfo['signature_data'])) {
                 // File path format - verify file exists before using public URL
                 $fullPath = dirname(__DIR__) . '/' . $tenantInfo['signature_data'];
                 if (file_exists($fullPath)) {
                     // Use public URL (like contract PDF does)
                     $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($tenantInfo['signature_data'], '/');
-                    $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" style="max-width:120px; max-height:50px;"></div>';
+                    $html .= '<div class="signature-box"><img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" style="max-width:80px; max-height:40px;"></div>';
                 } else {
                     error_log("Tenant signature file not found: $fullPath");
                     $html .= '<div class="signature-box">&nbsp;</div>';
