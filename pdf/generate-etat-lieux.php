@@ -12,10 +12,8 @@ require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/mail-templates.php';
 
-// Import the default template function from configuration
-if (file_exists(__DIR__ . '/../admin-v2/etat-lieux-configuration.php')) {
-    require_once __DIR__ . '/../admin-v2/etat-lieux-configuration.php';
-}
+// Import the default template function
+require_once __DIR__ . '/../includes/etat-lieux-template.php';
 
 // Signature image display size constants (for PDF rendering)
 define('ETAT_LIEUX_SIGNATURE_MAX_WIDTH', '30mm');
