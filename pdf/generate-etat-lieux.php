@@ -389,7 +389,7 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
     // Pattern matches: period + space + uppercase letter
     // Excludes: digits (decimal numbers) and common French abbreviations via fixed-length lookbehinds
     // The lookbehind checks the characters immediately before the period (e.g., 'M', 'Mr', 'Mme', etc.)
-    $sentencePattern = '/(?<!\d)(?<!M)(?<!Mr)(?<!Ms)(?<!Dr)(?<!St)(?<!Mme)(?<!Mrs)(?<!Ste)(?<!lle)\.\s+(?=[A-ZÀÂÄÇÉÈÊËÏÎÔÙÛÜ])/';
+    $sentencePattern = '/(?<!\d)(?<!M)(?<!Mr)(?<!Ms)(?<!Dr)(?<!St)(?<!Mme)(?<!Mrs)(?<!Ste)(?<!Mlle)\.\s+(?=[A-ZÀÂÄÇÉÈÊËÏÎÔÙÛÜ])/';
     $piecePrincipale = preg_replace($sentencePattern, ".\n", $piecePrincipale);
     $coinCuisine = preg_replace($sentencePattern, ".\n", $coinCuisine);
     $salleEauWC = preg_replace($sentencePattern, ".\n", $salleEauWC);
