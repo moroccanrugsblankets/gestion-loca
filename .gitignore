@@ -58,6 +58,9 @@ test-db-connection.php
 test-refactoring.php
 !test-etat-lieux-module.php
 !test-etat-lieux-pdf-fixes.php
+!test-html-preview-contrat.php
+!test-html-preview-bail.php
+!test-html-preview-etat-lieux.php
 test-upload.html
 test-signature-fix.html
 test-candidature-evaluation.php

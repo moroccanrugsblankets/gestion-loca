@@ -16,11 +16,11 @@ require_once __DIR__ . '/../includes/mail-templates.php';
 require_once __DIR__ . '/../includes/etat-lieux-template.php';
 
 // Signature image display size constants (for PDF rendering)
-define('ETAT_LIEUX_SIGNATURE_MAX_WIDTH', '30mm');
-define('ETAT_LIEUX_SIGNATURE_MAX_HEIGHT', '15mm');
+define('ETAT_LIEUX_SIGNATURE_MAX_WIDTH', '50mm');
+define('ETAT_LIEUX_SIGNATURE_MAX_HEIGHT', '25mm');
 
-// Style CSS pour les images de signature (sans bordures) - identique aux contrats
-define('ETAT_LIEUX_SIGNATURE_IMG_STYLE', 'max-width: 15mm; max-height: 8mm; display: block; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; box-shadow: none; background: transparent; padding: 0; margin: 0 auto;');
+// Style CSS pour les images de signature (sans bordures) - augmenté pour meilleure visibilité
+define('ETAT_LIEUX_SIGNATURE_IMG_STYLE', 'max-width: 50mm; max-height: 25mm; display: block; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; box-shadow: none; background: transparent; padding: 0; margin: 0 auto;');
 
 /**
  * Générer le PDF de l'état des lieux

@@ -149,8 +149,8 @@ function generateBailHTML($contrat, $locataires) {
             padding: 10px;
         }
         .signature-image {
-            max-width: 30px;
-            max-height: 15px;
+            max-width: 40px;
+            max-height: 20px;
             border: 0;
             border-width: 0;
             border-style: none;
@@ -161,8 +161,8 @@ function generateBailHTML($contrat, $locataires) {
             background: transparent;
         }
         .company-signature {
-            max-width: 40px;
-            max-height: 20px;
+            max-width: 50px;
+            max-height: 25px;
             border: 0;
             border-width: 0;
             border-style: none;
@@ -380,7 +380,7 @@ function generateBailHTML($contrat, $locataires) {
                 $relativePath = '../' . $signatureImage;
                 $html .= '
                 <p><strong>Signature électronique</strong></p>
-                <img src="' . htmlspecialchars($relativePath) . '" alt="Signature Société" class="company-signature" border="0" style="max-width: 40px; max-height: 20px; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent; margin-bottom: 10px;"><br>
+                <img src="' . htmlspecialchars($relativePath) . '" alt="Signature Société" class="company-signature" border="0" style="max-width: 50px; max-height: 25px; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent; margin-bottom: 10px;"><br>
                 <p style="margin-top: 10px;"><strong>Validé le :</strong> ' . formatDateFr($contrat['date_validation'], 'd/m/Y à H:i:s') . '</p>';
             } else {
                 error_log("PDF Generation Bail: ERREUR - Fichier de signature introuvable: $absolutePath");
@@ -394,7 +394,7 @@ function generateBailHTML($contrat, $locataires) {
                 error_log("PDF Generation Bail: ✓ Image physique utilisée pour la signature agence");
                 $html .= '
                 <p><strong>Signature électronique</strong></p>
-                <img src="' . htmlspecialchars($physicalImagePath) . '" alt="Signature Société" class="company-signature" border="0" style="max-width: 40px; max-height: 20px; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent; margin-bottom: 10px;"><br>
+                <img src="' . htmlspecialchars($physicalImagePath) . '" alt="Signature Société" class="company-signature" border="0" style="max-width: 50px; max-height: 25px; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent; margin-bottom: 10px;"><br>
                 <p style="margin-top: 10px;"><strong>Validé le :</strong> ' . formatDateFr($contrat['date_validation'], 'd/m/Y à H:i:s') . '</p>';
                 error_log("PDF Generation Bail: ✓ Signature agence ajoutée avec margin-top et sans bordure");
             } else {
@@ -402,7 +402,7 @@ function generateBailHTML($contrat, $locataires) {
                 error_log("PDF Generation Bail: AVERTISSEMENT - Impossible de sauvegarder l'image physique, utilisation du data URI");
                 $html .= '
                 <p><strong>Signature électronique</strong></p>
-                <img src="' . htmlspecialchars($signatureImage) . '" alt="Signature Société" class="company-signature" border="0" style="max-width: 40px; max-height: 20px; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent; margin-bottom: 10px;"><br>
+                <img src="' . htmlspecialchars($signatureImage) . '" alt="Signature Société" class="company-signature" border="0" style="max-width: 50px; max-height: 25px; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent; margin-bottom: 10px;"><br>
                 <p style="margin-top: 10px;"><strong>Validé le :</strong> ' . formatDateFr($contrat['date_validation'], 'd/m/Y à H:i:s') . '</p>';
             }
         }
@@ -445,12 +445,12 @@ function generateBailHTML($contrat, $locataires) {
             if ($physicalImagePath !== false) {
                 // Utiliser l'image physique
                 error_log("PDF Generation Bail: ✓ Image physique utilisée pour la signature client " . ($i + 1));
-                $html .= '<img src="' . htmlspecialchars($physicalImagePath) . '" alt="Signature" border="0" style="max-width: 30px; max-height: 15px; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent; margin-bottom: 10px;"><br>';
+                $html .= '<img src="' . htmlspecialchars($physicalImagePath) . '" alt="Signature" border="0" style="max-width: 40px; max-height: 20px; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent; margin-bottom: 10px;"><br>';
                 error_log("PDF Generation Bail: ✓ Signature client " . ($i + 1) . " ajoutée avec margin-top et sans bordure");
             } else {
                 // Fallback: utiliser data URI
                 error_log("PDF Generation Bail: AVERTISSEMENT - Impossible de sauvegarder l'image physique client " . ($i + 1) . ", utilisation du data URI");
-                $html .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" alt="Signature" border="0" style="max-width: 30px; max-height: 15px; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent; margin-bottom: 10px;"><br>';
+                $html .= '<img src="' . htmlspecialchars($locataire['signature_data']) . '" alt="Signature" border="0" style="max-width: 40px; max-height: 20px; border: 0; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent; margin-bottom: 10px;"><br>';
             }
         }
         

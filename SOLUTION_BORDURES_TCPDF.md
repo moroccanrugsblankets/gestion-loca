@@ -1,0 +1,268 @@
+# Solution aux Bordures TCPDF dans les PDFs
+
+## Problème Constaté
+
+Malgré l'ajout de toutes les propriétés CSS anti-bordures possibles (`border: 0`, `border-width: 0`, `border-style: none`, etc.), TCPDF continue à générer des bordures autour des images de signature et parfois autour des tableaux dans le PDF final.
+
+## Diagnostic
+
+### HTML vs PDF
+
+L'utilisateur a créé des fichiers de test pour visualiser le HTML **AVANT** l'exécution de TCPDF et a constaté que :
+
+✅ **Le HTML brut affiche correctement les signatures** - Aucune bordure visible  
+✅ **Les proportions sont bonnes** - Les signatures sont même meilleures en plus grand  
+❌ **C'est TCPDF qui génère les bordures** - Le problème apparaît uniquement dans le PDF final
+
+### Fichiers de Test Créés
+
+Pour diagnostiquer ce problème, trois fichiers de test ont été créés :
+
+1. **`test-html-preview-contrat.php`** - Visualise le HTML de generate-contrat-pdf.php AVANT TCPDF
+   ```
+   Usage: http://localhost/test-html-preview-contrat.php?id=51
+   ```
+
+2. **`test-html-preview-bail.php`** - Visualise le HTML de generate-bail.php AVANT TCPDF
+   ```
+   Usage: http://localhost/test-html-preview-bail.php?id=51
+   ```
+
+3. **`test-html-preview-etat-lieux.php`** - Visualise le HTML de generate-etat-lieux.php AVANT TCPDF
+   ```
+   Usage: http://localhost/test-html-preview-etat-lieux.php?id=51&type=entree
+   ```
+
+Ces fichiers permettent de **confirmer que le HTML est correct** et que le problème vient bien de TCPDF.
+
+## Cause Racine
+
+TCPDF a son propre moteur de rendu HTML qui ne respecte pas toutes les propriétés CSS standard. Spécifiquement :
+
+### Pour les images `<img>`
+- TCPDF ignore souvent les propriétés `border: 0` dans les attributs de style
+- Les images peuvent avoir une bordure par défaut de 1-2px
+- La transparence n'est pas toujours préservée correctement
+
+### Pour les tableaux `<table>`
+- Les propriétés `border="0"` et `border-collapse: collapse` peuvent être ignorées
+- TCPDF peut ajouter des bordures même quand elles sont explicitement désactivées
+
+## Solutions Possibles
+
+### Solution 1 : CSS Exhaustif (Implémenté)
+
+Ajouter **toutes** les propriétés anti-bordure possibles dans le style inline :
+
+```css
+border: 0;
+border-width: 0;
+border-style: none;
+border-color: transparent;
+outline: none;
+outline-width: 0;
+padding: 0;
+background: transparent;
+box-shadow: none;
+```
+
+**Status :** ✅ Implémenté dans tous les fichiers  
+**Efficacité :** ⚠️ Partielle - Améliore mais ne résout pas complètement le problème
+
+### Solution 2 : Méthode TCPDF Native `$pdf->Image()` (NON RECOMMANDÉE)
+
+⚠️ **Cette solution n'est PAS utilisée dans ce projet.**
+
+**Raison :** Avec `$pdf->Image()`, on ne peut pas contrôler la position si on change la template. La méthode HTML `<img>` est préférable car elle permet une meilleure flexibilité lors des modifications de template.
+
+```php
+// Exemple de ce qu'on NE FAIT PAS :
+$pdf->Image('@' . $imageData, $x, $y, $width, $height, 'PNG', '', '', false, 300, '', false, false, 0);
+//                            ↑   ↑
+//                       Positions fixes en coordonnées absolues
+//                       → Problème si le template change !
+```
+
+**Pourquoi HTML `<img>` est meilleur :**
+- ✅ **Flexibilité de positionnement** - S'adapte automatiquement au template
+- ✅ **Maintenance facile** - Pas besoin de recalculer les coordonnées X, Y
+- ✅ **Cohérence avec le HTML** - Même rendu dans preview et PDF
+- ✅ **Template-driven** - Les modifications de template n'affectent pas le code
+
+**Solution actuelle (CORRECTE) :**
+```php
+// On utilise des balises HTML <img> dans le template
+$html .= '<img src="' . $imageUrl . '" style="max-width: 150px; border: 0; ...">';
+$pdf->writeHTML($html);
+// → La position est gérée par le flux HTML, pas par des coordonnées fixes
+```
+
+### Solution 3 : Conversion en PNG avec Fond Blanc
+
+Convertir les signatures PNG transparentes en PNG avec fond blanc solide :
+
+```php
+// Supprimer la transparence en ajoutant un fond blanc
+$image = imagecreatefrompng($signaturePath);
+$width = imagesx($image);
+$height = imagesy($image);
+$output = imagecreatetruecolor($width, $height);
+$white = imagecolorallocate($output, 255, 255, 255);
+imagefill($output, 0, 0, $white);
+imagecopy($output, $image, 0, 0, 0, 0, $width, $height);
+imagepng($output, $newPath);
+```
+
+**Avantages :**
+- ✅ Élimine les problèmes de transparence
+- ✅ Facile à implémenter
+
+**Inconvénients :**
+- ❌ Perte de la transparence (aspect moins professionnel)
+- ❌ Ne résout pas forcément le problème de bordure
+
+## État Actuel des Signatures
+
+### Tailles Restaurées
+
+| Fichier | Élément | Taille Actuelle | Status |
+|---------|---------|-----------------|--------|
+| `generate-contrat-pdf.php` | Agence | 150px max-width | ✅ Augmenté |
+| `generate-contrat-pdf.php` | Locataire | 150px max-width | ✅ Augmenté |
+| `generate-bail.php` | Agence | 50mm × 25mm | ✅ Augmenté |
+| `generate-bail.php` | Locataire | 40mm × 20mm | ✅ Augmenté |
+| `generate-etat-lieux.php` | Toutes | 50mm × 25mm | ✅ Augmenté (+233%) |
+
+### Propriétés Anti-Bordure
+
+✅ **Toutes les propriétés anti-bordure sont présentes** dans tous les fichiers :
+- `border: 0`
+- `border-width: 0`
+- `border-style: none`
+- `border-color: transparent`
+- `outline: none`
+- `outline-width: 0`
+- `padding: 0`
+- `background: transparent`
+
+## Recommandations
+
+### Court Terme (Implémenté) ✅
+1. ✅ Augmenter les tailles des signatures pour meilleure visibilité
+2. ✅ Maintenir toutes les propriétés CSS anti-bordure
+3. ✅ Créer des fichiers de test pour diagnostic
+4. ✅ **Utiliser HTML `<img>` tags** pour flexibilité de template
+
+### Approche Actuelle (CORRECTE) ✅
+
+**HTML `<img>` est la bonne solution** pour ce projet car :
+
+1. **Flexibilité de positionnement** - Les signatures s'adaptent automatiquement au template
+2. **Pas de coordonnées fixes** - Si le template change, les signatures restent correctement positionnées
+3. **Maintenance simplifiée** - Pas besoin de recalculer X, Y à chaque modification
+
+**Exemple d'implémentation correcte (déjà en place) :**
+```php
+// generate-contrat-pdf.php (ligne 181)
+$html .= '<img src="' . htmlspecialchars($publicUrl) . '" 
+          alt="Signature Société" 
+          border="0" 
+          style="max-width: 150px; border: 0; border-width: 0; border-style: none; ...">';
+```
+
+### ⚠️ Ce qu'on NE FAIT PAS
+
+**`$pdf->Image()` avec coordonnées fixes** - NON recommandé car :
+- ❌ Position fixe (X, Y en mm) - Problème si template change
+- ❌ Nécessite recalcul à chaque modification de template
+- ❌ Moins flexible pour maintenance
+
+### Moyen Terme (À Considérer)
+1. 🔲 Tester avec différentes versions de TCPDF
+2. 🔲 Optimiser les propriétés CSS pour meilleur rendu TCPDF
+3. 🔲 Considérer bibliothèques alternatives si bordures persistent (DomPDF, mPDF)
+
+### Long Terme
+1. 🔲 Évaluer migration vers solution PDF plus moderne si nécessaire
+2. 🔲 Système de génération en deux passes (HTML preview + PDF final) si requis
+
+## Comment Tester
+
+### 1. Visualiser le HTML (Recommandé)
+
+Ouvrir dans le navigateur pour voir le rendu **AVANT** TCPDF :
+
+```bash
+# Contrat
+http://localhost/test-html-preview-contrat.php?id=<contract_id>
+
+# Bail
+http://localhost/test-html-preview-bail.php?id=<contract_id>
+
+# État des lieux d'entrée
+http://localhost/test-html-preview-etat-lieux.php?id=<contract_id>&type=entree
+
+# État des lieux de sortie
+http://localhost/test-html-preview-etat-lieux.php?id=<contract_id>&type=sortie
+```
+
+**Résultat attendu :** Aucune bordure visible, signatures bien proportionnées
+
+### 2. Générer le PDF
+
+Générer le PDF final pour comparer :
+
+```php
+// Pour contrat
+require_once 'pdf/generate-contrat-pdf.php';
+$pdfPath = generateContratPDF($contractId);
+
+// Pour bail
+require_once 'pdf/generate-bail.php';
+$pdfPath = generateBailPDF($contractId);
+
+// Pour état des lieux
+require_once 'pdf/generate-etat-lieux.php';
+$pdfPath = generateEtatDesLieuxPDF($contractId, 'entree');
+```
+
+**Comparer :**
+- HTML Preview : Pas de bordures ✅
+- PDF Final : Bordures présentes ❌ → Confirme que c'est un problème TCPDF
+
+## Conclusion
+
+Le problème de bordures **n'est pas dû au HTML** mais bien au moteur de rendu de TCPDF. Les fichiers de test le prouvent :
+
+1. ✅ **HTML correct** - Aucune bordure dans le preview
+2. ❌ **PDF incorrect** - Bordures apparaissent après traitement TCPDF
+
+**Solution actuelle (CORRECTE) :** Utiliser HTML `<img>` tags avec tailles de signatures augmentées
+
+**Pourquoi on garde HTML `<img>` :**
+- ✅ **Flexibilité de template** - Position automatique, pas de coordonnées fixes
+- ✅ **Maintenance facile** - Modifications de template ne cassent rien
+- ✅ **Déjà implémenté** - Fonctionne dans tous les fichiers PDF
+
+**Ce qu'on NE FAIT PAS :** `$pdf->Image()` avec coordonnées X, Y fixes (perte de flexibilité template)
+
+## Fichiers Modifiés
+
+- ✅ `.gitignore` - Ajout de l'exception pour test-html-preview-etat-lieux.php
+- ✅ `test-html-preview-etat-lieux.php` - Nouveau fichier de test
+- ✅ `pdf/generate-etat-lieux.php` - Augmentation des tailles de signatures (15mm → 50mm)
+
+## Références
+
+- `AVANT_APRES_SIGNATURES_TCPDF.md` - Documentation sur la solution via $pdf->Image()
+- `RESUME_RESTAURATION_TAILLES_SIGNATURES.md` - Détails sur les tailles restaurées
+- `COMPARAISON_VISUELLE_TAILLES_SIGNATURES.md` - Comparaisons visuelles avant/après
+- `test-html-preview-contrat.php` - Outil de diagnostic pour contrats
+- `test-html-preview-bail.php` - Outil de diagnostic pour bails
+- `test-html-preview-etat-lieux.php` - Outil de diagnostic pour états des lieux
+
+---
+
+**Date :** 2026-02-06  
+**Auteur :** GitHub Copilot  
+**Branch :** copilot/remove-borders-from-signatures

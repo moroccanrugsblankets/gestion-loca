@@ -1,8 +1,18 @@
 # Comparaison visuelle : AVANT / APRÈS - Signatures PDF
 
-## Vue d'ensemble
+## ⚠️ IMPORTANT : Ce document est OBSOLÈTE
 
-Ce document montre la différence entre l'ancienne méthode (avec bordures) et la nouvelle méthode (sans bordures) pour l'insertion des signatures dans les PDFs.
+**Ce document décrit une approche avec `$pdf->Image()` qui N'EST PAS utilisée dans ce projet.**
+
+**Raison :** Avec `$pdf->Image()`, on ne peut pas contrôler la position si on change la template. 
+
+**Solution CORRECTE utilisée :** HTML `<img>` tags (voir `generate-contrat-pdf.php` comme référence)
+
+---
+
+## Vue d'ensemble (OBSOLÈTE - Pour Référence Uniquement)
+
+Ce document montre la différence entre l'ancienne méthode (avec bordures) et la méthode `$pdf->Image()` (qui n'est PAS implémentée dans ce projet).
 
 ---
 
