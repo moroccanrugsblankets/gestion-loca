@@ -89,16 +89,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Prepare default values
     $default_cles_appartement = null;
     $default_cles_boite_lettres = null;
+    $default_cles_autre = null;
     $default_cles_total = null;
+    $default_cles_observations = null;
+    $default_compteur_electricite = null;
+    $default_compteur_eau_froide = null;
     $default_piece_principale = null;
     $default_coin_cuisine = null;
     $default_salle_eau_wc = null;
     $default_etat_general = null;
+    $default_observations = null;
+    $etat_entree_id = null;
     
     // For entry: use logement defaults
     if ($type === 'entree') {
         $default_cles_appartement = (int)($contrat['default_cles_appartement'] ?? 2);
         $default_cles_boite_lettres = (int)($contrat['default_cles_boite_lettres'] ?? 1);
+        $default_cles_autre = 0;
         $default_cles_total = $default_cles_appartement + $default_cles_boite_lettres;
         
         // Default room description template - used for main room and kitchen
@@ -113,57 +120,87 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         $default_etat_general = "Le logement a fait l'objet d'une remise en état générale avant l'entrée dans les lieux.\nIl est propre, entretenu et ne présente aucune dégradation apparente au jour de l'état des lieux.\nAucune anomalie constatée.";
     }
-    // For exit: try to copy from entry state
+    // For exit: DO NOT copy data - leave fields empty for user input
+    // Entry data will be displayed as visual reference only in the edit form
     else if ($type === 'sortie') {
-        $stmt = $pdo->prepare("SELECT * FROM etats_lieux WHERE contrat_id = ? AND type = 'entree' ORDER BY date_etat DESC LIMIT 1");
+        // Find entry state to verify it exists (required for visual reference)
+        $stmt = $pdo->prepare("SELECT id FROM etats_lieux WHERE contrat_id = ? AND type = 'entree' ORDER BY date_etat DESC LIMIT 1");
         $stmt->execute([$contrat_id]);
         $etat_entree = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($etat_entree) {
-            $default_cles_appartement = $etat_entree['cles_appartement'];
-            $default_cles_boite_lettres = $etat_entree['cles_boite_lettres'];
-            $default_cles_total = $etat_entree['cles_total'];
-            $default_piece_principale = $etat_entree['piece_principale'];
-            $default_coin_cuisine = $etat_entree['coin_cuisine'];
-            $default_salle_eau_wc = $etat_entree['salle_eau_wc'];
-            $default_etat_general = "À compléter lors de l'état des lieux de sortie (anomalies constatées, traces d'usage, dégradations éventuelles).";
+            // Store entry ID for visual reference display later (not for copying)
+            $etat_entree_id = $etat_entree['id'];
         }
+        
+        // All fields remain NULL/empty - user will enter exit values manually
+        // No auto-copy from entry state
     }
     
     // Insert new état des lieux with initial data
     try {
+        // Prepare INSERT with comprehensive field list
+        // Fields organized by category for maintainability
         $stmt = $pdo->prepare("
             INSERT INTO etats_lieux (
+                -- Basic identification
                 contrat_id, type, date_etat, reference_unique,
                 adresse, appartement, 
+                -- Participants
                 bailleur_nom, locataire_nom_complet, locataire_email,
-                cles_appartement, cles_boite_lettres, cles_total,
-                piece_principale, coin_cuisine, salle_eau_wc, etat_general,
+                -- Meter readings (compteurs)
+                compteur_electricite, compteur_eau_froide,
+                -- Keys (clés)
+                cles_appartement, cles_boite_lettres, cles_autre, cles_total, cles_observations,
+                -- Room descriptions
+                piece_principale, coin_cuisine, salle_eau_wc, 
+                -- General state and observations
+                etat_general, observations,
+                -- Metadata
                 statut, created_at, created_by
             ) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'brouillon', NOW(), ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'brouillon', NOW(), ?)
         ");
+        
+        // Execute with parameters in same order as field list above
         $stmt->execute([
+            // Basic identification (4 params)
             $contrat_id, 
             $type, 
             $date_etat, 
             $reference,
+            // Address info (2 params)
             $contrat['adresse'],
             $contrat['appartement'],
+            // Participants (3 params)
             'SCI My Invest Immobilier, représentée par Maxime ALEXANDRE',
             $locataire_nom_complet,
             $locataire_email,
+            // Meter readings (2 params)
+            $default_compteur_electricite,
+            $default_compteur_eau_froide,
+            // Keys (5 params)
             $default_cles_appartement,
             $default_cles_boite_lettres,
+            $default_cles_autre,
             $default_cles_total,
+            $default_cles_observations,
+            // Room descriptions (3 params)
             $default_piece_principale,
             $default_coin_cuisine,
             $default_salle_eau_wc,
+            // General state (2 params)
             $default_etat_general,
+            $default_observations,
+            // Metadata (1 param)
             $_SESSION['username'] ?? 'admin'
         ]);
         
         $etat_lieux_id = $pdo->lastInsertId();
+        
+        // For exit state: DO NOT copy photos automatically
+        // Photos will be displayed as reference only in the edit form
+        // User can add new photos for the exit state independently
         
         // Redirect to comprehensive form
         header("Location: edit-etat-lieux.php?id=$etat_lieux_id");
