@@ -243,13 +243,19 @@ function createDefaultEtatLieux($contratId, $type, $contrat, $locataires) {
                 bailleur_representant,
                 locataire_email,
                 locataire_nom_complet,
+                compteur_electricite,
+                compteur_eau_froide,
+                cles_appartement,
+                cles_boite_lettres,
+                cles_autre,
+                cles_total,
                 piece_principale,
                 coin_cuisine,
                 salle_eau_wc,
                 etat_general,
                 lieu_signature,
                 statut
-            ) VALUES (?, ?, ?, CURDATE(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'brouillon')
+            ) VALUES (?, ?, ?, CURDATE(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'brouillon')
         ");
         
         $defaultTexts = getDefaultPropertyDescriptions($type);
@@ -264,6 +270,12 @@ function createDefaultEtatLieux($contratId, $type, $contrat, $locataires) {
             $config['BAILLEUR_REPRESENTANT'] ?? '',
             $locataireEmail,
             $locataireNomComplet,
+            '', // compteur_electricite - will be filled by user during état des lieux process
+            '', // compteur_eau_froide - will be filled by user during état des lieux process
+            0,  // cles_appartement - default 0
+            0,  // cles_boite_lettres - default 0
+            0,  // cles_autre - default 0
+            0,  // cles_total - default 0
             $defaultTexts['piece_principale'],
             $defaultTexts['coin_cuisine'],
             $defaultTexts['salle_eau_wc'],
@@ -1091,7 +1103,7 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
     $nbCols = count($tenantsToDisplay) + 1; // +1 for landlord
     $colWidth = 100 / $nbCols;
 
-    $html = '<table style="max-width: 500px;width: 80%; border-collapse: collapse; border: none; border-width: 0; border-style: none; margin-top: 20px;"><tr>';
+    $html = '<table cellspacing="0" cellpadding="0" style="max-width: 500px;width: 80%; border-collapse: collapse; border: none; border-width: 0; border-style: none; margin-top: 20px;"><tr>';
 
     // Landlord column - Use signature_societe_etat_lieux_image from parametres
     $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:0px; border: none; border-width: 0; border-style: none;">';
