@@ -23,6 +23,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     try {
         $pdo->beginTransaction();
         
+        // Prepare bilan_logement_data if provided
+        $bilanData = null;
+        if (isset($_POST['bilan_rows']) && is_array($_POST['bilan_rows'])) {
+            $bilanData = json_encode($_POST['bilan_rows']);
+        }
+        
         // Update état des lieux (no more manual signature fields for bailleur/locataire)
         $stmt = $pdo->prepare("
             UPDATE etats_lieux SET
@@ -48,6 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 depot_garantie_status = ?,
                 depot_garantie_montant_retenu = ?,
                 depot_garantie_motif_retenue = ?,
+                bilan_logement_data = ?,
+                bilan_logement_commentaire = ?,
                 lieu_signature = ?,
                 statut = ?,
                 updated_at = NOW()
@@ -77,6 +85,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $_POST['depot_garantie_status'] ?? 'non_applicable',
             isset($_POST['depot_garantie_montant_retenu']) && !empty($_POST['depot_garantie_montant_retenu']) ? (float)$_POST['depot_garantie_montant_retenu'] : null,
             $_POST['depot_garantie_motif_retenue'] ?? '',
+            $bilanData,
+            $_POST['bilan_logement_commentaire'] ?? '',
             $_POST['lieu_signature'] ?? '',
             $_POST['statut'] ?? 'brouillon',
             $id
@@ -409,6 +419,28 @@ if ($isSortie && !empty($etat['contrat_id'])) {
         }
         #signatureCanvasBailleur, #signatureCanvasLocataire {
             display: block;
+        }
+        
+        /* Bilan du logement styles */
+        #bilanTable .bilan-field.is-invalid {
+            border-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        #bilanTable .bilan-field.is-valid {
+            border-color: #28a745;
+            background-color: #d4edda;
+        }
+        #bilanTable thead th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+        }
+        #bilanTable tfoot td {
+            font-weight: 600;
+            background-color: #f8f9fa;
+        }
+        .bilan-row:hover {
+            background-color: #f8f9fa;
         }
     </style>
 </head>
@@ -1157,10 +1189,203 @@ if ($isSortie && !empty($etat['contrat_id'])) {
             </div>
             <?php endif; ?>
 
-            <!-- <?php echo $isSortie ? '6' : '5'; ?>. Signatures -->
+            <?php if ($isSortie): ?>
+            <!-- Bilan du logement (Sortie uniquement) -->
             <div class="form-card">
                 <div class="section-title">
-                    <i class="bi bi-pen"></i> <?php echo $isSortie ? '6' : '5'; ?>. Signatures
+                    <i class="bi bi-clipboard-check"></i> Bilan du logement
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Cette section permet de détailler les dégradations constatées, les frais associés et les justificatifs.
+                </div>
+                
+                <!-- Dynamic Table for Degradations -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">Tableau des dégradations</h6>
+                        <button type="button" class="btn btn-sm btn-primary" onclick="addBilanRow()" id="addBilanRowBtn">
+                            <i class="bi bi-plus-circle"></i> Ajouter une ligne
+                        </button>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="bilanTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="25%">Poste / Équipement</th>
+                                    <th width="35%">Commentaires</th>
+                                    <th width="15%">Valeur (€)</th>
+                                    <th width="15%">Montant dû (€)</th>
+                                    <th width="10%">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bilanTableBody">
+                                <?php
+                                $bilanRows = [];
+                                if (!empty($etat['bilan_logement_data'])) {
+                                    $bilanRows = json_decode($etat['bilan_logement_data'], true) ?: [];
+                                }
+                                
+                                if (empty($bilanRows)) {
+                                    // Add one empty row by default
+                                    $bilanRows = [['poste' => '', 'commentaires' => '', 'valeur' => '', 'montant_du' => '']];
+                                }
+                                
+                                foreach ($bilanRows as $index => $row):
+                                ?>
+                                <tr class="bilan-row">
+                                    <td>
+                                        <input type="text" name="bilan_rows[<?php echo $index; ?>][poste]" 
+                                               class="form-control bilan-field" 
+                                               value="<?php echo htmlspecialchars($row['poste'] ?? ''); ?>" 
+                                               placeholder="Ex: Peinture salon">
+                                    </td>
+                                    <td>
+                                        <input type="text" name="bilan_rows[<?php echo $index; ?>][commentaires]" 
+                                               class="form-control bilan-field" 
+                                               value="<?php echo htmlspecialchars($row['commentaires'] ?? ''); ?>" 
+                                               placeholder="Description détaillée">
+                                    </td>
+                                    <td>
+                                        <input type="number" name="bilan_rows[<?php echo $index; ?>][valeur]" 
+                                               class="form-control bilan-field bilan-valeur" 
+                                               value="<?php echo htmlspecialchars($row['valeur'] ?? ''); ?>" 
+                                               step="0.01" min="0" 
+                                               placeholder="0.00"
+                                               onchange="calculateBilanTotals()">
+                                    </td>
+                                    <td>
+                                        <input type="number" name="bilan_rows[<?php echo $index; ?>][montant_du]" 
+                                               class="form-control bilan-field bilan-montant-du" 
+                                               value="<?php echo htmlspecialchars($row['montant_du'] ?? ''); ?>" 
+                                               step="0.01" min="0" 
+                                               placeholder="0.00"
+                                               onchange="calculateBilanTotals()">
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="removeBilanRow(this)" title="Supprimer la ligne">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td colspan="2" class="text-end"><strong>Total des frais constatés:</strong></td>
+                                    <td><strong id="totalValeur">0.00 €</strong></td>
+                                    <td><strong id="totalMontantDu">0.00 €</strong></td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    
+                    <div class="alert alert-warning mt-2">
+                        <i class="bi bi-exclamation-triangle"></i> Maximum 20 lignes. Les champs vides sont validés avec une bordure rouge.
+                    </div>
+                </div>
+                
+                <!-- Justificatifs Upload -->
+                <div class="mb-4">
+                    <h6 class="mb-3">Justificatifs (Factures, devis, photos)</h6>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Télécharger des fichiers (PDF, JPG, PNG - max 20 MB par fichier)</label>
+                        <input type="file" class="form-control" id="bilanJustificatifInput" 
+                               accept=".pdf,.jpg,.jpeg,.png" 
+                               onchange="uploadBilanJustificatif(this)">
+                        <small class="text-muted">Formats acceptés: PDF, JPG, PNG. Taille maximale: 20 MB par fichier.</small>
+                    </div>
+                    
+                    <div id="bilanJustificatifsContainer">
+                        <?php
+                        $justificatifs = [];
+                        if (!empty($etat['bilan_logement_justificatifs'])) {
+                            $justificatifs = json_decode($etat['bilan_logement_justificatifs'], true) ?: [];
+                        }
+                        
+                        if (!empty($justificatifs)):
+                        ?>
+                        <div class="alert alert-success">
+                            <i class="bi bi-file-earmark-check"></i> <strong><?php echo count($justificatifs); ?> fichier(s) téléchargé(s)</strong>
+                        </div>
+                        
+                        <div class="row" id="justificatifsFilesList">
+                            <?php foreach ($justificatifs as $file): ?>
+                            <div class="col-md-4 mb-3" id="justificatif_<?php echo htmlspecialchars($file['id']); ?>">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <h6 class="card-title mb-1">
+                                                    <?php if ($file['type'] === 'application/pdf'): ?>
+                                                    <i class="bi bi-file-pdf text-danger"></i>
+                                                    <?php else: ?>
+                                                    <i class="bi bi-file-image text-primary"></i>
+                                                    <?php endif; ?>
+                                                    <?php echo htmlspecialchars($file['original_name']); ?>
+                                                </h6>
+                                                <p class="card-text small text-muted mb-1">
+                                                    <?php echo number_format($file['size'] / 1024, 2); ?> KB
+                                                </p>
+                                                <p class="card-text small text-muted">
+                                                    <?php echo htmlspecialchars($file['uploaded_at']); ?>
+                                                </p>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-danger ms-2" 
+                                                    onclick="deleteBilanJustificatif('<?php echo htmlspecialchars($file['id']); ?>')" 
+                                                    title="Supprimer">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                        <?php if ($file['type'] !== 'application/pdf'): ?>
+                                        <a href="/<?php echo htmlspecialchars($file['path']); ?>" target="_blank">
+                                            <img src="/<?php echo htmlspecialchars($file['path']); ?>" 
+                                                 class="img-thumbnail mt-2" 
+                                                 style="max-height: 150px; width: auto;">
+                                        </a>
+                                        <?php else: ?>
+                                        <a href="/<?php echo htmlspecialchars($file['path']); ?>" 
+                                           target="_blank" 
+                                           class="btn btn-sm btn-outline-primary mt-2">
+                                            <i class="bi bi-eye"></i> Voir le PDF
+                                        </a>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php else: ?>
+                        <div class="alert alert-secondary" id="noJustificatifsMessage">
+                            <i class="bi bi-info-circle"></i> Aucun justificatif téléchargé pour le moment.
+                        </div>
+                        <div class="row" id="justificatifsFilesList" style="display: none;"></div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                
+                <!-- General Comment -->
+                <div class="mb-3">
+                    <label class="form-label">Commentaire général</label>
+                    <textarea name="bilan_logement_commentaire" class="form-control" rows="4" 
+                              placeholder="Observations générales concernant le bilan du logement"><?php 
+                        if (!empty($etat['bilan_logement_commentaire'])) {
+                            echo htmlspecialchars($etat['bilan_logement_commentaire']);
+                        } else {
+                            echo 'Les dégradations listées ci-dessus ont été constatées lors de l\'état de sortie. Les montants indiqués correspondent aux frais de remise en état.';
+                        }
+                    ?></textarea>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- <?php echo $isSortie ? '7' : '5'; ?>. Signatures -->
+            <div class="form-card">
+                <div class="section-title">
+                    <i class="bi bi-pen"></i> <?php echo $isSortie ? '7' : '5'; ?>. Signatures
                 </div>
                 
                 <div class="row">
@@ -1671,6 +1896,299 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                     initTenantSignature(<?php echo $tenant['id']; ?>);
                 <?php endforeach; ?>
             <?php endif; ?>
+        
+        // ========================================
+        // Bilan du logement functions
+        // ========================================
+        
+        let bilanRowCounter = <?php echo count($bilanRows); ?>;
+        const MAX_BILAN_ROWS = 20;
+        const BILAN_MAX_FILE_SIZE = <?php echo $config['BILAN_MAX_FILE_SIZE']; ?>;
+        const BILAN_ALLOWED_TYPES = <?php echo json_encode($config['BILAN_ALLOWED_TYPES']); ?>;
+        
+        // Add a new row to the bilan table
+        function addBilanRow() {
+            if (document.querySelectorAll('.bilan-row').length >= MAX_BILAN_ROWS) {
+                alert('Maximum de 20 lignes atteint');
+                return;
+            }
+            
+            const tbody = document.getElementById('bilanTableBody');
+            const newRow = document.createElement('tr');
+            newRow.className = 'bilan-row';
+            newRow.innerHTML = `
+                <td>
+                    <input type="text" name="bilan_rows[${bilanRowCounter}][poste]" 
+                           class="form-control bilan-field" 
+                           placeholder="Ex: Peinture salon">
+                </td>
+                <td>
+                    <input type="text" name="bilan_rows[${bilanRowCounter}][commentaires]" 
+                           class="form-control bilan-field" 
+                           placeholder="Description détaillée">
+                </td>
+                <td>
+                    <input type="number" name="bilan_rows[${bilanRowCounter}][valeur]" 
+                           class="form-control bilan-field bilan-valeur" 
+                           step="0.01" min="0" 
+                           placeholder="0.00"
+                           onchange="calculateBilanTotals()">
+                </td>
+                <td>
+                    <input type="number" name="bilan_rows[${bilanRowCounter}][montant_du]" 
+                           class="form-control bilan-field bilan-montant-du" 
+                           step="0.01" min="0" 
+                           placeholder="0.00"
+                           onchange="calculateBilanTotals()">
+                </td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removeBilanRow(this)" title="Supprimer la ligne">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(newRow);
+            bilanRowCounter++;
+            
+            // Update button state
+            updateBilanRowButton();
+            validateBilanFields();
+        }
+        
+        // Remove a row from the bilan table
+        function removeBilanRow(button) {
+            const row = button.closest('tr');
+            row.remove();
+            calculateBilanTotals();
+            updateBilanRowButton();
+            validateBilanFields();
+        }
+        
+        // Update add row button state
+        function updateBilanRowButton() {
+            const rowCount = document.querySelectorAll('.bilan-row').length;
+            const addBtn = document.getElementById('addBilanRowBtn');
+            if (rowCount >= MAX_BILAN_ROWS) {
+                addBtn.disabled = true;
+                addBtn.innerHTML = '<i class="bi bi-exclamation-circle"></i> Maximum atteint (20 lignes)';
+            } else {
+                addBtn.disabled = false;
+                addBtn.innerHTML = '<i class="bi bi-plus-circle"></i> Ajouter une ligne';
+            }
+        }
+        
+        // Calculate totals for bilan table
+        function calculateBilanTotals() {
+            let totalValeur = 0;
+            let totalMontantDu = 0;
+            
+            document.querySelectorAll('.bilan-valeur').forEach(input => {
+                const value = parseFloat(input.value) || 0;
+                totalValeur += value;
+            });
+            
+            document.querySelectorAll('.bilan-montant-du').forEach(input => {
+                const value = parseFloat(input.value) || 0;
+                totalMontantDu += value;
+            });
+            
+            document.getElementById('totalValeur').textContent = totalValeur.toFixed(2) + ' €';
+            document.getElementById('totalMontantDu').textContent = totalMontantDu.toFixed(2) + ' €';
+        }
+        
+        // Validate bilan fields (red border if empty, green if valid)
+        function validateBilanFields() {
+            document.querySelectorAll('.bilan-field').forEach(field => {
+                if (field.value.trim() === '') {
+                    field.classList.remove('is-valid');
+                    field.classList.add('is-invalid');
+                } else {
+                    field.classList.remove('is-invalid');
+                    field.classList.add('is-valid');
+                }
+            });
+        }
+        
+        // Upload justificatif file
+        function uploadBilanJustificatif(input) {
+            if (!input.files || input.files.length === 0) return;
+            
+            const file = input.files[0];
+            
+            // Validate file size
+            if (file.size > BILAN_MAX_FILE_SIZE) {
+                alert('Fichier trop volumineux. Taille maximale: 20 MB');
+                input.value = '';
+                return;
+            }
+            
+            // Validate file type
+            if (!BILAN_ALLOWED_TYPES.includes(file.type)) {
+                alert('Type de fichier non autorisé. Formats acceptés: PDF, JPG, PNG');
+                input.value = '';
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('justificatif', file);
+            formData.append('etat_lieux_id', <?php echo $id; ?>);
+            
+            // Show loading
+            input.disabled = true;
+            
+            fetch('upload-bilan-justificatif.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Add file to display
+                    addJustificatifToDisplay(data.file);
+                    input.value = '';
+                } else {
+                    alert('Erreur: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error uploading file:', error);
+                alert('Erreur lors du téléchargement du fichier');
+            })
+            .finally(() => {
+                input.disabled = false;
+            });
+        }
+        
+        // Add justificatif to display
+        function addJustificatifToDisplay(file) {
+            // Hide "no files" message
+            const noFilesMsg = document.getElementById('noJustificatifsMessage');
+            if (noFilesMsg) {
+                noFilesMsg.style.display = 'none';
+            }
+            
+            // Show files list
+            const filesList = document.getElementById('justificatifsFilesList');
+            filesList.style.display = '';  // Remove display: none to show the row
+            
+            // Create file card
+            const fileCard = document.createElement('div');
+            fileCard.className = 'col-md-4 mb-3';
+            fileCard.id = 'justificatif_' + file.id;
+            
+            const isPdf = file.type === 'application/pdf';
+            const icon = isPdf ? 
+                '<i class="bi bi-file-pdf text-danger"></i>' : 
+                '<i class="bi bi-file-image text-primary"></i>';
+            
+            const thumbnail = isPdf ? 
+                `<a href="/${file.path}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                    <i class="bi bi-eye"></i> Voir le PDF
+                </a>` :
+                `<a href="/${file.path}" target="_blank">
+                    <img src="/${file.path}" class="img-thumbnail mt-2" style="max-height: 150px; width: auto;">
+                </a>`;
+            
+            fileCard.innerHTML = `
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="card-title mb-1">
+                                    ${icon} ${file.original_name}
+                                </h6>
+                                <p class="card-text small text-muted mb-1">
+                                    ${(file.size / 1024).toFixed(2)} KB
+                                </p>
+                                <p class="card-text small text-muted">
+                                    ${file.uploaded_at}
+                                </p>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-danger ms-2" 
+                                    onclick="deleteBilanJustificatif('${file.id}')" 
+                                    title="Supprimer">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                        ${thumbnail}
+                    </div>
+                </div>
+            `;
+            
+            filesList.appendChild(fileCard);
+            
+            // Update file count
+            updateJustificatifsCount();
+        }
+        
+        // Delete justificatif
+        function deleteBilanJustificatif(fileId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) {
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('etat_lieux_id', <?php echo $id; ?>);
+            formData.append('file_id', fileId);
+            
+            fetch('delete-bilan-justificatif.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove file from display
+                    const fileCard = document.getElementById('justificatif_' + fileId);
+                    if (fileCard) {
+                        fileCard.remove();
+                    }
+                    updateJustificatifsCount();
+                } else {
+                    alert('Erreur: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting file:', error);
+                alert('Erreur lors de la suppression du fichier');
+            });
+        }
+        
+        // Update justificatifs count
+        function updateJustificatifsCount() {
+            const filesList = document.getElementById('justificatifsFilesList');
+            const count = filesList.querySelectorAll('.col-md-4').length;
+            
+            if (count === 0) {
+                const noFilesMsg = document.getElementById('noJustificatifsMessage');
+                if (noFilesMsg) {
+                    noFilesMsg.style.display = 'block';
+                }
+                filesList.style.display = 'none';
+            }
+        }
+        
+        // Initialize bilan validation on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add input listeners for validation
+            document.querySelectorAll('.bilan-field').forEach(field => {
+                field.addEventListener('input', validateBilanFields);
+            });
+            
+            // Calculate initial totals
+            calculateBilanTotals();
+            
+            // Update button state
+            updateBilanRowButton();
+            
+            // Initial validation
+            validateBilanFields();
+        });
+        
+        // ========================================
+        // End Bilan du logement functions
+        // ========================================
+        
         });
         
         // Handle form submission

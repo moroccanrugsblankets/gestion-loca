@@ -31,6 +31,12 @@ $config = [
     'DB_CHARSET' => 'utf8mb4',
     
     // =====================================================
+    // CONFIGURATION BILAN DU LOGEMENT
+    // =====================================================
+    'BILAN_MAX_FILE_SIZE' => 20 * 1024 * 1024, // 20MB
+    'BILAN_ALLOWED_TYPES' => ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'],
+    
+    // =====================================================
     // CONFIGURATION EMAIL
     // =====================================================
     'MAIL_FROM' => 'contact@myinvest-immobilier.com',
