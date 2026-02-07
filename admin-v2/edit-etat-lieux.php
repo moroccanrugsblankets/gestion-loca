@@ -931,8 +931,8 @@ $isSortie = $etat['type'] === 'sortie';
                             </div>
                         <?php endif; ?>
                         <label class="form-label">Veuillez signer dans le cadre ci-dessous :</label>
-                        <div class="signature-container" style="max-width: 200px;">
-                            <canvas id="tenantCanvas_<?php echo $tenant['id']; ?>" width="200" height="80" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
+                        <div class="signature-container" style="max-width: 300px;">
+                            <canvas id="tenantCanvas_<?php echo $tenant['id']; ?>" width="300" height="150" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
                         </div>
                         <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][signature]" 
                                id="tenantSignature_<?php echo $tenant['id']; ?>" 
@@ -1254,17 +1254,38 @@ $isSortie = $etat['type'] === 'sortie';
             ctx.lineJoin = 'round';
             
             let isDrawing = false;
+            let lastX = 0;
+            let lastY = 0;
+            
+            // Helper function to get mouse position
+            function getMousePos(e) {
+                const rect = canvas.getBoundingClientRect();
+                return {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+            }
             
             canvas.addEventListener('mousedown', (e) => {
                 isDrawing = true;
-                ctx.beginPath();
-                ctx.moveTo(e.offsetX, e.offsetY);
+                const pos = getMousePos(e);
+                lastX = pos.x;
+                lastY = pos.y;
             });
             
             canvas.addEventListener('mousemove', (e) => {
                 if (!isDrawing) return;
-                ctx.lineTo(e.offsetX, e.offsetY);
+                e.preventDefault();
+                
+                const pos = getMousePos(e);
+                
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(pos.x, pos.y);
                 ctx.stroke();
+                
+                lastX = pos.x;
+                lastY = pos.y;
             });
             
             canvas.addEventListener('mouseup', () => {
@@ -1276,25 +1297,27 @@ $isSortie = $etat['type'] === 'sortie';
             canvas.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 const touch = e.touches[0];
-                const rect = canvas.getBoundingClientRect();
-                isDrawing = true;
-                ctx.beginPath();
-                ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+                const mouseEvent = new MouseEvent('mousedown', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                canvas.dispatchEvent(mouseEvent);
             });
             
             canvas.addEventListener('touchmove', (e) => {
                 e.preventDefault();
-                if (!isDrawing) return;
                 const touch = e.touches[0];
-                const rect = canvas.getBoundingClientRect();
-                ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
-                ctx.stroke();
+                const mouseEvent = new MouseEvent('mousemove', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                canvas.dispatchEvent(mouseEvent);
             });
             
             canvas.addEventListener('touchend', (e) => {
                 e.preventDefault();
-                isDrawing = false;
-                saveTenantSignature(id);
+                const mouseEvent = new MouseEvent('mouseup');
+                canvas.dispatchEvent(mouseEvent);
             });
         }
         
