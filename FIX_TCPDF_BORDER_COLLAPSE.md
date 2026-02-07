@@ -39,7 +39,7 @@ $html = '<table cellspacing="0" cellpadding="0" style="max-width: 500px;width: 8
 
 **After:**
 ```php
-$html = '<table cellspacing="0" cellpadding="10" border="0" style="max-width: 500px;width: 80%; border: none; border-width: 0; border-style: none; margin-top: 20px;"><tbody><tr>';
+$html = '<table cellspacing="0" cellpadding="10" border="0" style="max-width: 500px; width: 80%; border: none; margin-top: 20px;"><tbody><tr>';
 ```
 
 **Changes:**
@@ -48,6 +48,7 @@ $html = '<table cellspacing="0" cellpadding="10" border="0" style="max-width: 50
 - ✅ Added `border="0"` attribute (explicit border control)
 - ✅ Added `<tbody>` tag (proper table structure)
 - ✅ Updated closing tag to `</tr></tbody></table>`
+- ✅ Removed redundant `border-width` and `border-style` CSS properties
 
 ### 2. Fixed État des Lieux Template CSS
 **File:** `includes/etat-lieux-template.php`
@@ -92,12 +93,13 @@ $html = '<table cellspacing="0" cellpadding="0" style="width: 100%; border-colla
 
 **After:**
 ```php
-$html = '<table cellspacing="0" cellpadding="10" border="0" style="width: 100%; border: none; border-width: 0; border-style: none; margin-top: 20px;"><tbody><tr>';
+$html = '<table cellspacing="0" cellpadding="10" border="0" style="width: 100%; border: none; margin-top: 20px;"><tbody><tr>';
 ```
 
 **Changes:**
 - Same fixes as État des Lieux signature table
 - Updated closing tag to `</tr></tbody></table>`
+- Removed redundant CSS border properties
 
 ## Testing
 
@@ -157,6 +159,15 @@ TCPDF expects one or the other:
 - If you use `border-collapse: collapse`, don't set `cellspacing`
 
 When both are present, TCPDF's parser tries to handle both models simultaneously, leading to undefined variables and array access errors.
+
+### Defensive Redundancy in Border Attributes
+
+Our implementation uses both `border="0"` (HTML attribute) and `border: none;` (CSS property). While this may seem redundant:
+- **HTML attribute**: Ensures older TCPDF parsers and PDF readers recognize no borders
+- **CSS property**: Ensures modern CSS rendering engines recognize no borders
+- **Defensive approach**: Different PDF viewers may prioritize HTML vs CSS differently
+
+This defensive redundancy is intentional and recommended for maximum compatibility across different TCPDF versions and PDF rendering engines.
 
 ### Best Practices for TCPDF Tables
 
