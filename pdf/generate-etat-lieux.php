@@ -630,7 +630,7 @@ function generateEntreeHTML($contrat, $locataires, $etatLieux) {
             text-align: justify; 
         }
         p.description { 
-            line-height: 1.0; 
+            line-height: 1.5; 
         }
         .section { 
             margin-bottom: 20px; 
@@ -906,7 +906,7 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
             text-align: justify; 
         }
         p.description { 
-            line-height: 1.0; 
+            line-height: 1.5; 
         }
         .section { 
             margin-bottom: 20px; 
