@@ -1316,8 +1316,8 @@ $isSortie = $etat['type'] === 'sortie';
             
             canvas.addEventListener('touchend', (e) => {
                 e.preventDefault();
-                isDrawing = false;
-                saveTenantSignature(id);
+                const mouseEvent = new MouseEvent('mouseup');
+                canvas.dispatchEvent(mouseEvent);
             });
         }
         
