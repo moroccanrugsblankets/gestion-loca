@@ -1050,7 +1050,7 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
         'restitution_totale' => 'Aucune dégradation imputable au(x) locataire(s) - Restitution totale du dépôt de garantie',
         'restitution_partielle' => 'Dégradations mineures imputables au(x) locataire(s) - Restitution partielle du dépôt de garantie',
         'retenue_totale' => 'Dégradations importantes imputables au(x) locataire(s) - Retenue totale du dépôt de garantie',
-        'non_applicable' => '☐ Non applicable'
+        'non_applicable' => 'Non applicable'
     ];
     $depotHTML = '';
     foreach ($depotLabels as $key => $label) {
