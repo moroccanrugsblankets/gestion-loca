@@ -182,7 +182,7 @@ function buildSignaturesTable($contrat, $locataires) {
 
             if (!empty($signatureSociete) && preg_match('/^uploads\/signatures\//', $signatureSociete)) {
                 $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($signatureSociete, '/');
-                $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Société" style="max-width: 150px; border: none; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;">';
+                $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Société" width="100" height="80" border="0">';
             }
         }
 
@@ -210,19 +210,18 @@ function buildSignaturesTable($contrat, $locataires) {
 
         if (!empty($loc['signature_data']) && preg_match('/^uploads\/signatures\//', $loc['signature_data'])) {
             $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($loc['signature_data'], '/');
-			$html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" style="max-width: 150px; border: none; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;">';
+			$html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" width="100" height="80" border="0">';
         }
         
         // Add "Certifié exact" checkbox indicator - always show for clarity
-        $checkboxSymbol = (!empty($loc['certifie_exact'])) ? '☑' : '☐';
-        $html .= '<p style="margin-top:5px; font-size:9pt;"><strong>' . $checkboxSymbol . ' Certifié exact</strong></p>';
+        $html .= '<p style="margin-top:5px; font-size:9pt;"><br>&nbsp;<br>&nbsp;<br>Certifié exact</p>';
 
         if (!empty($loc['signature_timestamp']) || !empty($loc['signature_ip'])) {
             $html .= '<div style="margin-top:10px; font-size:8pt; color:#666;">';
             if (!empty($loc['signature_timestamp'])) {
                 $ts = strtotime($loc['signature_timestamp']);
                 if ($ts !== false) {
-                    $html .= '<br>&nbsp;<br>&nbsp;<br>Signé le ' . date('d/m/Y à H:i', $ts) . '<br>';
+                    $html .= 'Signé le ' . date('d/m/Y à H:i', $ts) . '<br>';
                 }
             }
             if (!empty($loc['signature_ip'])) {
