@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $id
         ]);
         
-        // Update tenant signatures - save as physical files like contract signatures
+        // Update tenant signatures and certifie_exact - save as physical files like contract signatures
         if (isset($_POST['tenants']) && is_array($_POST['tenants'])) {
             foreach ($_POST['tenants'] as $tenantId => $tenantInfo) {
                 if (!empty($tenantInfo['signature'])) {
@@ -97,6 +97,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         error_log("Failed to save signature for etat_lieux_locataire ID: $tenantId");
                     }
                 }
+                
+                // Update certifie_exact checkbox
+                $certifieExact = isset($tenantInfo['certifie_exact']) ? 1 : 0;
+                $stmt = $pdo->prepare("UPDATE etat_lieux_locataires SET certifie_exact = ? WHERE id = ?");
+                $stmt->execute([$certifieExact, $tenantId]);
             }
         }
         
@@ -946,6 +951,18 @@ $isSortie = $etat['type'] === 'sortie';
                             <button type="button" class="btn btn-warning btn-sm" onclick="clearTenantSignature(<?php echo $tenant['id']; ?>)">
                                 <i class="bi bi-eraser"></i> Effacer
                             </button>
+                        </div>
+                        <div class="mt-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" 
+                                       name="tenants[<?php echo $tenant['id']; ?>][certifie_exact]" 
+                                       id="certifie_exact_<?php echo $tenant['id']; ?>" 
+                                       value="1"
+                                       <?php echo !empty($tenant['certifie_exact']) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="certifie_exact_<?php echo $tenant['id']; ?>">
+                                    <strong>Certifié exact</strong>
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>

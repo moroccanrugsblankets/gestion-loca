@@ -1222,6 +1222,11 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
                 $signDate = date('d/m/Y à H:i', strtotime($tenantInfo['signature_timestamp']));
                 $html .= '<p style="font-size:8pt;"><br>&nbsp;<br>&nbsp;<br>Signé le ' . $signDate . '</p>';
             }
+            
+            // Display "Certifié exact" checkbox status
+            if (!empty($tenantInfo['certifie_exact'])) {
+                $html .= '<p style="font-size:8pt; margin-top: 5px;">☑ Certifié exact</p>';
+            }
         }
 
         $tenantName = htmlspecialchars(($tenantInfo['prenom'] ?? '') . ' ' . ($tenantInfo['nom'] ?? ''));
