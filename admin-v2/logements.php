@@ -8,57 +8,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
             case 'add':
-                $stmt = $pdo->prepare("
-                    INSERT INTO logements (reference, adresse, appartement, type, surface, loyer, charges, depot_garantie, parking, statut, date_disponibilite, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'disponible', ?, NOW())
-                ");
-                $stmt->execute([
-                    $_POST['reference'],
-                    $_POST['adresse'],
-                    $_POST['appartement'],
-                    $_POST['type'],
-                    $_POST['surface'],
-                    $_POST['loyer'],
-                    $_POST['charges'],
-                    $_POST['depot_garantie'],
-                    $_POST['parking'],
-                    !empty($_POST['date_disponibilite']) ? $_POST['date_disponibilite'] : null
-                ]);
-                $_SESSION['success'] = "Logement ajouté avec succès";
+                try {
+                    $stmt = $pdo->prepare("
+                        INSERT INTO logements (reference, adresse, appartement, type, surface, loyer, charges, depot_garantie, parking, statut, date_disponibilite, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'disponible', ?, NOW())
+                    ");
+                    $stmt->execute([
+                        $_POST['reference'],
+                        $_POST['adresse'],
+                        $_POST['appartement'],
+                        $_POST['type'],
+                        $_POST['surface'],
+                        $_POST['loyer'],
+                        $_POST['charges'],
+                        $_POST['depot_garantie'],
+                        $_POST['parking'],
+                        !empty($_POST['date_disponibilite']) ? $_POST['date_disponibilite'] : null
+                    ]);
+                    $_SESSION['success'] = "Logement ajouté avec succès";
+                } catch (PDOException $e) {
+                    // Check if it's a duplicate key error
+                    if ($e->getCode() == 23000) {
+                        $_SESSION['error'] = "Erreur : Un logement avec cette référence existe déjà.";
+                    } else {
+                        $_SESSION['error'] = "Erreur lors de l'ajout du logement.";
+                        error_log("Erreur ajout logement: " . $e->getMessage());
+                    }
+                }
                 break;
                 
             case 'edit':
-                // Map French UI values to database values
-                $statutMap = [
-                    'Disponible' => 'disponible',
-                    'Réservé' => 'en_location',
-                    'Loué' => 'en_location',
-                    'Maintenance' => 'maintenance',
-                    'Indisponible' => 'indisponible'
-                ];
-                $dbStatut = $statutMap[$_POST['statut']] ?? strtolower($_POST['statut']);
-                
-                $stmt = $pdo->prepare("
-                    UPDATE logements SET 
-                        reference = ?, adresse = ?, appartement = ?, type = ?, surface = ?,
-                        loyer = ?, charges = ?, depot_garantie = ?, parking = ?, statut = ?, date_disponibilite = ?
-                    WHERE id = ?
-                ");
-                $stmt->execute([
-                    $_POST['reference'],
-                    $_POST['adresse'],
-                    $_POST['appartement'],
-                    $_POST['type'],
-                    $_POST['surface'],
-                    $_POST['loyer'],
-                    $_POST['charges'],
-                    $_POST['depot_garantie'],
-                    $_POST['parking'],
-                    $dbStatut,
-                    !empty($_POST['date_disponibilite']) ? $_POST['date_disponibilite'] : null,
-                    $_POST['logement_id']
-                ]);
-                $_SESSION['success'] = "Logement modifié avec succès";
+                try {
+                    // Map French UI values to database values
+                    $statutMap = [
+                        'Disponible' => 'disponible',
+                        'Réservé' => 'en_location',
+                        'Loué' => 'en_location',
+                        'Maintenance' => 'maintenance',
+                        'Indisponible' => 'indisponible'
+                    ];
+                    $dbStatut = $statutMap[$_POST['statut']] ?? strtolower($_POST['statut']);
+                    
+                    $stmt = $pdo->prepare("
+                        UPDATE logements SET 
+                            reference = ?, adresse = ?, appartement = ?, type = ?, surface = ?,
+                            loyer = ?, charges = ?, depot_garantie = ?, parking = ?, statut = ?, date_disponibilite = ?
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([
+                        $_POST['reference'],
+                        $_POST['adresse'],
+                        $_POST['appartement'],
+                        $_POST['type'],
+                        $_POST['surface'],
+                        $_POST['loyer'],
+                        $_POST['charges'],
+                        $_POST['depot_garantie'],
+                        $_POST['parking'],
+                        $dbStatut,
+                        !empty($_POST['date_disponibilite']) ? $_POST['date_disponibilite'] : null,
+                        $_POST['logement_id']
+                    ]);
+                    $_SESSION['success'] = "Logement modifié avec succès";
+                } catch (PDOException $e) {
+                    // Check if it's a duplicate key error
+                    if ($e->getCode() == 23000) {
+                        $_SESSION['error'] = "Erreur : Un logement avec cette référence existe déjà.";
+                    } else {
+                        $_SESSION['error'] = "Erreur lors de la modification du logement.";
+                        error_log("Erreur modification logement: " . $e->getMessage());
+                    }
+                }
                 break;
                 
             case 'delete':
@@ -183,6 +203,13 @@ $stats = [
         <?php if (isset($_SESSION['success'])): ?>
             <div class="alert alert-success alert-dismissible fade show">
                 <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
+        
+        <?php if (isset($_SESSION['error'])): ?>
+            <div class="alert alert-danger alert-dismissible fade show">
+                <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
@@ -598,6 +625,21 @@ $stats = [
                 document.getElementById('delete_reference').textContent = this.dataset.reference;
             });
         });
+        
+        // Reset add form when modal is opened
+        const addModal = document.getElementById('addLogementModal');
+        if (addModal) {
+            addModal.addEventListener('show.bs.modal', function () {
+                // Reset the form
+                const form = addModal.querySelector('form');
+                if (form) {
+                    form.reset();
+                }
+                // Clear calculated fields
+                document.getElementById('add_total_mensuel').value = '';
+                document.getElementById('add_revenus_requis').value = '';
+            });
+        }
     </script>
 </body>
 </html>
