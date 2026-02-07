@@ -1103,11 +1103,11 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
     $nbCols = count($tenantsToDisplay) + 1; // +1 for landlord
     $colWidth = 100 / $nbCols;
 
-    $html = '<table cellspacing="0" cellpadding="10" border="0" style="max-width: 500px; width: 80%; border: none; margin-top: 20px;"><tbody><tr>';
+    $html = '<table border="0" style="max-width: 600px; width: 100%; border: none; margin-top: 20px;"><tbody><tr>';
 
     // Landlord column - Use signature_societe_etat_lieux_image from parametres
     $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:0px; border: none;">';
-    $html .= '<p>Le bailleur :</strong></p>';
+    $html .= '<p><strong>Le bailleur :</strong></p>';
     
     // Get landlord signature from parametres - use etat_lieux specific signature
     $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_etat_lieux_image'");
@@ -1148,14 +1148,14 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
             if (file_exists($fullPath)) {
                 // Use public URL for signature image
                 $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($landlordSigPath, '/');
-                $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" style="max-width: 100px; border: none; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;">';
+                $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" width="100" height="80" style="max-width: 100px; border: none; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;">';
             } else {
                 error_log("Landlord signature file not found: $fullPath");
             }
         } else {
             // Still base64 after conversion attempt - use as fallback but log warning
             error_log("WARNING: Using base64 signature for landlord (conversion may have failed)");
-            $html .= '<img src="' . htmlspecialchars($landlordSigPath) . '" alt="Signature Bailleur" style="max-width: 100px; border: none; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;">';
+            $html .= '<img src="' . htmlspecialchars($landlordSigPath) . '" alt="Signature Bailleur" width="100" height="80" style="max-width: 100px; border: none; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;">';
         }
     }
     
@@ -1202,14 +1202,14 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
                 if (file_exists($fullPath)) {
                     // Use public URL
                     $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($signatureData, '/');
-                    $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" style="max-width: 100px; border: none; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;">';
+                    $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" width="100" height="80" style="max-width: 100px; border: none; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;">';
                 } else {
                     error_log("Tenant signature file not found: $fullPath");
                 }
             } else {
                 // Still base64 after conversion attempt - use as fallback but log warning
                 error_log("WARNING: Using base64 signature for tenant (conversion may have failed)");
-                $html .= '<img src="' . htmlspecialchars($signatureData) . '" alt="Signature Locataire" style="max-width: 150px; border: none; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;">';
+                $html .= '<img src="' . htmlspecialchars($signatureData) . '" alt="Signature Locataire" width="100" height="80" style="max-width: 100px; border: none; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;">';
             }
             
             if (!empty($tenantInfo['signature_timestamp'])) {
@@ -1224,6 +1224,7 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
     }
 
     $html .= '</tr></tbody></table>';
+	// echo $html;exit;
     return $html;
 }
 
