@@ -158,9 +158,7 @@ function getDefaultEtatLieuxTemplate() {
     {{bailleur_representant_row}}
     
     <h3>Locataire(s)</h3>
-    <table cellspacing="0" cellpadding="4">
-        {{locataires_info}}
-    </table>
+    {{locataires_info}}
 
     <h2>4. Relevé des compteurs</h2>
     

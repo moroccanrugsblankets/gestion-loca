@@ -86,7 +86,7 @@ $vars = [
     '{{surface}}' => htmlspecialchars($contrat['surface']),
     '{{bailleur_nom}}' => htmlspecialchars($etatLieux['bailleur_nom']),
     '{{bailleur_representant}}' => htmlspecialchars($etatLieux['bailleur_representant']),
-    '{{locataires_info}}' => '<tr><td class="info-label">Locataire :</td><td>' . htmlspecialchars($locataires[0]['prenom']) . ' ' . htmlspecialchars($locataires[0]['nom']) . '</td></tr>',
+    '{{locataires_info}}' => '<br><strong>Locataire : </strong>' . htmlspecialchars($locataires[0]['prenom']) . ' ' . htmlspecialchars($locataires[0]['nom']),
     '{{compteur_electricite}}' => htmlspecialchars($etatLieux['compteur_electricite']),
     '{{compteur_eau_froide}}' => htmlspecialchars($etatLieux['compteur_eau_froide']),
     '{{cles_appartement}}' => $etatLieux['cles_appartement'],
@@ -102,8 +102,8 @@ $vars = [
     '{{date_signature}}' => $dateSignature,
     '{{signatures_table}}' => '<table cellspacing="0" cellpadding="0"><tr><td>Mock signatures</td></tr></table>',
     '{{signature_agence}}' => 'MY INVEST IMMOBILIER',
-    '{{appartement_row}}' => '<p><strong>Appartement : </strong>' . htmlspecialchars($contrat['appartement'] ?? '') . '</p>',
-    '{{bailleur_representant_row}}' => '<p><strong>Représenté par : </strong>' . htmlspecialchars($etatLieux['bailleur_representant']) . '</p>',
+    '{{appartement_row}}' => '<br><strong>Appartement : </strong>' . htmlspecialchars($contrat['appartement'] ?? ''),
+    '{{bailleur_representant_row}}' => '<br><strong>Représenté par : </strong>' . htmlspecialchars($etatLieux['bailleur_representant']),
     '{{observations_section}}' => ''
 ];
 

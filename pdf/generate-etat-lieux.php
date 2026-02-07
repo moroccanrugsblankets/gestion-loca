@@ -371,17 +371,14 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
     $bailleurNom = htmlspecialchars($etatLieux['bailleur_nom'] ?? $config['COMPANY_NAME'] ?? 'MY INVEST IMMOBILIER');
     $bailleurRepresentant = htmlspecialchars($etatLieux['bailleur_representant'] ?? $config['BAILLEUR_REPRESENTANT'] ?? '');
     
-    // Locataires - build table rows
+    // Locataires - build with br/strong structure instead of table rows
     $locatairesInfo = '';
     foreach ($locataires as $i => $loc) {
-        $locatairesInfo .= '<tr>';
-        $locatairesInfo .= '<td class="info-label">Locataire' . (count($locataires) > 1 ? ' ' . ($i + 1) : '') . ' :</td>';
-        $locatairesInfo .= '<td>' . htmlspecialchars($loc['prenom']) . ' ' . htmlspecialchars($loc['nom']);
+        $locatairesInfo .= '<br><strong>Locataire' . (count($locataires) > 1 ? ' ' . ($i + 1) : '') . ' : </strong>';
+        $locatairesInfo .= htmlspecialchars($loc['prenom']) . ' ' . htmlspecialchars($loc['nom']);
         if (!empty($loc['email'])) {
-            $locatairesInfo .= '<br>Email : ' . htmlspecialchars($loc['email']);
+            $locatairesInfo .= '<br><strong>Email : </strong>' . htmlspecialchars($loc['email']);
         }
-        $locatairesInfo .= '</td>';
-        $locatairesInfo .= '</tr>';
     }
     
     // Description - use defaults if empty
@@ -475,13 +472,13 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
     
     // Handle conditional rows (use already-escaped variables)
     if (!empty($appartement)) {
-        $vars['{{appartement_row}}'] = '<p><strong>Appartement : </strong>' . $appartement . '</p>';
+        $vars['{{appartement_row}}'] = '<br><strong>Appartement : </strong>' . $appartement;
     } else {
         $vars['{{appartement_row}}'] = '';
     }
     
     if (!empty($bailleurRepresentant)) {
-        $vars['{{bailleur_representant_row}}'] = '<p><strong>Représenté par : </strong>' . $bailleurRepresentant . '</p>';
+        $vars['{{bailleur_representant_row}}'] = '<br><strong>Représenté par : </strong>' . $bailleurRepresentant;
     } else {
         $vars['{{bailleur_representant_row}}'] = '';
     }
