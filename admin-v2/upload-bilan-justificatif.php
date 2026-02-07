@@ -9,8 +9,8 @@ require_once 'auth.php';
 require_once '../includes/db.php';
 
 // File upload constants for Bilan du logement
-define('BILAN_MAX_FILE_SIZE', 20 * 1024 * 1024); // 20MB
-define('BILAN_ALLOWED_TYPES', ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']);
+define('BILAN_MAX_FILE_SIZE', $config['BILAN_MAX_FILE_SIZE']);
+define('BILAN_ALLOWED_TYPES', $config['BILAN_ALLOWED_TYPES']);
 
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

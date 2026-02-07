@@ -1372,8 +1372,11 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                     <label class="form-label">Commentaire général</label>
                     <textarea name="bilan_logement_commentaire" class="form-control" rows="4" 
                               placeholder="Observations générales concernant le bilan du logement"><?php 
-                        echo htmlspecialchars($etat['bilan_logement_commentaire'] ?? 
-                            'Les dégradations listées ci-dessus ont été constatées lors de l\'état de sortie. Les montants indiqués correspondent aux frais de remise en état.');
+                        if (!empty($etat['bilan_logement_commentaire'])) {
+                            echo htmlspecialchars($etat['bilan_logement_commentaire']);
+                        } else {
+                            echo 'Les dégradations listées ci-dessus ont été constatées lors de l\'état de sortie. Les montants indiqués correspondent aux frais de remise en état.';
+                        }
                     ?></textarea>
                 </div>
             </div>
@@ -1900,8 +1903,8 @@ if ($isSortie && !empty($etat['contrat_id'])) {
         
         let bilanRowCounter = <?php echo count($bilanRows); ?>;
         const MAX_BILAN_ROWS = 20;
-        const BILAN_MAX_FILE_SIZE = <?php echo defined('BILAN_MAX_FILE_SIZE') ? BILAN_MAX_FILE_SIZE : 20 * 1024 * 1024; ?>; // 20MB
-        const BILAN_ALLOWED_TYPES = <?php echo defined('BILAN_ALLOWED_TYPES') ? json_encode(BILAN_ALLOWED_TYPES) : '["application/pdf", "image/jpeg", "image/jpg", "image/png"]'; ?>;
+        const BILAN_MAX_FILE_SIZE = <?php echo $config['BILAN_MAX_FILE_SIZE']; ?>; // 20MB
+        const BILAN_ALLOWED_TYPES = <?php echo json_encode($config['BILAN_ALLOWED_TYPES']); ?>;
         
         // Add a new row to the bilan table
         function addBilanRow() {
@@ -2064,9 +2067,9 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                 noFilesMsg.style.display = 'none';
             }
             
-            // Show files list
+            // Show files list (row class already has display: flex)
             const filesList = document.getElementById('justificatifsFilesList');
-            filesList.style.display = 'flex';
+            filesList.style.display = 'block';
             
             // Create file card
             const fileCard = document.createElement('div');
