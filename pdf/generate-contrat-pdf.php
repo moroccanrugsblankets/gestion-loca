@@ -166,7 +166,7 @@ function buildSignaturesTable($contrat, $locataires) {
     $nbCols = count($locataires) + 1; // +1 pour le bailleur
     $colWidth = 100 / $nbCols;
 
-    $html = '<table style="width: 100%; border-collapse: collapse; border: none; border-width: 0; border-style: none; margin-top: 20px;"><tr>';
+    $html = '<table cellspacing="0" cellpadding="0" style="width: 100%; border-collapse: collapse; border: none; border-width: 0; border-style: none; margin-top: 20px;"><tr>';
 
     // Bailleur
     $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px; border: none; border-width: 0; border-style: none;">';
