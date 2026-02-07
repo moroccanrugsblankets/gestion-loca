@@ -7,7 +7,8 @@ require_once '../includes/db.php';
 $stmt = $pdo->query("
     SELECT edl.*, c.reference_unique as contrat_ref, 
            CONCAT(cand.prenom, ' ', cand.nom) as locataire,
-           l.adresse,
+           l.reference as logement_reference,
+           l.type as logement_type,
            edl.statut
     FROM etats_lieux edl
     LEFT JOIN contrats c ON edl.contrat_id = c.id
@@ -146,7 +147,7 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                         <div class="search-filter-section mb-3">
                             <div class="row">
                                 <div class="col-md-6">
-                                    <input type="text" id="searchEntree" class="form-control" placeholder="Rechercher par référence, contrat, adresse, locataire...">
+                                    <input type="text" id="searchEntree" class="form-control" placeholder="Rechercher par référence, contrat, logement, locataire...">
                                 </div>
                                 <div class="col-md-3">
                                     <select id="filterStatusEntree" class="form-select">
@@ -169,7 +170,7 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                                     <th>Référence</th>
                                     <th>Contrat</th>
                                     <th>Locataire</th>
-                                    <th>Adresse</th>
+                                    <th>Logement</th>
                                     <th>Date</th>
                                     <th>Statut</th>
                                     <th>Actions</th>
@@ -181,7 +182,7 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                                     <td><strong><?php echo htmlspecialchars($etat['reference_unique'] ?? 'N/A'); ?></strong></td>
                                     <td><?php echo htmlspecialchars($etat['contrat_ref'] ?? 'N/A'); ?></td>
                                     <td><?php echo htmlspecialchars($etat['locataire'] ?? 'N/A'); ?></td>
-                                    <td><?php echo htmlspecialchars($etat['adresse'] ?? 'N/A'); ?></td>
+                                    <td><?php echo htmlspecialchars(($etat['logement_reference'] ?? 'N/A') . ' (' . ($etat['logement_type'] ?? '') . ')'); ?></td>
                                     <td><?php echo date('d/m/Y', strtotime($etat['date_etat'])); ?></td>
                                     <td>
                                         <?php
@@ -242,7 +243,7 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                         <div class="search-filter-section mb-3">
                             <div class="row">
                                 <div class="col-md-6">
-                                    <input type="text" id="searchSortie" class="form-control" placeholder="Rechercher par référence, contrat, adresse, locataire...">
+                                    <input type="text" id="searchSortie" class="form-control" placeholder="Rechercher par référence, contrat, logement, locataire...">
                                 </div>
                                 <div class="col-md-3">
                                     <select id="filterStatusSortie" class="form-select">
@@ -265,7 +266,7 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                                     <th>Référence</th>
                                     <th>Contrat</th>
                                     <th>Locataire</th>
-                                    <th>Adresse</th>
+                                    <th>Logement</th>
                                     <th>Date</th>
                                     <th>Statut</th>
                                     <th>Actions</th>
@@ -277,7 +278,7 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                                     <td><strong><?php echo htmlspecialchars($etat['reference_unique'] ?? 'N/A'); ?></strong></td>
                                     <td><?php echo htmlspecialchars($etat['contrat_ref'] ?? 'N/A'); ?></td>
                                     <td><?php echo htmlspecialchars($etat['locataire'] ?? 'N/A'); ?></td>
-                                    <td><?php echo htmlspecialchars($etat['adresse'] ?? 'N/A'); ?></td>
+                                    <td><?php echo htmlspecialchars(($etat['logement_reference'] ?? 'N/A') . ' (' . ($etat['logement_type'] ?? '') . ')'); ?></td>
                                     <td><?php echo date('d/m/Y', strtotime($etat['date_etat'])); ?></td>
                                     <td>
                                         <?php
