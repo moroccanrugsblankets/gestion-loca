@@ -156,41 +156,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Insert new état des lieux with initial data
     try {
+        // Prepare INSERT with comprehensive field list
+        // Fields organized by category for maintainability
         $stmt = $pdo->prepare("
             INSERT INTO etats_lieux (
+                -- Basic identification
                 contrat_id, type, date_etat, reference_unique,
                 adresse, appartement, 
+                -- Participants
                 bailleur_nom, locataire_nom_complet, locataire_email,
+                -- Meter readings (compteurs)
                 compteur_electricite, compteur_eau_froide,
+                -- Keys (clés)
                 cles_appartement, cles_boite_lettres, cles_autre, cles_total, cles_observations,
+                -- Room descriptions
                 piece_principale, coin_cuisine, salle_eau_wc, 
+                -- General state and observations
                 etat_general, observations,
+                -- Metadata
                 statut, created_at, created_by
             ) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'brouillon', NOW(), ?)
         ");
+        
+        // Execute with parameters in same order as field list above
         $stmt->execute([
+            // Basic identification (4 params)
             $contrat_id, 
             $type, 
             $date_etat, 
             $reference,
+            // Address info (2 params)
             $contrat['adresse'],
             $contrat['appartement'],
+            // Participants (3 params)
             'SCI My Invest Immobilier, représentée par Maxime ALEXANDRE',
             $locataire_nom_complet,
             $locataire_email,
+            // Meter readings (2 params)
             $default_compteur_electricite,
             $default_compteur_eau_froide,
+            // Keys (5 params)
             $default_cles_appartement,
             $default_cles_boite_lettres,
             $default_cles_autre,
             $default_cles_total,
             $default_cles_observations,
+            // Room descriptions (3 params)
             $default_piece_principale,
             $default_coin_cuisine,
             $default_salle_eau_wc,
+            // General state (2 params)
             $default_etat_general,
             $default_observations,
+            // Metadata (1 param)
             $_SESSION['username'] ?? 'admin'
         ]);
         
@@ -213,12 +232,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         // Create destination directory
                         $dest_dir = "../uploads/etats_lieux/{$etat_lieux_id}";
                         if (!is_dir($dest_dir)) {
-                            mkdir($dest_dir, 0755, true);
+                            if (!mkdir($dest_dir, 0755, true)) {
+                                error_log("Failed to create directory: $dest_dir");
+                                continue; // Skip this photo if directory creation fails
+                            }
                         }
                         
-                        // Generate new filename to avoid conflicts
+                        // Validate and sanitize file extension
                         $file_info = pathinfo($photo['nom_fichier']);
-                        $new_filename = uniqid() . '_' . time() . '.' . $file_info['extension'];
+                        $extension = strtolower($file_info['extension'] ?? '');
+                        
+                        // Only allow safe image extensions
+                        $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif'];
+                        if (!in_array($extension, $allowed_extensions)) {
+                            error_log("Invalid file extension for photo: " . $photo['nom_fichier']);
+                            continue; // Skip this photo
+                        }
+                        
+                        // Generate new filename with validated extension
+                        $new_filename = uniqid() . '_' . time() . '.' . $extension;
                         $dest_path = $dest_dir . '/' . $new_filename;
                         $rel_path = "uploads/etats_lieux/{$etat_lieux_id}/" . $new_filename;
                         
