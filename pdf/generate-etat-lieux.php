@@ -109,9 +109,31 @@ function generateEtatDesLieuxPDF($contratId, $type = 'entree') {
 
         // Récupérer le template HTML depuis la base de données
         error_log("Fetching HTML template from database...");
-        $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'etat_lieux_template_html'");
-        $stmt->execute();
-        $templateHtml = $stmt->fetchColumn();
+        
+        // Use different template for exit state if available
+        if ($type === 'sortie') {
+            $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'etat_lieux_sortie_template_html'");
+            $stmt->execute();
+            $templateHtml = $stmt->fetchColumn();
+            
+            // If no exit template, fall back to entry template
+            if (empty($templateHtml)) {
+                error_log("No exit template found, falling back to entry template");
+                $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'etat_lieux_template_html'");
+                $stmt->execute();
+                $templateHtml = $stmt->fetchColumn();
+            } else {
+                error_log("Exit template loaded from database - Length: " . strlen($templateHtml) . " characters");
+            }
+        } else {
+            $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'etat_lieux_template_html'");
+            $stmt->execute();
+            $templateHtml = $stmt->fetchColumn();
+            
+            if (!empty($templateHtml)) {
+                error_log("Entry template loaded from database - Length: " . strlen($templateHtml) . " characters");
+            }
+        }
         
         // Si pas de template en base, utiliser le template par défaut
         if (empty($templateHtml)) {
@@ -122,8 +144,6 @@ function generateEtatDesLieuxPDF($contratId, $type = 'entree') {
                 error_log("ERROR: getDefaultEtatLieuxTemplate function not found");
                 return false;
             }
-        } else {
-            error_log("Template loaded from database - Length: " . strlen($templateHtml) . " characters");
         }
         
         // Générer le HTML en remplaçant les variables
