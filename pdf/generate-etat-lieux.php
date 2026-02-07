@@ -243,13 +243,19 @@ function createDefaultEtatLieux($contratId, $type, $contrat, $locataires) {
                 bailleur_representant,
                 locataire_email,
                 locataire_nom_complet,
+                compteur_electricite,
+                compteur_eau_froide,
+                cles_appartement,
+                cles_boite_lettres,
+                cles_autre,
+                cles_total,
                 piece_principale,
                 coin_cuisine,
                 salle_eau_wc,
                 etat_general,
                 lieu_signature,
                 statut
-            ) VALUES (?, ?, ?, CURDATE(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'brouillon')
+            ) VALUES (?, ?, ?, CURDATE(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'brouillon')
         ");
         
         $defaultTexts = getDefaultPropertyDescriptions($type);
@@ -264,6 +270,12 @@ function createDefaultEtatLieux($contratId, $type, $contrat, $locataires) {
             $config['BAILLEUR_REPRESENTANT'] ?? '',
             $locataireEmail,
             $locataireNomComplet,
+            '', // compteur_electricite - to be filled
+            '', // compteur_eau_froide - to be filled
+            0,  // cles_appartement - default 0
+            0,  // cles_boite_lettres - default 0
+            0,  // cles_autre - default 0
+            0,  // cles_total - default 0
             $defaultTexts['piece_principale'],
             $defaultTexts['coin_cuisine'],
             $defaultTexts['salle_eau_wc'],
