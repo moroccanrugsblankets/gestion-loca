@@ -182,7 +182,13 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                                     <td><strong><?php echo htmlspecialchars($etat['reference_unique'] ?? 'N/A'); ?></strong></td>
                                     <td><?php echo htmlspecialchars($etat['contrat_ref'] ?? 'N/A'); ?></td>
                                     <td><?php echo htmlspecialchars($etat['locataire'] ?? 'N/A'); ?></td>
-                                    <td><?php echo htmlspecialchars(($etat['logement_reference'] ?? 'N/A') . ' (' . ($etat['logement_type'] ?? '') . ')'); ?></td>
+                                    <td>
+                                        <?php 
+                                        $logement = $etat['logement_reference'] ?? 'N/A';
+                                        $type = $etat['logement_type'] ?? '';
+                                        echo htmlspecialchars($type ? "$logement ($type)" : $logement);
+                                        ?>
+                                    </td>
                                     <td><?php echo date('d/m/Y', strtotime($etat['date_etat'])); ?></td>
                                     <td>
                                         <?php
@@ -278,7 +284,13 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                                     <td><strong><?php echo htmlspecialchars($etat['reference_unique'] ?? 'N/A'); ?></strong></td>
                                     <td><?php echo htmlspecialchars($etat['contrat_ref'] ?? 'N/A'); ?></td>
                                     <td><?php echo htmlspecialchars($etat['locataire'] ?? 'N/A'); ?></td>
-                                    <td><?php echo htmlspecialchars(($etat['logement_reference'] ?? 'N/A') . ' (' . ($etat['logement_type'] ?? '') . ')'); ?></td>
+                                    <td>
+                                        <?php 
+                                        $logement = $etat['logement_reference'] ?? 'N/A';
+                                        $type = $etat['logement_type'] ?? '';
+                                        echo htmlspecialchars($type ? "$logement ($type)" : $logement);
+                                        ?>
+                                    </td>
                                     <td><?php echo date('d/m/Y', strtotime($etat['date_etat'])); ?></td>
                                     <td>
                                         <?php

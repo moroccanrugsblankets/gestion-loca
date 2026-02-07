@@ -208,10 +208,9 @@ $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Sociét
 			$html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" style="max-width: 150px; border: none; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;">';
         }
         
-        // Add "Certifié exact" checkbox indicator
-        if (!empty($loc['certifie_exact'])) {
-            $html .= '<p style="margin-top:5px; font-size:9pt;"><strong>☑ Certifié exact</strong></p>';
-        }
+        // Add "Certifié exact" checkbox indicator - always show for clarity
+        $checkboxSymbol = (!empty($loc['certifie_exact'])) ? '☑' : '☐';
+        $html .= '<p style="margin-top:5px; font-size:9pt;"><strong>' . $checkboxSymbol . ' Certifié exact</strong></p>';
 
         if (!empty($loc['signature_timestamp']) || !empty($loc['signature_ip'])) {
             $html .= '<div style="margin-top:10px; font-size:8pt; color:#666;">';
