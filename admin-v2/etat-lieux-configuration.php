@@ -661,13 +661,11 @@ $signatureEnabled = $stmt->fetchColumn() === 'true';
         }
 
         // Handle reset parameter
-        <?php if (isset($_GET['reset'])): ?>
+        <?php if (isset($_GET['reset']) && in_array($_GET['reset'], ['template_html', 'template_html_sortie'], true)): ?>
             // Set template to default
             const defaultTemplate = <?= json_encode(getDefaultEtatLieuxTemplate()) ?>;
             const editorId = '<?= htmlspecialchars($_GET['reset']) ?>';
-            if (editorId === 'template_html' || editorId === 'template_html_sortie') {
-                tinymce.get(editorId).setContent(defaultTemplate);
-            }
+            tinymce.get(editorId).setContent(defaultTemplate);
         <?php endif; ?>
     </script>
 </body>
