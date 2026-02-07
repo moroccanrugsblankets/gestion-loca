@@ -47,11 +47,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $signatureData = $_POST['signature_data'] ?? '';
         $mentionLuApprouve = cleanInput($_POST['mention_lu_approuve'] ?? '');
+        $certifieExact = isset($_POST['certifie_exact']) ? 1 : 0;
         
         // Log: Signature client reçue
         error_log("Step2-Signature: === RÉCEPTION SIGNATURE CLIENT ===");
         error_log("Step2-Signature: Locataire ID: $locataireId, Numéro: $numeroLocataire");
         error_log("Step2-Signature: Signature data length: " . strlen($signatureData) . " octets");
+        error_log("Step2-Signature: Certifié exact: " . ($certifieExact ? 'OUI' : 'NON'));
         if (!empty($signatureData)) {
             error_log("Step2-Signature: Début data URI: " . substr($signatureData, 0, 60) . "...");
         }
@@ -63,6 +65,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($mentionLuApprouve !== 'Lu et approuvé') {
             error_log("Step2-Signature: ERREUR - Mention 'Lu et approuvé' incorrecte: '$mentionLuApprouve'");
             $error = 'Veuillez recopier exactement "Lu et approuvé".';
+        } elseif (!$certifieExact) {
+            error_log("Step2-Signature: ERREUR - Case 'Certifié exact' non cochée");
+            $error = 'Veuillez cocher la case "Certifié exact" pour continuer.';
         } else {
             // Log: Validation de la signature
             if (preg_match('/^data:image\/(png|jpeg|jpg);base64,/', $signatureData, $matches)) {
@@ -74,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Enregistrer la signature
             error_log("Step2-Signature: Enregistrement de la signature en base de données...");
-            if (updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve)) {
+            if (updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve, $certifieExact)) {
                 error_log("Step2-Signature: ✓ Signature enregistrée avec succès");
                 logAction($contratId, 'signature_locataire', "Locataire $numeroLocataire a signé");
                 
@@ -143,6 +148,17 @@ $csrfToken = generateCsrfToken();
                                         Effacer
                                     </button>
                                 </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="certifie_exact" 
+                                           name="certifie_exact" value="1" required>
+                                    <label class="form-check-label" for="certifie_exact">
+                                        <strong>Certifié exact</strong> *
+                                    </label>
+                                </div>
+                                <small class="form-text text-muted">Cette case est obligatoire pour valider votre signature</small>
                             </div>
 
                             <div class="mb-4">

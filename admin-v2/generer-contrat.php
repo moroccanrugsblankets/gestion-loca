@@ -205,7 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label class="form-label">Logement</label>
                             <?php if ($logement_from_candidature): ?>
                                 <input type="text" class="form-control" readonly 
-                                       value="<?php echo htmlspecialchars($logement_from_candidature['reference'] . ' - ' . $logement_from_candidature['adresse']); ?>">
+                                       value="<?php echo htmlspecialchars($logement_from_candidature['reference'] . ' (' . $logement_from_candidature['type'] . ' - ' . $logement_from_candidature['loyer'] . '€/mois)'); ?>">
                                 <input type="hidden" name="logement_id" value="<?php echo $logement_from_candidature['id']; ?>">
                                 <input type="hidden" id="hidden_loyer" value="<?php echo $logement_from_candidature['loyer']; ?>">
                                 <input type="hidden" id="hidden_charges" value="<?php echo $logement_from_candidature['charges']; ?>">
@@ -219,7 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                 data-loyer="<?php echo $logement['loyer']; ?>"
                                                 data-charges="<?php echo $logement['charges']; ?>"
                                                 data-depot="<?php echo $logement['depot_garantie']; ?>">
-                                            <?php echo htmlspecialchars($logement['reference'] . ' - ' . $logement['adresse']); ?>
+                                            <?php echo htmlspecialchars($logement['reference']); ?>
                                             (<?php echo htmlspecialchars($logement['type']); ?> - <?php echo $logement['loyer']; ?>€/mois)
                                         </option>
                                     <?php endforeach; ?>
@@ -252,7 +252,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             data-loyer="<?php echo $logement['loyer']; ?>"
                                             data-charges="<?php echo $logement['charges']; ?>"
                                             data-depot="<?php echo $logement['depot_garantie']; ?>">
-                                        <?php echo htmlspecialchars($logement['reference'] . ' - ' . $logement['adresse']); ?>
+                                        <?php echo htmlspecialchars($logement['reference']); ?>
                                         (<?php echo htmlspecialchars($logement['type']); ?> - <?php echo $logement['loyer']; ?>€/mois)
                                     </option>
                                 <?php endforeach; ?>
