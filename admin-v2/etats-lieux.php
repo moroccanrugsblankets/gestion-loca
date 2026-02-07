@@ -341,16 +341,24 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Contrat:</label>
-                            <select name="contrat_id" class="form-select" required>
-                                <option value="">-- Sélectionner un contrat --</option>
+                            <label class="form-label">Logement:</label>
+                            <select name="logement_id" class="form-select" required>
+                                <option value="">-- Sélectionner un logement --</option>
                                 <?php
-                                $stmt = $pdo->query("SELECT id, reference_unique FROM contrats WHERE statut = 'signe' ORDER BY reference_unique");
-                                while ($contrat = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                                    echo "<option value='{$contrat['id']}'>{$contrat['reference_unique']}</option>";
+                                // Get logements with active contracts (signed status)
+                                $stmt = $pdo->query("
+                                    SELECT DISTINCT l.id, l.reference, l.type, l.adresse
+                                    FROM logements l
+                                    INNER JOIN contrats c ON c.logement_id = l.id
+                                    WHERE c.statut = 'signe'
+                                    ORDER BY l.reference
+                                ");
+                                while ($logement = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                                    echo "<option value='{$logement['id']}'>{$logement['reference']} ({$logement['type']})</option>";
                                 }
                                 ?>
                             </select>
+                            <small class="form-text text-muted">Seuls les logements avec contrats signés sont affichés</small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Date:</label>

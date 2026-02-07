@@ -5,7 +5,7 @@ require_once '../includes/db.php';
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $contrat_id = (int)$_POST['contrat_id'];
+    $logement_id = (int)$_POST['logement_id'];
     $type = $_POST['type'];
     $date_etat = $_POST['date_etat'];
     
@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
     
-    // Verify contract exists and get details including logement defaults
+    // Find the active contract for this logement
     $stmt = $pdo->prepare("
         SELECT c.*, 
                l.adresse, l.appartement,
@@ -41,16 +41,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                l.default_etat_piece_principale, l.default_etat_cuisine, l.default_etat_salle_eau
         FROM contrats c
         LEFT JOIN logements l ON c.logement_id = l.id
-        WHERE c.id = ?
+        WHERE c.logement_id = ? AND c.statut = 'signe'
+        ORDER BY c.date_creation DESC
+        LIMIT 1
     ");
-    $stmt->execute([$contrat_id]);
+    $stmt->execute([$logement_id]);
     $contrat = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$contrat) {
-        $_SESSION['error'] = "Contrat non trouvé";
+        $_SESSION['error'] = "Aucun contrat signé trouvé pour ce logement";
         header('Location: etats-lieux.php');
         exit;
     }
+    
+    $contrat_id = $contrat['id'];
     
     // Get tenant(s) from contract
     $stmt = $pdo->prepare("SELECT * FROM locataires WHERE contrat_id = ? ORDER BY ordre ASC LIMIT 2");
