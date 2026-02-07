@@ -198,7 +198,7 @@ function createTenant($contratId, $ordre, $data) {
  * @param string $mentionLuApprouve
  * @return bool
  */
-function updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve) {
+function updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve, $certifieExact = 0) {
     // Validate signature data size (LONGTEXT max is ~4GB, but we set a reasonable limit)
     // Canvas JPEG data URLs are typically 50-300KB (smaller than PNG)
     $maxSize = 2 * 1024 * 1024; // 2MB limit
@@ -249,10 +249,10 @@ function updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve)
     error_log("✓ Signature enregistrée physiquement et intégrée sans bordure - Locataire ID: $locataireId");
     
     $sql = "UPDATE locataires 
-            SET signature_data = ?, signature_ip = ?, signature_timestamp = NOW(), mention_lu_approuve = ?
+            SET signature_data = ?, signature_ip = ?, signature_timestamp = NOW(), mention_lu_approuve = ?, certifie_exact = ?
             WHERE id = ?";
     
-    $stmt = executeQuery($sql, [$relativePath, getClientIp(), $mentionLuApprouve, $locataireId]);
+    $stmt = executeQuery($sql, [$relativePath, getClientIp(), $mentionLuApprouve, $certifieExact, $locataireId]);
     
     if ($stmt === false) {
         error_log("Failed to update signature for locataire ID: $locataireId");
