@@ -623,6 +623,9 @@ function generateEntreeHTML($contrat, $locataires, $etatLieux) {
             margin: 8px 0; 
             text-align: justify; 
         }
+        p.description { 
+            line-height: 1.2; 
+        }
         .section { 
             margin-bottom: 20px; 
         }
@@ -709,13 +712,13 @@ HTML;
         <h2>4. DESCRIPTION DU LOGEMENT</h2>
         
         <h3>4.1 Pièce principale</h3>
-        <p>$piecePrincipale</p>
+        <p class="description">$piecePrincipale</p>
         
         <h3>4.2 Coin cuisine</h3>
-        <p>$coinCuisine</p>
+        <p class="description">$coinCuisine</p>
         
         <h3>4.3 Salle d'eau / WC</h3>
-        <p>$salleEauWC</p>
+        <p class="description">$salleEauWC</p>
         
         <h3>4.4 État général</h3>
         <p>$etatGeneral</p>
@@ -890,6 +893,9 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
             margin: 8px 0; 
             text-align: justify; 
         }
+        p.description { 
+            line-height: 1.2; 
+        }
         .section { 
             margin-bottom: 20px; 
         }
@@ -978,13 +984,13 @@ HTML;
         <h2>4. DESCRIPTION DU LOGEMENT</h2>
         
         <h3>4.1 Pièce principale</h3>
-        <p>$piecePrincipale</p>
+        <p class="description">$piecePrincipale</p>
         
         <h3>4.2 Coin cuisine</h3>
-        <p>$coinCuisine</p>
+        <p class="description">$coinCuisine</p>
         
         <h3>4.3 Salle d'eau / WC</h3>
-        <p>$salleEauWC</p>
+        <p class="description">$salleEauWC</p>
         
         <h3>4.4 État général</h3>
         <p>$etatGeneral</p>

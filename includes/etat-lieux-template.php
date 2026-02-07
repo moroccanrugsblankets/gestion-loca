@@ -62,6 +62,9 @@ function getDefaultEtatLieuxTemplate() {
         p {
             margin: 4px 0;
         }
+        p.description {
+            line-height: 1.2;
+        }
         table {
             width: 100%;
             margin: 8px 0;
@@ -196,13 +199,13 @@ function getDefaultEtatLieuxTemplate() {
     <h2 class="no-border">6. Description de l'état du logement</h2>
     
     <h3>Pièce principale</h3>
-    <p class="observations">{{piece_principale}}</p>
+    <p class="observations description">{{piece_principale}}</p>
     
     <h3>Coin cuisine</h3>
-    <p class="observations">{{coin_cuisine}}</p>
+    <p class="observations description">{{coin_cuisine}}</p>
     
     <h3>Salle d'eau / WC</h3>
-    <p class="observations">{{salle_eau_wc}}</p>
+    <p class="observations description">{{salle_eau_wc}}</p>
     
     <h3>État général</h3>
     <p class="observations">{{etat_general}}</p>
