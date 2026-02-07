@@ -25,7 +25,7 @@ function getDefaultEtatLieuxTemplate() {
             line-height: 1.4;
             color: #000;
             margin: 0;
-            padding: 15px;
+            padding: 10px;
         }
         h1 {
             text-align: center;
@@ -143,32 +143,16 @@ function getDefaultEtatLieuxTemplate() {
 
     <h2>2. Bien loué</h2>
     
-    <table cellspacing="0" cellpadding="4">
-        <tr>
-            <td class="info-label">Adresse :</td>
-            <td>{{adresse}}</td>
-        </tr>
-        {{appartement_row}}
-        <tr>
-            <td class="info-label">Type de logement :</td>
-            <td>{{type_logement}}</td>
-        </tr>
-        <tr>
-            <td class="info-label">Surface :</td>
-            <td>{{surface}} m²</td>
-        </tr>
-    </table>
+    <p><strong>Adresse : </strong>{{adresse}}</p>
+    {{appartement_row}}
+    <p><strong>Type de logement : </strong>{{type_logement}}</p>
+    <p><strong>Surface : </strong>{{surface}} m²</p>
 
     <h2>3. Parties</h2>
     
     <h3>Bailleur</h3>
-    <table cellspacing="0" cellpadding="4">
-        <tr>
-            <td class="info-label">Nom :</td>
-            <td>{{bailleur_nom}}</td>
-        </tr>
-        {{bailleur_representant_row}}
-    </table>
+    <p><strong>Nom : </strong>{{bailleur_nom}}</p>
+    {{bailleur_representant_row}}
     
     <h3>Locataire(s)</h3>
     <table cellspacing="0" cellpadding="4">
