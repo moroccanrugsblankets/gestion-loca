@@ -1112,7 +1112,6 @@ $isSortie = $etat['type'] === 'sortie';
                     
                     // Get the photos wrapper (second child of photosContainer)
                     const photosWrapper = photosContainer.querySelector('.d-flex.flex-wrap');
-                    const countSpan = photosContainer.querySelector('.photo-count');
                     
                     // Add each uploaded photo to the DOM
                     results.forEach(photoData => {
@@ -1120,10 +1119,18 @@ $isSortie = $etat['type'] === 'sortie';
                         photosWrapper.appendChild(photoElement);
                     });
                     
-                    // Update the count
+                    // Update the count in the alert
                     const totalPhotos = photosWrapper.querySelectorAll('.position-relative').length;
-                    if (countSpan) {
-                        countSpan.textContent = totalPhotos;
+                    const alertSpan = photosContainer.querySelector('.alert span');
+                    if (alertSpan) {
+                        // Try to find existing photo-count span, or update the entire text
+                        const countSpan = alertSpan.querySelector('.photo-count');
+                        if (countSpan) {
+                            countSpan.textContent = totalPhotos;
+                        } else {
+                            // Update entire span content (for PHP-generated containers)
+                            alertSpan.innerHTML = `<i class="bi bi-check-circle"></i> ${totalPhotos} photo(s) enregistrée(s)`;
+                        }
                     }
                     
                     // Show success message in preview
