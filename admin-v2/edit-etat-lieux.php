@@ -810,16 +810,48 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                 <div class="section-subtitle">Pièce principale</div>
                 <div class="row">
                     <div class="col-md-12 mb-3">
-                        <label class="form-label required-field">État</label>
+                        <?php if ($isSortie && $etat_entree && !empty($etat_entree['piece_principale'])): ?>
+                            <!-- Entry state reference -->
+                            <div class="entry-reference mb-2">
+                                <span class="icon-green">🟢</span>
+                                <span class="entry-reference-label">État d'entrée :</span>
+                                <div class="entry-reference-value mt-1" style="white-space: pre-line; font-size: 0.9rem;">
+                                    <?php echo htmlspecialchars($etat_entree['piece_principale']); ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <label class="form-label required-field <?php echo $isSortie ? 'exit-input-label' : ''; ?>">
+                            <?php if ($isSortie): ?><span class="icon-red">🔴</span><?php endif; ?>
+                            État<?php echo $isSortie ? ' de sortie' : ''; ?>
+                        </label>
                         <textarea name="piece_principale" class="form-control" rows="4" required><?php 
                             echo htmlspecialchars($etat['piece_principale'] ?? ($isEntree 
                                 ? "• Revêtement de sol : parquet très bon état d'usage\n• Murs : peintures très bon état\n• Plafond : peintures très bon état\n• Installations électriques et plomberie : fonctionnelles"
-                                : "• Revêtement de sol : bon état d'usage\n• Murs : bon état d'usage\n• Plafond : bon état d'usage\n• Installations électriques et plomberie : fonctionnelles")); 
+                                : "")); // Empty for exit state - user must fill
                         ?></textarea>
                     </div>
                     
                     <div class="col-md-12 mb-3">
                         <label class="form-label">Photos de la pièce principale <em>(optionnel)</em></label>
+                        
+                        <?php if ($isSortie && $etat_entree && isset($etat_entree_photos['piece_principale']) && !empty($etat_entree_photos['piece_principale'])): ?>
+                            <!-- Entry photos as reference -->
+                            <div class="mb-2">
+                                <small class="text-success fw-bold"><span class="icon-green">🟢</span> Photos de l'état d'entrée (référence) :</small>
+                                <div class="d-flex flex-wrap gap-2 mt-1">
+                                    <?php foreach ($etat_entree_photos['piece_principale'] as $photo): ?>
+                                        <div class="entry-photo-thumbnail">
+                                            <img src="../<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
+                                                 alt="Photo pièce principale (entrée)" 
+                                                 title="Photo de l'état d'entrée">
+                                            <div class="entry-photo-badge">🟢</div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                            <hr class="my-2">
+                        <?php endif; ?>
                         
                         <?php if (isset($photos_by_category['piece_principale']) && !empty($photos_by_category['piece_principale'])): ?>
                             <div class="mb-2">
@@ -857,16 +889,48 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                 <div class="section-subtitle">Coin cuisine</div>
                 <div class="row">
                     <div class="col-md-12 mb-3">
-                        <label class="form-label required-field">État</label>
+                        <?php if ($isSortie && $etat_entree && !empty($etat_entree['coin_cuisine'])): ?>
+                            <!-- Entry state reference -->
+                            <div class="entry-reference mb-2">
+                                <span class="icon-green">🟢</span>
+                                <span class="entry-reference-label">État d'entrée :</span>
+                                <div class="entry-reference-value mt-1" style="white-space: pre-line; font-size: 0.9rem;">
+                                    <?php echo htmlspecialchars($etat_entree['coin_cuisine']); ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <label class="form-label required-field <?php echo $isSortie ? 'exit-input-label' : ''; ?>">
+                            <?php if ($isSortie): ?><span class="icon-red">🔴</span><?php endif; ?>
+                            État<?php echo $isSortie ? ' de sortie' : ''; ?>
+                        </label>
                         <textarea name="coin_cuisine" class="form-control" rows="4" required><?php 
                             echo htmlspecialchars($etat['coin_cuisine'] ?? ($isEntree 
                                 ? "• Revêtement de sol : parquet très bon état d'usage\n• Murs : peintures très bon état\n• Plafond : peintures très bon état\n• Installations électriques et plomberie : fonctionnelles"
-                                : "• Revêtement de sol : bon état d'usage\n• Murs : bon état d'usage\n• Plafond : bon état d'usage\n• Installations électriques et plomberie : fonctionnelles")); 
+                                : "")); // Empty for exit state - user must fill
                         ?></textarea>
                     </div>
                     
                     <div class="col-md-12 mb-3">
                         <label class="form-label">Photos du coin cuisine <em>(optionnel)</em></label>
+                        
+                        <?php if ($isSortie && $etat_entree && isset($etat_entree_photos['cuisine']) && !empty($etat_entree_photos['cuisine'])): ?>
+                            <!-- Entry photos as reference -->
+                            <div class="mb-2">
+                                <small class="text-success fw-bold"><span class="icon-green">🟢</span> Photos de l'état d'entrée (référence) :</small>
+                                <div class="d-flex flex-wrap gap-2 mt-1">
+                                    <?php foreach ($etat_entree_photos['cuisine'] as $photo): ?>
+                                        <div class="entry-photo-thumbnail">
+                                            <img src="../<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
+                                                 alt="Photo cuisine (entrée)" 
+                                                 title="Photo de l'état d'entrée">
+                                            <div class="entry-photo-badge">🟢</div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                            <hr class="my-2">
+                        <?php endif; ?>
                         
                         <?php if (isset($photos_by_category['cuisine']) && !empty($photos_by_category['cuisine'])): ?>
                             <div class="mb-2">
@@ -904,16 +968,48 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                 <div class="section-subtitle">Salle d'eau et WC</div>
                 <div class="row">
                     <div class="col-md-12 mb-3">
-                        <label class="form-label required-field">État</label>
+                        <?php if ($isSortie && $etat_entree && !empty($etat_entree['salle_eau_wc'])): ?>
+                            <!-- Entry state reference -->
+                            <div class="entry-reference mb-2">
+                                <span class="icon-green">🟢</span>
+                                <span class="entry-reference-label">État d'entrée :</span>
+                                <div class="entry-reference-value mt-1" style="white-space: pre-line; font-size: 0.9rem;">
+                                    <?php echo htmlspecialchars($etat_entree['salle_eau_wc']); ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <label class="form-label required-field <?php echo $isSortie ? 'exit-input-label' : ''; ?>">
+                            <?php if ($isSortie): ?><span class="icon-red">🔴</span><?php endif; ?>
+                            État<?php echo $isSortie ? ' de sortie' : ''; ?>
+                        </label>
                         <textarea name="salle_eau_wc" class="form-control" rows="4" required><?php 
                             echo htmlspecialchars($etat['salle_eau_wc'] ?? ($isEntree 
                                 ? "• Revêtement de sol : carrelage très bon état d'usage\n• Faïence : très bon état\n• Plafond : peintures très bon état\n• Installations électriques et plomberie : fonctionnelles"
-                                : "• Revêtement de sol : bon état d'usage\n• Faïence : bon état d'usage\n• Plafond : bon état d'usage\n• Installations électriques et plomberie : fonctionnelles")); 
+                                : "")); // Empty for exit state - user must fill
                         ?></textarea>
                     </div>
                     
                     <div class="col-md-12 mb-3">
                         <label class="form-label">Photos de la salle d'eau et WC <em>(optionnel)</em></label>
+                        
+                        <?php if ($isSortie && $etat_entree && isset($etat_entree_photos['salle_eau']) && !empty($etat_entree_photos['salle_eau'])): ?>
+                            <!-- Entry photos as reference -->
+                            <div class="mb-2">
+                                <small class="text-success fw-bold"><span class="icon-green">🟢</span> Photos de l'état d'entrée (référence) :</small>
+                                <div class="d-flex flex-wrap gap-2 mt-1">
+                                    <?php foreach ($etat_entree_photos['salle_eau'] as $photo): ?>
+                                        <div class="entry-photo-thumbnail">
+                                            <img src="../<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
+                                                 alt="Photo salle d'eau (entrée)" 
+                                                 title="Photo de l'état d'entrée">
+                                            <div class="entry-photo-badge">🟢</div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                            <hr class="my-2">
+                        <?php endif; ?>
                         
                         <?php if (isset($photos_by_category['salle_eau']) && !empty($photos_by_category['salle_eau'])): ?>
                             <div class="mb-2">
@@ -951,11 +1047,25 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                 <div class="section-subtitle">État général du logement</div>
                 <div class="row">
                     <div class="col-md-12 mb-3">
-                        <label class="form-label required-field">Observations</label>
+                        <?php if ($isSortie && $etat_entree && !empty($etat_entree['etat_general'])): ?>
+                            <!-- Entry state reference -->
+                            <div class="entry-reference mb-2">
+                                <span class="icon-green">🟢</span>
+                                <span class="entry-reference-label">État d'entrée :</span>
+                                <div class="entry-reference-value mt-1" style="white-space: pre-line; font-size: 0.9rem;">
+                                    <?php echo htmlspecialchars($etat_entree['etat_general']); ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <label class="form-label required-field <?php echo $isSortie ? 'exit-input-label' : ''; ?>">
+                            <?php if ($isSortie): ?><span class="icon-red">🔴</span><?php endif; ?>
+                            Observations<?php echo $isSortie ? ' de sortie' : ''; ?>
+                        </label>
                         <textarea name="etat_general" class="form-control" rows="3" required><?php 
                             echo htmlspecialchars($etat['etat_general'] ?? ($isEntree 
                                 ? "Le logement a fait l'objet d'une remise en état générale avant l'entrée dans les lieux.\nIl est propre, entretenu et ne présente aucune dégradation apparente au jour de l'état des lieux.\nAucune anomalie constatée."
-                                : "À compléter lors de l'état des lieux de sortie (anomalies constatées, traces d'usage, dégradations éventuelles).")); 
+                                : "")); // Empty for exit state - user must fill
                         ?></textarea>
                     </div>
                     
@@ -1062,7 +1172,21 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                     </div>
                     
                     <div class="col-md-12 mb-3">
-                        <label class="form-label">Observations complémentaires</label>
+                        <?php if ($isSortie && $etat_entree && !empty($etat_entree['observations'])): ?>
+                            <!-- Entry state reference -->
+                            <div class="entry-reference mb-2">
+                                <span class="icon-green">🟢</span>
+                                <span class="entry-reference-label">Observations d'entrée :</span>
+                                <div class="entry-reference-value mt-1" style="white-space: pre-line; font-size: 0.9rem;">
+                                    <?php echo htmlspecialchars($etat_entree['observations']); ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <label class="form-label <?php echo $isSortie ? 'exit-input-label' : ''; ?>">
+                            <?php if ($isSortie): ?><span class="icon-red">🔴</span><?php endif; ?>
+                            Observations complémentaires<?php echo $isSortie ? ' de sortie' : ''; ?>
+                        </label>
                         <textarea name="observations" class="form-control" rows="3" 
                                   placeholder="Remarques ou observations supplémentaires..."><?php echo htmlspecialchars($etat['observations'] ?? ''); ?></textarea>
                     </div>
