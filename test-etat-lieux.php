@@ -34,7 +34,7 @@ echo "✓ Database connection established\n\n";
 
 // Get the first active contract to test with
 try {
-    $stmt = $pdo->query("SELECT c.id, c.reference, l.adresse 
+    $stmt = $pdo->query("SELECT c.id, c.reference_unique, l.adresse 
                          FROM contrats c 
                          INNER JOIN logements l ON c.logement_id = l.id 
                          WHERE c.statut = 'actif' 
@@ -51,7 +51,7 @@ try {
         $contratId = $contrat['id'];
         echo "✓ Found test contract:\n";
         echo "  - ID: {$contrat['id']}\n";
-        echo "  - Reference: {$contrat['reference']}\n";
+        echo "  - Reference: {$contrat['reference_unique']}\n";
         echo "  - Address: {$contrat['adresse']}\n\n";
     }
     
