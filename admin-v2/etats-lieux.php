@@ -365,7 +365,10 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                                     ORDER BY reference
                                 ");
                                 while ($logement = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                                    echo "<option value='{$logement['id']}'>{$logement['reference']} ({$logement['type']})</option>";
+                                    $id = htmlspecialchars($logement['id'], ENT_QUOTES, 'UTF-8');
+                                    $reference = htmlspecialchars($logement['reference'], ENT_QUOTES, 'UTF-8');
+                                    $type = htmlspecialchars($logement['type'], ENT_QUOTES, 'UTF-8');
+                                    echo "<option value='{$id}'>{$reference} ({$type})</option>";
                                 }
                                 ?>
                             </select>
