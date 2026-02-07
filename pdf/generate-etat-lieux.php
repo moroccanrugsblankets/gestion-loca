@@ -408,15 +408,16 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
     $etatGeneral = preg_replace($sentencePattern, ".\n", $etatGeneral);
     
     // Escape HTML for descriptions (preserve newlines)
-    $piecePrincipale = nl2br(htmlspecialchars($piecePrincipale));
-    $coinCuisine = nl2br(htmlspecialchars($coinCuisine));
-    $salleEauWC = nl2br(htmlspecialchars($salleEauWC));
-    $etatGeneral = nl2br(htmlspecialchars($etatGeneral));
+    // Replace \n with <br> and ensure proper line spacing for TCPDF
+    $piecePrincipale = str_replace("\n", '<br>', htmlspecialchars($piecePrincipale));
+    $coinCuisine = str_replace("\n", '<br>', htmlspecialchars($coinCuisine));
+    $salleEauWC = str_replace("\n", '<br>', htmlspecialchars($salleEauWC));
+    $etatGeneral = str_replace("\n", '<br>', htmlspecialchars($etatGeneral));
     
     // Observations - trim, replace <br> with newlines, escape and convert to <br> for HTML
     $observations = trim($etatLieux['observations'] ?? '');
     $observations = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $observations);
-    $observationsEscaped = nl2br(htmlspecialchars($observations));
+    $observationsEscaped = str_replace("\n", '<br>', htmlspecialchars($observations));
     
     // Compteurs (Meter readings)
     $compteurElec = htmlspecialchars($etatLieux['compteur_electricite'] ?? '');
@@ -524,7 +525,7 @@ function getDefaultPropertyDescriptions($type) {
  */
 function getValueOrDefault($etatLieux, $field, $default) {
     $value = trim($etatLieux[$field] ?? '');
-    return nl2br(htmlspecialchars(empty($value) ? $default : $value));
+    return str_replace("\n", '<br>', htmlspecialchars(empty($value) ? $default : $value));
 }
 
 
@@ -578,15 +579,15 @@ function generateEntreeHTML($contrat, $locataires, $etatLieux) {
     $etatGeneral = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $etatGeneral);
     
     // Step 2: Escape HTML and convert newlines to <br> tags for TCPDF rendering
-    $piecePrincipale = nl2br(htmlspecialchars($piecePrincipale));
-    $coinCuisine = nl2br(htmlspecialchars($coinCuisine));
-    $salleEauWC = nl2br(htmlspecialchars($salleEauWC));
-    $etatGeneral = nl2br(htmlspecialchars($etatGeneral));
+    $piecePrincipale = str_replace("\n", '<br>', htmlspecialchars($piecePrincipale));
+    $coinCuisine = str_replace("\n", '<br>', htmlspecialchars($coinCuisine));
+    $salleEauWC = str_replace("\n", '<br>', htmlspecialchars($salleEauWC));
+    $etatGeneral = str_replace("\n", '<br>', htmlspecialchars($etatGeneral));
     
     // Observations complémentaires - replace <br> with newlines
     $observations = $etatLieux['observations'] ?? '';
     $observations = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $observations);
-    $observations = nl2br(htmlspecialchars($observations));
+    $observations = str_replace("\n", '<br>', htmlspecialchars($observations));
     
     // Signatures
     $signaturesHTML = buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux);
@@ -812,20 +813,20 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
     $etatGeneral = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $etatGeneral);
     
     // Step 2: Escape HTML and convert newlines to <br> tags for TCPDF rendering
-    $piecePrincipale = nl2br(htmlspecialchars($piecePrincipale));
-    $coinCuisine = nl2br(htmlspecialchars($coinCuisine));
-    $salleEauWC = nl2br(htmlspecialchars($salleEauWC));
-    $etatGeneral = nl2br(htmlspecialchars($etatGeneral));
+    $piecePrincipale = str_replace("\n", '<br>', htmlspecialchars($piecePrincipale));
+    $coinCuisine = str_replace("\n", '<br>', htmlspecialchars($coinCuisine));
+    $salleEauWC = str_replace("\n", '<br>', htmlspecialchars($salleEauWC));
+    $etatGeneral = str_replace("\n", '<br>', htmlspecialchars($etatGeneral));
     
     // Observations complémentaires - replace <br> with newlines
     $observations = $etatLieux['observations'] ?? '';
     $observations = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $observations);
-    $observations = nl2br(htmlspecialchars($observations));
+    $observations = str_replace("\n", '<br>', htmlspecialchars($observations));
     
     // Conclusion - replace <br> with newlines
     $comparaisonEntree = $etatLieux['comparaison_entree'] ?? 'Comparaison avec l\'état des lieux d\'entrée : [À compléter]';
     $comparaisonEntree = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $comparaisonEntree);
-    $comparaisonEntree = nl2br(htmlspecialchars($comparaisonEntree));
+    $comparaisonEntree = str_replace("\n", '<br>', htmlspecialchars($comparaisonEntree));
     
     $depotStatus = $etatLieux['depot_garantie_status'] ?? 'non_applicable';
     $depotLabels = [
@@ -860,7 +861,7 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
     }
     
     if (!empty($etatLieux['depot_garantie_motif_retenue'])) {
-        $motifRetenue = nl2br(htmlspecialchars($etatLieux['depot_garantie_motif_retenue']));
+        $motifRetenue = str_replace("\n", '<br>', htmlspecialchars($etatLieux['depot_garantie_motif_retenue']));
         $depotHTML .= "<p><strong>Justificatif / Motif de la retenue :</strong><br>$motifRetenue</p>";
     }
     
