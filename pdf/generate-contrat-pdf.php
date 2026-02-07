@@ -166,10 +166,10 @@ function buildSignaturesTable($contrat, $locataires) {
     $nbCols = count($locataires) + 1; // +1 pour le bailleur
     $colWidth = 100 / $nbCols;
 
-    $html = '<table cellspacing="0" cellpadding="10" border="0" style="width: 100%; border: none; border-width: 0; border-style: none; margin-top: 20px;"><tbody><tr>';
+    $html = '<table cellspacing="0" cellpadding="10" border="0" style="width: 100%; border: none; margin-top: 20px;"><tbody><tr>';
 
     // Bailleur
-    $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px; border: none; border-width: 0; border-style: none;">';
+    $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px; border: none;">';
     $html .= '<p><strong>Le bailleur :</strong></p>';
     if ($contrat['statut'] === 'valide') {
         $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_image'");
@@ -193,7 +193,7 @@ $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Sociét
 
     // Locataires
     foreach ($locataires as $i => $loc) {
-        $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px; border: none; border-width: 0; border-style: none;">';
+        $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px; border: none;">';
 
         if ($nbCols === 2) {
             $html .= '<p><strong>Locataire :</strong></p>';
