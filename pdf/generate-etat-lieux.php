@@ -571,11 +571,17 @@ function generateEntreeHTML($contrat, $locataires, $etatLieux) {
     $salleEauWC = getValueOrDefault($etatLieux, 'salle_eau_wc', $defaultTexts['salle_eau_wc']);
     $etatGeneral = getValueOrDefault($etatLieux, 'etat_general', $defaultTexts['etat_general']);
     
-    // Replace <br> tags with newlines before processing
+    // Replace <br> tags with newlines before processing and convert to HTML <br>
     $piecePrincipale = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $piecePrincipale);
     $coinCuisine = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $coinCuisine);
     $salleEauWC = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $salleEauWC);
     $etatGeneral = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $etatGeneral);
+    
+    // Escape HTML and convert newlines to <br> tags for TCPDF rendering
+    $piecePrincipale = nl2br(htmlspecialchars($piecePrincipale));
+    $coinCuisine = nl2br(htmlspecialchars($coinCuisine));
+    $salleEauWC = nl2br(htmlspecialchars($salleEauWC));
+    $etatGeneral = nl2br(htmlspecialchars($etatGeneral));
     
     // Observations complémentaires - replace <br> with newlines
     $observations = $etatLieux['observations'] ?? '';
@@ -799,11 +805,17 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
     $salleEauWC = getValueOrDefault($etatLieux, 'salle_eau_wc', $defaultTexts['salle_eau_wc']);
     $etatGeneral = getValueOrDefault($etatLieux, 'etat_general', $defaultTexts['etat_general']);
     
-    // Replace <br> tags with newlines before processing
+    // Replace <br> tags with newlines before processing and convert to HTML <br>
     $piecePrincipale = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $piecePrincipale);
     $coinCuisine = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $coinCuisine);
     $salleEauWC = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $salleEauWC);
     $etatGeneral = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $etatGeneral);
+    
+    // Escape HTML and convert newlines to <br> tags for TCPDF rendering
+    $piecePrincipale = nl2br(htmlspecialchars($piecePrincipale));
+    $coinCuisine = nl2br(htmlspecialchars($coinCuisine));
+    $salleEauWC = nl2br(htmlspecialchars($salleEauWC));
+    $etatGeneral = nl2br(htmlspecialchars($etatGeneral));
     
     // Observations complémentaires - replace <br> with newlines
     $observations = $etatLieux['observations'] ?? '';
