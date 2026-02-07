@@ -102,8 +102,8 @@ $vars = [
     '{{date_signature}}' => $dateSignature,
     '{{signatures_table}}' => '<table cellspacing="0" cellpadding="0"><tr><td>Mock signatures</td></tr></table>',
     '{{signature_agence}}' => 'MY INVEST IMMOBILIER',
-    '{{appartement_row}}' => '<tr><td class="info-label">Appartement :</td><td>' . htmlspecialchars($contrat['appartement'] ?? '') . '</td></tr>',
-    '{{bailleur_representant_row}}' => '<tr><td class="info-label">Représenté par :</td><td>' . htmlspecialchars($etatLieux['bailleur_representant']) . '</td></tr>',
+    '{{appartement_row}}' => '<p><strong>Appartement : </strong>' . htmlspecialchars($contrat['appartement'] ?? '') . '</p>',
+    '{{bailleur_representant_row}}' => '<p><strong>Représenté par : </strong>' . htmlspecialchars($etatLieux['bailleur_representant']) . '</p>',
     '{{observations_section}}' => ''
 ];
 

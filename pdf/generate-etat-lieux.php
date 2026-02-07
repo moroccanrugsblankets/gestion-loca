@@ -145,8 +145,8 @@ function generateEtatDesLieuxPDF($contratId, $type = 'entree') {
         $typeLabel = ($type === 'entree') ? 'Entrée' : 'Sortie';
         $pdf->SetTitle("État des lieux $typeLabel - " . $contrat['reference']);
         
-        $pdf->SetMargins(15, 15, 15);
-        $pdf->SetAutoPageBreak(true, 15);
+        $pdf->SetMargins(15, 10, 15);
+        $pdf->SetAutoPageBreak(true, 10);
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
         $pdf->AddPage();
@@ -474,13 +474,13 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
     
     // Handle conditional rows (use already-escaped variables)
     if (!empty($appartement)) {
-        $vars['{{appartement_row}}'] = '<tr><td class="info-label">Appartement :</td><td>' . $appartement . '</td></tr>';
+        $vars['{{appartement_row}}'] = '<p><strong>Appartement : </strong>' . $appartement . '</p>';
     } else {
         $vars['{{appartement_row}}'] = '';
     }
     
     if (!empty($bailleurRepresentant)) {
-        $vars['{{bailleur_representant_row}}'] = '<tr><td class="info-label">Représenté par :</td><td>' . $bailleurRepresentant . '</td></tr>';
+        $vars['{{bailleur_representant_row}}'] = '<p><strong>Représenté par : </strong>' . $bailleurRepresentant . '</p>';
     } else {
         $vars['{{bailleur_representant_row}}'] = '';
     }
