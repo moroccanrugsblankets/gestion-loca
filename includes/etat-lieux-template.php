@@ -64,7 +64,6 @@ function getDefaultEtatLieuxTemplate() {
         }
         table {
             width: 100%;
-            border-collapse: collapse;
             margin: 8px 0;
         }
         table td {
@@ -110,7 +109,6 @@ function getDefaultEtatLieuxTemplate() {
         /* Signature table - ensure no borders on table or cells */
         .signature-table {
             border: 0 !important;
-            border-collapse: collapse !important;
         }
         .signature-table td {
             border: 0 !important;
