@@ -81,7 +81,7 @@ SELECT cle, valeur, type FROM parametres WHERE cle LIKE '%signature_societe%';
 ```
 
 Devrait retourner:
-- `signature_societe_enabled` (type: boolean, valeur: 'true' ou 'false')
+- `signature_societe_enabled` (type: boolean, valeur stockée comme string: 'true' ou 'false', convertie en boolean par `toBooleanParam()`)
 - `signature_societe_image` (type: string, valeur: chemin vers l'image)
 
 ### 2. Si les paramètres n'existent pas
@@ -95,7 +95,7 @@ Ou manuellement:
 ```sql
 INSERT INTO parametres (cle, valeur, type, description, groupe) VALUES
 ('signature_societe_image', '', 'string', 'Image de la signature électronique de la société', 'contrats'),
-('signature_societe_enabled', 'false', 'boolean', 'Activer l''ajout automatique de la signature société', 'contrats')
+('signature_societe_enabled', 'false', 'boolean', 'Activer l\'ajout automatique de la signature société', 'contrats')
 ON DUPLICATE KEY UPDATE cle=cle;
 ```
 
