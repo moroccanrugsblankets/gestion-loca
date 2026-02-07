@@ -1001,6 +1001,38 @@ $isSortie = $etat['type'] === 'sortie';
             container.style.display = (selectedValue === 'restitution_partielle' || selectedValue === 'retenue_totale') ? 'block' : 'none';
         }
         
+        // Helper function to create photo HTML element
+        function createPhotoElement(photoData) {
+            const photoDiv = document.createElement('div');
+            photoDiv.className = 'position-relative';
+            
+            // Create img element safely
+            const img = document.createElement('img');
+            img.setAttribute('src', '../' + photoData.url.replace(/^\//, ''));
+            img.setAttribute('alt', 'Photo');
+            img.setAttribute('style', 'max-width: 150px; max-height: 100px; border: 1px solid #dee2e6; border-radius: 4px;');
+            
+            // Create delete button safely
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'btn btn-danger btn-sm position-absolute top-0 end-0';
+            deleteBtn.setAttribute('style', 'padding: 2px 6px; font-size: 10px;');
+            deleteBtn.innerHTML = '<i class="bi bi-x"></i>';
+            
+            // Add event listener instead of inline onclick (safer)
+            const photoId = parseInt(photoData.photo_id, 10);
+            if (!isNaN(photoId)) {
+                deleteBtn.addEventListener('click', function() {
+                    deletePhoto(photoId, this);
+                });
+            }
+            
+            photoDiv.appendChild(img);
+            photoDiv.appendChild(deleteBtn);
+            
+            return photoDiv;
+        }
+        
         // Upload and preview photos
         function previewPhoto(input, previewId) {
             const preview = document.getElementById(previewId);
@@ -1056,14 +1088,77 @@ $isSortie = $etat['type'] === 'sortie';
             // Wait for all uploads to complete
             Promise.all(uploadPromises)
                 .then(results => {
+                    // Clear uploading message
+                    preview.innerHTML = '';
+                    
+                    // Find the upload zone (parent of input)
+                    const uploadZone = input.closest('.photo-upload-zone');
+                    
+                    // Look for existing photos container (previous sibling with mb-2 class)
+                    let photosContainer = null;
+                    let sibling = uploadZone.previousElementSibling;
+                    while (sibling) {
+                        if (sibling.nodeType === Node.ELEMENT_NODE && sibling.classList.contains('mb-2')) {
+                            photosContainer = sibling;
+                            break;
+                        }
+                        sibling = sibling.previousElementSibling;
+                    }
+                    
+                    // Check if we need to create the container structure
+                    if (!photosContainer) {
+                        photosContainer = document.createElement('div');
+                        photosContainer.className = 'mb-2';
+                        
+                        // Create alert
+                        const alert = document.createElement('div');
+                        alert.className = 'alert alert-success d-flex justify-content-between align-items-center';
+                        alert.innerHTML = '<span><i class="bi bi-check-circle"></i> <span class="photo-count">0</span> photo(s) enregistrée(s)</span>';
+                        photosContainer.appendChild(alert);
+                        
+                        // Create photos wrapper
+                        const photosWrapper = document.createElement('div');
+                        photosWrapper.className = 'd-flex flex-wrap gap-2';
+                        photosContainer.appendChild(photosWrapper);
+                        
+                        // Insert before upload zone
+                        uploadZone.parentNode.insertBefore(photosContainer, uploadZone);
+                    }
+                    
+                    // Get the photos wrapper (second child of photosContainer)
+                    const photosWrapper = photosContainer.querySelector('.d-flex.flex-wrap');
+                    
+                    // Add each uploaded photo to the DOM
+                    results.forEach(photoData => {
+                        const photoElement = createPhotoElement(photoData);
+                        photosWrapper.appendChild(photoElement);
+                    });
+                    
+                    // Update the count in the alert
+                    const totalPhotos = photosWrapper.querySelectorAll('.position-relative').length;
+                    const alertSpan = photosContainer.querySelector('.alert span');
+                    if (alertSpan) {
+                        // Try to find existing photo-count span, or update the entire text
+                        const countSpan = alertSpan.querySelector('.photo-count');
+                        if (countSpan) {
+                            countSpan.textContent = totalPhotos;
+                        } else {
+                            // Update entire span content (for PHP-generated containers)
+                            alertSpan.innerHTML = `<i class="bi bi-check-circle"></i> ${totalPhotos} photo(s) enregistrée(s)`;
+                        }
+                    }
+                    
+                    // Show success message in preview
                     preview.innerHTML = '<div class="alert alert-success mb-0"><i class="bi bi-check-circle"></i> ' + results.length + ' photo(s) téléchargée(s) avec succès</div>';
                     
-                    // Reload the page to show the uploaded photos
-                    // Note: This will refresh the entire form. Users should save their changes before uploading photos if needed.
-                    const RELOAD_DELAY_MS = 1000;
+                    // Auto-dismiss success message after 3 seconds
+                    const SUCCESS_MESSAGE_DURATION_MS = 3000;
                     setTimeout(() => {
-                        window.location.reload();
-                    }, RELOAD_DELAY_MS);
+                        preview.innerHTML = '';
+                    }, SUCCESS_MESSAGE_DURATION_MS);
+                    
+                    // Clear the file input so the same file can be uploaded again if needed
+                    input.value = '';
                 })
                 .catch(error => {
                     console.error('Upload error:', error);
