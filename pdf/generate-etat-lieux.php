@@ -270,8 +270,8 @@ function createDefaultEtatLieux($contratId, $type, $contrat, $locataires) {
             $config['BAILLEUR_REPRESENTANT'] ?? '',
             $locataireEmail,
             $locataireNomComplet,
-            '', // compteur_electricite - to be filled
-            '', // compteur_eau_froide - to be filled
+            '', // compteur_electricite - will be filled by user during état des lieux process
+            '', // compteur_eau_froide - will be filled by user during état des lieux process
             0,  // cles_appartement - default 0
             0,  // cles_boite_lettres - default 0
             0,  // cles_autre - default 0
