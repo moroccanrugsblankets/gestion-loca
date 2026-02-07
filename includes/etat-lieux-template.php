@@ -63,7 +63,7 @@ function getDefaultEtatLieuxTemplate() {
             margin: 4px 0;
         }
         p.description {
-            line-height: 1.2;
+            line-height: 1.5;
         }
         table {
             width: 100%;
