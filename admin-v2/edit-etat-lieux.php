@@ -1886,17 +1886,6 @@ if ($isSortie && !empty($etat['contrat_id'])) {
             document.getElementById(`tenantSignature_${id}`).value = '';
         }
         
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            calculateTotalKeys();
-            
-            // Initialize tenant signatures based on actual IDs in the page
-            <?php if (!empty($existing_tenants)): ?>
-                <?php foreach ($existing_tenants as $tenant): ?>
-                    initTenantSignature(<?php echo $tenant['id']; ?>);
-                <?php endforeach; ?>
-            <?php endif; ?>
-        
         // ========================================
         // Bilan du logement functions
         // ========================================
@@ -2168,8 +2157,22 @@ if ($isSortie && !empty($etat['contrat_id'])) {
             }
         }
         
-        // Initialize bilan validation on page load
+        // ========================================
+        // End Bilan du logement functions
+        // ========================================
+        
+        // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            calculateTotalKeys();
+            
+            // Initialize tenant signatures based on actual IDs in the page
+            <?php if (!empty($existing_tenants)): ?>
+                <?php foreach ($existing_tenants as $tenant): ?>
+                    initTenantSignature(<?php echo $tenant['id']; ?>);
+                <?php endforeach; ?>
+            <?php endif; ?>
+            
+            // Initialize bilan validation
             // Add input listeners for validation
             document.querySelectorAll('.bilan-field').forEach(field => {
                 field.addEventListener('input', validateBilanFields);
@@ -2183,12 +2186,6 @@ if ($isSortie && !empty($etat['contrat_id'])) {
             
             // Initial validation
             validateBilanFields();
-        });
-        
-        // ========================================
-        // End Bilan du logement functions
-        // ========================================
-        
         });
         
         // Handle form submission
