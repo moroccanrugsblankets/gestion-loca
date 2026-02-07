@@ -358,20 +358,18 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                             <select name="logement_id" class="form-select" required>
                                 <option value="">-- Sélectionner un logement --</option>
                                 <?php
-                                // Get logements with active contracts (signed status)
+                                // Get all logements
                                 $stmt = $pdo->query("
-                                    SELECT DISTINCT l.id, l.reference, l.type, l.adresse
-                                    FROM logements l
-                                    INNER JOIN contrats c ON c.logement_id = l.id
-                                    WHERE c.statut = 'signe'
-                                    ORDER BY l.reference
+                                    SELECT id, reference, type, adresse
+                                    FROM logements
+                                    ORDER BY reference
                                 ");
                                 while ($logement = $stmt->fetch(PDO::FETCH_ASSOC)) {
                                     echo "<option value='{$logement['id']}'>{$logement['reference']} ({$logement['type']})</option>";
                                 }
                                 ?>
                             </select>
-                            <small class="form-text text-muted">Seuls les logements avec contrats signés sont affichés</small>
+                            <small class="form-text text-muted">Tous les logements sont disponibles pour la création d'un état des lieux</small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Date:</label>
