@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                l.default_etat_piece_principale, l.default_etat_cuisine, l.default_etat_salle_eau
         FROM contrats c
         LEFT JOIN logements l ON c.logement_id = l.id
-        WHERE c.logement_id = ? AND c.statut = 'signe'
+        WHERE c.logement_id = ? AND c.statut = 'valide'
         ORDER BY c.date_creation DESC
         LIMIT 1
     ");
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $contrat = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$contrat) {
-        $_SESSION['error'] = "Aucun contrat signé trouvé pour ce logement";
+        $_SESSION['error'] = "Aucun contrat validé trouvé pour ce logement";
         header('Location: etats-lieux.php');
         exit;
     }
