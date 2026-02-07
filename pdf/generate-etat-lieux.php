@@ -1091,7 +1091,7 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
     $nbCols = count($tenantsToDisplay) + 1; // +1 for landlord
     $colWidth = 100 / $nbCols;
 
-    $html = '<table style="max-width: 500px;width: 80%; border-collapse: collapse; border: none; border-width: 0; border-style: none; margin-top: 20px;"><tr>';
+    $html = '<table cellspacing="0" cellpadding="0" style="max-width: 500px;width: 80%; border-collapse: collapse; border: none; border-width: 0; border-style: none; margin-top: 20px;"><tr>';
 
     // Landlord column - Use signature_societe_etat_lieux_image from parametres
     $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:0px; border: none; border-width: 0; border-style: none;">';

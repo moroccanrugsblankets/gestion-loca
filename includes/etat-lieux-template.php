@@ -132,7 +132,7 @@ function getDefaultEtatLieuxTemplate() {
 
     <h2>1. Informations générales</h2>
     
-    <table>
+    <table cellspacing="0" cellpadding="4">
         <tr>
             <td class="info-label">Date de l'état des lieux :</td>
             <td>{{date_etat}}</td>
@@ -145,7 +145,7 @@ function getDefaultEtatLieuxTemplate() {
 
     <h2>2. Bien loué</h2>
     
-    <table>
+    <table cellspacing="0" cellpadding="4">
         <tr>
             <td class="info-label">Adresse :</td>
             <td>{{adresse}}</td>
@@ -164,7 +164,7 @@ function getDefaultEtatLieuxTemplate() {
     <h2>3. Parties</h2>
     
     <h3>Bailleur</h3>
-    <table>
+    <table cellspacing="0" cellpadding="4">
         <tr>
             <td class="info-label">Nom :</td>
             <td>{{bailleur_nom}}</td>
@@ -173,13 +173,13 @@ function getDefaultEtatLieuxTemplate() {
     </table>
     
     <h3>Locataire(s)</h3>
-    <table>
+    <table cellspacing="0" cellpadding="4">
         {{locataires_info}}
     </table>
 
     <h2>4. Relevé des compteurs</h2>
     
-    <table>
+    <table cellspacing="0" cellpadding="4">
         <tr>
             <td class="info-label">Électricité :</td>
             <td>{{compteur_electricite}}</td>
@@ -192,7 +192,7 @@ function getDefaultEtatLieuxTemplate() {
 
     <h2>5. Remise des clés</h2>
     
-    <table>
+    <table cellspacing="0" cellpadding="4">
         <tr>
             <td class="info-label">Clés de l'appartement :</td>
             <td>{{cles_appartement}}</td>
