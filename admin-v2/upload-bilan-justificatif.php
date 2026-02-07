@@ -8,6 +8,10 @@ require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
 
+// File upload constants for Bilan du logement
+define('BILAN_MAX_FILE_SIZE', 20 * 1024 * 1024); // 20MB
+define('BILAN_ALLOWED_TYPES', ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']);
+
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -51,20 +55,18 @@ if (!isset($_FILES['justificatif']) || $_FILES['justificatif']['error'] !== UPLO
 $file = $_FILES['justificatif'];
 
 // Validate file type
-$allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
 $finfo = finfo_open(FILEINFO_MIME_TYPE);
 $mimeType = finfo_file($finfo, $file['tmp_name']);
 finfo_close($finfo);
 
-if (!in_array($mimeType, $allowedTypes)) {
+if (!in_array($mimeType, BILAN_ALLOWED_TYPES)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Type de fichier non autorisé. Formats acceptés: PDF, JPG, PNG']);
     exit;
 }
 
-// Validate file size (max 20MB)
-$maxSize = 20 * 1024 * 1024; // 20MB
-if ($file['size'] > $maxSize) {
+// Validate file size
+if ($file['size'] > BILAN_MAX_FILE_SIZE) {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Fichier trop volumineux. Taille maximale: 20MB']);
     exit;

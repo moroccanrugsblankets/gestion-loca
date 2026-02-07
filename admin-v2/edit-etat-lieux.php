@@ -1382,7 +1382,7 @@ if ($isSortie && !empty($etat['contrat_id'])) {
             <!-- <?php echo $isSortie ? '7' : '5'; ?>. Signatures -->
             <div class="form-card">
                 <div class="section-title">
-                    <i class="bi bi-pen"></i> <?php echo $isSortie ? '6' : '5'; ?>. Signatures
+                    <i class="bi bi-pen"></i> <?php echo $isSortie ? '7' : '5'; ?>. Signatures
                 </div>
                 
                 <div class="row">
@@ -1900,6 +1900,8 @@ if ($isSortie && !empty($etat['contrat_id'])) {
         
         let bilanRowCounter = <?php echo count($bilanRows); ?>;
         const MAX_BILAN_ROWS = 20;
+        const BILAN_MAX_FILE_SIZE = <?php echo defined('BILAN_MAX_FILE_SIZE') ? BILAN_MAX_FILE_SIZE : 20 * 1024 * 1024; ?>; // 20MB
+        const BILAN_ALLOWED_TYPES = <?php echo defined('BILAN_ALLOWED_TYPES') ? json_encode(BILAN_ALLOWED_TYPES) : '["application/pdf", "image/jpeg", "image/jpg", "image/png"]'; ?>;
         
         // Add a new row to the bilan table
         function addBilanRow() {
@@ -2009,18 +2011,16 @@ if ($isSortie && !empty($etat['contrat_id'])) {
             if (!input.files || input.files.length === 0) return;
             
             const file = input.files[0];
-            const maxSize = 20 * 1024 * 1024; // 20MB
             
             // Validate file size
-            if (file.size > maxSize) {
+            if (file.size > BILAN_MAX_FILE_SIZE) {
                 alert('Fichier trop volumineux. Taille maximale: 20 MB');
                 input.value = '';
                 return;
             }
             
             // Validate file type
-            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-            if (!allowedTypes.includes(file.type)) {
+            if (!BILAN_ALLOWED_TYPES.includes(file.type)) {
                 alert('Type de fichier non autorisé. Formats acceptés: PDF, JPG, PNG');
                 input.value = '';
                 return;
