@@ -120,38 +120,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         $default_etat_general = "Le logement a fait l'objet d'une remise en état générale avant l'entrée dans les lieux.\nIl est propre, entretenu et ne présente aucune dégradation apparente au jour de l'état des lieux.\nAucune anomalie constatée.";
     }
-    // For exit: copy ALL data from entry state
+    // For exit: DO NOT copy data - leave fields empty for user input
+    // Entry data will be displayed as visual reference only in the edit form
     else if ($type === 'sortie') {
-        $stmt = $pdo->prepare("SELECT * FROM etats_lieux WHERE contrat_id = ? AND type = 'entree' ORDER BY date_etat DESC LIMIT 1");
+        // Find entry state to verify it exists (required for visual reference)
+        $stmt = $pdo->prepare("SELECT id FROM etats_lieux WHERE contrat_id = ? AND type = 'entree' ORDER BY date_etat DESC LIMIT 1");
         $stmt->execute([$contrat_id]);
         $etat_entree = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($etat_entree) {
-            // Store entry ID for photo copying later
+            // Store entry ID for visual reference display later (not for copying)
             $etat_entree_id = $etat_entree['id'];
-            
-            // Copy keys information
-            $default_cles_appartement = $etat_entree['cles_appartement'];
-            $default_cles_boite_lettres = $etat_entree['cles_boite_lettres'];
-            $default_cles_autre = $etat_entree['cles_autre'] ?? 0;
-            $default_cles_total = $etat_entree['cles_total'];
-            $default_cles_observations = $etat_entree['cles_observations'];
-            
-            // Copy counter readings
-            $default_compteur_electricite = $etat_entree['compteur_electricite'];
-            $default_compteur_eau_froide = $etat_entree['compteur_eau_froide'];
-            
-            // Copy room descriptions
-            $default_piece_principale = $etat_entree['piece_principale'];
-            $default_coin_cuisine = $etat_entree['coin_cuisine'];
-            $default_salle_eau_wc = $etat_entree['salle_eau_wc'];
-            
-            // Copy observations
-            $default_observations = $etat_entree['observations'];
-            
-            // Set general state with prompt to complete
-            $default_etat_general = "À compléter lors de l'état des lieux de sortie (anomalies constatées, traces d'usage, dégradations éventuelles).";
         }
+        
+        // All fields remain NULL/empty - user will enter exit values manually
+        // No auto-copy from entry state
     }
     
     // Insert new état des lieux with initial data
@@ -215,66 +198,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         $etat_lieux_id = $pdo->lastInsertId();
         
-        // For exit state: copy photos from entry state
-        if ($type === 'sortie' && $etat_entree_id) {
-            // Get all photos from entry state
-            $stmt = $pdo->prepare("SELECT * FROM etat_lieux_photos WHERE etat_lieux_id = ? ORDER BY categorie, ordre ASC");
-            $stmt->execute([$etat_entree_id]);
-            $entry_photos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            if (!empty($entry_photos)) {
-                // Copy each photo record and file
-                foreach ($entry_photos as $photo) {
-                    $source_path = '../' . $photo['chemin_fichier'];
-                    
-                    // Only copy if source file exists
-                    if (file_exists($source_path)) {
-                        // Create destination directory
-                        $dest_dir = "../uploads/etats_lieux/{$etat_lieux_id}";
-                        if (!is_dir($dest_dir)) {
-                            if (!mkdir($dest_dir, 0755, true)) {
-                                error_log("Failed to create directory: $dest_dir");
-                                continue; // Skip this photo if directory creation fails
-                            }
-                        }
-                        
-                        // Validate and sanitize file extension
-                        $file_info = pathinfo($photo['nom_fichier']);
-                        $extension = strtolower($file_info['extension'] ?? '');
-                        
-                        // Only allow safe image extensions
-                        $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif'];
-                        if (!in_array($extension, $allowed_extensions)) {
-                            error_log("Invalid file extension for photo: " . $photo['nom_fichier']);
-                            continue; // Skip this photo
-                        }
-                        
-                        // Generate new filename with validated extension
-                        $new_filename = uniqid() . '_' . time() . '.' . $extension;
-                        $dest_path = $dest_dir . '/' . $new_filename;
-                        $rel_path = "uploads/etats_lieux/{$etat_lieux_id}/" . $new_filename;
-                        
-                        // Copy the file
-                        if (copy($source_path, $dest_path)) {
-                            // Insert photo record for exit state
-                            $stmt = $pdo->prepare("
-                                INSERT INTO etat_lieux_photos 
-                                (etat_lieux_id, categorie, nom_fichier, chemin_fichier, description, ordre)
-                                VALUES (?, ?, ?, ?, ?, ?)
-                            ");
-                            $stmt->execute([
-                                $etat_lieux_id,
-                                $photo['categorie'],
-                                $new_filename,
-                                $rel_path,
-                                $photo['description'],
-                                $photo['ordre']
-                            ]);
-                        }
-                    }
-                }
-            }
-        }
+        // For exit state: DO NOT copy photos automatically
+        // Photos will be displayed as reference only in the edit form
+        // User can add new photos for the exit state independently
         
         // Redirect to comprehensive form
         header("Location: edit-etat-lieux.php?id=$etat_lieux_id");

@@ -248,6 +248,36 @@ foreach ($existing_photos as $photo) {
 
 $isEntree = $etat['type'] === 'entree';
 $isSortie = $etat['type'] === 'sortie';
+
+// For exit state: fetch entry state data for visual reference display
+$etat_entree = null;
+$etat_entree_photos = [];
+if ($isSortie && !empty($etat['contrat_id'])) {
+    // Fetch the entry state for this contract
+    $stmt = $pdo->prepare("
+        SELECT * FROM etats_lieux 
+        WHERE contrat_id = ? AND type = 'entree' 
+        ORDER BY date_etat DESC 
+        LIMIT 1
+    ");
+    $stmt->execute([$etat['contrat_id']]);
+    $etat_entree = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // Fetch entry state photos for visual reference
+    if ($etat_entree) {
+        $stmt = $pdo->prepare("SELECT * FROM etat_lieux_photos WHERE etat_lieux_id = ? ORDER BY categorie, ordre ASC");
+        $stmt->execute([$etat_entree['id']]);
+        $etat_entree_photos_list = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Group entry photos by category
+        foreach ($etat_entree_photos_list as $photo) {
+            if (!isset($etat_entree_photos[$photo['categorie']])) {
+                $etat_entree_photos[$photo['categorie']] = [];
+            }
+            $etat_entree_photos[$photo['categorie']][] = $photo;
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -291,6 +321,62 @@ $isSortie = $etat['type'] === 'sortie';
         .required-field::after {
             content: " *";
             color: #dc3545;
+        }
+        /* Visual reference styles for exit state */
+        .entry-reference {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        .entry-reference .icon-green {
+            color: #28a745;
+            font-size: 1.1rem;
+            margin-right: 5px;
+        }
+        .entry-reference-label {
+            font-weight: 600;
+            color: #155724;
+        }
+        .entry-reference-value {
+            color: #155724;
+            margin-left: 5px;
+        }
+        .exit-input-label {
+            color: #dc3545;
+            font-weight: 600;
+        }
+        .exit-input-label .icon-red {
+            color: #dc3545;
+            margin-right: 5px;
+        }
+        .entry-photo-thumbnail {
+            border: 2px solid #28a745;
+            border-radius: 4px;
+            margin: 5px;
+            display: inline-block;
+            position: relative;
+        }
+        .entry-photo-thumbnail img {
+            max-width: 100px;
+            max-height: 100px;
+            display: block;
+        }
+        .entry-photo-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #28a745;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
         }
         .photo-upload-zone {
             border: 2px dashed #dee2e6;
@@ -370,9 +456,15 @@ $isSortie = $etat['type'] === 'sortie';
         <?php if ($isSortie): ?>
             <div class="alert alert-info">
                 <i class="bi bi-info-circle"></i>
-                <strong>État de sortie :</strong> Les champs et photos ont été automatiquement pré-remplis à partir de l'état des lieux d'entrée. 
-                Vous pouvez modifier, compléter ou supprimer ces données pour refléter l'état réel du logement à la sortie.
+                <strong>État de sortie :</strong> Les données affichées en <span class="text-success fw-bold">🟢 VERT</span> proviennent de l'état d'entrée et servent de référence. 
+                Veuillez saisir l'état de sortie dans les champs marqués en <span class="text-danger fw-bold">🔴 ROUGE</span>.
             </div>
+            <?php if (!$etat_entree): ?>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Attention :</strong> Aucun état d'entrée trouvé pour ce contrat. Les références ne pourront pas être affichées.
+                </div>
+            <?php endif; ?>
         <?php endif; ?>
 
         <form method="POST" action="" id="etatLieuxForm" enctype="multipart/form-data">
@@ -442,7 +534,21 @@ $isSortie = $etat['type'] === 'sortie';
                 <div class="section-subtitle">Électricité</div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label required-field">Index relevé (kWh)</label>
+                        <?php if ($isSortie && $etat_entree): ?>
+                            <!-- Entry state reference for exit state -->
+                            <div class="entry-reference mb-2">
+                                <span class="icon-green">🟢</span>
+                                <span class="entry-reference-label">État d'entrée :</span>
+                                <span class="entry-reference-value">
+                                    <?php echo htmlspecialchars($etat_entree['compteur_electricite'] ?? 'Non renseigné'); ?> kWh
+                                </span>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <label class="form-label required-field <?php echo $isSortie ? 'exit-input-label' : ''; ?>">
+                            <?php if ($isSortie): ?><span class="icon-red">🔴</span><?php endif; ?>
+                            Index relevé (kWh)<?php echo $isSortie ? ' - Sortie' : ''; ?>
+                        </label>
                         <input type="text" name="compteur_electricite" class="form-control" 
                                value="<?php echo htmlspecialchars($etat['compteur_electricite'] ?? ''); ?>" 
                                placeholder="Ex: 12345" required>
@@ -451,6 +557,24 @@ $isSortie = $etat['type'] === 'sortie';
                     
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Photo du compteur électrique <em>(optionnel)</em></label>
+                        
+                        <?php if ($isSortie && $etat_entree && isset($etat_entree_photos['compteur_electricite']) && !empty($etat_entree_photos['compteur_electricite'])): ?>
+                            <!-- Entry photos as reference -->
+                            <div class="mb-2">
+                                <small class="text-success fw-bold"><span class="icon-green">🟢</span> Photos de l'état d'entrée (référence) :</small>
+                                <div class="d-flex flex-wrap gap-2 mt-1">
+                                    <?php foreach ($etat_entree_photos['compteur_electricite'] as $photo): ?>
+                                        <div class="entry-photo-thumbnail">
+                                            <img src="../<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
+                                                 alt="Photo compteur électrique (entrée)" 
+                                                 title="Photo de l'état d'entrée">
+                                            <div class="entry-photo-badge">🟢</div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                            <hr class="my-2">
+                        <?php endif; ?>
                         
                         <?php if (isset($photos_by_category['compteur_electricite']) && !empty($photos_by_category['compteur_electricite'])): ?>
                             <div class="mb-2">
@@ -487,7 +611,21 @@ $isSortie = $etat['type'] === 'sortie';
                 <div class="section-subtitle">Eau froide</div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label required-field">Index relevé (m³)</label>
+                        <?php if ($isSortie && $etat_entree): ?>
+                            <!-- Entry state reference for exit state -->
+                            <div class="entry-reference mb-2">
+                                <span class="icon-green">🟢</span>
+                                <span class="entry-reference-label">État d'entrée :</span>
+                                <span class="entry-reference-value">
+                                    <?php echo htmlspecialchars($etat_entree['compteur_eau_froide'] ?? 'Non renseigné'); ?> m³
+                                </span>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <label class="form-label required-field <?php echo $isSortie ? 'exit-input-label' : ''; ?>">
+                            <?php if ($isSortie): ?><span class="icon-red">🔴</span><?php endif; ?>
+                            Index relevé (m³)<?php echo $isSortie ? ' - Sortie' : ''; ?>
+                        </label>
                         <input type="text" name="compteur_eau_froide" class="form-control" 
                                value="<?php echo htmlspecialchars($etat['compteur_eau_froide'] ?? ''); ?>" 
                                placeholder="Ex: 123.45" required>
@@ -496,6 +634,24 @@ $isSortie = $etat['type'] === 'sortie';
                     
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Photo du compteur d'eau <em>(optionnel)</em></label>
+                        
+                        <?php if ($isSortie && $etat_entree && isset($etat_entree_photos['compteur_eau']) && !empty($etat_entree_photos['compteur_eau'])): ?>
+                            <!-- Entry photos as reference -->
+                            <div class="mb-2">
+                                <small class="text-success fw-bold"><span class="icon-green">🟢</span> Photos de l'état d'entrée (référence) :</small>
+                                <div class="d-flex flex-wrap gap-2 mt-1">
+                                    <?php foreach ($etat_entree_photos['compteur_eau'] as $photo): ?>
+                                        <div class="entry-photo-thumbnail">
+                                            <img src="../<?php echo htmlspecialchars($photo['chemin_fichier']); ?>" 
+                                                 alt="Photo compteur eau (entrée)" 
+                                                 title="Photo de l'état d'entrée">
+                                            <div class="entry-photo-badge">🟢</div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                            <hr class="my-2">
+                        <?php endif; ?>
                         
                         <?php if (isset($photos_by_category['compteur_eau']) && !empty($photos_by_category['compteur_eau'])): ?>
                             <div class="mb-2">
@@ -536,23 +692,46 @@ $isSortie = $etat['type'] === 'sortie';
                     <i class="bi bi-key"></i> 3. <?php echo $isEntree ? 'Remise' : 'Restitution'; ?> des clés
                 </div>
                 
+                <?php if ($isSortie && $etat_entree): ?>
+                    <!-- Entry state reference for keys -->
+                    <div class="entry-reference mb-3">
+                        <span class="icon-green">🟢</span>
+                        <span class="entry-reference-label">État d'entrée :</span>
+                        <span class="entry-reference-value">
+                            Appartement: <?php echo (int)($etat_entree['cles_appartement'] ?? 0); ?>, 
+                            Boîte lettres: <?php echo (int)($etat_entree['cles_boite_lettres'] ?? 0); ?>, 
+                            Autre: <?php echo (int)($etat_entree['cles_autre'] ?? 0); ?>, 
+                            <strong>Total: <?php echo (int)($etat_entree['cles_total'] ?? 0); ?></strong>
+                        </span>
+                    </div>
+                <?php endif; ?>
+                
                 <div class="row">
                     <div class="col-md-3 mb-3">
-                        <label class="form-label required-field">Clés de l'appartement</label>
+                        <label class="form-label required-field <?php echo $isSortie ? 'exit-input-label' : ''; ?>">
+                            <?php if ($isSortie): ?><span class="icon-red">🔴</span><?php endif; ?>
+                            Clés de l'appartement
+                        </label>
                         <input type="number" name="cles_appartement" class="form-control" 
                                value="<?php echo htmlspecialchars($etat['cles_appartement'] ?? ''); ?>" 
                                min="0" required oninput="calculateTotalKeys()">
                     </div>
                     
                     <div class="col-md-3 mb-3">
-                        <label class="form-label required-field">Clé(s) de la boîte aux lettres</label>
+                        <label class="form-label required-field <?php echo $isSortie ? 'exit-input-label' : ''; ?>">
+                            <?php if ($isSortie): ?><span class="icon-red">🔴</span><?php endif; ?>
+                            Clé(s) de la boîte aux lettres
+                        </label>
                         <input type="number" name="cles_boite_lettres" class="form-control" 
                                value="<?php echo htmlspecialchars($etat['cles_boite_lettres'] ?? '1'); ?>" 
                                min="0" required oninput="calculateTotalKeys()">
                     </div>
                     
                     <div class="col-md-3 mb-3">
-                        <label class="form-label">Autre</label>
+                        <label class="form-label <?php echo $isSortie ? 'exit-input-label' : ''; ?>">
+                            <?php if ($isSortie): ?><span class="icon-red">🔴</span><?php endif; ?>
+                            Autre
+                        </label>
                         <input type="number" name="cles_autre" class="form-control" 
                                value="<?php echo htmlspecialchars($etat['cles_autre'] ?? '0'); ?>" 
                                min="0" oninput="calculateTotalKeys()">
