@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['success'] = "Logement ajouté avec succès";
                 } catch (PDOException $e) {
                     // Check if it's a duplicate key error
-                    if ($e->getCode() == 23000) {
+                    if ($e->getCode() === '23000') {
                         $_SESSION['error'] = "Erreur : Un logement avec cette référence existe déjà.";
                     } else {
                         $_SESSION['error'] = "Erreur lors de l'ajout du logement.";
@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['success'] = "Logement modifié avec succès";
                 } catch (PDOException $e) {
                     // Check if it's a duplicate key error
-                    if ($e->getCode() == 23000) {
+                    if ($e->getCode() === '23000') {
                         $_SESSION['error'] = "Erreur : Un logement avec cette référence existe déjà.";
                     } else {
                         $_SESSION['error'] = "Erreur lors de la modification du logement.";
