@@ -1005,16 +1005,31 @@ $isSortie = $etat['type'] === 'sortie';
         function createPhotoElement(photoData) {
             const photoDiv = document.createElement('div');
             photoDiv.className = 'position-relative';
-            photoDiv.innerHTML = `
-                <img src="../${photoData.url.replace(/^\//, '')}" 
-                     alt="Photo" 
-                     style="max-width: 150px; max-height: 100px; border: 1px solid #dee2e6; border-radius: 4px;">
-                <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0" 
-                        style="padding: 2px 6px; font-size: 10px;"
-                        onclick="deletePhoto(${photoData.photo_id}, this)">
-                    <i class="bi bi-x"></i>
-                </button>
-            `;
+            
+            // Create img element safely
+            const img = document.createElement('img');
+            img.setAttribute('src', '../' + photoData.url.replace(/^\//, ''));
+            img.setAttribute('alt', 'Photo');
+            img.setAttribute('style', 'max-width: 150px; max-height: 100px; border: 1px solid #dee2e6; border-radius: 4px;');
+            
+            // Create delete button safely
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'btn btn-danger btn-sm position-absolute top-0 end-0';
+            deleteBtn.setAttribute('style', 'padding: 2px 6px; font-size: 10px;');
+            deleteBtn.innerHTML = '<i class="bi bi-x"></i>';
+            
+            // Add event listener instead of inline onclick (safer)
+            const photoId = parseInt(photoData.photo_id, 10);
+            if (!isNaN(photoId)) {
+                deleteBtn.addEventListener('click', function() {
+                    deletePhoto(photoId, this);
+                });
+            }
+            
+            photoDiv.appendChild(img);
+            photoDiv.appendChild(deleteBtn);
+            
             return photoDiv;
         }
         
@@ -1083,7 +1098,7 @@ $isSortie = $etat['type'] === 'sortie';
                     let photosContainer = null;
                     let sibling = uploadZone.previousElementSibling;
                     while (sibling) {
-                        if (sibling.nodeType === 1 && sibling.classList.contains('mb-2')) {
+                        if (sibling.nodeType === Node.ELEMENT_NODE && sibling.classList.contains('mb-2')) {
                             photosContainer = sibling;
                             break;
                         }
@@ -1137,9 +1152,10 @@ $isSortie = $etat['type'] === 'sortie';
                     preview.innerHTML = '<div class="alert alert-success mb-0"><i class="bi bi-check-circle"></i> ' + results.length + ' photo(s) téléchargée(s) avec succès</div>';
                     
                     // Auto-dismiss success message after 3 seconds
+                    const SUCCESS_MESSAGE_DURATION_MS = 3000;
                     setTimeout(() => {
                         preview.innerHTML = '';
-                    }, 3000);
+                    }, SUCCESS_MESSAGE_DURATION_MS);
                     
                     // Clear the file input so the same file can be uploaded again if needed
                     input.value = '';
