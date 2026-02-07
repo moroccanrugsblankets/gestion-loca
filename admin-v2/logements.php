@@ -130,6 +130,7 @@ $statutMap = [
 foreach ($logements as &$logement) {
     $logement['statut_ui'] = $statutMap[$logement['statut']] ?? ucfirst($logement['statut']);
 }
+unset($logement); // Important: unset reference to prevent issues with subsequent foreach loops
 
 // Get statistics
 $stats = [
