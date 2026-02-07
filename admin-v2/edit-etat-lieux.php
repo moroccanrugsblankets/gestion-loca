@@ -783,8 +783,8 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                         <label class="form-label">Conformité</label>
                         <select name="cles_conformite" class="form-select">
                             <option value="non_applicable">Non applicable</option>
-                            <option value="conforme" <?php echo ($etat['cles_conformite'] ?? '') === 'conforme' ? 'selected' : ''; ?>>☑ Conforme à l'entrée</option>
-                            <option value="non_conforme" <?php echo ($etat['cles_conformite'] ?? '') === 'non_conforme' ? 'selected' : ''; ?>>☑ Non conforme</option>
+                            <option value="conforme" <?php echo ($etat['cles_conformite'] ?? '') === 'conforme' ? 'selected' : ''; ?>>Conforme à l'entrée</option>
+                            <option value="non_conforme" <?php echo ($etat['cles_conformite'] ?? '') === 'non_conforme' ? 'selected' : ''; ?>>Non conforme</option>
                         </select>
                     </div>
                     
@@ -1106,8 +1106,8 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                         <label class="form-label">Conformité à l'état d'entrée</label>
                         <select name="etat_general_conforme" class="form-select">
                             <option value="non_applicable">Non applicable</option>
-                            <option value="conforme" <?php echo ($etat['etat_general_conforme'] ?? '') === 'conforme' ? 'selected' : ''; ?>>☑ Conforme à l'état des lieux d'entrée</option>
-                            <option value="non_conforme" <?php echo ($etat['etat_general_conforme'] ?? '') === 'non_conforme' ? 'selected' : ''; ?>>☑ Non conforme à l'état des lieux d'entrée</option>
+                            <option value="conforme" <?php echo ($etat['etat_general_conforme'] ?? '') === 'conforme' ? 'selected' : ''; ?>>Conforme à l'état des lieux d'entrée</option>
+                            <option value="non_conforme" <?php echo ($etat['etat_general_conforme'] ?? '') === 'non_conforme' ? 'selected' : ''; ?>>Non conforme à l'état des lieux d'entrée</option>
                         </select>
                     </div>
                     
@@ -1119,7 +1119,7 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                                    <?php echo !empty($etat['degradations_constatees']) ? 'checked' : ''; ?>
                                    onchange="toggleDegradationsDetails()">
                             <label class="form-check-label" for="degradations_constatees">
-                                ☑ Dégradations constatées, pouvant donner lieu à retenue sur le dépôt de garantie
+                                Dégradations constatées, pouvant donner lieu à retenue sur le dépôt de garantie
                             </label>
                         </div>
                     </div>
@@ -1159,9 +1159,9 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                         <label class="form-label required-field">Décision concernant le dépôt de garantie</label>
                         <select name="depot_garantie_status" class="form-select" id="depot_garantie_status" onchange="toggleDepotDetails()" required>
                             <option value="non_applicable" <?php echo ($etat['depot_garantie_status'] ?? 'non_applicable') === 'non_applicable' ? 'selected' : ''; ?>>-- Sélectionner --</option>
-                            <option value="restitution_totale" <?php echo ($etat['depot_garantie_status'] ?? '') === 'restitution_totale' ? 'selected' : ''; ?>>☑ Restitution totale du dépôt de garantie (aucune dégradation imputable)</option>
-                            <option value="restitution_partielle" <?php echo ($etat['depot_garantie_status'] ?? '') === 'restitution_partielle' ? 'selected' : ''; ?>>☑ Restitution partielle du dépôt de garantie (dégradations mineures)</option>
-                            <option value="retenue_totale" <?php echo ($etat['depot_garantie_status'] ?? '') === 'retenue_totale' ? 'selected' : ''; ?>>☑ Retenue totale du dépôt de garantie (dégradations importantes)</option>
+                            <option value="restitution_totale" <?php echo ($etat['depot_garantie_status'] ?? '') === 'restitution_totale' ? 'selected' : ''; ?>>Restitution totale du dépôt de garantie (aucune dégradation imputable)</option>
+                            <option value="restitution_partielle" <?php echo ($etat['depot_garantie_status'] ?? '') === 'restitution_partielle' ? 'selected' : ''; ?>>Restitution partielle du dépôt de garantie (dégradations mineures)</option>
+                            <option value="retenue_totale" <?php echo ($etat['depot_garantie_status'] ?? '') === 'retenue_totale' ? 'selected' : ''; ?>>Retenue totale du dépôt de garantie (dégradations importantes)</option>
                         </select>
                     </div>
                 </div>
