@@ -146,10 +146,12 @@ if (file_exists(__DIR__ . '/test-etat-lieux.php')) {
     $warnings[] = "test-etat-lieux.php not found (recommended for testing)";
 }
 
-if (file_exists(__DIR__ . '/verify-tcpdf-table-fix.php')) {
-    echo "   ✓ verify-tcpdf-table-fix.php exists\n";
+// Note: The old verify script was named verify-tcpdf-table-fix.php (singular)
+// This new script is verify-tcpdf-table-fixes.php (plural) and replaces it
+if (file_exists(__DIR__ . '/verify-tcpdf-table-fix.php') || file_exists(__DIR__ . '/verify-tcpdf-table-fixes.php')) {
+    echo "   ✓ Verification script exists\n";
 } else {
-    $warnings[] = "verify-tcpdf-table-fix.php not found";
+    $warnings[] = "Verification script not found";
 }
 
 // Summary

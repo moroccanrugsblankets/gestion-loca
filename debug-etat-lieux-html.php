@@ -197,8 +197,8 @@ if (strpos($html, '{{cles_total}}') !== false) {
     echo "✓ Total keys replaced\n";
 }
 
-// Save HTML to file for inspection
-$htmlFile = '/tmp/etat-lieux-debug.html';
+// Save HTML to file for inspection (cross-platform path)
+$htmlFile = sys_get_temp_dir() . '/etat-lieux-debug.html';
 file_put_contents($htmlFile, $html);
 echo "\n✓ HTML saved to: $htmlFile\n";
 echo "You can open this file in a browser to inspect the output.\n";
