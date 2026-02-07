@@ -367,6 +367,14 @@ $isSortie = $etat['type'] === 'sortie';
             </div>
         <?php endif; ?>
 
+        <?php if ($isSortie): ?>
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                <strong>État de sortie :</strong> Les champs et photos ont été automatiquement pré-remplis à partir de l'état des lieux d'entrée. 
+                Vous pouvez modifier, compléter ou supprimer ces données pour refléter l'état réel du logement à la sortie.
+            </div>
+        <?php endif; ?>
+
         <form method="POST" action="" id="etatLieuxForm" enctype="multipart/form-data">
             <input type="hidden" name="action" value="save">
             
