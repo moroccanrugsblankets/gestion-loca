@@ -55,8 +55,8 @@ $vars = [
     '{{date_signature}}' => $dateSignature,
     '{{signatures_table}}' => '<table cellspacing="0" cellpadding="0"><tr><td>Mock signatures</td></tr></table>',
     '{{signature_agence}}' => 'MY INVEST IMMOBILIER',
-    '{{appartement_row}}' => '<tr><td class="info-label">Appartement :</td><td>Apt 1</td></tr>',
-    '{{bailleur_representant_row}}' => '<tr><td class="info-label">Représenté par :</td><td>John Doe</td></tr>',
+    '{{appartement_row}}' => '<p><strong>Appartement : </strong>Apt 1</p>',
+    '{{bailleur_representant_row}}' => '<p><strong>Représenté par : </strong>John Doe</p>',
     '{{observations_section}}' => ''
 ];
 
@@ -69,8 +69,8 @@ echo "Creating TCPDF instance...\n";
 $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
 $pdf->SetCreator('MY INVEST IMMOBILIER');
 $pdf->SetTitle("État des lieux Test");
-$pdf->SetMargins(15, 15, 15);
-$pdf->SetAutoPageBreak(true, 15);
+$pdf->SetMargins(15, 10, 15);
+$pdf->SetAutoPageBreak(true, 10);
 $pdf->setPrintHeader(false);
 $pdf->setPrintFooter(false);
 $pdf->AddPage();
