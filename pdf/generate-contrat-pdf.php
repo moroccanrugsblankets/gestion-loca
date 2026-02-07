@@ -161,7 +161,10 @@ function injectSignatures($html, $contrat, $locataires) {
  * Construire le tableau de signatures
  */
 function buildSignaturesTable($contrat, $locataires) {
-    global $pdo, $config; // <-- ajout de $config
+    global $pdo, $config;
+    
+    // Import helper function from functions.php
+    require_once __DIR__ . '/../includes/functions.php';
 
     $nbCols = count($locataires) + 1; // +1 pour le bailleur
     $colWidth = 100 / $nbCols;
@@ -172,13 +175,17 @@ function buildSignaturesTable($contrat, $locataires) {
     $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px; border: none;">';
     $html .= '<p><strong>Le bailleur :</strong></p>';
     if ($contrat['statut'] === 'valide') {
-        $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_image'");
-        $stmt->execute();
-        $signatureSociete = $stmt->fetchColumn();
+        // Check if signature feature is enabled using getParameter
+        $signatureEnabled = getParameter('signature_societe_enabled', false);
+        $isSignatureEnabled = toBooleanParam($signatureEnabled);
+        
+        if ($isSignatureEnabled) {
+            $signatureSociete = getParameter('signature_societe_image', '');
 
-        if (!empty($signatureSociete) && preg_match('/^uploads\/signatures\//', $signatureSociete)) {
-            $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($signatureSociete, '/');
-$html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Société" style="max-width: 150px; border: none; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;">';
+            if (!empty($signatureSociete) && preg_match('/^uploads\/signatures\//', $signatureSociete)) {
+                $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($signatureSociete, '/');
+                $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Société" style="max-width: 150px; border: none; border-width: 0; border-style: none; border-color: transparent; outline: none; outline-width: 0; padding: 0; background: transparent;">';
+            }
         }
 
         if (!empty($contrat['date_validation'])) {
