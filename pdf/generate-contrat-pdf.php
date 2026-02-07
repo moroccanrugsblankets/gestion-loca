@@ -7,6 +7,7 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/functions.php';
 
 // Style CSS pour les images de signature (sans bordures)
 define('SIGNATURE_IMG_STYLE', 'width: 25mm; height: auto; display: block; margin-bottom: 15mm; border: none; outline: none; box-shadow: none; background: transparent;');
@@ -162,9 +163,6 @@ function injectSignatures($html, $contrat, $locataires) {
  */
 function buildSignaturesTable($contrat, $locataires) {
     global $pdo, $config;
-    
-    // Import helper function from functions.php
-    require_once __DIR__ . '/../includes/functions.php';
 
     $nbCols = count($locataires) + 1; // +1 pour le bailleur
     $colWidth = 100 / $nbCols;
