@@ -1003,11 +1003,17 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
     
     $clesConformite = $etatLieux['cles_conformite'] ?? 'non_applicable';
     $conformiteLabels = [
-        'conforme' => '☑ Conforme',
-        'non_conforme' => '☑ Non conforme',
-        'non_applicable' => '☐ Non applicable'
+        'conforme' => 'Conforme',
+        'non_conforme' => 'Non conforme',
+        'non_applicable' => 'Non applicable'
     ];
-    $clesConformiteHTML = $conformiteLabels[$clesConformite] ?? '☐ Non vérifié';
+    $clesConformiteLabel = $conformiteLabels[$clesConformite] ?? 'Non vérifié';
+    // Add checkbox symbol in PDF
+    if ($clesConformite === 'non_applicable') {
+        $clesConformiteHTML = '☐ ' . $clesConformiteLabel;
+    } else {
+        $clesConformiteHTML = '☑ ' . $clesConformiteLabel;
+    }
     $clesObservations = htmlspecialchars($etatLieux['cles_observations'] ?? '');
     
     // Description - use defaults if empty
@@ -1041,28 +1047,17 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
     
     $depotStatus = $etatLieux['depot_garantie_status'] ?? 'non_applicable';
     $depotLabels = [
-        'restitution_totale' => '☑ Aucune dégradation imputable au(x) locataire(s) - Restitution totale du dépôt de garantie',
-        'restitution_partielle' => '☑ Dégradations mineures imputables au(x) locataire(s) - Restitution partielle du dépôt de garantie',
-        'retenue_totale' => '☑ Dégradations importantes imputables au(x) locataire(s) - Retenue totale du dépôt de garantie',
+        'restitution_totale' => 'Aucune dégradation imputable au(x) locataire(s) - Restitution totale du dépôt de garantie',
+        'restitution_partielle' => 'Dégradations mineures imputables au(x) locataire(s) - Restitution partielle du dépôt de garantie',
+        'retenue_totale' => 'Dégradations importantes imputables au(x) locataire(s) - Retenue totale du dépôt de garantie',
         'non_applicable' => '☐ Non applicable'
     ];
     $depotHTML = '';
     foreach ($depotLabels as $key => $label) {
         if ($key === $depotStatus) {
-            $depotHTML .= "<p>$label</p>";
+            $depotHTML .= "<p>☑ $label</p>";
         } else {
-            // Extract the label text after the checkbox symbol and optional dash
-            $labelText = $label;
-            if (strpos($label, ' - ') !== false) {
-                // Format: "☑ Text - More text" -> "More text"
-                // Offset 3 accounts for ' - ' (space, dash, space)
-                $labelText = substr($label, strpos($label, ' - ') + 3);
-            } else {
-                // Format: "☑ Text" -> "Text"
-                // Offset 1 accounts for the space after the checkbox symbol
-                $labelText = substr($label, strpos($label, ' ') + 1);
-            }
-            $depotHTML .= "<p>☐ " . $labelText . "</p>";
+            $depotHTML .= "<p>☐ $label</p>";
         }
     }
     
