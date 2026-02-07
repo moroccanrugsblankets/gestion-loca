@@ -390,7 +390,7 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                                 }
                                 ?>
                             </select>
-                            <small class="form-text text-muted">Seuls les logements avec un contrat validé peuvent avoir un état des lieux</small>
+                            <small class="form-text text-muted">Un contrat validé est requis pour créer un état des lieux. Les logements avec contrat validé affichent la référence entre parenthèses.</small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Date:</label>
