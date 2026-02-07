@@ -1903,7 +1903,7 @@ if ($isSortie && !empty($etat['contrat_id'])) {
         
         let bilanRowCounter = <?php echo count($bilanRows); ?>;
         const MAX_BILAN_ROWS = 20;
-        const BILAN_MAX_FILE_SIZE = <?php echo $config['BILAN_MAX_FILE_SIZE']; ?>; // 20MB
+        const BILAN_MAX_FILE_SIZE = <?php echo $config['BILAN_MAX_FILE_SIZE']; ?>;
         const BILAN_ALLOWED_TYPES = <?php echo json_encode($config['BILAN_ALLOWED_TYPES']); ?>;
         
         // Add a new row to the bilan table
@@ -2067,9 +2067,9 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                 noFilesMsg.style.display = 'none';
             }
             
-            // Show files list (row class already has display: flex)
+            // Show files list
             const filesList = document.getElementById('justificatifsFilesList');
-            filesList.style.display = 'block';
+            filesList.style.display = '';  // Remove display: none to show the row
             
             // Create file card
             const fileCard = document.createElement('div');

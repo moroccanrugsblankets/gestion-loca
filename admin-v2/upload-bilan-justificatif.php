@@ -8,10 +8,6 @@ require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
 
-// File upload constants for Bilan du logement
-define('BILAN_MAX_FILE_SIZE', $config['BILAN_MAX_FILE_SIZE']);
-define('BILAN_ALLOWED_TYPES', $config['BILAN_ALLOWED_TYPES']);
-
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -59,14 +55,14 @@ $finfo = finfo_open(FILEINFO_MIME_TYPE);
 $mimeType = finfo_file($finfo, $file['tmp_name']);
 finfo_close($finfo);
 
-if (!in_array($mimeType, BILAN_ALLOWED_TYPES)) {
+if (!in_array($mimeType, $config['BILAN_ALLOWED_TYPES'])) {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Type de fichier non autorisé. Formats acceptés: PDF, JPG, PNG']);
     exit;
 }
 
 // Validate file size
-if ($file['size'] > BILAN_MAX_FILE_SIZE) {
+if ($file['size'] > $config['BILAN_MAX_FILE_SIZE']) {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Fichier trop volumineux. Taille maximale: 20MB']);
     exit;
