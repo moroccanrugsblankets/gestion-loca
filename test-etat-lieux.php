@@ -46,7 +46,7 @@ try {
         echo "Instead, let's test with a mock contract ID...\n\n";
         
         // For testing purposes, we'll try with ID 1
-        $contratId = 1;
+        $contratId = 51;
     } else {
         $contratId = $contrat['id'];
         echo "✓ Found test contract:\n";
