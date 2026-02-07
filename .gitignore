@@ -58,6 +58,8 @@ test-db-connection.php
 test-refactoring.php
 !test-etat-lieux-module.php
 !test-etat-lieux-pdf-fixes.php
+!test-etat-lieux.php
+!test-tcpdf-errors.php
 !test-html-preview-contrat.php
 !test-html-preview-bail.php
 !test-html-preview-etat-lieux.php
@@ -66,6 +68,11 @@ test-signature-fix.html
 test-candidature-evaluation.php
 test-candidature-evaluation-standalone.php
 test-cron-output.php
+
+# Debug and verification scripts (keep for troubleshooting)
+!debug-etat-lieux-html.php
+!verify-tcpdf-table-fixes.php
+!verify-tcpdf-table-fix.php
 contrat-bail.pdf
 cron/cron-log.txt
 includes/config.php.backup
