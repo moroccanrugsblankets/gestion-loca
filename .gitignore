@@ -60,6 +60,7 @@ test-refactoring.php
 !test-etat-lieux-pdf-fixes.php
 !test-etat-lieux.php
 !test-tcpdf-errors.php
+!test-tcpdf-table-fix.php
 !test-html-preview-contrat.php
 !test-html-preview-bail.php
 !test-html-preview-etat-lieux.php
