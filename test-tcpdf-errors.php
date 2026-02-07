@@ -39,7 +39,7 @@ $vars = [
     '{{surface}}' => htmlspecialchars('25'),
     '{{bailleur_nom}}' => htmlspecialchars('MY INVEST IMMOBILIER'),
     '{{bailleur_representant}}' => htmlspecialchars('John Doe'),
-    '{{locataires_info}}' => '<tr><td class="info-label">Locataire :</td><td>User Test</td></tr>',
+    '{{locataires_info}}' => '<br><strong>Locataire : </strong>User Test',
     '{{compteur_electricite}}' => htmlspecialchars('12345'),
     '{{compteur_eau_froide}}' => htmlspecialchars('67890'),
     '{{cles_appartement}}' => '2',
@@ -55,8 +55,8 @@ $vars = [
     '{{date_signature}}' => $dateSignature,
     '{{signatures_table}}' => '<table cellspacing="0" cellpadding="0"><tr><td>Mock signatures</td></tr></table>',
     '{{signature_agence}}' => 'MY INVEST IMMOBILIER',
-    '{{appartement_row}}' => '<p><strong>Appartement : </strong>Apt 1</p>',
-    '{{bailleur_representant_row}}' => '<p><strong>Représenté par : </strong>John Doe</p>',
+    '{{appartement_row}}' => '<br><strong>Appartement : </strong>Apt 1',
+    '{{bailleur_representant_row}}' => '<br><strong>Représenté par : </strong>John Doe',
     '{{observations_section}}' => ''
 ];
 
