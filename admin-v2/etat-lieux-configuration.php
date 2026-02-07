@@ -25,7 +25,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt->execute([$_POST['template_html']]);
         }
         
-        $_SESSION['success'] = "Template d'état des lieux mis à jour avec succès";
+        $_SESSION['success'] = "Template d'état des lieux d'entrée mis à jour avec succès";
+        header('Location: etat-lieux-configuration.php');
+        exit;
+    }
+    elseif ($_POST['action'] === 'update_template_sortie') {
+        // Check if parametres table exists and has etat_lieux_sortie_template_html
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM parametres WHERE cle = 'etat_lieux_sortie_template_html'");
+        $stmt->execute();
+        $exists = $stmt->fetchColumn() > 0;
+        
+        if ($exists) {
+            // Update existing
+            $stmt = $pdo->prepare("UPDATE parametres SET valeur = ?, updated_at = NOW() WHERE cle = 'etat_lieux_sortie_template_html'");
+            $stmt->execute([$_POST['template_html_sortie']]);
+        } else {
+            // Insert new
+            $stmt = $pdo->prepare("INSERT INTO parametres (cle, valeur, type, groupe, description) VALUES ('etat_lieux_sortie_template_html', ?, 'text', 'etats_lieux', 'Template HTML de l''état des lieux de sortie avec variables dynamiques')");
+            $stmt->execute([$_POST['template_html_sortie']]);
+        }
+        
+        $_SESSION['success'] = "Template d'état des lieux de sortie mis à jour avec succès";
         header('Location: etat-lieux-configuration.php');
         exit;
     }
@@ -207,7 +227,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Get current template
+// Get current template for entry state
 $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'etat_lieux_template_html'");
 $stmt->execute();
 $template = $stmt->fetchColumn();
@@ -215,6 +235,16 @@ $template = $stmt->fetchColumn();
 // If no template exists, create a default one
 if (!$template) {
     $template = getDefaultEtatLieuxTemplate();
+}
+
+// Get current template for exit state
+$stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'etat_lieux_sortie_template_html'");
+$stmt->execute();
+$templateSortie = $stmt->fetchColumn();
+
+// If no exit template exists, use the entry template as default
+if (!$templateSortie) {
+    $templateSortie = getDefaultEtatLieuxTemplate();
 }
 
 // Get signature settings
@@ -310,8 +340,8 @@ $signatureEnabled = $stmt->fetchColumn() === 'true';
         <div class="header">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h1 class="h3 mb-0"><i class="bi bi-file-earmark-text"></i> Configuration du Template d'État des Lieux</h1>
-                    <p class="text-muted mb-0">Personnalisez le template HTML de l'état des lieux avec des variables dynamiques</p>
+                    <h1 class="h3 mb-0"><i class="bi bi-file-earmark-text"></i> Configuration des Templates d'État des Lieux</h1>
+                    <p class="text-muted mb-0">Personnalisez les templates HTML de l'état des lieux d'entrée et de sortie avec des variables dynamiques</p>
                 </div>
             </div>
         </div>
@@ -411,6 +441,7 @@ $signatureEnabled = $stmt->fetchColumn() === 'true';
 
         <!-- Template Configuration Card -->
         <div class="config-card">
+            <h5 class="mb-3"><i class="bi bi-box-arrow-in-right text-success"></i> Template État des Lieux d'Entrée</h5>
             <div class="variables-info">
                 <h6><i class="bi bi-info-circle"></i> Variables disponibles</h6>
                 <p class="mb-2">Cliquez sur une variable pour la copier. Utilisez ces variables dans le template HTML :</p>
@@ -449,7 +480,7 @@ $signatureEnabled = $stmt->fetchColumn() === 'true';
                 
                 <div class="mb-3">
                     <label for="template_html" class="form-label">
-                        <strong>Template HTML de l'État des Lieux</strong>
+                        <strong>Template HTML de l'État des Lieux d'Entrée</strong>
                     </label>
                     <textarea 
                         class="form-control code-editor" 
@@ -457,18 +488,85 @@ $signatureEnabled = $stmt->fetchColumn() === 'true';
                         name="template_html" 
                         required><?= htmlspecialchars($template) ?></textarea>
                     <small class="form-text text-muted">
-                        Modifiez le code HTML ci-dessus. Les variables seront remplacées automatiquement lors de la génération de l'état des lieux.
+                        Modifiez le code HTML ci-dessus. Les variables seront remplacées automatiquement lors de la génération de l'état des lieux d'entrée.
                     </small>
                 </div>
 
                 <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save"></i> Enregistrer le Template
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-save"></i> Enregistrer le Template d'Entrée
                     </button>
-                    <button type="button" class="btn btn-secondary" onclick="showPreview()">
+                    <button type="button" class="btn btn-secondary" onclick="showPreview('template_html', 'preview-card')">
                         <i class="bi bi-eye"></i> Prévisualiser
                     </button>
-                    <button type="button" class="btn btn-outline-secondary" onclick="resetToDefault()">
+                    <button type="button" class="btn btn-outline-secondary" onclick="resetToDefault('template_html')">
+                        <i class="bi bi-arrow-counterclockwise"></i> Réinitialiser par défaut
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Template Configuration Card for Exit State -->
+        <div class="config-card">
+            <h5 class="mb-3"><i class="bi bi-box-arrow-right text-danger"></i> Template État des Lieux de Sortie</h5>
+            <div class="variables-info">
+                <h6><i class="bi bi-info-circle"></i> Variables disponibles</h6>
+                <p class="mb-2">Cliquez sur une variable pour la copier. Utilisez ces variables dans le template HTML :</p>
+                <div>
+                    <span class="variable-tag" onclick="copyVariable('{{reference}}')">{{reference}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{type}}')">{{type}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{type_label}}')">{{type_label}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{date_etat}}')">{{date_etat}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{adresse}}')">{{adresse}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{appartement}}')">{{appartement}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{type_logement}}')">{{type_logement}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{surface}}')">{{surface}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{bailleur_nom}}')">{{bailleur_nom}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{bailleur_representant}}')">{{bailleur_representant}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{locataires_info}}')">{{locataires_info}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{compteur_electricite}}')">{{compteur_electricite}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{compteur_eau_froide}}')">{{compteur_eau_froide}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{cles_appartement}}')">{{cles_appartement}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{cles_boite_lettres}}')">{{cles_boite_lettres}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{cles_autre}}')">{{cles_autre}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{cles_total}}')">{{cles_total}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{piece_principale}}')">{{piece_principale}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{coin_cuisine}}')">{{coin_cuisine}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{salle_eau_wc}}')">{{salle_eau_wc}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{etat_general}}')">{{etat_general}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{observations}}')">{{observations}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{lieu_signature}}')">{{lieu_signature}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{date_signature}}')">{{date_signature}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{signatures_table}}')">{{signatures_table}}</span>
+                    <span class="variable-tag" onclick="copyVariable('{{signature_agence}}')">{{signature_agence}}</span>
+                </div>
+            </div>
+
+            <form method="POST" action="">
+                <input type="hidden" name="action" value="update_template_sortie">
+                
+                <div class="mb-3">
+                    <label for="template_html_sortie" class="form-label">
+                        <strong>Template HTML de l'État des Lieux de Sortie</strong>
+                    </label>
+                    <textarea 
+                        class="form-control code-editor" 
+                        id="template_html_sortie" 
+                        name="template_html_sortie" 
+                        required><?= htmlspecialchars($templateSortie) ?></textarea>
+                    <small class="form-text text-muted">
+                        Modifiez le code HTML ci-dessus. Les variables seront remplacées automatiquement lors de la génération de l'état des lieux de sortie.
+                    </small>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-save"></i> Enregistrer le Template de Sortie
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="showPreview('template_html_sortie', 'preview-card-sortie')">
+                        <i class="bi bi-eye"></i> Prévisualiser
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="resetToDefault('template_html_sortie')">
                         <i class="bi bi-arrow-counterclockwise"></i> Réinitialiser par défaut
                     </button>
                 </div>
@@ -476,16 +574,31 @@ $signatureEnabled = $stmt->fetchColumn() === 'true';
         </div>
 
         <div class="config-card" id="preview-card" style="display: none;">
-            <h5><i class="bi bi-eye"></i> Prévisualisation</h5>
+            <h5><i class="bi bi-eye"></i> Prévisualisation - État d'Entrée</h5>
             <div class="preview-section" id="preview-content"></div>
+        </div>
+
+        <div class="config-card" id="preview-card-sortie" style="display: none;">
+            <h5><i class="bi bi-eye"></i> Prévisualisation - État de Sortie</h5>
+            <div class="preview-section" id="preview-content-sortie"></div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Initialize TinyMCE
+        // Initialize TinyMCE for entry template
         tinymce.init({
             selector: '#template_html',
+            height: 500,
+            plugins: 'code preview searchreplace autolink directionality visualblocks visualchars fullscreen link table charmap hr pagebreak nonbreaking anchor insertdatetime advlist lists wordcount help charmap',
+            toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | code preview | help',
+            content_style: 'body { font-family: Arial, sans-serif; font-size: 10pt; }',
+            menubar: false
+        });
+
+        // Initialize TinyMCE for exit template
+        tinymce.init({
+            selector: '#template_html_sortie',
             height: 500,
             plugins: 'code preview searchreplace autolink directionality visualblocks visualchars fullscreen link table charmap hr pagebreak nonbreaking anchor insertdatetime advlist lists wordcount help charmap',
             toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | code preview | help',
@@ -515,17 +628,18 @@ $signatureEnabled = $stmt->fetchColumn() === 'true';
             });
         }
 
-        function showPreview() {
-            const content = tinymce.get('template_html').getContent();
-            document.getElementById('preview-content').innerHTML = content;
-            document.getElementById('preview-card').style.display = 'block';
-            document.getElementById('preview-card').scrollIntoView({ behavior: 'smooth' });
+        function showPreview(editorId, previewCardId) {
+            const content = tinymce.get(editorId).getContent();
+            const previewContentId = previewCardId === 'preview-card-sortie' ? 'preview-content-sortie' : 'preview-content';
+            document.getElementById(previewContentId).innerHTML = content;
+            document.getElementById(previewCardId).style.display = 'block';
+            document.getElementById(previewCardId).scrollIntoView({ behavior: 'smooth' });
         }
 
-        function resetToDefault() {
+        function resetToDefault(editorId) {
             if (confirm('Êtes-vous sûr de vouloir réinitialiser le template avec la version par défaut ? Toutes vos modifications seront perdues.')) {
                 // Reload the page with a reset parameter
-                window.location.href = 'etat-lieux-configuration.php?reset=1';
+                window.location.href = 'etat-lieux-configuration.php?reset=' + editorId;
             }
         }
 
@@ -550,7 +664,10 @@ $signatureEnabled = $stmt->fetchColumn() === 'true';
         <?php if (isset($_GET['reset'])): ?>
             // Set template to default
             const defaultTemplate = <?= json_encode(getDefaultEtatLieuxTemplate()) ?>;
-            tinymce.get('template_html').setContent(defaultTemplate);
+            const editorId = '<?= htmlspecialchars($_GET['reset']) ?>';
+            if (editorId === 'template_html' || editorId === 'template_html_sortie') {
+                tinymce.get(editorId).setContent(defaultTemplate);
+            }
         <?php endif; ?>
     </script>
 </body>
