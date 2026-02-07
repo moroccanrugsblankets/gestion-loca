@@ -81,4 +81,5 @@ composer.phar
 FETCH_HEAD
 assets/images/logo-my-invest-immobilier-carre.jpg
 step2-signature.php
-test-template-*.html\ntest-sortie-output.html
+test-template-*.html
+test-sortie-output.html

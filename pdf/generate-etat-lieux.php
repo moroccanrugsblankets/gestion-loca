@@ -492,16 +492,12 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
         // Degradations
         $degradationsConstateesVal = (bool)($etatLieux['degradations_constatees'] ?? false);
         $degradationsConstatees = $degradationsConstateesVal ? 'Oui' : 'Non';
-        $degradationsDetails = trim($etatLieux['degradations_details'] ?? '');
-        $degradationsDetails = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $degradationsDetails);
-        $degradationsDetails = str_replace("\n", '<br>', htmlspecialchars($degradationsDetails));
+        $degradationsDetails = convertAndEscapeText($etatLieux['degradations_details'] ?? '');
         
         // Depot de garantie section
         $depotGarantieStatus = $etatLieux['depot_garantie_status'] ?? '';
         $depotGarantieMontantRetenu = $etatLieux['depot_garantie_montant_retenu'] ?? 0;
-        $depotGarantieMotifRetenue = trim($etatLieux['depot_garantie_motif_retenue'] ?? '');
-        $depotGarantieMotifRetenue = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $depotGarantieMotifRetenue);
-        $depotGarantieMotifRetenue = str_replace("\n", '<br>', htmlspecialchars($depotGarantieMotifRetenue));
+        $depotGarantieMotifRetenue = convertAndEscapeText($etatLieux['depot_garantie_motif_retenue'] ?? '');
         
         if (!empty($depotGarantieStatus) && $depotGarantieStatus !== 'non_applicable') {
             $depotGarantieSection = '<h2>7. Dépôt de garantie</h2>';
@@ -531,7 +527,6 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
             }
             
             $depotGarantieSection .= '</table>';
-            $signaturesSectionNumber = '9'; // Adjust section number
         }
         
         // Bilan du logement section
@@ -540,9 +535,7 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
             $bilanData = json_decode($etatLieux['bilan_logement_data'], true) ?: [];
         }
         
-        $bilanCommentaire = trim($etatLieux['bilan_logement_commentaire'] ?? '');
-        $bilanCommentaire = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $bilanCommentaire);
-        $bilanCommentaire = str_replace("\n", '<br>', htmlspecialchars($bilanCommentaire));
+        $bilanCommentaire = convertAndEscapeText($etatLieux['bilan_logement_commentaire'] ?? '');
         
         if (!empty($bilanData) || !empty($bilanCommentaire)) {
             $sectionNum = !empty($depotGarantieSection) ? '8' : '7';
@@ -597,12 +590,15 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
                 $bilanLogementSection .= '<h3>Commentaires généraux</h3>';
                 $bilanLogementSection .= '<p class="observations">' . $bilanCommentaire . '</p>';
             }
-            
-            if (!empty($depotGarantieSection)) {
-                $signaturesSectionNumber = '9';
-            } else {
-                $signaturesSectionNumber = '8';
-            }
+        }
+        
+        // Calculate final signatures section number based on all included sections
+        if (!empty($bilanLogementSection) && !empty($depotGarantieSection)) {
+            $signaturesSectionNumber = '9';
+        } elseif (!empty($depotGarantieSection) || !empty($bilanLogementSection)) {
+            $signaturesSectionNumber = '8';
+        } else {
+            $signaturesSectionNumber = '7';
         }
     }
     
@@ -697,6 +693,20 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
     $html = str_replace(array_keys($vars), array_values($vars), $template);
     
     return $html;
+}
+
+/**
+ * Convertit les balises HTML br en sauts de ligne, échappe le HTML, puis reconvertit en br
+ * Utilitaire pour préparer du texte pour l'affichage PDF
+ * 
+ * @param string $text Texte à convertir
+ * @return string Texte converti et échappé
+ */
+function convertAndEscapeText($text) {
+    $text = trim($text);
+    $text = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $text);
+    $text = htmlspecialchars($text);
+    return str_replace("\n", '<br>', $text);
 }
 
 /**
