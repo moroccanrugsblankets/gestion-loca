@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Signature Comparison</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .signature-container {
+            border: 2px solid #dee2e6;
+            border-radius: 5px;
+            background-color: #ffffff;
+            display: inline-block;
+            cursor: crosshair;
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Test de Comparaison des Signatures</h1>
+        
+        <div class="test-section">
+            <h3>Ancienne Version (200x80, logique cassée)</h3>
+            <p class="text-muted">Signature avec canvas petit et sans tracking lastX/lastY</p>
+            <div class="signature-container" style="max-width: 200px;">
+                <canvas id="oldCanvas" width="200" height="80" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
+            </div>
+            <button type="button" class="btn btn-warning btn-sm mt-2" onclick="clearOldSignature()">Effacer</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>Nouvelle Version (300x150, logique améliorée)</h3>
+            <p class="text-muted">Signature avec canvas plus grand et tracking lastX/lastY pour lignes fluides</p>
+            <div class="signature-container" style="max-width: 300px;">
+                <canvas id="newCanvas" width="300" height="150" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
+            </div>
+            <button type="button" class="btn btn-warning btn-sm mt-2" onclick="clearNewSignature()">Effacer</button>
+        </div>
+        
+        <div class="alert alert-info mt-4">
+            <strong>Instructions:</strong> Essayez de dessiner une signature dans les deux cadres ci-dessus. 
+            La nouvelle version devrait produire des lignes plus fluides et nettes.
+        </div>
+    </div>
+
+    <script>
+        // Old implementation (broken)
+        function initOldSignature() {
+            const canvas = document.getElementById('oldCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            let isDrawing = false;
+            
+            canvas.addEventListener('mousedown', (e) => {
+                isDrawing = true;
+                ctx.beginPath();
+                ctx.moveTo(e.offsetX, e.offsetY);
+            });
+            
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isDrawing) return;
+                ctx.lineTo(e.offsetX, e.offsetY);
+                ctx.stroke();
+            });
+            
+            canvas.addEventListener('mouseup', () => {
+                isDrawing = false;
+            });
+        }
+        
+        // New implementation (fixed)
+        function initNewSignature() {
+            const canvas = document.getElementById('newCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            let isDrawing = false;
+            let lastX = 0;
+            let lastY = 0;
+            
+            function getMousePos(e) {
+                const rect = canvas.getBoundingClientRect();
+                return {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+            }
+            
+            canvas.addEventListener('mousedown', (e) => {
+                isDrawing = true;
+                const pos = getMousePos(e);
+                lastX = pos.x;
+                lastY = pos.y;
+            });
+            
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isDrawing) return;
+                e.preventDefault();
+                
+                const pos = getMousePos(e);
+                
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+                
+                lastX = pos.x;
+                lastY = pos.y;
+            });
+            
+            canvas.addEventListener('mouseup', () => {
+                isDrawing = false;
+            });
+        }
+        
+        function clearOldSignature() {
+            const canvas = document.getElementById('oldCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        function clearNewSignature() {
+            const canvas = document.getElementById('newCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            initOldSignature();
+            initNewSignature();
+        });
+    </script>
+</body>
+</html>
