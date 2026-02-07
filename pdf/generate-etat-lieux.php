@@ -138,10 +138,15 @@ function generateEtatDesLieuxPDF($contratId, $type = 'entree') {
         // Si pas de template en base, utiliser le template par défaut
         if (empty($templateHtml)) {
             error_log("No template found in database, using default template");
-            if (function_exists('getDefaultEtatLieuxTemplate')) {
+            // Use sortie-specific template for exit inventory
+            if ($type === 'sortie' && function_exists('getDefaultExitEtatLieuxTemplate')) {
+                $templateHtml = getDefaultExitEtatLieuxTemplate();
+                error_log("Using default exit template");
+            } elseif (function_exists('getDefaultEtatLieuxTemplate')) {
                 $templateHtml = getDefaultEtatLieuxTemplate();
+                error_log("Using default entry template");
             } else {
-                error_log("ERROR: getDefaultEtatLieuxTemplate function not found");
+                error_log("ERROR: Template functions not found");
                 return false;
             }
         }
@@ -451,6 +456,152 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
         $clesTotal = (int)$etatLieux['cles_total'];
     }
     
+    // Sortie-specific fields
+    $clesConformite = '';
+    $clesObservations = '';
+    $etatGeneralConforme = '';
+    $degradationsConstatees = '';
+    $degradationsDetails = '';
+    $depotGarantieSection = '';
+    $bilanLogementSection = '';
+    $signaturesSectionNumber = '7'; // Default for entry
+    
+    if ($type === 'sortie') {
+        // Keys conformity
+        $clesConformiteVal = $etatLieux['cles_conformite'] ?? '';
+        if ($clesConformiteVal === 'conforme') {
+            $clesConformite = '<span class="conformity-badge conformity-conforme">CONFORME</span>';
+        } elseif ($clesConformiteVal === 'non_conforme') {
+            $clesConformite = '<span class="conformity-badge conformity-non-conforme">NON CONFORME</span>';
+        } elseif ($clesConformiteVal === 'non_applicable') {
+            $clesConformite = 'Non applicable';
+        }
+        
+        $clesObservations = trim($etatLieux['cles_observations'] ?? '');
+        
+        // General state conformity
+        $etatGeneralConformeVal = $etatLieux['etat_general_conforme'] ?? '';
+        if ($etatGeneralConformeVal === 'conforme') {
+            $etatGeneralConforme = '<span class="conformity-badge conformity-conforme">CONFORME</span>';
+        } elseif ($etatGeneralConformeVal === 'non_conforme') {
+            $etatGeneralConforme = '<span class="conformity-badge conformity-non-conforme">NON CONFORME</span>';
+        } elseif ($etatGeneralConformeVal === 'non_applicable') {
+            $etatGeneralConforme = 'Non applicable';
+        }
+        
+        // Degradations
+        $degradationsConstateesVal = (bool)($etatLieux['degradations_constatees'] ?? false);
+        $degradationsConstatees = $degradationsConstateesVal ? 'Oui' : 'Non';
+        $degradationsDetails = convertAndEscapeText($etatLieux['degradations_details'] ?? '');
+        
+        // Depot de garantie section
+        $depotGarantieStatus = $etatLieux['depot_garantie_status'] ?? '';
+        $depotGarantieMontantRetenu = $etatLieux['depot_garantie_montant_retenu'] ?? 0;
+        $depotGarantieMotifRetenue = convertAndEscapeText($etatLieux['depot_garantie_motif_retenue'] ?? '');
+        
+        if (!empty($depotGarantieStatus) && $depotGarantieStatus !== 'non_applicable') {
+            $depotGarantieSection = '<h2>7. Dépôt de garantie</h2>';
+            $depotGarantieSection .= '<table cellspacing="0" cellpadding="4">';
+            $depotGarantieSection .= '<tr><td class="info-label">Statut :</td><td>';
+            
+            switch ($depotGarantieStatus) {
+                case 'restitution_totale':
+                    $depotGarantieSection .= 'Restitution totale';
+                    break;
+                case 'restitution_partielle':
+                    $depotGarantieSection .= 'Restitution partielle';
+                    break;
+                case 'retenue_totale':
+                    $depotGarantieSection .= 'Retenue totale';
+                    break;
+            }
+            
+            $depotGarantieSection .= '</td></tr>';
+            
+            if ($depotGarantieMontantRetenu > 0) {
+                $depotGarantieSection .= '<tr><td class="info-label">Montant retenu :</td><td>' . number_format($depotGarantieMontantRetenu, 2, ',', ' ') . ' €</td></tr>';
+            }
+            
+            if (!empty($depotGarantieMotifRetenue)) {
+                $depotGarantieSection .= '<tr><td class="info-label">Motif de la retenue :</td><td>' . $depotGarantieMotifRetenue . '</td></tr>';
+            }
+            
+            $depotGarantieSection .= '</table>';
+        }
+        
+        // Bilan du logement section
+        $bilanData = [];
+        if (!empty($etatLieux['bilan_logement_data'])) {
+            $bilanData = json_decode($etatLieux['bilan_logement_data'], true) ?: [];
+        }
+        
+        $bilanCommentaire = convertAndEscapeText($etatLieux['bilan_logement_commentaire'] ?? '');
+        
+        if (!empty($bilanData) || !empty($bilanCommentaire)) {
+            $sectionNum = !empty($depotGarantieSection) ? '8' : '7';
+            $bilanLogementSection = "<h2>$sectionNum. Bilan du logement</h2>";
+            
+            if (!empty($bilanData)) {
+                // Filter out empty rows
+                $bilanData = array_filter($bilanData, function($row) {
+                    return !empty($row['poste']) || !empty($row['commentaires']) || 
+                           (isset($row['valeur']) && $row['valeur'] !== '') || 
+                           (isset($row['montant_du']) && $row['montant_du'] !== '');
+                });
+                
+                if (!empty($bilanData)) {
+                    $bilanLogementSection .= '<table class="bilan-table" cellspacing="0" cellpadding="6">';
+                    $bilanLogementSection .= '<thead><tr>';
+                    $bilanLogementSection .= '<th width="25%">Poste / Équipement</th>';
+                    $bilanLogementSection .= '<th width="35%">Commentaires</th>';
+                    $bilanLogementSection .= '<th width="15%" class="text-right">Valeur (€)</th>';
+                    $bilanLogementSection .= '<th width="15%" class="text-right">Montant dû (€)</th>';
+                    $bilanLogementSection .= '</tr></thead><tbody>';
+                    
+                    $totalValeur = 0;
+                    $totalMontantDu = 0;
+                    
+                    foreach ($bilanData as $row) {
+                        $poste = htmlspecialchars($row['poste'] ?? '');
+                        $commentaires = htmlspecialchars($row['commentaires'] ?? '');
+                        $valeur = (float)($row['valeur'] ?? 0);
+                        $montantDu = (float)($row['montant_du'] ?? 0);
+                        
+                        $totalValeur += $valeur;
+                        $totalMontantDu += $montantDu;
+                        
+                        $bilanLogementSection .= '<tr>';
+                        $bilanLogementSection .= '<td>' . $poste . '</td>';
+                        $bilanLogementSection .= '<td>' . $commentaires . '</td>';
+                        $bilanLogementSection .= '<td class="text-right">' . number_format($valeur, 2, ',', ' ') . '</td>';
+                        $bilanLogementSection .= '<td class="text-right">' . number_format($montantDu, 2, ',', ' ') . '</td>';
+                        $bilanLogementSection .= '</tr>';
+                    }
+                    
+                    $bilanLogementSection .= '</tbody><tfoot><tr>';
+                    $bilanLogementSection .= '<td colspan="2" class="text-right"><strong>Total des frais constatés :</strong></td>';
+                    $bilanLogementSection .= '<td class="text-right"><strong>' . number_format($totalValeur, 2, ',', ' ') . ' €</strong></td>';
+                    $bilanLogementSection .= '<td class="text-right"><strong>' . number_format($totalMontantDu, 2, ',', ' ') . ' €</strong></td>';
+                    $bilanLogementSection .= '</tr></tfoot></table>';
+                }
+            }
+            
+            if (!empty($bilanCommentaire)) {
+                $bilanLogementSection .= '<h3>Commentaires généraux</h3>';
+                $bilanLogementSection .= '<p class="observations">' . $bilanCommentaire . '</p>';
+            }
+        }
+        
+        // Calculate final signatures section number based on all included sections
+        if (!empty($bilanLogementSection) && !empty($depotGarantieSection)) {
+            $signaturesSectionNumber = '9';
+        } elseif (!empty($depotGarantieSection) || !empty($bilanLogementSection)) {
+            $signaturesSectionNumber = '8';
+        } else {
+            $signaturesSectionNumber = '7';
+        }
+    }
+    
     // Lieu de signature
     $lieuSignature = htmlspecialchars(!empty($etatLieux['lieu_signature']) ? $etatLieux['lieu_signature'] : ($config['DEFAULT_SIGNATURE_LOCATION'] ?? 'Annemasse'));
     
@@ -488,6 +639,14 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
         '{{date_signature}}' => $dateSignature,
         '{{signatures_table}}' => $signaturesTable,
         '{{signature_agence}}' => $companyName,
+        // Sortie-specific variables
+        '{{cles_conformite}}' => $clesConformite,
+        '{{etat_general_conforme}}' => $etatGeneralConforme,
+        '{{degradations_constatees}}' => $degradationsConstatees,
+        '{{degradations_details}}' => $degradationsDetails,
+        '{{depot_garantie_section}}' => $depotGarantieSection,
+        '{{bilan_logement_section}}' => $bilanLogementSection,
+        '{{signatures_section_number}}' => $signaturesSectionNumber,
     ];
     
     // Handle conditional rows (use already-escaped variables)
@@ -509,10 +668,45 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
         $vars['{{observations_section}}'] = '';
     }
     
+    // Sortie-specific conditional sections
+    if ($type === 'sortie') {
+        // Keys observations section
+        if (!empty($clesObservations)) {
+            $clesObsEscaped = str_replace("\n", '<br>', htmlspecialchars($clesObservations));
+            $vars['{{cles_observations_section}}'] = '<p><strong>Observations sur les clés :</strong><br>' . $clesObsEscaped . '</p>';
+        } else {
+            $vars['{{cles_observations_section}}'] = '';
+        }
+        
+        // Degradations section
+        if ($degradationsConstateesVal && !empty($degradationsDetails)) {
+            $vars['{{degradations_section}}'] = '<h3>Dégradations constatées</h3><p class="observations">' . $degradationsDetails . '</p>';
+        } else {
+            $vars['{{degradations_section}}'] = '';
+        }
+    } else {
+        $vars['{{cles_observations_section}}'] = '';
+        $vars['{{degradations_section}}'] = '';
+    }
+    
     // Replace all variables
     $html = str_replace(array_keys($vars), array_values($vars), $template);
     
     return $html;
+}
+
+/**
+ * Convertit les balises HTML br en sauts de ligne, échappe le HTML, puis reconvertit en br
+ * Utilitaire pour préparer du texte pour l'affichage PDF
+ * 
+ * @param string $text Texte à convertir
+ * @return string Texte converti et échappé
+ */
+function convertAndEscapeText($text) {
+    $text = trim($text);
+    $text = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $text);
+    $text = htmlspecialchars($text);
+    return str_replace("\n", '<br>', $text);
 }
 
 /**
