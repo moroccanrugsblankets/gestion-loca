@@ -182,7 +182,7 @@ function buildSignaturesTable($contrat, $locataires) {
 
             if (!empty($signatureSociete) && preg_match('/^uploads\/signatures\//', $signatureSociete)) {
                 $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($signatureSociete, '/');
-                $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Société" width="100" height="80" border="0">';
+                $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Société" width="120" border="0">';
             }
         }
 
@@ -210,7 +210,7 @@ function buildSignaturesTable($contrat, $locataires) {
 
         if (!empty($loc['signature_data']) && preg_match('/^uploads\/signatures\//', $loc['signature_data'])) {
             $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($loc['signature_data'], '/');
-			$html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" width="100" height="80" border="0">';
+			$html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" width="150" border="0">';
         }
         
         // Add "Certifié exact" checkbox indicator - always show for clarity
