@@ -1,0 +1,453 @@
+<?php
+require_once '../includes/config.php';
+require_once 'auth.php';
+require_once '../includes/db.php';
+
+$logement_id = isset($_GET['logement_id']) ? (int)$_GET['logement_id'] : 0;
+
+if (!$logement_id) {
+    $_SESSION['error'] = "Logement non spécifié";
+    header('Location: logements.php');
+    exit;
+}
+
+// Get logement info
+$stmt = $pdo->prepare("SELECT * FROM logements WHERE id = ?");
+$stmt->execute([$logement_id]);
+$logement = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$logement) {
+    $_SESSION['error'] = "Logement introuvable";
+    header('Location: logements.php');
+    exit;
+}
+
+// Handle form submissions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['action'])) {
+        switch ($_POST['action']) {
+            case 'add':
+                try {
+                    $stmt = $pdo->prepare("
+                        INSERT INTO inventaire_equipements (logement_id, categorie, nom, description, quantite, valeur_estimee, ordre)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ");
+                    $ordre = (int)($_POST['ordre'] ?? 0);
+                    $quantite = (int)($_POST['quantite'] ?? 1);
+                    $valeur = !empty($_POST['valeur_estimee']) ? (float)$_POST['valeur_estimee'] : null;
+                    
+                    $stmt->execute([
+                        $logement_id,
+                        $_POST['categorie'],
+                        $_POST['nom'],
+                        $_POST['description'],
+                        $quantite,
+                        $valeur,
+                        $ordre
+                    ]);
+                    $_SESSION['success'] = "Équipement ajouté avec succès";
+                } catch (PDOException $e) {
+                    $_SESSION['error'] = "Erreur lors de l'ajout de l'équipement";
+                    error_log("Erreur ajout équipement: " . $e->getMessage());
+                }
+                break;
+                
+            case 'edit':
+                try {
+                    $stmt = $pdo->prepare("
+                        UPDATE inventaire_equipements SET 
+                            categorie = ?, nom = ?, description = ?, quantite = ?, valeur_estimee = ?, ordre = ?
+                        WHERE id = ? AND logement_id = ?
+                    ");
+                    $ordre = (int)($_POST['ordre'] ?? 0);
+                    $quantite = (int)($_POST['quantite'] ?? 1);
+                    $valeur = !empty($_POST['valeur_estimee']) ? (float)$_POST['valeur_estimee'] : null;
+                    
+                    $stmt->execute([
+                        $_POST['categorie'],
+                        $_POST['nom'],
+                        $_POST['description'],
+                        $quantite,
+                        $valeur,
+                        $ordre,
+                        $_POST['equipement_id'],
+                        $logement_id
+                    ]);
+                    $_SESSION['success'] = "Équipement modifié avec succès";
+                } catch (PDOException $e) {
+                    $_SESSION['error'] = "Erreur lors de la modification de l'équipement";
+                    error_log("Erreur modification équipement: " . $e->getMessage());
+                }
+                break;
+                
+            case 'delete':
+                try {
+                    $stmt = $pdo->prepare("DELETE FROM inventaire_equipements WHERE id = ? AND logement_id = ?");
+                    $stmt->execute([$_POST['equipement_id'], $logement_id]);
+                    $_SESSION['success'] = "Équipement supprimé";
+                } catch (PDOException $e) {
+                    $_SESSION['error'] = "Erreur lors de la suppression de l'équipement";
+                    error_log("Erreur suppression équipement: " . $e->getMessage());
+                }
+                break;
+        }
+        
+        header("Location: manage-inventory-equipements.php?logement_id=$logement_id");
+        exit;
+    }
+}
+
+// Get equipements for this logement
+$stmt = $pdo->prepare("
+    SELECT * FROM inventaire_equipements 
+    WHERE logement_id = ? 
+    ORDER BY categorie, ordre, nom
+");
+$stmt->execute([$logement_id]);
+$equipements = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Group by category
+$equipements_by_category = [];
+foreach ($equipements as $eq) {
+    $cat = $eq['categorie'];
+    if (!isset($equipements_by_category[$cat])) {
+        $equipements_by_category[$cat] = [];
+    }
+    $equipements_by_category[$cat][] = $eq;
+}
+
+// Available categories
+$categories = [
+    'Électroménager' => 'appliance',
+    'Mobilier' => 'furniture-bed',
+    'Cuisine' => 'cup-hot',
+    'Salle de bain' => 'droplet',
+    'Linge de maison' => 'basket',
+    'Électronique' => 'tv',
+    'Autre' => 'box'
+];
+?>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Définir l'inventaire - <?php echo htmlspecialchars($logement['reference']); ?></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <?php require_once __DIR__ . '/includes/sidebar-styles.php'; ?>
+    <style>
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .category-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .category-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: #495057;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+        }
+        .equipment-item {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border-left: 3px solid #0d6efd;
+        }
+        .equipment-item:hover {
+            background: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <?php require_once __DIR__ . '/includes/menu.php'; ?>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h4>
+                        <i class="bi bi-box-seam"></i> Inventaire du logement
+                    </h4>
+                    <p class="text-muted mb-0">
+                        <?php echo htmlspecialchars($logement['reference']); ?> - 
+                        <?php echo htmlspecialchars($logement['type']); ?> - 
+                        <?php echo htmlspecialchars($logement['adresse']); ?>
+                    </p>
+                </div>
+                <div>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addEquipementModal">
+                        <i class="bi bi-plus-circle"></i> Ajouter un équipement
+                    </button>
+                    <a href="logements.php" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Retour aux logements
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <?php if (isset($_SESSION['success'])): ?>
+            <div class="alert alert-success alert-dismissible fade show">
+                <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['error'])): ?>
+            <div class="alert alert-danger alert-dismissible fade show">
+                <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
+
+        <?php if (empty($equipements)): ?>
+            <div class="category-card text-center py-5">
+                <i class="bi bi-box-seam" style="font-size: 4rem; color: #dee2e6;"></i>
+                <h5 class="mt-3 text-muted">Aucun équipement défini</h5>
+                <p class="text-muted">Commencez par ajouter les équipements standards de ce logement</p>
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addEquipementModal">
+                    <i class="bi bi-plus-circle"></i> Ajouter le premier équipement
+                </button>
+            </div>
+        <?php else: ?>
+            <?php foreach ($categories as $cat_name => $cat_icon): ?>
+                <?php if (isset($equipements_by_category[$cat_name])): ?>
+                    <div class="category-card">
+                        <div class="category-header">
+                            <i class="bi bi-<?php echo $cat_icon; ?>"></i> <?php echo $cat_name; ?>
+                            (<?php echo count($equipements_by_category[$cat_name]); ?> équipements)
+                        </div>
+                        
+                        <?php foreach ($equipements_by_category[$cat_name] as $eq): ?>
+                            <div class="equipment-item">
+                                <div class="row align-items-center">
+                                    <div class="col-md-5">
+                                        <strong><?php echo htmlspecialchars($eq['nom']); ?></strong>
+                                        <?php if ($eq['description']): ?>
+                                            <br><small class="text-muted"><?php echo htmlspecialchars($eq['description']); ?></small>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <small class="text-muted">Quantité:</small> 
+                                        <strong><?php echo $eq['quantite']; ?></strong>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <?php if ($eq['valeur_estimee']): ?>
+                                            <small class="text-muted">Valeur estimée:</small> 
+                                            <strong><?php echo number_format($eq['valeur_estimee'], 2, ',', ' '); ?> €</strong>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-md-2 text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary edit-equipement-btn"
+                                                    data-id="<?php echo $eq['id']; ?>"
+                                                    data-categorie="<?php echo htmlspecialchars($eq['categorie']); ?>"
+                                                    data-nom="<?php echo htmlspecialchars($eq['nom']); ?>"
+                                                    data-description="<?php echo htmlspecialchars($eq['description']); ?>"
+                                                    data-quantite="<?php echo $eq['quantite']; ?>"
+                                                    data-valeur="<?php echo $eq['valeur_estimee']; ?>"
+                                                    data-ordre="<?php echo $eq['ordre']; ?>"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#editEquipementModal">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger delete-equipement-btn"
+                                                    data-id="<?php echo $eq['id']; ?>"
+                                                    data-nom="<?php echo htmlspecialchars($eq['nom']); ?>"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#deleteEquipementModal">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+
+    <!-- Add Equipement Modal -->
+    <div class="modal fade" id="addEquipementModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ajouter un équipement</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST">
+                    <input type="hidden" name="action" value="add">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Catégorie <span class="text-danger">*</span></label>
+                            <select name="categorie" class="form-select" required>
+                                <option value="">Sélectionner...</option>
+                                <?php foreach (array_keys($categories) as $cat): ?>
+                                    <option value="<?php echo htmlspecialchars($cat); ?>"><?php echo htmlspecialchars($cat); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nom de l'équipement <span class="text-danger">*</span></label>
+                            <input type="text" name="nom" class="form-control" required 
+                                   placeholder="Ex: Réfrigérateur, Canapé, Table...">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea name="description" class="form-control" rows="2" 
+                                      placeholder="Détails supplémentaires (marque, couleur, etc.)"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Quantité</label>
+                                    <input type="number" name="quantite" class="form-control" value="1" min="1" max="999">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Valeur (€)</label>
+                                    <input type="number" name="valeur_estimee" class="form-control" step="0.01" min="0"
+                                           placeholder="0.00">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Ordre</label>
+                                    <input type="number" name="ordre" class="form-control" value="0" min="0" max="999">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-success">Ajouter</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Equipement Modal -->
+    <div class="modal fade" id="editEquipementModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Modifier l'équipement</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST">
+                    <input type="hidden" name="action" value="edit">
+                    <input type="hidden" name="equipement_id" id="edit_equipement_id">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Catégorie <span class="text-danger">*</span></label>
+                            <select name="categorie" id="edit_categorie" class="form-select" required>
+                                <option value="">Sélectionner...</option>
+                                <?php foreach (array_keys($categories) as $cat): ?>
+                                    <option value="<?php echo htmlspecialchars($cat); ?>"><?php echo htmlspecialchars($cat); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nom de l'équipement <span class="text-danger">*</span></label>
+                            <input type="text" name="nom" id="edit_nom" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea name="description" id="edit_description" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Quantité</label>
+                                    <input type="number" name="quantite" id="edit_quantite" class="form-control" min="1" max="999">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Valeur (€)</label>
+                                    <input type="number" name="valeur_estimee" id="edit_valeur" class="form-control" step="0.01" min="0">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Ordre</label>
+                                    <input type="number" name="ordre" id="edit_ordre" class="form-control" min="0" max="999">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Equipement Modal -->
+    <div class="modal fade" id="deleteEquipementModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Confirmer la suppression</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Êtes-vous sûr de vouloir supprimer l'équipement <strong id="delete_equipement_nom"></strong> ?</p>
+                    <p class="text-danger">Cette action est irréversible.</p>
+                </div>
+                <div class="modal-footer">
+                    <form method="POST">
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="equipement_id" id="delete_equipement_id">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-danger">Supprimer</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Edit equipment modal
+        document.querySelectorAll('.edit-equipement-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.getElementById('edit_equipement_id').value = this.dataset.id;
+                document.getElementById('edit_categorie').value = this.dataset.categorie;
+                document.getElementById('edit_nom').value = this.dataset.nom;
+                document.getElementById('edit_description').value = this.dataset.description;
+                document.getElementById('edit_quantite').value = this.dataset.quantite;
+                document.getElementById('edit_valeur').value = this.dataset.valeur;
+                document.getElementById('edit_ordre').value = this.dataset.ordre;
+            });
+        });
+
+        // Delete equipment modal
+        document.querySelectorAll('.delete-equipement-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.getElementById('delete_equipement_id').value = this.dataset.id;
+                document.getElementById('delete_equipement_nom').textContent = this.dataset.nom;
+            });
+        });
+    </script>
+</body>
+</html>
