@@ -171,6 +171,7 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                         <span class="variable-tag" onclick="copyVariable('{{lieu_signature}}')">{{lieu_signature}}</span>
                         <span class="variable-tag" onclick="copyVariable('{{date_signature}}')">{{date_signature}}</span>
                         <span class="variable-tag" onclick="copyVariable('{{signatures_table}}')">{{signatures_table}}</span>
+                        <span class="variable-tag" onclick="copyVariable('{{signature_agence}}')">{{signature_agence}}</span>
                     </div>
                 </div>
                 <div class="mb-3">
@@ -215,6 +216,7 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                         <span class="variable-tag" onclick="copyVariable('{{lieu_signature}}')">{{lieu_signature}}</span>
                         <span class="variable-tag" onclick="copyVariable('{{date_signature}}')">{{date_signature}}</span>
                         <span class="variable-tag" onclick="copyVariable('{{signatures_table}}')">{{signatures_table}}</span>
+                        <span class="variable-tag" onclick="copyVariable('{{signature_agence}}')">{{signature_agence}}</span>
                     </div>
                 </div>
                 <div class="mb-3">
