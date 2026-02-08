@@ -745,6 +745,13 @@ $stats = [
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Store default textarea values on page load to avoid duplication
+        const textareaDefaults = {
+            piecePrincipale: document.getElementById('defaults_etat_piece_principale')?.textContent.trim() || '',
+            cuisine: document.getElementById('defaults_etat_cuisine')?.textContent.trim() || '',
+            salleEau: document.getElementById('defaults_etat_salle_eau')?.textContent.trim() || ''
+        };
+        
         // Calculate total mensuel and revenus requis
         function calculateTotals(prefix) {
             const loyer = parseFloat(document.querySelector(`[name="loyer"]${prefix ? '#' + prefix + '_loyer' : ''}`).value) || 0;
@@ -819,14 +826,10 @@ $stats = [
                 document.getElementById('defaults_cles_appartement').value = this.dataset.defaultClesAppartement || '2';
                 document.getElementById('defaults_cles_boite_lettres').value = this.dataset.defaultClesBoiteLettres || '1';
                 
-                // For textareas, use stored value if available, otherwise keep the default content already in the textarea
-                const defaultPiecePrincipale = "• Revêtement de sol : parquet très bon état d'usage\n• Murs : peintures très bon état\n• Plafond : peintures très bon état\n• Installations électriques et plomberie : fonctionnelles";
-                const defaultCuisine = "• Revêtement de sol : parquet très bon état d'usage\n• Murs : peintures très bon état\n• Plafond : peintures très bon état\n• Installations électriques et plomberie : fonctionnelles";
-                const defaultSalleEau = "• Revêtement de sol : carrelage très bon état d'usage\n• Faïence : très bon état\n• Plafond : peintures très bon état\n• Installations électriques et plomberie : fonctionnelles";
-                
-                document.getElementById('defaults_etat_piece_principale').value = this.dataset.defaultEtatPiecePrincipale || defaultPiecePrincipale;
-                document.getElementById('defaults_etat_cuisine').value = this.dataset.defaultEtatCuisine || defaultCuisine;
-                document.getElementById('defaults_etat_salle_eau').value = this.dataset.defaultEtatSalleEau || defaultSalleEau;
+                // For textareas, use stored value if available, otherwise use the defaults captured at page load
+                document.getElementById('defaults_etat_piece_principale').value = this.dataset.defaultEtatPiecePrincipale || textareaDefaults.piecePrincipale;
+                document.getElementById('defaults_etat_cuisine').value = this.dataset.defaultEtatCuisine || textareaDefaults.cuisine;
+                document.getElementById('defaults_etat_salle_eau').value = this.dataset.defaultEtatSalleEau || textareaDefaults.salleEau;
             });
         });
         
