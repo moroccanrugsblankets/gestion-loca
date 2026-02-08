@@ -12,6 +12,8 @@
         top: 0;
         width: 250px;
         color: white;
+        z-index: 1000;
+        transition: transform 0.3s ease-in-out;
     }
     .sidebar .logo {
         padding: 20px;
@@ -49,11 +51,91 @@
     .main-content {
         margin-left: 250px;
         padding: 30px;
+        transition: margin-left 0.3s ease-in-out;
     }
     .logout-btn {
         position: absolute;
         bottom: 20px;
         left: 20px;
         right: 20px;
+    }
+    
+    /* Mobile menu toggle button */
+    .menu-toggle {
+        display: none;
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        z-index: 1001;
+        background: #2c3e50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 10px 15px;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .menu-toggle:hover {
+        background: #34495e;
+    }
+    
+    /* Overlay for mobile menu */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 999;
+    }
+    
+    /* Mobile responsive styles */
+    @media (max-width: 768px) {
+        .sidebar {
+            transform: translateX(-100%);
+        }
+        
+        .sidebar.active {
+            transform: translateX(0);
+        }
+        
+        .main-content {
+            margin-left: 0;
+            padding: 70px 15px 15px 15px;
+        }
+        
+        .menu-toggle {
+            display: block;
+        }
+        
+        .sidebar-overlay.active {
+            display: block;
+        }
+        
+        .logout-btn {
+            position: relative;
+            bottom: auto;
+            left: auto;
+            right: auto;
+            margin: 20px;
+        }
+    }
+    
+    /* Tablet responsive styles */
+    @media (min-width: 769px) and (max-width: 992px) {
+        .sidebar {
+            width: 200px;
+        }
+        
+        .main-content {
+            margin-left: 200px;
+        }
+        
+        .sidebar .nav-link {
+            padding: 10px 15px;
+            font-size: 0.9rem;
+        }
     }
 </style>
