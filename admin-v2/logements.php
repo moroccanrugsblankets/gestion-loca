@@ -818,9 +818,15 @@ $stats = [
                 // Set form fields with current values
                 document.getElementById('defaults_cles_appartement').value = this.dataset.defaultClesAppartement || '2';
                 document.getElementById('defaults_cles_boite_lettres').value = this.dataset.defaultClesBoiteLettres || '1';
-                document.getElementById('defaults_etat_piece_principale').value = this.dataset.defaultEtatPiecePrincipale || '';
-                document.getElementById('defaults_etat_cuisine').value = this.dataset.defaultEtatCuisine || '';
-                document.getElementById('defaults_etat_salle_eau').value = this.dataset.defaultEtatSalleEau || '';
+                
+                // For textareas, use stored value if available, otherwise keep the default content already in the textarea
+                const defaultPiecePrincipale = "• Revêtement de sol : parquet très bon état d'usage\n• Murs : peintures très bon état\n• Plafond : peintures très bon état\n• Installations électriques et plomberie : fonctionnelles";
+                const defaultCuisine = "• Revêtement de sol : parquet très bon état d'usage\n• Murs : peintures très bon état\n• Plafond : peintures très bon état\n• Installations électriques et plomberie : fonctionnelles";
+                const defaultSalleEau = "• Revêtement de sol : carrelage très bon état d'usage\n• Faïence : très bon état\n• Plafond : peintures très bon état\n• Installations électriques et plomberie : fonctionnelles";
+                
+                document.getElementById('defaults_etat_piece_principale').value = this.dataset.defaultEtatPiecePrincipale || defaultPiecePrincipale;
+                document.getElementById('defaults_etat_cuisine').value = this.dataset.defaultEtatCuisine || defaultCuisine;
+                document.getElementById('defaults_etat_salle_eau').value = this.dataset.defaultEtatSalleEau || defaultSalleEau;
             });
         });
         
