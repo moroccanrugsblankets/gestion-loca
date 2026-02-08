@@ -154,15 +154,17 @@ document.addEventListener('DOMContentLoaded', function() {
         sidebarOverlay.classList.remove('active');
     });
     
-    // Close sidebar when clicking on a menu link (mobile only)
-    if (window.innerWidth <= 768) {
-        const menuLinks = sidebar.querySelectorAll('.nav-link');
-        menuLinks.forEach(function(link) {
-            link.addEventListener('click', function() {
+    // Close sidebar when clicking on a menu link
+    // This is harmless on desktop and ensures proper behavior on all screen sizes
+    const menuLinks = sidebar.querySelectorAll('.nav-link');
+    menuLinks.forEach(function(link) {
+        link.addEventListener('click', function() {
+            // Only close if sidebar is in mobile mode (has active class)
+            if (sidebar.classList.contains('active')) {
                 sidebar.classList.remove('active');
                 sidebarOverlay.classList.remove('active');
-            });
+            }
         });
-    }
+    });
 });
 </script>
