@@ -36,8 +36,16 @@ $page_to_menu_map = [
 // Check if current page is a detail page, if so use parent menu
 $active_menu = $page_to_menu_map[$current_page] ?? $current_page;
 ?>
+<!-- Mobile menu toggle button -->
+<button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">
+    <i class="bi bi-list" style="font-size: 1.5rem;"></i>
+</button>
+
+<!-- Sidebar overlay for mobile -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <!-- Sidebar -->
-<div class="sidebar">
+<div class="sidebar" id="sidebar">
     <div class="logo">
         <i class="bi bi-building" style="font-size: 2rem;"></i>
         <h4>MY Invest</h4>
@@ -126,3 +134,35 @@ $active_menu = $page_to_menu_map[$current_page] ?? $current_page;
         <i class="bi bi-box-arrow-right"></i> Déconnexion
     </a>
 </div>
+
+<!-- JavaScript for mobile menu toggle -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    
+    // Toggle sidebar on button click
+    menuToggle.addEventListener('click', function() {
+        sidebar.classList.toggle('active');
+        sidebarOverlay.classList.toggle('active');
+    });
+    
+    // Close sidebar when clicking on overlay
+    sidebarOverlay.addEventListener('click', function() {
+        sidebar.classList.remove('active');
+        sidebarOverlay.classList.remove('active');
+    });
+    
+    // Close sidebar when clicking on a menu link (mobile only)
+    if (window.innerWidth <= 768) {
+        const menuLinks = sidebar.querySelectorAll('.nav-link');
+        menuLinks.forEach(function(link) {
+            link.addEventListener('click', function() {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+            });
+        });
+    }
+});
+</script>
