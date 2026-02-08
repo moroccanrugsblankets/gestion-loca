@@ -699,24 +699,30 @@ $stats = [
                             <div class="mb-3">
                                 <label class="form-label">Pièce principale</label>
                                 <textarea name="default_etat_piece_principale" id="defaults_etat_piece_principale" 
-                                          class="form-control" rows="4" maxlength="5000"
-                                          placeholder="• Revêtement de sol : parquet très bon état d'usage&#10;• Murs : peintures très bon état&#10;• Plafond : peintures très bon état&#10;• Installations électriques et plomberie : fonctionnelles"></textarea>
+                                          class="form-control" rows="4" maxlength="5000">• Revêtement de sol : parquet très bon état d'usage
+• Murs : peintures très bon état
+• Plafond : peintures très bon état
+• Installations électriques et plomberie : fonctionnelles</textarea>
                                 <small class="form-text text-muted">Si laissé vide, utilisera le texte par défaut standard</small>
                             </div>
                             
                             <div class="mb-3">
                                 <label class="form-label">Coin cuisine</label>
                                 <textarea name="default_etat_cuisine" id="defaults_etat_cuisine" 
-                                          class="form-control" rows="4" maxlength="5000"
-                                          placeholder="• Revêtement de sol : parquet très bon état d'usage&#10;• Murs : peintures très bon état&#10;• Plafond : peintures très bon état&#10;• Installations électriques et plomberie : fonctionnelles"></textarea>
+                                          class="form-control" rows="4" maxlength="5000">• Revêtement de sol : parquet très bon état d'usage
+• Murs : peintures très bon état
+• Plafond : peintures très bon état
+• Installations électriques et plomberie : fonctionnelles</textarea>
                                 <small class="form-text text-muted">Si laissé vide, utilisera le texte par défaut standard</small>
                             </div>
                             
                             <div class="mb-3">
                                 <label class="form-label">Salle d'eau et WC</label>
                                 <textarea name="default_etat_salle_eau" id="defaults_etat_salle_eau" 
-                                          class="form-control" rows="4" maxlength="5000"
-                                          placeholder="• Revêtement de sol : carrelage très bon état d'usage&#10;• Faïence : très bon état&#10;• Plafond : peintures très bon état&#10;• Installations électriques et plomberie : fonctionnelles"></textarea>
+                                          class="form-control" rows="4" maxlength="5000">• Revêtement de sol : carrelage très bon état d'usage
+• Faïence : très bon état
+• Plafond : peintures très bon état
+• Installations électriques et plomberie : fonctionnelles</textarea>
                                 <small class="form-text text-muted">Si laissé vide, utilisera le texte par défaut standard</small>
                             </div>
                         </div>
