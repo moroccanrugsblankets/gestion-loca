@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventaire Templates - Visual Verification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .status {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-size: 18px;
+        }
+        .template-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-left: 5px solid #3498db;
+        }
+        .template-section h2 {
+            color: #34495e;
+            margin-top: 0;
+        }
+        .info-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .preview-frame {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .variables-list {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .variable-tag {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 3px;
+            margin: 5px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✓ Inventaire Templates - Configuration Successful</h1>
+        
+        <div class="status">
+            <strong>✓ SUCCESS:</strong> Both inventory templates have been successfully populated in the database!
+        </div>
+
+        <div class="info-box">
+            <strong>Summary:</strong>
+            <ul>
+                <li><strong>Entry Template (inventaire_template_html):</strong> 5,088 characters</li>
+                <li><strong>Exit Template (inventaire_sortie_template_html):</strong> 6,205 characters</li>
+            </ul>
+            <p>The templates are now available in the admin interface at <code>/admin-v2/inventaire-configuration.php</code></p>
+        </div>
+
+        <div class="template-section">
+            <h2>1. Template d'Inventaire d'Entrée (Entry)</h2>
+            <p>This template is used for creating entry inventory documents when a tenant moves in.</p>
+            
+            <div class="variables-list">
+                <strong>Available Variables:</strong><br>
+                <span class="variable-tag">{{reference}}</span>
+                <span class="variable-tag">{{date}}</span>
+                <span class="variable-tag">{{adresse}}</span>
+                <span class="variable-tag">{{appartement}}</span>
+                <span class="variable-tag">{{locataire_nom}}</span>
+                <span class="variable-tag">{{equipements}}</span>
+                <span class="variable-tag">{{observations}}</span>
+            </div>
+
+            <p><strong>Features:</strong></p>
+            <ul>
+                <li>Professional header with company branding</li>
+                <li>Property and tenant information section</li>
+                <li>Equipment list with categorization</li>
+                <li>General observations area</li>
+                <li>Signature section for landlord and tenant</li>
+                <li>Clean, modern design with blue accents</li>
+            </ul>
+        </div>
+
+        <div class="template-section" style="border-left-color: #e74c3c;">
+            <h2>2. Template d'Inventaire de Sortie (Exit)</h2>
+            <p>This template is used for creating exit inventory documents when a tenant moves out, including comparison with entry state.</p>
+            
+            <div class="variables-list">
+                <strong>Available Variables:</strong><br>
+                <span class="variable-tag">{{reference}}</span>
+                <span class="variable-tag">{{date}}</span>
+                <span class="variable-tag">{{adresse}}</span>
+                <span class="variable-tag">{{appartement}}</span>
+                <span class="variable-tag">{{locataire_nom}}</span>
+                <span class="variable-tag">{{equipements}}</span>
+                <span class="variable-tag">{{comparaison}}</span>
+                <span class="variable-tag">{{observations}}</span>
+            </div>
+
+            <p><strong>Features:</strong></p>
+            <ul>
+                <li>Professional header with company branding</li>
+                <li>Property and tenant information section</li>
+                <li>Equipment list with current state</li>
+                <li><strong>Comparison section</strong> - highlights differences from entry inventory</li>
+                <li>General observations area</li>
+                <li>Signature section for landlord and tenant</li>
+                <li>Clean, modern design with red accents (indicating exit)</li>
+                <li>Alert boxes for warnings and important information</li>
+            </ul>
+        </div>
+
+        <div class="info-box">
+            <h3>How to Use:</h3>
+            <ol>
+                <li>Access the admin panel at <code>/admin-v2/inventaire-configuration.php</code></li>
+                <li>The templates will be loaded in the TinyMCE editor</li>
+                <li>You can customize the HTML and CSS as needed</li>
+                <li>Click on variable tags to copy them to clipboard</li>
+                <li>Use the preview function to see how your changes look</li>
+                <li>Save your changes to update the templates in the database</li>
+            </ol>
+        </div>
+
+        <div class="template-section">
+            <h2>Sample Preview - Entry Template</h2>
+            <p>Below is how the entry template looks with sample data:</p>
+            <iframe class="preview-frame" srcdoc='<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Inventaire d&#039;Entrée - INV-20260208-001</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+            line-height: 1.5;
+            color: #000;
+            margin: 0;
+            padding: 15px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 16pt;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        h2 {
+            font-size: 13pt;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #34495e;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        h3 {
+            font-size: 11pt;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .subtitle {
+            text-align: center;
+            font-style: italic;
+            margin-bottom: 25px;
+            color: #555;
+        }
+        p {
+            margin: 5px 0;
+        }
+        .info-section {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #3498db;
+        }
+        .info-row {
+            margin: 5px 0;
+            padding: 3px 0;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #2c3e50;
+            display: inline-block;
+            width: 200px;
+        }
+        .info-value {
+            display: inline-block;
+            color: #34495e;
+        }
+        .equipement-item {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 3px;
+        }
+        .equipement-category {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 11pt;
+            margin-bottom: 5px;
+        }
+        .observations {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background-color: #fffef0;
+            padding: 10px;
+            border-left: 3px solid #f39c12;
+            margin: 10px 0;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #ccc;
+            font-size: 9pt;
+            text-align: center;
+            color: #666;
+        }
+        .signature-section {
+            margin-top: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>MY INVEST IMMOBILIER</h1>
+        <p style="font-size: 12pt; font-weight: bold; margin-top: 10px;">INVENTAIRE DES ÉQUIPEMENTS - ENTRÉE</p>
+    </div>
+    
+    <div class="subtitle">
+        Référence : INV-20260208-001<br>
+        Date : 08/02/2026
+    </div>
+
+    <h2>1. Informations du logement</h2>
+    
+    <div class="info-section">
+        <div class="info-row">
+            <span class="info-label">Adresse :</span>
+            <span class="info-value">123 Rue de la Paix, 75001 Paris</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Appartement :</span>
+            <span class="info-value">Appartement 3B</span>
+        </div>
+    </div>
+
+    <h2>2. Locataire</h2>
+    
+    <div class="info-section">
+        <div class="info-row">
+            <span class="info-label">Nom du locataire :</span>
+            <span class="info-value">Jean Dupont</span>
+        </div>
+    </div>
+
+    <h2>3. Liste des équipements</h2>
+    
+    <div style="margin: 15px 0;">
+        <div class="equipement-item">
+            <div class="equipement-category">Cuisine</div>
+            <p>✓ Réfrigérateur - État: Bon</p>
+            <p>✓ Four électrique - État: Bon</p>
+            <p>✓ Plaques de cuisson - État: Bon</p>
+        </div>
+        <div class="equipement-item">
+            <div class="equipement-category">Salon</div>
+            <p>✓ Canapé 3 places - État: Bon</p>
+            <p>✓ Table basse - État: Bon</p>
+        </div>
+    </div>
+
+    <h2>4. Observations générales</h2>
+    
+    <div class="observations">Logement en bon état général. 
+Tous les équipements sont fonctionnels.
+Peinture fraîche dans toutes les pièces.</div>
+
+    <div class="signature-section">
+        <h3>Signatures</h3>
+        <p>Fait le 08/02/2026</p>
+        <p style="margin-top: 20px;">
+            <strong>Signature du bailleur :</strong> _______________________
+        </p>
+        <p style="margin-top: 20px;">
+            <strong>Signature du locataire :</strong> _______________________
+        </p>
+    </div>
+
+    <div class="footer">
+        <p>Document généré électroniquement par MY Invest Immobilier</p>
+        <p>Inventaire d&#039;entrée - Référence : INV-20260208-001</p>
+    </div>
+</body>
+</html>'></iframe>
+        </div>
+
+        <hr style="margin: 40px 0;">
+        
+        <p style="text-align: center; color: #666;">
+            <strong>Templates successfully initialized on February 8, 2026</strong><br>
+            <small>The HTML text blocks in <code>/admin-v2/inventaire-configuration.php</code> are now populated and ready to use.</small>
+        </p>
+    </div>
+</body>
+</html>
