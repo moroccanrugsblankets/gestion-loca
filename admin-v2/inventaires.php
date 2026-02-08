@@ -218,6 +218,11 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                                         <a href="download-inventaire.php?id=<?php echo $inv['id']; ?>&download=1" class="btn btn-sm btn-outline-secondary" title="Télécharger">
                                             <i class="bi bi-download"></i>
                                         </a>
+                                        <?php if ($inv['statut'] === 'brouillon'): ?>
+                                        <a href="finalize-inventaire.php?id=<?php echo $inv['id']; ?>" class="btn btn-sm btn-success" title="Finaliser et envoyer">
+                                            <i class="bi bi-send"></i>
+                                        </a>
+                                        <?php endif; ?>
                                         <button type="button" class="btn btn-sm btn-outline-danger" title="Supprimer" 
                                                 onclick="confirmDelete(<?php echo $inv['id']; ?>)">
                                             <i class="bi bi-trash"></i>
@@ -320,6 +325,11 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                                         <a href="download-inventaire.php?id=<?php echo $inv['id']; ?>&download=1" class="btn btn-sm btn-outline-secondary" title="Télécharger">
                                             <i class="bi bi-download"></i>
                                         </a>
+                                        <?php if ($inv['statut'] === 'brouillon'): ?>
+                                        <a href="finalize-inventaire.php?id=<?php echo $inv['id']; ?>" class="btn btn-sm btn-success" title="Finaliser et envoyer">
+                                            <i class="bi bi-send"></i>
+                                        </a>
+                                        <?php endif; ?>
                                         <button type="button" class="btn btn-sm btn-outline-danger" title="Supprimer" 
                                                 onclick="confirmDelete(<?php echo $inv['id']; ?>)">
                                             <i class="bi bi-trash"></i>
