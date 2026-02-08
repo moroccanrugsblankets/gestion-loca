@@ -443,6 +443,11 @@ $stats = [
                                             title="Définir les valeurs par défaut">
                                         <i class="bi bi-gear"></i>
                                     </button>
+                                    <a href="manage-inventory-equipements.php?logement_id=<?php echo $logement['id']; ?>" 
+                                       class="btn btn-outline-success btn-sm"
+                                       title="Définir l'inventaire">
+                                        <i class="bi bi-box-seam"></i>
+                                    </a>
                                     <button class="btn btn-outline-danger delete-btn"
                                             data-id="<?php echo $logement['id']; ?>"
                                             data-reference="<?php echo htmlspecialchars($logement['reference']); ?>"
