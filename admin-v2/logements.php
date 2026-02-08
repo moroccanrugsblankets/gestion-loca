@@ -89,11 +89,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
             case 'set_defaults':
                 try {
+                    // Validate numeric inputs
+                    $cles_appartement = isset($_POST['default_cles_appartement']) ? (int)$_POST['default_cles_appartement'] : 2;
+                    $cles_boite_lettres = isset($_POST['default_cles_boite_lettres']) ? (int)$_POST['default_cles_boite_lettres'] : 1;
+                    
+                    // Server-side validation: ensure non-negative values
+                    if ($cles_appartement < 0 || $cles_appartement > 100) {
+                        $_SESSION['error'] = "Le nombre de clés d'appartement doit être entre 0 et 100.";
+                        header('Location: logements.php');
+                        exit;
+                    }
+                    if ($cles_boite_lettres < 0 || $cles_boite_lettres > 100) {
+                        $_SESSION['error'] = "Le nombre de clés de boîte aux lettres doit être entre 0 et 100.";
+                        header('Location: logements.php');
+                        exit;
+                    }
+                    
                     // Default room description template - used for main room and kitchen
                     $default_room_description = "• Revêtement de sol : parquet très bon état d'usage\n• Murs : peintures très bon état\n• Plafond : peintures très bon état\n• Installations électriques et plomberie : fonctionnelles";
                     
                     // Default bathroom description
                     $default_bathroom_description = "• Revêtement de sol : carrelage très bon état d'usage\n• Faïence : très bon état\n• Plafond : peintures très bon état\n• Installations électriques et plomberie : fonctionnelles";
+                    
+                    // Sanitize and validate text inputs
+                    $piece_principale = !empty($_POST['default_etat_piece_principale']) 
+                        ? trim($_POST['default_etat_piece_principale']) 
+                        : $default_room_description;
+                    $cuisine = !empty($_POST['default_etat_cuisine']) 
+                        ? trim($_POST['default_etat_cuisine']) 
+                        : $default_room_description;
+                    $salle_eau = !empty($_POST['default_etat_salle_eau']) 
+                        ? trim($_POST['default_etat_salle_eau']) 
+                        : $default_bathroom_description;
+                    
+                    // Validate text length (max 5000 characters per field)
+                    if (strlen($piece_principale) > 5000) {
+                        $_SESSION['error'] = "La description de la pièce principale est trop longue (max 5000 caractères).";
+                        header('Location: logements.php');
+                        exit;
+                    }
+                    if (strlen($cuisine) > 5000) {
+                        $_SESSION['error'] = "La description du coin cuisine est trop longue (max 5000 caractères).";
+                        header('Location: logements.php');
+                        exit;
+                    }
+                    if (strlen($salle_eau) > 5000) {
+                        $_SESSION['error'] = "La description de la salle d'eau est trop longue (max 5000 caractères).";
+                        header('Location: logements.php');
+                        exit;
+                    }
                     
                     $stmt = $pdo->prepare("
                         UPDATE logements SET 
@@ -105,11 +149,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         WHERE id = ?
                     ");
                     $stmt->execute([
-                        (int)($_POST['default_cles_appartement'] ?? 2),
-                        (int)($_POST['default_cles_boite_lettres'] ?? 1),
-                        !empty($_POST['default_etat_piece_principale']) ? $_POST['default_etat_piece_principale'] : $default_room_description,
-                        !empty($_POST['default_etat_cuisine']) ? $_POST['default_etat_cuisine'] : $default_room_description,
-                        !empty($_POST['default_etat_salle_eau']) ? $_POST['default_etat_salle_eau'] : $default_bathroom_description,
+                        $cles_appartement,
+                        $cles_boite_lettres,
+                        $piece_principale,
+                        $cuisine,
+                        $salle_eau,
                         $_POST['logement_id']
                     ]);
                     $_SESSION['success'] = "Valeurs par défaut enregistrées avec succès";
@@ -128,8 +172,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $statut_filter = isset($_GET['statut']) ? $_GET['statut'] : '';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
-// Build query - include default values columns
-$sql = "SELECT *, 
+// Build query - explicitly select columns we need
+$sql = "SELECT id, reference, adresse, appartement, type, surface, loyer, charges, 
+        depot_garantie, parking, statut, date_disponibilite, created_at, updated_at,
         COALESCE(default_cles_appartement, 2) as default_cles_appartement,
         COALESCE(default_cles_boite_lettres, 1) as default_cles_boite_lettres,
         default_etat_piece_principale,
@@ -637,12 +682,12 @@ $stats = [
                                 <div class="col-md-6">
                                     <label class="form-label">Nombre de clés d'appartement</label>
                                     <input type="number" name="default_cles_appartement" id="defaults_cles_appartement" 
-                                           class="form-control" min="0" value="2" required>
+                                           class="form-control" min="0" max="100" value="2" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Nombre de clés de boîte aux lettres</label>
                                     <input type="number" name="default_cles_boite_lettres" id="defaults_cles_boite_lettres" 
-                                           class="form-control" min="0" value="1" required>
+                                           class="form-control" min="0" max="100" value="1" required>
                                 </div>
                             </div>
                         </div>
@@ -654,7 +699,7 @@ $stats = [
                             <div class="mb-3">
                                 <label class="form-label">Pièce principale</label>
                                 <textarea name="default_etat_piece_principale" id="defaults_etat_piece_principale" 
-                                          class="form-control" rows="4" 
+                                          class="form-control" rows="4" maxlength="5000"
                                           placeholder="• Revêtement de sol : parquet très bon état d'usage&#10;• Murs : peintures très bon état&#10;• Plafond : peintures très bon état&#10;• Installations électriques et plomberie : fonctionnelles"></textarea>
                                 <small class="form-text text-muted">Si laissé vide, utilisera le texte par défaut standard</small>
                             </div>
@@ -662,7 +707,7 @@ $stats = [
                             <div class="mb-3">
                                 <label class="form-label">Coin cuisine</label>
                                 <textarea name="default_etat_cuisine" id="defaults_etat_cuisine" 
-                                          class="form-control" rows="4"
+                                          class="form-control" rows="4" maxlength="5000"
                                           placeholder="• Revêtement de sol : parquet très bon état d'usage&#10;• Murs : peintures très bon état&#10;• Plafond : peintures très bon état&#10;• Installations électriques et plomberie : fonctionnelles"></textarea>
                                 <small class="form-text text-muted">Si laissé vide, utilisera le texte par défaut standard</small>
                             </div>
@@ -670,7 +715,7 @@ $stats = [
                             <div class="mb-3">
                                 <label class="form-label">Salle d'eau et WC</label>
                                 <textarea name="default_etat_salle_eau" id="defaults_etat_salle_eau" 
-                                          class="form-control" rows="4"
+                                          class="form-control" rows="4" maxlength="5000"
                                           placeholder="• Revêtement de sol : carrelage très bon état d'usage&#10;• Faïence : très bon état&#10;• Plafond : peintures très bon état&#10;• Installations électriques et plomberie : fonctionnelles"></textarea>
                                 <small class="form-text text-muted">Si laissé vide, utilisera le texte par défaut standard</small>
                             </div>
