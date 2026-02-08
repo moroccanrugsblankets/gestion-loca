@@ -699,25 +699,31 @@ $stats = [
                             <div class="mb-3">
                                 <label class="form-label">Pièce principale</label>
                                 <textarea name="default_etat_piece_principale" id="defaults_etat_piece_principale" 
-                                          class="form-control" rows="4" maxlength="5000"
-                                          placeholder="• Revêtement de sol : parquet très bon état d'usage&#10;• Murs : peintures très bon état&#10;• Plafond : peintures très bon état&#10;• Installations électriques et plomberie : fonctionnelles"></textarea>
-                                <small class="form-text text-muted">Si laissé vide, utilisera le texte par défaut standard</small>
+                                          class="form-control" rows="4" maxlength="5000">• Revêtement de sol : parquet très bon état d'usage
+• Murs : peintures très bon état
+• Plafond : peintures très bon état
+• Installations électriques et plomberie : fonctionnelles</textarea>
+                                <small class="form-text text-muted">Modifiez le texte ci-dessus selon vos besoins</small>
                             </div>
                             
                             <div class="mb-3">
                                 <label class="form-label">Coin cuisine</label>
                                 <textarea name="default_etat_cuisine" id="defaults_etat_cuisine" 
-                                          class="form-control" rows="4" maxlength="5000"
-                                          placeholder="• Revêtement de sol : parquet très bon état d'usage&#10;• Murs : peintures très bon état&#10;• Plafond : peintures très bon état&#10;• Installations électriques et plomberie : fonctionnelles"></textarea>
-                                <small class="form-text text-muted">Si laissé vide, utilisera le texte par défaut standard</small>
+                                          class="form-control" rows="4" maxlength="5000">• Revêtement de sol : parquet très bon état d'usage
+• Murs : peintures très bon état
+• Plafond : peintures très bon état
+• Installations électriques et plomberie : fonctionnelles</textarea>
+                                <small class="form-text text-muted">Modifiez le texte ci-dessus selon vos besoins</small>
                             </div>
                             
                             <div class="mb-3">
                                 <label class="form-label">Salle d'eau et WC</label>
                                 <textarea name="default_etat_salle_eau" id="defaults_etat_salle_eau" 
-                                          class="form-control" rows="4" maxlength="5000"
-                                          placeholder="• Revêtement de sol : carrelage très bon état d'usage&#10;• Faïence : très bon état&#10;• Plafond : peintures très bon état&#10;• Installations électriques et plomberie : fonctionnelles"></textarea>
-                                <small class="form-text text-muted">Si laissé vide, utilisera le texte par défaut standard</small>
+                                          class="form-control" rows="4" maxlength="5000">• Revêtement de sol : carrelage très bon état d'usage
+• Faïence : très bon état
+• Plafond : peintures très bon état
+• Installations électriques et plomberie : fonctionnelles</textarea>
+                                <small class="form-text text-muted">Modifiez le texte ci-dessus selon vos besoins</small>
                             </div>
                         </div>
 
@@ -739,6 +745,13 @@ $stats = [
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Store default textarea values on page load to avoid duplication
+        const textareaDefaults = {
+            piecePrincipale: document.getElementById('defaults_etat_piece_principale')?.value.trim() || '',
+            cuisine: document.getElementById('defaults_etat_cuisine')?.value.trim() || '',
+            salleEau: document.getElementById('defaults_etat_salle_eau')?.value.trim() || ''
+        };
+        
         // Calculate total mensuel and revenus requis
         function calculateTotals(prefix) {
             const loyer = parseFloat(document.querySelector(`[name="loyer"]${prefix ? '#' + prefix + '_loyer' : ''}`).value) || 0;
@@ -812,9 +825,11 @@ $stats = [
                 // Set form fields with current values
                 document.getElementById('defaults_cles_appartement').value = this.dataset.defaultClesAppartement || '2';
                 document.getElementById('defaults_cles_boite_lettres').value = this.dataset.defaultClesBoiteLettres || '1';
-                document.getElementById('defaults_etat_piece_principale').value = this.dataset.defaultEtatPiecePrincipale || '';
-                document.getElementById('defaults_etat_cuisine').value = this.dataset.defaultEtatCuisine || '';
-                document.getElementById('defaults_etat_salle_eau').value = this.dataset.defaultEtatSalleEau || '';
+                
+                // For textareas, use stored value if available, otherwise use the defaults captured at page load
+                document.getElementById('defaults_etat_piece_principale').value = this.dataset.defaultEtatPiecePrincipale || textareaDefaults.piecePrincipale;
+                document.getElementById('defaults_etat_cuisine').value = this.dataset.defaultEtatCuisine || textareaDefaults.cuisine;
+                document.getElementById('defaults_etat_salle_eau').value = this.dataset.defaultEtatSalleEau || textareaDefaults.salleEau;
             });
         });
         
