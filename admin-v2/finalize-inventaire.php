@@ -59,7 +59,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 error_log("PDF file size: " . filesize($pdfPath) . " bytes");
                 
                 // Prepare email data with template variables
-                $typeLabel = $inventaire['type'] === 'entree' ? "d'entrée" : "de sortie";
                 $templateId = $inventaire['type'] === 'entree' ? 'inventaire_entree_envoye' : 'inventaire_sortie_envoye';
                 
                 $emailVariables = [
@@ -87,6 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     'type' => $typeLabel
                 ]);
                 
+                // Fifth parameter: $isAdminEmail = true (suppresses errors to avoid blocking the workflow)
                 $adminEmailSent = sendTemplatedEmail('inventaire_admin_copie', ADMIN_EMAIL, $adminEmailVariables, $pdfPath, true);
                 
                 if ($adminEmailSent) {
@@ -184,6 +184,9 @@ try {
     error_log("Adresse: " . ($inventaire['adresse'] ?? 'NULL'));
     error_log("Date inventaire: " . ($inventaire['date_inventaire'] ?? 'NULL'));
     error_log("Contrat ref: " . ($inventaire['contrat_ref'] ?? 'NULL'));
+    
+    // Compute type label once for reuse
+    $typeLabel = $inventaire['type'] === 'entree' ? "d'entrée" : "de sortie";
     
     // Fix missing address from logement if available
     $needsUpdate = false;
@@ -315,10 +318,11 @@ try {
                                     <p class="mb-2"><strong>Référence:</strong><br><?php echo htmlspecialchars($inventaire['reference_unique'] ?? 'N/A'); ?></p>
                                     <p class="mb-2"><strong>Type:</strong><br>
                                         <?php 
-                                        $typeLabel = $inventaire['type'] === 'entree' ? "Inventaire d'entrée" : "Inventaire de sortie";
+                                        // Display label for UI (different from email typeLabel)
+                                        $displayTypeLabel = $inventaire['type'] === 'entree' ? "Inventaire d'entrée" : "Inventaire de sortie";
                                         $badgeClass = $inventaire['type'] === 'entree' ? 'bg-success' : 'bg-warning';
                                         ?>
-                                        <span class="badge <?php echo $badgeClass; ?>"><?php echo $typeLabel; ?></span>
+                                        <span class="badge <?php echo $badgeClass; ?>"><?php echo $displayTypeLabel; ?></span>
                                     </p>
                                     <p class="mb-2"><strong>Date:</strong><br><?php echo date('d/m/Y', strtotime($inventaire['date_inventaire'])); ?></p>
                                 </div>
