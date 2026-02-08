@@ -308,10 +308,26 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             }
             
             const content = editor.getContent();
-            const previewContentId = previewCardId.replace('-card-', '-content-');
-            document.getElementById(previewContentId).innerHTML = content;
-            document.getElementById(previewCardId).style.display = 'block';
-            document.getElementById(previewCardId).scrollIntoView({ behavior: 'smooth' });
+            // Map preview card IDs to their corresponding content IDs
+            const contentIdMap = {
+                'preview-card-entree': 'preview-content-entree',
+                'preview-card-sortie': 'preview-content-sortie'
+            };
+            const previewContentId = contentIdMap[previewCardId];
+            
+            if (!previewContentId) {
+                console.error('Invalid preview card ID:', previewCardId);
+                return;
+            }
+            
+            const previewElement = document.getElementById(previewContentId);
+            if (previewElement) {
+                // Note: TinyMCE already sanitizes content, but be aware this renders HTML
+                // For production, consider additional sanitization if needed
+                previewElement.innerHTML = content;
+                document.getElementById(previewCardId).style.display = 'block';
+                document.getElementById(previewCardId).scrollIntoView({ behavior: 'smooth' });
+            }
         }
 
         function resetToDefault(editorId) {
