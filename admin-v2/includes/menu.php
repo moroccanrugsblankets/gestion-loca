@@ -23,6 +23,13 @@ $page_to_menu_map = [
     'edit-etat-lieux.php' => 'etats-lieux.php',
     'view-etat-lieux.php' => 'etats-lieux.php',
     'finalize-etat-lieux.php' => 'etats-lieux.php',
+    'manage-inventory-equipements.php' => 'logements.php',
+    'create-inventaire.php' => 'inventaires.php',
+    'inventaire-configuration.php' => 'inventaires.php',
+    'edit-inventaire.php' => 'inventaires.php',
+    'view-inventaire.php' => 'inventaires.php',
+    'finalize-inventaire.php' => 'inventaires.php',
+    'compare-inventaire.php' => 'inventaires.php',
     'administrateurs-actions.php' => 'administrateurs.php',
 ];
 
@@ -89,6 +96,20 @@ $active_menu = $page_to_menu_map[$current_page] ?? $current_page;
             <ul class="nav flex-column ms-3">
                 <li class="nav-item">
                     <a class="nav-link <?php echo $current_page === 'etat-lieux-configuration.php' ? 'active' : ''; ?>" href="etat-lieux-configuration.php" style="padding: 8px 20px; font-size: 0.9rem;">
+                        <i class="bi bi-gear"></i> Configuration
+                    </a>
+                </li>
+            </ul>
+            <?php endif; ?>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link <?php echo $active_menu === 'inventaires.php' ? 'active' : ''; ?>" href="inventaires.php">
+                <i class="bi bi-box-seam"></i> Inventaire
+            </a>
+            <?php if ($active_menu === 'inventaires.php' && $current_page !== 'finalize-inventaire.php'): ?>
+            <ul class="nav flex-column ms-3">
+                <li class="nav-item">
+                    <a class="nav-link <?php echo $current_page === 'inventaire-configuration.php' ? 'active' : ''; ?>" href="inventaire-configuration.php" style="padding: 8px 20px; font-size: 0.9rem;">
                         <i class="bi bi-gear"></i> Configuration
                     </a>
                 </li>
