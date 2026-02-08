@@ -92,7 +92,7 @@
     }
     
     /* Mobile responsive styles */
-    @media (max-width: 768px) {
+    @media (max-width: 1399px) {
         .sidebar {
             transform: translateX(-100%);
         }
@@ -120,22 +120,6 @@
             left: auto;
             right: auto;
             margin: 20px;
-        }
-    }
-    
-    /* Tablet responsive styles */
-    @media (min-width: 769px) and (max-width: 992px) {
-        .sidebar {
-            width: 200px;
-        }
-        
-        .main-content {
-            margin-left: 200px;
-        }
-        
-        .sidebar .nav-link {
-            padding: 10px 15px;
-            font-size: 0.9rem;
         }
     }
 </style>
