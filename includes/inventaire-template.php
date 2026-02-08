@@ -190,13 +190,11 @@ function getDefaultInventaireTemplate() {
 
     <div class="signature-section">
         <h3>Signatures</h3>
-        <p>Fait le {{date}}</p>
-        <p style="margin-top: 20px;">
-            <strong>Signature du bailleur :</strong> _______________________
-        </p>
-        <p style="margin-top: 20px;">
-            <strong>Signature du locataire :</strong> _______________________
-        </p>
+        <p>Fait à {{lieu_signature}}, le {{date_signature}}</p>
+        
+        <div class="signatures-section">
+            {{signatures_table}}
+        </div>
     </div>
 
     <div class="footer">
@@ -433,13 +431,11 @@ function getDefaultInventaireSortieTemplate() {
 
     <div class="signature-section">
         <h3>Signatures</h3>
-        <p>Fait le {{date}}</p>
-        <p style="margin-top: 20px;">
-            <strong>Signature du bailleur :</strong> _______________________
-        </p>
-        <p style="margin-top: 20px;">
-            <strong>Signature du locataire :</strong> _______________________
-        </p>
+        <p>Fait à {{lieu_signature}}, le {{date_signature}}</p>
+        
+        <div class="signatures-section">
+            {{signatures_table}}
+        </div>
     </div>
 
     <div class="footer">
