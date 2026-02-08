@@ -109,6 +109,17 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             padding: 20px;
             background: white;
         }
+        .copy-tooltip {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 10000;
+        }
     </style>
 </head>
 <body>
@@ -268,30 +279,36 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         });
 
         function copyVariable(variable) {
+            if (!navigator.clipboard) {
+                alert('La copie dans le presse-papiers n\'est pas disponible dans ce navigateur.');
+                return;
+            }
+            
             navigator.clipboard.writeText(variable).then(() => {
-                // Show a small tooltip or notification
+                // Show a small tooltip notification
                 const tooltip = document.createElement('div');
                 tooltip.textContent = 'Copié !';
-                tooltip.style.position = 'fixed';
-                tooltip.style.top = '50%';
-                tooltip.style.left = '50%';
-                tooltip.style.transform = 'translate(-50%, -50%)';
-                tooltip.style.background = '#28a745';
-                tooltip.style.color = 'white';
-                tooltip.style.padding = '10px 20px';
-                tooltip.style.borderRadius = '5px';
-                tooltip.style.zIndex = '10000';
+                tooltip.className = 'copy-tooltip';
                 document.body.appendChild(tooltip);
                 
                 setTimeout(() => {
                     document.body.removeChild(tooltip);
                 }, 1000);
+            }).catch(err => {
+                console.error('Erreur lors de la copie:', err);
+                alert('Impossible de copier dans le presse-papiers. Veuillez copier manuellement: ' + variable);
             });
         }
 
         function showPreview(editorId, previewCardId) {
-            const content = tinymce.get(editorId).getContent();
-            const previewContentId = previewCardId === 'preview-card-sortie' ? 'preview-content-sortie' : 'preview-content-entree';
+            const editor = tinymce.get(editorId);
+            if (!editor) {
+                alert('L\'éditeur n\'est pas encore chargé. Veuillez réessayer dans quelques instants.');
+                return;
+            }
+            
+            const content = editor.getContent();
+            const previewContentId = previewCardId.replace('-card-', '-content-');
             document.getElementById(previewContentId).innerHTML = content;
             document.getElementById(previewCardId).style.display = 'block';
             document.getElementById(previewCardId).scrollIntoView({ behavior: 'smooth' });
@@ -299,8 +316,13 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 
         function resetToDefault(editorId) {
             if (confirm('Êtes-vous sûr de vouloir réinitialiser le template avec la version par défaut ? Toutes vos modifications seront perdues.')) {
-                // Clear the editor content
-                tinymce.get(editorId).setContent('');
+                const editor = tinymce.get(editorId);
+                if (!editor) {
+                    alert('L\'éditeur n\'est pas encore chargé. Veuillez réessayer dans quelques instants.');
+                    return;
+                }
+                
+                editor.setContent('');
                 alert('Template réinitialisé. N\'oubliez pas de sauvegarder pour appliquer les changements.');
             }
         }
