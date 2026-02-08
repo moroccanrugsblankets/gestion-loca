@@ -50,6 +50,8 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     <title>Configuration Inventaire - My Invest Immobilier</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- TinyMCE Cloud - API key is public and domain-restricted -->
+    <script src="https://cdn.tiny.cloud/1/odjqanpgdv2zolpduplee65ntoou1b56hg6gvgxvrt8dreh0/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
     <?php require_once __DIR__ . '/includes/sidebar-styles.php'; ?>
     <style>
         .header {
@@ -66,9 +68,46 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             margin-bottom: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .template-editor {
-            font-family: monospace;
-            font-size: 12px;
+        .variables-info {
+            background: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .variables-info h6 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .variable-tag {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            margin: 3px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .variable-tag:hover {
+            background: #2980b9;
+        }
+        .code-editor {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            min-height: 500px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+        .preview-section {
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            padding: 20px;
+            background: white;
         }
     </style>
 </head>
@@ -105,37 +144,85 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         <form method="POST">
             <div class="config-card">
                 <h5 class="mb-4">
-                    <i class="bi bi-file-earmark-text"></i> Template d'inventaire d'entrée
+                    <i class="bi bi-box-arrow-in-right text-success"></i> Template d'inventaire d'entrée
                 </h5>
-                <div class="alert alert-info">
-                    <strong>Note:</strong> Laissez vide pour utiliser le template par défaut. Le template actuel est généré automatiquement en HTML.
+                <div class="variables-info">
+                    <h6><i class="bi bi-info-circle"></i> Variables disponibles</h6>
+                    <p class="mb-2">Cliquez sur une variable pour la copier. Utilisez ces variables dans le template HTML :</p>
+                    <div>
+                        <span class="variable-tag" onclick="copyVariable('{{reference}}')">{{reference}}</span>
+                        <span class="variable-tag" onclick="copyVariable('{{date}}')">{{date}}</span>
+                        <span class="variable-tag" onclick="copyVariable('{{adresse}}')">{{adresse}}</span>
+                        <span class="variable-tag" onclick="copyVariable('{{appartement}}')">{{appartement}}</span>
+                        <span class="variable-tag" onclick="copyVariable('{{locataire_nom}}')">{{locataire_nom}}</span>
+                        <span class="variable-tag" onclick="copyVariable('{{equipements}}')">{{equipements}}</span>
+                        <span class="variable-tag" onclick="copyVariable('{{observations}}')">{{observations}}</span>
+                    </div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Template HTML personnalisé (optionnel)</label>
-                    <textarea name="inventaire_template_html" class="form-control template-editor" rows="10" 
-                              placeholder="Template HTML pour l'inventaire d'entrée..."><?php echo htmlspecialchars($templates['inventaire_template_html'] ?? ''); ?></textarea>
-                    <small class="text-muted">
-                        Variables disponibles: {{reference}}, {{date}}, {{adresse}}, {{locataire_nom}}, {{equipements}}
+                    <label for="inventaire_template_html" class="form-label"><strong>Template HTML de l'Inventaire d'Entrée</strong></label>
+                    <textarea 
+                        class="form-control code-editor" 
+                        id="inventaire_template_html" 
+                        name="inventaire_template_html"><?php echo htmlspecialchars($templates['inventaire_template_html'] ?? ''); ?></textarea>
+                    <small class="form-text text-muted">
+                        Modifiez le code HTML ci-dessus. Les variables seront remplacées automatiquement lors de la génération de l'inventaire d'entrée.
                     </small>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-save"></i> Enregistrer le Template d'Entrée
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="showPreview('inventaire_template_html', 'preview-card-entree')">
+                        <i class="bi bi-eye"></i> Prévisualiser
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="resetToDefault('inventaire_template_html')">
+                        <i class="bi bi-arrow-counterclockwise"></i> Réinitialiser par défaut
+                    </button>
                 </div>
             </div>
 
             <div class="config-card">
                 <h5 class="mb-4">
-                    <i class="bi bi-file-earmark-text"></i> Template d'inventaire de sortie
+                    <i class="bi bi-box-arrow-right text-danger"></i> Template d'inventaire de sortie
                 </h5>
-                <div class="alert alert-info">
-                    <strong>Note:</strong> Laissez vide pour utiliser le template par défaut.
+                <div class="variables-info">
+                    <h6><i class="bi bi-info-circle"></i> Variables disponibles</h6>
+                    <p class="mb-2">Cliquez sur une variable pour la copier. Utilisez ces variables dans le template HTML :</p>
+                    <div>
+                        <span class="variable-tag" onclick="copyVariable('{{reference}}')">{{reference}}</span>
+                        <span class="variable-tag" onclick="copyVariable('{{date}}')">{{date}}</span>
+                        <span class="variable-tag" onclick="copyVariable('{{adresse}}')">{{adresse}}</span>
+                        <span class="variable-tag" onclick="copyVariable('{{appartement}}')">{{appartement}}</span>
+                        <span class="variable-tag" onclick="copyVariable('{{locataire_nom}}')">{{locataire_nom}}</span>
+                        <span class="variable-tag" onclick="copyVariable('{{equipements}}')">{{equipements}}</span>
+                        <span class="variable-tag" onclick="copyVariable('{{comparaison}}')">{{comparaison}}</span>
+                        <span class="variable-tag" onclick="copyVariable('{{observations}}')">{{observations}}</span>
+                    </div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Template HTML personnalisé (optionnel)</label>
-                    <textarea name="inventaire_sortie_template_html" class="form-control template-editor" rows="10" 
-                              placeholder="Template HTML pour l'inventaire de sortie..."><?php echo htmlspecialchars($templates['inventaire_sortie_template_html'] ?? ''); ?></textarea>
-                    <small class="text-muted">
-                        Variables disponibles: {{reference}}, {{date}}, {{adresse}}, {{locataire_nom}}, {{equipements}}, {{comparaison}}
+                    <label for="inventaire_sortie_template_html" class="form-label"><strong>Template HTML de l'Inventaire de Sortie</strong></label>
+                    <textarea 
+                        class="form-control code-editor" 
+                        id="inventaire_sortie_template_html" 
+                        name="inventaire_sortie_template_html"><?php echo htmlspecialchars($templates['inventaire_sortie_template_html'] ?? ''); ?></textarea>
+                    <small class="form-text text-muted">
+                        Modifiez le code HTML ci-dessus. Les variables seront remplacées automatiquement lors de la génération de l'inventaire de sortie.
                     </small>
                 </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-save"></i> Enregistrer le Template de Sortie
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="showPreview('inventaire_sortie_template_html', 'preview-card-sortie')">
+                        <i class="bi bi-eye"></i> Prévisualiser
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="resetToDefault('inventaire_sortie_template_html')">
+                        <i class="bi bi-arrow-counterclockwise"></i> Réinitialiser par défaut
+                    </button>
+                </div>
             </div>
+
 
             <div class="d-flex justify-content-between">
                 <a href="inventaires.php" class="btn btn-secondary">
@@ -146,8 +233,77 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 </button>
             </div>
         </form>
+
+        <div class="config-card" id="preview-card-entree" style="display: none;">
+            <h5><i class="bi bi-eye"></i> Prévisualisation - Inventaire d'Entrée</h5>
+            <div class="preview-section" id="preview-content-entree"></div>
+        </div>
+
+        <div class="config-card" id="preview-card-sortie" style="display: none;">
+            <h5><i class="bi bi-eye"></i> Prévisualisation - Inventaire de Sortie</h5>
+            <div class="preview-section" id="preview-content-sortie"></div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize TinyMCE for entry template
+        tinymce.init({
+            selector: '#inventaire_template_html',
+            height: 500,
+            plugins: 'code preview searchreplace autolink directionality visualblocks visualchars fullscreen link table charmap hr pagebreak nonbreaking anchor insertdatetime advlist lists wordcount help charmap',
+            toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | code preview | help',
+            content_style: 'body { font-family: Arial, sans-serif; font-size: 10pt; }',
+            menubar: false
+        });
+
+        // Initialize TinyMCE for exit template
+        tinymce.init({
+            selector: '#inventaire_sortie_template_html',
+            height: 500,
+            plugins: 'code preview searchreplace autolink directionality visualblocks visualchars fullscreen link table charmap hr pagebreak nonbreaking anchor insertdatetime advlist lists wordcount help charmap',
+            toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | code preview | help',
+            content_style: 'body { font-family: Arial, sans-serif; font-size: 10pt; }',
+            menubar: false
+        });
+
+        function copyVariable(variable) {
+            navigator.clipboard.writeText(variable).then(() => {
+                // Show a small tooltip or notification
+                const tooltip = document.createElement('div');
+                tooltip.textContent = 'Copié !';
+                tooltip.style.position = 'fixed';
+                tooltip.style.top = '50%';
+                tooltip.style.left = '50%';
+                tooltip.style.transform = 'translate(-50%, -50%)';
+                tooltip.style.background = '#28a745';
+                tooltip.style.color = 'white';
+                tooltip.style.padding = '10px 20px';
+                tooltip.style.borderRadius = '5px';
+                tooltip.style.zIndex = '10000';
+                document.body.appendChild(tooltip);
+                
+                setTimeout(() => {
+                    document.body.removeChild(tooltip);
+                }, 1000);
+            });
+        }
+
+        function showPreview(editorId, previewCardId) {
+            const content = tinymce.get(editorId).getContent();
+            const previewContentId = previewCardId === 'preview-card-sortie' ? 'preview-content-sortie' : 'preview-content-entree';
+            document.getElementById(previewContentId).innerHTML = content;
+            document.getElementById(previewCardId).style.display = 'block';
+            document.getElementById(previewCardId).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function resetToDefault(editorId) {
+            if (confirm('Êtes-vous sûr de vouloir réinitialiser le template avec la version par défaut ? Toutes vos modifications seront perdues.')) {
+                // Clear the editor content
+                tinymce.get(editorId).setContent('');
+                alert('Template réinitialisé. N\'oubliez pas de sauvegarder pour appliquer les changements.');
+            }
+        }
+    </script>
 </body>
 </html>
