@@ -703,7 +703,7 @@ $stats = [
 • Murs : peintures très bon état
 • Plafond : peintures très bon état
 • Installations électriques et plomberie : fonctionnelles</textarea>
-                                <small class="form-text text-muted">Si laissé vide, utilisera le texte par défaut standard</small>
+                                <small class="form-text text-muted">Modifiez le texte ci-dessus selon vos besoins</small>
                             </div>
                             
                             <div class="mb-3">
@@ -713,7 +713,7 @@ $stats = [
 • Murs : peintures très bon état
 • Plafond : peintures très bon état
 • Installations électriques et plomberie : fonctionnelles</textarea>
-                                <small class="form-text text-muted">Si laissé vide, utilisera le texte par défaut standard</small>
+                                <small class="form-text text-muted">Modifiez le texte ci-dessus selon vos besoins</small>
                             </div>
                             
                             <div class="mb-3">
@@ -723,7 +723,7 @@ $stats = [
 • Faïence : très bon état
 • Plafond : peintures très bon état
 • Installations électriques et plomberie : fonctionnelles</textarea>
-                                <small class="form-text text-muted">Si laissé vide, utilisera le texte par défaut standard</small>
+                                <small class="form-text text-muted">Modifiez le texte ci-dessus selon vos besoins</small>
                             </div>
                         </div>
 
@@ -747,9 +747,9 @@ $stats = [
     <script>
         // Store default textarea values on page load to avoid duplication
         const textareaDefaults = {
-            piecePrincipale: document.getElementById('defaults_etat_piece_principale')?.textContent.trim() || '',
-            cuisine: document.getElementById('defaults_etat_cuisine')?.textContent.trim() || '',
-            salleEau: document.getElementById('defaults_etat_salle_eau')?.textContent.trim() || ''
+            piecePrincipale: document.getElementById('defaults_etat_piece_principale')?.value.trim() || '',
+            cuisine: document.getElementById('defaults_etat_cuisine')?.value.trim() || '',
+            salleEau: document.getElementById('defaults_etat_salle_eau')?.value.trim() || ''
         };
         
         // Calculate total mensuel and revenus requis
