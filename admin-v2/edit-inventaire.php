@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Update signature if provided
                 if (!empty($tenantInfo['signature'])) {
                     // Validate signature format
-                    if (!preg_match('/^data:image\/(jpeg|jpg|png);base64,/', $tenantInfo['signature'])) {
+                    if (!preg_match('/^data:image\/(jpeg|jpg|png);base64,[A-Za-z0-9+\/=]+$/', $tenantInfo['signature'])) {
                         error_log("Invalid signature format for tenant ID: $tenantId");
                         continue;
                     }
@@ -375,7 +375,7 @@ foreach ($existing_tenants as &$tenant) {
                                 $signatureSrc = $tenant['signature_data'];
                                 
                                 // Validate data URL format with length check (max 2MB)
-                                if (preg_match('/^data:image\/(jpeg|jpg|png);base64,([A-Za-z0-9+\/=]+)$/', $signatureSrc, $matches)) {
+                                if (preg_match('/^data:image\/(jpeg|jpg|png);base64,(?:[A-Za-z0-9+\/=]+)$/', $signatureSrc)) {
                                     // Data URL - validate size
                                     if (strlen($signatureSrc) <= 2 * 1024 * 1024) {
                                         $displaySrc = $signatureSrc;

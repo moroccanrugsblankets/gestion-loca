@@ -359,7 +359,7 @@ function updateInventaireTenantSignature($inventaireLocataireId, $signatureData,
     }
     
     // Validate that signature data is a valid data URL
-    if (!preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $signatureData, $matches)) {
+    if (!preg_match('/^data:image\/(png|jpeg|jpg);base64,([A-Za-z0-9+\/=]+)$/', $signatureData, $matches)) {
         error_log("Invalid signature data format for inventaire_locataire ID: $inventaireLocataireId");
         return false;
     }
