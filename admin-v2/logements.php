@@ -86,6 +86,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([$_POST['logement_id']]);
                 $_SESSION['success'] = "Logement supprimé";
                 break;
+                
+            case 'set_defaults':
+                try {
+                    // Validate numeric inputs
+                    $cles_appartement = isset($_POST['default_cles_appartement']) ? (int)$_POST['default_cles_appartement'] : 2;
+                    $cles_boite_lettres = isset($_POST['default_cles_boite_lettres']) ? (int)$_POST['default_cles_boite_lettres'] : 1;
+                    
+                    // Server-side validation: ensure non-negative values
+                    if ($cles_appartement < 0 || $cles_appartement > 100) {
+                        $_SESSION['error'] = "Le nombre de clés d'appartement doit être entre 0 et 100.";
+                        header('Location: logements.php');
+                        exit;
+                    }
+                    if ($cles_boite_lettres < 0 || $cles_boite_lettres > 100) {
+                        $_SESSION['error'] = "Le nombre de clés de boîte aux lettres doit être entre 0 et 100.";
+                        header('Location: logements.php');
+                        exit;
+                    }
+                    
+                    // Default room description template - used for main room and kitchen
+                    $default_room_description = "• Revêtement de sol : parquet très bon état d'usage\n• Murs : peintures très bon état\n• Plafond : peintures très bon état\n• Installations électriques et plomberie : fonctionnelles";
+                    
+                    // Default bathroom description
+                    $default_bathroom_description = "• Revêtement de sol : carrelage très bon état d'usage\n• Faïence : très bon état\n• Plafond : peintures très bon état\n• Installations électriques et plomberie : fonctionnelles";
+                    
+                    // Sanitize and validate text inputs
+                    $piece_principale = !empty($_POST['default_etat_piece_principale']) 
+                        ? trim($_POST['default_etat_piece_principale']) 
+                        : $default_room_description;
+                    $cuisine = !empty($_POST['default_etat_cuisine']) 
+                        ? trim($_POST['default_etat_cuisine']) 
+                        : $default_room_description;
+                    $salle_eau = !empty($_POST['default_etat_salle_eau']) 
+                        ? trim($_POST['default_etat_salle_eau']) 
+                        : $default_bathroom_description;
+                    
+                    // Validate text length (max 5000 characters per field)
+                    if (strlen($piece_principale) > 5000) {
+                        $_SESSION['error'] = "La description de la pièce principale est trop longue (max 5000 caractères).";
+                        header('Location: logements.php');
+                        exit;
+                    }
+                    if (strlen($cuisine) > 5000) {
+                        $_SESSION['error'] = "La description du coin cuisine est trop longue (max 5000 caractères).";
+                        header('Location: logements.php');
+                        exit;
+                    }
+                    if (strlen($salle_eau) > 5000) {
+                        $_SESSION['error'] = "La description de la salle d'eau est trop longue (max 5000 caractères).";
+                        header('Location: logements.php');
+                        exit;
+                    }
+                    
+                    $stmt = $pdo->prepare("
+                        UPDATE logements SET 
+                            default_cles_appartement = ?,
+                            default_cles_boite_lettres = ?,
+                            default_etat_piece_principale = ?,
+                            default_etat_cuisine = ?,
+                            default_etat_salle_eau = ?
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([
+                        $cles_appartement,
+                        $cles_boite_lettres,
+                        $piece_principale,
+                        $cuisine,
+                        $salle_eau,
+                        $_POST['logement_id']
+                    ]);
+                    $_SESSION['success'] = "Valeurs par défaut enregistrées avec succès";
+                } catch (PDOException $e) {
+                    $_SESSION['error'] = "Erreur lors de l'enregistrement des valeurs par défaut.";
+                    error_log("Erreur set defaults logement: " . $e->getMessage());
+                }
+                break;
         }
         header('Location: logements.php');
         exit;
@@ -96,8 +172,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $statut_filter = isset($_GET['statut']) ? $_GET['statut'] : '';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
-// Build query
-$sql = "SELECT * FROM logements WHERE 1=1";
+// Build query - explicitly select columns we need
+$sql = "SELECT id, reference, adresse, appartement, type, surface, loyer, charges, 
+        depot_garantie, parking, statut, date_disponibilite, created_at, updated_at,
+        COALESCE(default_cles_appartement, 2) as default_cles_appartement,
+        COALESCE(default_cles_boite_lettres, 1) as default_cles_boite_lettres,
+        default_etat_piece_principale,
+        default_etat_cuisine,
+        default_etat_salle_eau
+        FROM logements WHERE 1=1";
 $params = [];
 
 if ($statut_filter) {
@@ -347,6 +430,19 @@ $stats = [
                                             data-bs-target="#editLogementModal">
                                         <i class="bi bi-pencil"></i>
                                     </button>
+                                    <button class="btn btn-outline-info defaults-btn" 
+                                            data-id="<?php echo $logement['id']; ?>"
+                                            data-reference="<?php echo htmlspecialchars($logement['reference']); ?>"
+                                            data-default-cles-appartement="<?php echo $logement['default_cles_appartement']; ?>"
+                                            data-default-cles-boite-lettres="<?php echo $logement['default_cles_boite_lettres']; ?>"
+                                            data-default-etat-piece-principale="<?php echo htmlspecialchars($logement['default_etat_piece_principale'] ?? ''); ?>"
+                                            data-default-etat-cuisine="<?php echo htmlspecialchars($logement['default_etat_cuisine'] ?? ''); ?>"
+                                            data-default-etat-salle-eau="<?php echo htmlspecialchars($logement['default_etat_salle_eau'] ?? ''); ?>"
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#setDefaultsModal"
+                                            title="Définir les valeurs par défaut">
+                                        <i class="bi bi-gear"></i>
+                                    </button>
                                     <button class="btn btn-outline-danger delete-btn"
                                             data-id="<?php echo $logement['id']; ?>"
                                             data-reference="<?php echo htmlspecialchars($logement['reference']); ?>"
@@ -562,6 +658,85 @@ $stats = [
         </div>
     </div>
 
+    <!-- Set Defaults Modal -->
+    <div class="modal fade" id="setDefaultsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Définir les Valeurs par Défaut - <span id="defaults_reference"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="logements.php" method="POST">
+                    <input type="hidden" name="action" value="set_defaults">
+                    <input type="hidden" name="logement_id" id="defaults_id">
+                    <div class="modal-body">
+                        <p class="text-muted mb-4">
+                            <i class="bi bi-info-circle"></i> 
+                            Ces valeurs seront utilisées par défaut lors de la création d'un état des lieux d'entrée pour ce logement.
+                        </p>
+                        
+                        <!-- Remise des clés -->
+                        <div class="mb-4">
+                            <h6 class="mb-3"><i class="bi bi-key"></i> Remise des clés</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Nombre de clés d'appartement</label>
+                                    <input type="number" name="default_cles_appartement" id="defaults_cles_appartement" 
+                                           class="form-control" min="0" max="100" value="2" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Nombre de clés de boîte aux lettres</label>
+                                    <input type="number" name="default_cles_boite_lettres" id="defaults_cles_boite_lettres" 
+                                           class="form-control" min="0" max="100" value="1" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Description du logement - État d'entrée -->
+                        <div class="mb-4">
+                            <h6 class="mb-3"><i class="bi bi-house-door"></i> Description du logement - État d'entrée</h6>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Pièce principale</label>
+                                <textarea name="default_etat_piece_principale" id="defaults_etat_piece_principale" 
+                                          class="form-control" rows="4" maxlength="5000"
+                                          placeholder="• Revêtement de sol : parquet très bon état d'usage&#10;• Murs : peintures très bon état&#10;• Plafond : peintures très bon état&#10;• Installations électriques et plomberie : fonctionnelles"></textarea>
+                                <small class="form-text text-muted">Si laissé vide, utilisera le texte par défaut standard</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Coin cuisine</label>
+                                <textarea name="default_etat_cuisine" id="defaults_etat_cuisine" 
+                                          class="form-control" rows="4" maxlength="5000"
+                                          placeholder="• Revêtement de sol : parquet très bon état d'usage&#10;• Murs : peintures très bon état&#10;• Plafond : peintures très bon état&#10;• Installations électriques et plomberie : fonctionnelles"></textarea>
+                                <small class="form-text text-muted">Si laissé vide, utilisera le texte par défaut standard</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Salle d'eau et WC</label>
+                                <textarea name="default_etat_salle_eau" id="defaults_etat_salle_eau" 
+                                          class="form-control" rows="4" maxlength="5000"
+                                          placeholder="• Revêtement de sol : carrelage très bon état d'usage&#10;• Faïence : très bon état&#10;• Plafond : peintures très bon état&#10;• Installations électriques et plomberie : fonctionnelles"></textarea>
+                                <small class="form-text text-muted">Si laissé vide, utilisera le texte par défaut standard</small>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="bi bi-lightbulb"></i> 
+                            <strong>Note :</strong> Les relevés des compteurs ne sont pas configurables ici car ils doivent être saisis manuellement lors de chaque état des lieux.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Enregistrer les valeurs par défaut
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Calculate total mensuel and revenus requis
@@ -624,6 +799,22 @@ $stats = [
             btn.addEventListener('click', function() {
                 document.getElementById('delete_id').value = this.dataset.id;
                 document.getElementById('delete_reference').textContent = this.dataset.reference;
+            });
+        });
+        
+        // Defaults button handler
+        document.querySelectorAll('.defaults-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Set hidden fields
+                document.getElementById('defaults_id').value = this.dataset.id;
+                document.getElementById('defaults_reference').textContent = this.dataset.reference;
+                
+                // Set form fields with current values
+                document.getElementById('defaults_cles_appartement').value = this.dataset.defaultClesAppartement || '2';
+                document.getElementById('defaults_cles_boite_lettres').value = this.dataset.defaultClesBoiteLettres || '1';
+                document.getElementById('defaults_etat_piece_principale').value = this.dataset.defaultEtatPiecePrincipale || '';
+                document.getElementById('defaults_etat_cuisine').value = this.dataset.defaultEtatCuisine || '';
+                document.getElementById('defaults_etat_salle_eau').value = this.dataset.defaultEtatSalleEau || '';
             });
         });
         
