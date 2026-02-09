@@ -21,6 +21,65 @@ define('INVENTAIRE_SIGNATURE_MAX_HEIGHT', '10mm');
 define('INVENTAIRE_SIGNATURE_IMG_STYLE', 'max-width: 150px; max-height: 40px; border: none; border-width: 0; border-style: none; border-color: transparent; outline-width: 0; padding: 0; background: transparent;');
 
 /**
+ * Convert relative image paths to absolute URLs for TCPDF
+ * TCPDF requires absolute URLs or file paths to display images correctly
+ */
+function convertRelativeImagePathsToAbsolute($html, $config) {
+    $baseUrl = rtrim($config['SITE_URL'], '/');
+    
+    // Process all img tags
+    $html = preg_replace_callback(
+        '/<img([^>]*?)src=["\']([^"\']+)["\']([^>]*?)>/i',
+        function($matches) use ($baseUrl) {
+            $beforeSrc = $matches[1];
+            $src = $matches[2];
+            $afterSrc = $matches[3];
+            
+            // Skip data URIs (base64 encoded images)
+            if (strpos($src, 'data:') === 0) {
+                return $matches[0];
+            }
+            
+            // Skip already absolute URLs (http:// or https://)
+            if (preg_match('#^https?://#i', $src)) {
+                return $matches[0];
+            }
+            
+            // Convert relative paths to absolute URLs
+            $absoluteSrc = $src;
+            
+            // Handle paths starting with ../
+            // Note: We strip all ../ because we're converting to web URLs from the site root
+            // The template is stored in database and paths should be relative to web root
+            if (strpos($src, '../') === 0) {
+                // Remove leading ../
+                $relativePath = preg_replace('#^(\.\./)+#', '', $src);
+                $absoluteSrc = $baseUrl . '/' . $relativePath;
+            }
+            // Handle paths starting with ./
+            elseif (strpos($src, './') === 0) {
+                $relativePath = substr($src, 2);
+                $absoluteSrc = $baseUrl . '/' . $relativePath;
+            }
+            // Handle paths starting with /
+            elseif (strpos($src, '/') === 0) {
+                $absoluteSrc = $baseUrl . $src;
+            }
+            // Handle simple relative paths (no leading slash)
+            else {
+                $absoluteSrc = $baseUrl . '/' . $src;
+            }
+            
+            // Return the img tag with the absolute URL
+            return '<img' . $beforeSrc . 'src="' . $absoluteSrc . '"' . $afterSrc . '>';
+        },
+        $html
+    );
+    
+    return $html;
+}
+
+/**
  * Générer le PDF de l'inventaire
  * 
  * @param int $inventaireId ID de l'inventaire
@@ -143,6 +202,10 @@ function generateInventairePDF($inventaireId) {
         }
         
         error_log("HTML generated - Length: " . strlen($html) . " characters");
+
+        // Convert relative image paths to absolute URLs for TCPDF
+        $html = convertRelativeImagePathsToAbsolute($html, $config);
+        error_log("Image paths converted to absolute URLs");
 
         // Créer le PDF avec TCPDF
         error_log("Creating TCPDF instance...");
