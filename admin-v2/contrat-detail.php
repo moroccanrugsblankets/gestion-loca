@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $adminInfo = fetchOne("SELECT nom, prenom FROM administrateurs WHERE id = ?", [$adminId]);
         $adminName = $adminInfo ? $adminInfo['prenom'] . ' ' . $adminInfo['nom'] : 'Administrateur';
         
-        // Send email to client with admin in Cc
+        // Send email to client with admin notification in Cc (isAdminEmail parameter enables Cc to admins)
         if (!empty($locataires)) {
             $firstTenant = $locataires[0];
             sendTemplatedEmail('contrat_valide_client', $firstTenant['email'], [
@@ -114,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 'date_prise_effet' => date('d/m/Y', strtotime($contrat['date_prise_effet'])),
                 'depot_garantie' => number_format($contrat['depot_garantie'], 2, ',', ' '),
                 'lien_telecharger' => BASE_URL . '/pdf/download.php?contrat_id=' . $contractId
-            ], null, true); // isAdminEmail = true to add admins in Cc
+            ], null, true);
         }
         
         $_SESSION['success'] = "Contrat validé avec succès. La signature électronique de la société a été ajoutée au PDF.";
@@ -189,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $adminInfo = fetchOne("SELECT nom, prenom FROM administrateurs WHERE id = ?", [$adminId]);
         $adminName = $adminInfo ? $adminInfo['prenom'] . ' ' . $adminInfo['nom'] : 'Administrateur';
         
-        // Send email to client
+        // Send email to client with admin notification in Cc (isAdminEmail parameter enables Cc to admins)
         if (!empty($locataires)) {
             $firstTenant = $locataires[0];
             sendTemplatedEmail('contrat_annule_client', $firstTenant['email'], [
@@ -198,7 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 'reference' => $contrat['reference_contrat'],
                 'logement' => $contrat['reference'] . ' - ' . $contrat['adresse'],
                 'motif_annulation' => $motif
-            ], null, true); // isAdminEmail = true to add admins in Cc
+            ], null, true);
         }
         
         $_SESSION['success'] = "Contrat annulé. Le client a été notifié.";
