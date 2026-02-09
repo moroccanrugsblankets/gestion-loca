@@ -619,14 +619,15 @@ function sendEmailToAdmins($subject, $body, $attachmentPath = null, $isHtml = tr
     // Liste des emails administrateurs (use associative array for O(1) duplicate checking)
     $adminEmailsMap = [];
     
-    // Email principal
-    if (!empty($config['ADMIN_EMAIL'])) {
+    // Email principal - use parameter or fallback to config
+    $adminEmail = getAdminEmail();
+    if (!empty($adminEmail)) {
         // Validate email format
-        if (filter_var($config['ADMIN_EMAIL'], FILTER_VALIDATE_EMAIL)) {
-            $adminEmailsMap[$config['ADMIN_EMAIL']] = true;
+        if (filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+            $adminEmailsMap[$adminEmail] = true;
         } else {
-            $results['errors'][] = "Invalid ADMIN_EMAIL format: " . $config['ADMIN_EMAIL'];
-            error_log("Invalid ADMIN_EMAIL configured: " . $config['ADMIN_EMAIL']);
+            $results['errors'][] = "Invalid ADMIN_EMAIL format: " . $adminEmail;
+            error_log("Invalid ADMIN_EMAIL configured: " . $adminEmail);
         }
     }
     
