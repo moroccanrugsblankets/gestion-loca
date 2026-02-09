@@ -110,8 +110,8 @@ $csrfToken = generateCsrfToken();
         <!-- Barre de progression -->
         <div class="mb-4">
             <div class="progress" style="height: 30px;">
-                <div class="progress-bar bg-success" role="progressbar" style="width: 25%;">
-                    Étape 1/4 - Informations
+                <div class="progress-bar bg-success" role="progressbar" style="width: 33%;">
+                    Étape 1/3 - Informations
                 </div>
             </div>
         </div>

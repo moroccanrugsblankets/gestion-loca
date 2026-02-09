@@ -1,6 +1,6 @@
 <?php
 /**
- * Signature - Étape 4 : Upload des documents d'identité
+ * Signature - Étape 3 : Upload des documents d'identité
  * My Invest Immobilier
  */
 
@@ -102,8 +102,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         'depot_garantie' => formatMontant($contrat['depot_garantie'])
                                     ];
                                     
-                                    // Envoyer l'email avec le template HTML
+                                    // Envoyer l'email de confirmation avec le contrat PDF
                                     sendTemplatedEmail('contrat_finalisation_client', $locataire['email'], $variables, $pdfPath, false);
+                                    
+                                    // Envoyer l'email de demande de justificatif de paiement (en parallèle)
+                                    sendTemplatedEmail('demande_justificatif_paiement', $locataire['email'], $variables, null, false);
                                 }
                                 
                                 // Envoyer une notification aux administrateurs avec le PDF
@@ -123,7 +126,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         'reference' => $contrat['reference_unique'],
                                         'logement' => $contrat['adresse'],
                                         'locataires' => $locatairesStr,
-                                        'date_signature' => date('d/m/Y à H:i'),
+                                        'date_finalisation' => date('d/m/Y à H:i'),
+                                        'depot_garantie' => formatMontant($contrat['depot_garantie']),
                                         'lien_admin' => $lienAdmin
                                     ];
                                     
@@ -133,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     }
                                 }
                                 
-                                logAction($contratId, 'finalisation_contrat', 'Contrat finalisé et emails envoyés');
+                                logAction($contratId, 'finalisation_contrat', 'Contrat finalisé et emails envoyés (confirmation + demande justificatif)');
                                 
                                 // Rediriger vers la confirmation
                                 header('Location: confirmation.php');
@@ -174,7 +178,7 @@ $csrfToken = generateCsrfToken();
         <div class="mb-4">
             <div class="progress" style="height: 30px;">
                 <div class="progress-bar bg-success" role="progressbar" style="width: 100%;">
-                    Étape 4/4 - Documents d'identité
+                    Étape 3/3 - Documents d'identité
                 </div>
             </div>
         </div>
