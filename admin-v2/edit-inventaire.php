@@ -448,10 +448,10 @@ foreach ($existing_tenants as &$tenant) {
                     <i class="bi bi-arrow-left"></i> Annuler
                 </a>
                 <div>
-                    <button type="submit" class="btn btn-secondary">
+                    <button type="submit" class="btn btn-secondary" aria-label="Enregistrer l'inventaire comme brouillon sans envoyer d'email">
                         <i class="bi bi-save"></i> Enregistrer le brouillon
                     </button>
-                    <button type="submit" name="finalize" value="1" class="btn btn-primary">
+                    <button type="submit" name="finalize" value="1" class="btn btn-primary" aria-label="Finaliser et envoyer l'inventaire par email au locataire">
                         <i class="bi bi-check-circle"></i> Finaliser et envoyer
                     </button>
                 </div>
