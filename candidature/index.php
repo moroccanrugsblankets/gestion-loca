@@ -592,7 +592,7 @@ try {
 
                                 <div class="alert alert-info mt-4">
                                     <h6><i class="bi bi-clock-history me-2"></i>Délai de traitement</h6>
-                                    <p class="mb-0">Votre candidature sera étudiée et vous recevrez une réponse par email dans un délai de <strong>entre 1 et 4 jours ouvrés</strong>.</p>
+                                    <p class="mb-0">Votre candidature sera étudiée et vous recevrez une réponse par email dans un délai <strong>entre 1 et 4 jours ouvrés</strong>.</p>
                                 </div>
 
                                 <div class="form-check">
