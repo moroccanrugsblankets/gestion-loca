@@ -51,15 +51,19 @@ try {
     $stmt = $pdo->prepare("DELETE FROM candidatures WHERE id = ?");
     $stmt->execute([$candidature_id]);
     
-    // Delete document files if they exist
-    foreach ($documents as $document) {
-        if ($document['chemin_fichier'] && file_exists($document['chemin_fichier'])) {
-            unlink($document['chemin_fichier']);
-        }
-    }
-    
     // Commit transaction
     $pdo->commit();
+    
+    // Delete document files after successful database deletion
+    // This is done after commit to avoid leaving database in inconsistent state
+    // Failed file deletions are logged but don't affect the transaction
+    foreach ($documents as $document) {
+        if ($document['chemin_fichier'] && file_exists($document['chemin_fichier'])) {
+            if (!@unlink($document['chemin_fichier'])) {
+                error_log("Avertissement: Impossible de supprimer le fichier: " . $document['chemin_fichier']);
+            }
+        }
+    }
     
     $candidature_ref = $candidature['reference_unique'] ?? "#{$candidature_id}";
     $_SESSION['success'] = "Candidature {$candidature_ref} supprimée avec succès";

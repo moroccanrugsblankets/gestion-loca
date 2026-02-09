@@ -415,7 +415,7 @@ function getCandidatureRecueEmailHTML($prenom, $nom, $logement, $uploaded_count)
                 <div style="margin: 10px 0;"><strong style="color: #555;">Documents joints :</strong> ' . $uploaded_count . ' pièce(s) justificative(s)</div>
             </div>
             
-            <p>Il est actuellement en cours d\'étude. Une réponse vous sera apportée sous entre 1 et 4 jours ouvrés.</p>
+            <p>Il est actuellement en cours d\'étude. Une réponse vous sera apportée entre 1 et 4 jours ouvrés.</p>
         </div>
         <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666;">
             <p>© ' . date('Y') . ' MY Invest Immobilier - Tous droits réservés</p>
