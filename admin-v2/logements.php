@@ -10,13 +10,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'add':
                 try {
                     $stmt = $pdo->prepare("
-                        INSERT INTO logements (reference, adresse, appartement, type, surface, loyer, charges, depot_garantie, parking, statut, date_disponibilite, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'disponible', ?, NOW())
+                        INSERT INTO logements (reference, adresse, type, surface, loyer, charges, depot_garantie, parking, statut, date_disponibilite, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'disponible', ?, NOW())
                     ");
                     $stmt->execute([
                         $_POST['reference'],
                         $_POST['adresse'],
-                        $_POST['appartement'],
                         $_POST['type'],
                         $_POST['surface'],
                         $_POST['loyer'],
@@ -51,14 +50,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     $stmt = $pdo->prepare("
                         UPDATE logements SET 
-                            reference = ?, adresse = ?, appartement = ?, type = ?, surface = ?,
+                            reference = ?, adresse = ?, type = ?, surface = ?,
                             loyer = ?, charges = ?, depot_garantie = ?, parking = ?, statut = ?, date_disponibilite = ?
                         WHERE id = ?
                     ");
                     $stmt->execute([
                         $_POST['reference'],
                         $_POST['adresse'],
-                        $_POST['appartement'],
                         $_POST['type'],
                         $_POST['surface'],
                         $_POST['loyer'],
@@ -173,7 +171,7 @@ $statut_filter = isset($_GET['statut']) ? $_GET['statut'] : '';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
 // Build query - explicitly select columns we need
-$sql = "SELECT id, reference, adresse, appartement, type, surface, loyer, charges, 
+$sql = "SELECT id, reference, adresse, type, surface, loyer, charges, 
         depot_garantie, parking, statut, date_disponibilite, created_at, updated_at,
         COALESCE(default_cles_appartement, 2) as default_cles_appartement,
         COALESCE(default_cles_boite_lettres, 1) as default_cles_boite_lettres,
@@ -397,9 +395,6 @@ $stats = [
                             <td><strong><?php echo htmlspecialchars($logement['reference']); ?></strong></td>
                             <td>
                                 <?php echo htmlspecialchars($logement['adresse']); ?>
-                                <?php if ($logement['appartement']): ?>
-                                    <br><small class="text-muted">Appt <?php echo htmlspecialchars($logement['appartement']); ?></small>
-                                <?php endif; ?>
                             </td>
                             <td><?php echo htmlspecialchars($logement['type']); ?></td>
                             <td><?php echo htmlspecialchars($logement['surface']); ?> m²</td>
@@ -417,7 +412,6 @@ $stats = [
                                             data-id="<?php echo $logement['id']; ?>"
                                             data-reference="<?php echo htmlspecialchars($logement['reference']); ?>"
                                             data-adresse="<?php echo htmlspecialchars($logement['adresse']); ?>"
-                                            data-appartement="<?php echo htmlspecialchars($logement['appartement']); ?>"
                                             data-type="<?php echo htmlspecialchars($logement['type']); ?>"
                                             data-surface="<?php echo $logement['surface']; ?>"
                                             data-loyer="<?php echo $logement['loyer']; ?>"
@@ -502,10 +496,6 @@ $stats = [
                                 <input type="text" name="adresse" class="form-control" required>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Appartement</label>
-                                <input type="text" name="appartement" class="form-control" placeholder="Ex: 1">
-                            </div>
-                            <div class="col-md-4">
                                 <label class="form-label">Surface (m²) *</label>
                                 <input type="number" step="0.01" name="surface" class="form-control" required>
                             </div>
@@ -579,10 +569,6 @@ $stats = [
                             <div class="col-md-8">
                                 <label class="form-label">Adresse *</label>
                                 <input type="text" name="adresse" id="edit_adresse" class="form-control" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Appartement</label>
-                                <input type="text" name="appartement" id="edit_appartement" class="form-control">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Surface (m²) *</label>
@@ -797,7 +783,6 @@ $stats = [
                 document.getElementById('edit_id').value = this.dataset.id;
                 document.getElementById('edit_reference').value = this.dataset.reference;
                 document.getElementById('edit_adresse').value = this.dataset.adresse;
-                document.getElementById('edit_appartement').value = this.dataset.appartement;
                 document.getElementById('edit_type').value = this.dataset.type;
                 document.getElementById('edit_surface').value = this.dataset.surface;
                 document.getElementById('edit_loyer').value = this.dataset.loyer;

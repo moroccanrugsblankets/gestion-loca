@@ -200,17 +200,10 @@ try {
         $needsUpdate = true;
     }
     
-    if (empty($inventaire['appartement']) && !empty($inventaire['logement_appartement'])) {
-        error_log("Appartement is NULL, populating from logement: " . $inventaire['logement_appartement']);
-        $inventaire['appartement'] = $inventaire['logement_appartement'];
-        $fieldsToUpdate['appartement'] = $inventaire['appartement'];
-        $needsUpdate = true;
-    }
-    
     // Update database with all missing fields in a single query
     if ($needsUpdate) {
         // Whitelist of allowed fields to prevent SQL injection
-        $allowedFields = ['adresse', 'appartement'];
+        $allowedFields = ['adresse'];
         
         $setParts = [];
         $params = [];
@@ -339,13 +332,6 @@ try {
                 <span class="info-label">Adresse:</span>
                 <?php echo htmlspecialchars($inventaire['adresse']); ?>
             </div>
-            
-            <?php if (!empty($inventaire['appartement'])): ?>
-            <div class="info-item">
-                <span class="info-label">Appartement:</span>
-                <?php echo htmlspecialchars($inventaire['appartement']); ?>
-            </div>
-            <?php endif; ?>
             
             <div class="info-item">
                 <span class="info-label">Locataire:</span>

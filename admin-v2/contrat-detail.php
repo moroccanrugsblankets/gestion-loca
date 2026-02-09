@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                    c.reference_unique as reference_contrat,
                    l.reference,
                    l.adresse,
-                   l.appartement,
+                   
                    l.type,
                    l.surface,
                    l.loyer,
@@ -172,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                    c.reference_unique as reference_contrat,
                    l.reference,
                    l.adresse,
-                   l.appartement,
+                   
                    l.type,
                    l.surface,
                    l.loyer,
@@ -231,7 +231,7 @@ $contrat = fetchOne("
     SELECT c.*, 
            l.reference as logement_ref, 
            l.adresse as logement_adresse,
-           l.appartement,
+           
            l.type,
            l.surface,
            l.loyer,
@@ -478,10 +478,6 @@ if ($contrat['validated_by']) {
                     <div class="info-row">
                         <div class="info-label">Adresse</div>
                         <div class="info-value"><?php echo htmlspecialchars($contrat['logement_adresse']); ?></div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">Appartement</div>
-                        <div class="info-value"><?php echo htmlspecialchars($contrat['appartement']); ?></div>
                     </div>
                     <div class="info-row">
                         <div class="info-label">Type</div>

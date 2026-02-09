@@ -20,7 +20,6 @@ CREATE TABLE IF NOT EXISTS logements (
     id INT AUTO_INCREMENT PRIMARY KEY,
     reference VARCHAR(20) UNIQUE NOT NULL,
     adresse TEXT NOT NULL,
-    appartement VARCHAR(50),
     type VARCHAR(50) NOT NULL,
     surface DECIMAL(5,2),
     loyer DECIMAL(10,2) NOT NULL,
@@ -338,11 +337,10 @@ CREATE TABLE IF NOT EXISTS administrateurs (
 -- =====================================================
 
 -- Logement RP-01
-INSERT INTO logements (reference, adresse, appartement, type, surface, loyer, charges, depot_garantie, parking, statut, description) 
+INSERT INTO logements (reference, adresse, type, surface, loyer, charges, depot_garantie, parking, statut, description) 
 VALUES (
     'RP-01', 
     '15 rue de la Paix, 74100 Annemasse', 
-    '1', 
     'T1 Bis', 
     26.00, 
     890.00, 

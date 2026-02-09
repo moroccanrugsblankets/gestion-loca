@@ -189,17 +189,10 @@ try {
         $needsUpdate = true;
     }
     
-    if (empty($etat['appartement']) && !empty($etat['logement_appartement'])) {
-        error_log("Appartement is NULL, populating from logement: " . $etat['logement_appartement']);
-        $etat['appartement'] = $etat['logement_appartement'];
-        $fieldsToUpdate['appartement'] = $etat['appartement'];
-        $needsUpdate = true;
-    }
-    
     // Update database with all missing fields in a single query
     if ($needsUpdate) {
         // Whitelist of allowed fields to prevent SQL injection
-        $allowedFields = ['adresse', 'appartement'];
+        $allowedFields = ['adresse'];
         
         $setParts = [];
         $params = [];

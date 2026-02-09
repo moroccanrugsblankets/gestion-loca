@@ -145,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             INSERT INTO etats_lieux (
                 -- Basic identification
                 contrat_id, type, date_etat, reference_unique,
-                adresse, appartement, 
+                adresse, 
                 -- Participants
                 bailleur_nom, locataire_nom_complet, locataire_email,
                 -- Meter readings (compteurs)
@@ -159,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 -- Metadata
                 statut, created_at, created_by
             ) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'brouillon', NOW(), ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'brouillon', NOW(), ?)
         ");
         
         // Execute with parameters in same order as field list above
@@ -169,9 +169,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $type, 
             $date_etat, 
             $reference,
-            // Address info (2 params)
+            // Address info (1 param)
             $contrat['adresse'],
-            $contrat['appartement'],
             // Participants (3 params)
             'SCI My Invest Immobilier, représentée par Maxime ALEXANDRE',
             $locataire_nom_complet,
