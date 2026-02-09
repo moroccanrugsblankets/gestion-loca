@@ -46,7 +46,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Token CSRF invalide.';
     } else {
         $signatureData = $_POST['signature_data'] ?? '';
-        $mentionLuApprouve = cleanInput($_POST['mention_lu_approuve'] ?? '');
         $certifieExact = isset($_POST['certifie_exact']) ? 1 : 0;
         
         // Log: Signature client reçue
@@ -62,9 +61,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($signatureData)) {
             error_log("Step2-Signature: ERREUR - Signature vide");
             $error = 'Veuillez apposer votre signature.';
-        } elseif ($mentionLuApprouve !== 'Lu et approuvé') {
-            error_log("Step2-Signature: ERREUR - Mention 'Lu et approuvé' incorrecte: '$mentionLuApprouve'");
-            $error = 'Veuillez recopier exactement "Lu et approuvé".';
         } elseif (!$certifieExact) {
             error_log("Step2-Signature: ERREUR - Case 'Certifié exact' non cochée");
             $error = 'Veuillez cocher la case "Certifié exact" pour continuer.';
@@ -79,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Enregistrer la signature
             error_log("Step2-Signature: Enregistrement de la signature en base de données...");
-            if (updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve, $certifieExact)) {
+            if (updateTenantSignature($locataireId, $signatureData, null, $certifieExact)) {
                 error_log("Step2-Signature: ✓ Signature enregistrée avec succès");
                 logAction($contratId, 'signature_locataire', "Locataire $numeroLocataire a signé");
                 
@@ -159,15 +155,6 @@ $csrfToken = generateCsrfToken();
                                     </label>
                                 </div>
                                 <small class="form-text text-muted">Cette case est obligatoire pour valider votre signature</small>
-                            </div>
-
-                            <div class="mb-4">
-                                <label for="mention_lu_approuve" class="form-label">
-                                    Merci de recopier : <strong>"Lu et approuvé"</strong>
-                                </label>
-                                <input type="text" class="form-control" id="mention_lu_approuve" 
-                                       name="mention_lu_approuve" required
-                                       placeholder="Lu et approuvé">
                             </div>
 
                             <div class="alert alert-info">

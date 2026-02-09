@@ -71,29 +71,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 
                 error_log("Sending email with template: $templateId");
                 
-                // Send email to tenant using template
-                $emailSent = sendTemplatedEmail($templateId, $inventaire['locataire_email'], $emailVariables, $pdfPath);
+                // Send email to tenant using template with admin in Cc
+                $emailSent = sendTemplatedEmail($templateId, $inventaire['locataire_email'], $emailVariables, $pdfPath, true);
                 
                 if (!$emailSent) {
                     error_log("ERROR: Failed to send email to tenant using template");
                     throw new Exception("Erreur lors de l'envoi de l'email au locataire");
                 }
                 
-                error_log("Email sent successfully to tenant!");
-                
-                // Send copy to admin using admin template
-                $adminEmailVariables = array_merge($emailVariables, [
-                    'type' => $typeLabel
-                ]);
-                
-                // Fifth parameter: $isAdminEmail = true (suppresses errors to avoid blocking the workflow)
-                $adminEmailSent = sendTemplatedEmail('inventaire_admin_copie', ADMIN_EMAIL, $adminEmailVariables, $pdfPath, true);
-                
-                if ($adminEmailSent) {
-                    error_log("Admin copy email sent successfully to: " . ADMIN_EMAIL);
-                } else {
-                    error_log("WARNING: Failed to send admin copy email");
-                }
+                error_log("Email sent successfully to tenant with admin in Cc!");
                 
                 // Update status
                 error_log("Updating database status...");

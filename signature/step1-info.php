@@ -56,15 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $prenom = cleanInput($_POST['prenom'] ?? '');
         $dateNaissance = cleanInput($_POST['date_naissance'] ?? '');
         $email = cleanInput($_POST['email'] ?? '');
-        $datePriseEffet = cleanInput($_POST['date_prise_effet'] ?? '');
         
         // Validation
         if (empty($nom) || empty($prenom) || empty($dateNaissance) || empty($email)) {
             $error = 'Tous les champs sont obligatoires.';
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $error = 'Adresse email invalide.';
-        } elseif ($numeroLocataire === 1 && empty($datePriseEffet)) {
-            $error = 'La date de prise d\'effet est obligatoire.';
         } else {
             // Créer le locataire
             $locataireId = createTenant($contratId, $numeroLocataire, [
@@ -75,11 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
             
             if ($locataireId) {
-                // Si premier locataire, mettre à jour la date de prise d'effet
-                if ($numeroLocataire === 1 && !empty($datePriseEffet)) {
-                    executeQuery("UPDATE contrats SET date_prise_effet = ? WHERE id = ?", [$datePriseEffet, $contratId]);
-                }
-                
                 // Stocker l'ID du locataire actuel en session
                 $_SESSION['current_locataire_id'] = $locataireId;
                 $_SESSION['current_locataire_numero'] = $numeroLocataire;
@@ -166,15 +158,6 @@ $csrfToken = generateCsrfToken();
                                 <input type="email" class="form-control" id="email" name="email" 
                                        value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required>
                             </div>
-
-                            <?php if ($numeroLocataire === 1): ?>
-                            <div class="mb-3">
-                                <label for="date_prise_effet" class="form-label">À quelle date prenez-vous possession du logement ? *</label>
-                                <input type="date" class="form-control" id="date_prise_effet" name="date_prise_effet" 
-                                       value="<?= htmlspecialchars($_POST['date_prise_effet'] ?? '') ?>" required>
-                                <small class="form-text text-muted">Date de début du bail</small>
-                            </div>
-                            <?php endif; ?>
 
                             <div class="d-grid gap-2">
                                 <button type="submit" class="btn btn-primary btn-lg">

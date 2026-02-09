@@ -198,7 +198,7 @@ function createTenant($contratId, $ordre, $data) {
  * @param string $mentionLuApprouve
  * @return bool
  */
-function updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve, $certifieExact = 0) {
+function updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve = null, $certifieExact = 0) {
     // Validate signature data size (LONGTEXT max is ~4GB, but we set a reasonable limit)
     // Canvas JPEG data URLs are typically 50-300KB (smaller than PNG)
     $maxSize = 2 * 1024 * 1024; // 2MB limit
@@ -248,11 +248,18 @@ function updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve,
     error_log("Signature saved as physical file: $relativePath for locataire ID: $locataireId");
     error_log("✓ Signature enregistrée physiquement et intégrée sans bordure - Locataire ID: $locataireId");
     
-    $sql = "UPDATE locataires 
-            SET signature_data = ?, signature_ip = ?, signature_timestamp = NOW(), mention_lu_approuve = ?, certifie_exact = ?
-            WHERE id = ?";
-    
-    $stmt = executeQuery($sql, [$relativePath, getClientIp(), $mentionLuApprouve, $certifieExact, $locataireId]);
+    // Build SQL based on whether mention_lu_approuve is provided
+    if ($mentionLuApprouve !== null) {
+        $sql = "UPDATE locataires 
+                SET signature_data = ?, signature_ip = ?, signature_timestamp = NOW(), mention_lu_approuve = ?, certifie_exact = ?
+                WHERE id = ?";
+        $stmt = executeQuery($sql, [$relativePath, getClientIp(), $mentionLuApprouve, $certifieExact, $locataireId]);
+    } else {
+        $sql = "UPDATE locataires 
+                SET signature_data = ?, signature_ip = ?, signature_timestamp = NOW(), certifie_exact = ?
+                WHERE id = ?";
+        $stmt = executeQuery($sql, [$relativePath, getClientIp(), $certifieExact, $locataireId]);
+    }
     
     if ($stmt === false) {
         error_log("Failed to update signature for locataire ID: $locataireId");
@@ -452,47 +459,6 @@ function finalizeContract($contratId) {
     
     if ($stmt) {
         logAction($contratId, 'signature_contrat', 'Contrat finalisé et signé');
-        
-        // Send email notification to administrators that contract is signed and needs verification
-        // Important: Select c.* first, then explicitly name logements columns to avoid column name collision
-        $contrat = fetchOne("
-            SELECT c.*, 
-                   c.id as contrat_id, 
-                   c.reference_unique as reference_contrat,
-                   l.reference,
-                   l.adresse,
-                   
-                   l.type,
-                   l.surface,
-                   l.loyer,
-                   l.charges,
-                   l.depot_garantie,
-                   l.parking
-            FROM contrats c
-            INNER JOIN logements l ON c.logement_id = l.id
-            WHERE c.id = ?
-        ", [$contratId]);
-        
-        if ($contrat) {
-            $locataires = fetchAll("
-                SELECT * FROM locataires 
-                WHERE contrat_id = ? 
-                ORDER BY ordre
-            ", [$contratId]);
-            
-            $locatairesNames = array_map(function($loc) {
-                return $loc['prenom'] . ' ' . $loc['nom'];
-            }, $locataires);
-            
-            // Send email to administrators
-            sendTemplatedEmail('contrat_signe_client_admin', ADMIN_EMAIL, [
-                'reference' => $contrat['reference_contrat'],
-                'logement' => $contrat['reference'] . ' - ' . $contrat['adresse'],
-                'locataires' => implode(', ', $locatairesNames),
-                'date_signature' => date('d/m/Y H:i'),
-                'lien_admin' => BASE_URL . '/admin-v2/contrat-detail.php?id=' . $contratId
-            ]);
-        }
         
         return true;
     }
