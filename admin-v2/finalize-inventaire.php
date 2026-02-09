@@ -259,130 +259,140 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Finaliser Inventaire</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <?php require_once __DIR__ . '/includes/sidebar-styles.php'; ?>
     <style>
-        .gradient-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem;
-            margin-bottom: 2rem;
+        .header {
+            background: white;
+            padding: 20px 30px;
             border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .info-card {
-            background: #f8f9fa;
-            border-left: 4px solid #667eea;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            border-radius: 5px;
+        .finalize-card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .warning-box {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border-radius: 5px;
+        .info-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #6c757d;
+            width: 200px;
+            display: inline-block;
         }
     </style>
 </head>
-<body class="bg-light">
-    <?php include 'includes/menu.php'; ?>
-    
-    <div class="container mt-4">
-        <div class="gradient-header">
-            <h1 class="mb-0">
-                <i class="bi bi-send"></i>
-                Finaliser et Envoyer l'Inventaire
-            </h1>
+<body>
+    <?php require_once __DIR__ . '/includes/menu.php'; ?>
+
+    <div class="main-content">
+        <div class="header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h4>
+                        <i class="bi bi-send-check"></i> Finaliser l'inventaire
+                    </h4>
+                    <p class="text-muted mb-0">Vérification avant envoi</p>
+                </div>
+                <a href="edit-inventaire.php?id=<?php echo $id; ?>" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Retour
+                </a>
+            </div>
         </div>
 
         <?php if (isset($_SESSION['error'])): ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="bi bi-exclamation-triangle"></i>
-                <?php echo htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?>
+            <div class="alert alert-danger alert-dismissible fade show">
+                <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
 
-        <div class="row">
-            <div class="col-md-8 mx-auto">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">
-                            <i class="bi bi-info-circle"></i>
-                            Détails de l'inventaire
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="info-card">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <p class="mb-2"><strong>Référence:</strong><br><?php echo htmlspecialchars($inventaire['reference_unique'] ?? 'N/A'); ?></p>
-                                    <p class="mb-2"><strong>Type:</strong><br>
-                                        <?php 
-                                        // Display label for UI (different from email typeLabel)
-                                        $displayTypeLabel = $inventaire['type'] === 'entree' ? "Inventaire d'entrée" : "Inventaire de sortie";
-                                        $badgeClass = $inventaire['type'] === 'entree' ? 'bg-success' : 'bg-warning';
-                                        ?>
-                                        <span class="badge <?php echo $badgeClass; ?>"><?php echo $displayTypeLabel; ?></span>
-                                    </p>
-                                    <p class="mb-2"><strong>Date:</strong><br><?php echo date('d/m/Y', strtotime($inventaire['date_inventaire'])); ?></p>
-                                </div>
-                                <div class="col-md-6">
-                                    <p class="mb-2"><strong>Adresse:</strong><br><?php echo htmlspecialchars($inventaire['adresse']); ?></p>
-                                    <?php if (!empty($inventaire['appartement'])): ?>
-                                        <p class="mb-2"><strong>Appartement:</strong><br><?php echo htmlspecialchars($inventaire['appartement']); ?></p>
-                                    <?php endif; ?>
-                                    <p class="mb-2"><strong>Locataire:</strong><br><?php echo htmlspecialchars($inventaire['locataire_nom_complet']); ?></p>
-                                    <p class="mb-2"><strong>Email:</strong><br><?php echo htmlspecialchars($inventaire['locataire_email']); ?></p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <?php if (!empty($missingFields)): ?>
-                        <div class="warning-box">
-                            <h6><i class="bi bi-exclamation-triangle"></i> Attention: Champs manquants</h6>
-                            <p class="mb-0">Les champs suivants sont vides: <strong><?php echo implode(', ', $missingFields); ?></strong></p>
-                            <p class="mb-0 mt-2"><small>Il est recommandé de compléter ces informations avant de finaliser l'inventaire.</small></p>
-                        </div>
-                        <?php endif; ?>
-
-                        <div class="alert alert-info">
-                            <h6><i class="bi bi-info-circle"></i> Que va-t-il se passer ?</h6>
-                            <ol class="mb-0">
-                                <li>Un PDF de l'inventaire sera généré</li>
-                                <li>Un email sera envoyé au locataire (<?php echo htmlspecialchars($inventaire['locataire_email']); ?>) avec le PDF en pièce jointe</li>
-                                <li>Une copie sera envoyée à l'administrateur (<?php echo ADMIN_EMAIL; ?>)</li>
-                                <li>Le statut de l'inventaire sera mis à jour en "Envoyé"</li>
-                            </ol>
-                        </div>
-
-                        <form method="POST" action="" id="finalizeForm">
-                            <input type="hidden" name="action" value="finalize">
-                            
-                            <div class="d-flex gap-2 justify-content-between mt-4">
-                                <a href="inventaires.php" class="btn btn-secondary">
-                                    <i class="bi bi-arrow-left"></i>
-                                    Annuler
-                                </a>
-                                <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
-                                    <i class="bi bi-send"></i>
-                                    Finaliser et Envoyer
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+        <div class="finalize-card">
+            <h5 class="mb-4">Récapitulatif</h5>
+            
+            <div class="info-item">
+                <span class="info-label">Type:</span>
+                <span class="badge bg-<?php echo $inventaire['type'] === 'entree' ? 'success' : 'danger'; ?>">
+                    Inventaire <?php echo $inventaire['type'] === 'entree' ? "d'entrée" : "de sortie"; ?>
+                </span>
             </div>
+            
+            <div class="info-item">
+                <span class="info-label">Référence:</span>
+                <?php echo htmlspecialchars($inventaire['reference_unique']); ?>
+            </div>
+            
+            <div class="info-item">
+                <span class="info-label">Date:</span>
+                <?php echo date('d/m/Y', strtotime($inventaire['date_inventaire'])); ?>
+            </div>
+            
+            <div class="info-item">
+                <span class="info-label">Adresse:</span>
+                <?php echo htmlspecialchars($inventaire['adresse']); ?>
+            </div>
+            
+            <?php if (!empty($inventaire['appartement'])): ?>
+            <div class="info-item">
+                <span class="info-label">Appartement:</span>
+                <?php echo htmlspecialchars($inventaire['appartement']); ?>
+            </div>
+            <?php endif; ?>
+            
+            <div class="info-item">
+                <span class="info-label">Locataire:</span>
+                <?php echo htmlspecialchars($inventaire['locataire_nom_complet']); ?>
+            </div>
+            
+            <div class="info-item">
+                <span class="info-label">Email du locataire:</span>
+                <?php echo htmlspecialchars($inventaire['locataire_email']); ?>
+            </div>
+            
+            <?php if (!empty($missingFields)): ?>
+            <div class="alert alert-warning mt-3">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>Attention:</strong> Champs manquants: <strong><?php echo implode(', ', $missingFields); ?></strong>
+                <br><small>Il est recommandé de compléter ces informations avant de finaliser l'inventaire.</small>
+            </div>
+            <?php endif; ?>
+            
+            <hr class="my-4">
+            
+            <h5 class="mb-3">Envoi du document</h5>
+            
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                <strong>Le PDF sera envoyé automatiquement à:</strong>
+                <ul class="mb-0 mt-2">
+                    <li>Locataire: <?php echo htmlspecialchars($inventaire['locataire_email']); ?></li>
+                    <li>Copie: <?php echo ADMIN_EMAIL; ?></li>
+                </ul>
+            </div>
+            
+            <form method="POST" action="">
+                <input type="hidden" name="action" value="finalize">
+                
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="edit-inventaire.php?id=<?php echo $id; ?>" class="btn btn-secondary">
+                        <i class="bi bi-pencil"></i> Modifier
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-send-check"></i> Finaliser et envoyer par email
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.getElementById('finalizeForm').addEventListener('submit', function(e) {
-            const btn = document.getElementById('submitBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Envoi en cours...';
-        });
-    </script>
 </body>
 </html>
