@@ -131,10 +131,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         'lien_admin' => $lienAdmin
                                     ];
                                     
-                                    // Envoyer l'email admin avec le template HTML
-                                    if (!empty($locataires)) {
-                                        sendTemplatedEmail('contrat_signe_client_admin', $locataires[0]['email'], $adminVariables, $pdfPath, true);
-                                    }
+                                    // Envoyer l'email admin avec le template HTML - TO admin email, not client
+                                    sendTemplatedEmail('contrat_signe_client_admin', $config['ADMIN_EMAIL'], $adminVariables, $pdfPath, true);
                                 }
                                 
                                 logAction($contratId, 'finalisation_contrat', 'Contrat finalisé et emails envoyés (confirmation + demande justificatif)');
