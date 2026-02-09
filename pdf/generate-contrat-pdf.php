@@ -106,12 +106,11 @@ function generateContratPDF($contratId) {
  */
 function convertRelativeImagePathsToAbsolute($html, $config) {
     $baseUrl = rtrim($config['SITE_URL'], '/');
-    $baseDir = dirname(__DIR__);
     
     // Process all img tags
     $html = preg_replace_callback(
         '/<img([^>]*?)src=["\']([^"\']+)["\']([^>]*?)>/i',
-        function($matches) use ($baseUrl, $baseDir) {
+        function($matches) use ($baseUrl) {
             $beforeSrc = $matches[1];
             $src = $matches[2];
             $afterSrc = $matches[3];
@@ -130,6 +129,8 @@ function convertRelativeImagePathsToAbsolute($html, $config) {
             $absoluteSrc = $src;
             
             // Handle paths starting with ../
+            // Note: We strip all ../ because we're converting to web URLs from the site root
+            // The template is stored in database and paths should be relative to web root
             if (strpos($src, '../') === 0) {
                 // Remove leading ../
                 $relativePath = preg_replace('#^(\.\./)+#', '', $src);
