@@ -383,7 +383,7 @@ $templates = [
     [
         'identifiant' => 'contrat_finalisation_client',
         'nom' => 'Contrat de bail - Finalisation Client',
-        'sujet' => 'Contrat de bail – Finalisation',
+        'sujet' => 'My Invest Immobilier: Contrat de bail – Finalisation',
         'corps_html' => '<!DOCTYPE html>
 <html>
 <head>
