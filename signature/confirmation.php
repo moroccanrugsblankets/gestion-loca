@@ -52,7 +52,11 @@ if (isset($_SESSION['signature_token'])) {
                             <h5>Prochaines étapes :</h5>
                             <ol class="mb-0">
                                 <li class="mb-2">
-                                    <strong>Vous recevrez un email de confirmation</strong> avec une copie de votre bail signé.
+                                    <strong>Vous recevrez 2 emails :</strong>
+                                    <ul class="mt-2">
+                                        <li>Un email de confirmation avec une copie de votre bail signé</li>
+                                        <li>Un email vous demandant de transmettre le justificatif de virement du dépôt de garantie</li>
+                                    </ul>
                                 </li>
                                 <li class="mb-2">
                                     <strong>Effectuez le virement du dépôt de garantie</strong> (correspondant à deux mois de loyer) 
@@ -64,15 +68,18 @@ if (isset($_SESSION['signature_token'])) {
                                     </div>
                                 </li>
                                 <li class="mb-2">
+                                    <strong>Transmettez le justificatif de virement</strong> par email à l'adresse indiquée dans l'email que vous recevrez.
+                                </li>
+                                <li class="mb-2">
                                     <strong>La prise d'effet du bail</strong> ainsi que la <strong>remise des clés</strong> 
-                                    interviendront uniquement après réception du dépôt de garantie.
+                                    interviendront uniquement après réception et vérification du justificatif de paiement.
                                 </li>
                             </ol>
                         </div>
 
                         <div class="alert alert-warning">
                             <strong>⚠️ Important :</strong> 
-                            Le virement du dépôt de garantie doit être effectué immédiatement par virement bancaire instantané.
+                            Le virement du dépôt de garantie doit être effectué immédiatement par virement bancaire instantané. Vous devrez ensuite nous transmettre le justificatif par email.
                         </div>
 
                         <p class="mt-4">
