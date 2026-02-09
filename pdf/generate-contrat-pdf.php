@@ -101,6 +101,65 @@ function generateContratPDF($contratId) {
 }
 
 /**
+ * Convert relative image paths to absolute URLs for TCPDF
+ * TCPDF requires absolute URLs or file paths to display images correctly
+ */
+function convertRelativeImagePathsToAbsolute($html, $config) {
+    $baseUrl = rtrim($config['SITE_URL'], '/');
+    
+    // Process all img tags
+    $html = preg_replace_callback(
+        '/<img([^>]*?)src=["\']([^"\']+)["\']([^>]*?)>/i',
+        function($matches) use ($baseUrl) {
+            $beforeSrc = $matches[1];
+            $src = $matches[2];
+            $afterSrc = $matches[3];
+            
+            // Skip data URIs (base64 encoded images)
+            if (strpos($src, 'data:') === 0) {
+                return $matches[0];
+            }
+            
+            // Skip already absolute URLs (http:// or https://)
+            if (preg_match('#^https?://#i', $src)) {
+                return $matches[0];
+            }
+            
+            // Convert relative paths to absolute URLs
+            $absoluteSrc = $src;
+            
+            // Handle paths starting with ../
+            // Note: We strip all ../ because we're converting to web URLs from the site root
+            // The template is stored in database and paths should be relative to web root
+            if (strpos($src, '../') === 0) {
+                // Remove leading ../
+                $relativePath = preg_replace('#^(\.\./)+#', '', $src);
+                $absoluteSrc = $baseUrl . '/' . $relativePath;
+            }
+            // Handle paths starting with ./
+            elseif (strpos($src, './') === 0) {
+                $relativePath = substr($src, 2);
+                $absoluteSrc = $baseUrl . '/' . $relativePath;
+            }
+            // Handle paths starting with /
+            elseif (strpos($src, '/') === 0) {
+                $absoluteSrc = $baseUrl . $src;
+            }
+            // Handle simple relative paths (no leading slash)
+            else {
+                $absoluteSrc = $baseUrl . '/' . $src;
+            }
+            
+            // Return the img tag with the absolute URL
+            return '<img' . $beforeSrc . 'src="' . $absoluteSrc . '"' . $afterSrc . '>';
+        },
+        $html
+    );
+    
+    return $html;
+}
+
+/**
  * Remplacer les variables dans la template
  */
 function replaceContratTemplateVariables($template, $contrat, $locataires) {
@@ -147,7 +206,12 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
         '{{bic}}' => htmlspecialchars($bic),
     ];
 
-    return str_replace(array_keys($vars), array_values($vars), $template);
+    $html = str_replace(array_keys($vars), array_values($vars), $template);
+    
+    // Convert relative image paths to absolute URLs for TCPDF
+    $html = convertRelativeImagePathsToAbsolute($html, $config);
+    
+    return $html;
 }
 
 /**
