@@ -451,7 +451,7 @@ $signatureEnabled = $stmt->fetchColumn() === 'true';
                     <span class="variable-tag" onclick="copyVariable('{{type_label}}')">{{type_label}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{date_etat}}')">{{date_etat}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{adresse}}')">{{adresse}}</span>
-                    <span class="variable-tag" onclick="copyVariable('{{appartement}}')">{{appartement}}</span>
+                    
                     <span class="variable-tag" onclick="copyVariable('{{type_logement}}')">{{type_logement}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{surface}}')">{{surface}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{bailleur_nom}}')">{{bailleur_nom}}</span>
@@ -518,7 +518,7 @@ $signatureEnabled = $stmt->fetchColumn() === 'true';
                     <span class="variable-tag" onclick="copyVariable('{{type_label}}')">{{type_label}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{date_etat}}')">{{date_etat}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{adresse}}')">{{adresse}}</span>
-                    <span class="variable-tag" onclick="copyVariable('{{appartement}}')">{{appartement}}</span>
+                    
                     <span class="variable-tag" onclick="copyVariable('{{type_logement}}')">{{type_logement}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{surface}}')">{{surface}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{bailleur_nom}}')">{{bailleur_nom}}</span>

@@ -137,13 +137,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $pdo->prepare("
             INSERT INTO inventaires (
                 contrat_id, logement_id, type, date_inventaire, reference_unique,
-                adresse, appartement,
+                adresse,
                 locataire_nom_complet, locataire_email,
                 bailleur_nom,
                 equipements_data,
                 statut, created_at, created_by
             ) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'brouillon', NOW(), ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'brouillon', NOW(), ?)
         ");
         
         $stmt->execute([
@@ -153,7 +153,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $date_inventaire,
             $reference,
             $logement['adresse'],
-            $logement['appartement'],
             $locataire_nom_complet,
             $locataire_email,
             'SCI My Invest Immobilier, représentée par Maxime ALEXANDRE',

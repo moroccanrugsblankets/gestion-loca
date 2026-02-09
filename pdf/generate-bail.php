@@ -204,8 +204,7 @@ function generateBailHTML($contrat, $locataires) {
     <p><strong>Adresse :</strong><br>
     ' . htmlspecialchars($contrat['adresse']) . '</p>
     
-    <p><strong>Appartement :</strong> ' . htmlspecialchars($contrat['appartement']) . '<br>
-    <strong>Désignation :</strong> ' . htmlspecialchars($contrat['type']) . '<br>
+    <p><strong>Désignation :</strong> ' . htmlspecialchars($contrat['type']) . '<br>
     <strong>Type :</strong> Logement meublé<br>
     Le logement est loué meublé conformément au décret n°2015-981.<br>
     Un inventaire détaillé et estimatif du mobilier est annexé au présent contrat.</p>

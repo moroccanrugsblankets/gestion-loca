@@ -59,12 +59,12 @@ function exemple2_etat_lieux_entree_personnalise() {
             reference_unique,
             date_etat,
             adresse,
-            appartement,
+            
             bailleur_nom,
             bailleur_representant,
             compteur_electricite,
             compteur_eau_froide,
-            cles_appartement,
+            cles_
             cles_boite_lettres,
             cles_total,
             piece_principale,
@@ -130,11 +130,11 @@ function exemple3_etat_lieux_sortie_avec_conclusion() {
             reference_unique,
             date_etat,
             adresse,
-            appartement,
+            
             bailleur_nom,
             compteur_electricite,
             compteur_eau_froide,
-            cles_appartement,
+            cles_
             cles_boite_lettres,
             cles_total,
             cles_conformite,
@@ -211,10 +211,10 @@ function exemple4_depot_garantie_retenue_partielle() {
             reference_unique,
             date_etat,
             adresse,
-            appartement,
+            
             compteur_electricite,
             compteur_eau_froide,
-            cles_appartement,
+            cles_
             cles_boite_lettres,
             cles_total,
             cles_conformite,

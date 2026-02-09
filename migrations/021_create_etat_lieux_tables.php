@@ -40,7 +40,7 @@ try {
         -- Identification
         date_etat DATE NOT NULL,
         adresse TEXT NOT NULL,
-        appartement VARCHAR(50),
+        
         bailleur_nom VARCHAR(255) DEFAULT 'MY INVEST IMMOBILIER',
         bailleur_representant VARCHAR(255),
         

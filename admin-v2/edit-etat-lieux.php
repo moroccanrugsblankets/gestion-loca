@@ -135,8 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 $stmt = $pdo->prepare("
     SELECT edl.*, 
            c.reference_unique as contrat_ref,
-           l.adresse as logement_adresse,
-           l.appartement as logement_appartement
+           l.adresse as logement_adresse
     FROM etats_lieux edl
     LEFT JOIN contrats c ON edl.contrat_id = c.id
     LEFT JOIN logements l ON c.logement_id = l.id
@@ -161,16 +160,10 @@ if (empty($etat['adresse']) && !empty($etat['logement_adresse'])) {
     $needsUpdate = true;
 }
 
-if (empty($etat['appartement']) && !empty($etat['logement_appartement'])) {
-    $etat['appartement'] = $etat['logement_appartement'];
-    $fieldsToUpdate['appartement'] = $etat['appartement'];
-    $needsUpdate = true;
-}
-
 // Update database with all missing fields in a single query
 if ($needsUpdate) {
     // Whitelist of allowed fields to prevent SQL injection
-    $allowedFields = ['adresse', 'appartement'];
+    $allowedFields = ['adresse'];
     
     $setParts = [];
     $params = [];
@@ -584,7 +577,7 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                         <input type="text" name="compteur_electricite" class="form-control" 
                                value="<?php echo htmlspecialchars($etat['compteur_electricite'] ?? ''); ?>" 
                                placeholder="Ex: 12345" required>
-                        <small class="text-muted">Sous-compteur électrique privatif - Appartement n°<?php echo htmlspecialchars($etat['appartement'] ?? '...'); ?></small>
+                        <small class="text-muted">Sous-compteur électrique privatif</small>
                     </div>
                     
                     <div class="col-md-6 mb-3">
@@ -661,7 +654,7 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                         <input type="text" name="compteur_eau_froide" class="form-control" 
                                value="<?php echo htmlspecialchars($etat['compteur_eau_froide'] ?? ''); ?>" 
                                placeholder="Ex: 123.45" required>
-                        <small class="text-muted">Sous-compteur d'eau privatif - Appartement n°<?php echo htmlspecialchars($etat['appartement'] ?? '...'); ?></small>
+                        <small class="text-muted">Sous-compteur d'eau privatif</small>
                     </div>
                     
                     <div class="col-md-6 mb-3">

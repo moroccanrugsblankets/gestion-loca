@@ -14,7 +14,7 @@ $contratId = isset($_GET['id']) ? (int)$_GET['id'] : 51;
 
 // Fetch contract
 $stmt = $pdo->prepare("
-    SELECT c.*, l.reference, l.adresse, l.appartement, l.type as type_logement, l.surface, l.parking
+    SELECT c.*, l.reference, l.adresse, l.type as type_logement, l.surface, l.parking
     FROM contrats c
     INNER JOIN logements l ON c.logement_id = l.id
     WHERE c.id = ?

@@ -20,7 +20,7 @@ $contrat = fetchOne("
     SELECT c.*, 
            l.reference,
            l.adresse,
-           l.appartement,
+           
            l.type,
            l.surface,
            l.loyer,
@@ -46,7 +46,6 @@ $locataires = getTenantsByContract($contractId);
         <ul class="list-unstyled">
             <li><strong>Référence:</strong> <?= htmlspecialchars($contrat['reference']) ?></li>
             <li><strong>Adresse:</strong> <?= htmlspecialchars($contrat['adresse']) ?></li>
-            <li><strong>Appartement:</strong> <?= htmlspecialchars($contrat['appartement']) ?></li>
             <li><strong>Type:</strong> <?= htmlspecialchars($contrat['type']) ?></li>
             <li><strong>Surface:</strong> <?= htmlspecialchars($contrat['surface']) ?> m²</li>
             <li><strong>Loyer:</strong> <?= formatMontant($contrat['loyer']) ?></li>

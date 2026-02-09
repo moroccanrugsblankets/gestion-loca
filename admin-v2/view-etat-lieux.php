@@ -20,7 +20,7 @@ $stmt = $pdo->prepare("
            c.date_fin_prevue as date_fin,
            CONCAT(cand.prenom, ' ', cand.nom) as locataire,
            cand.email as locataire_email,
-           l.adresse, l.appartement, l.type as type_logement, l.surface
+           l.adresse, l.type as type_logement, l.surface
     FROM etats_lieux edl
     LEFT JOIN contrats c ON edl.contrat_id = c.id
     LEFT JOIN candidatures cand ON c.candidature_id = cand.id
@@ -181,11 +181,6 @@ if (!$etat) {
                     
                     <div class="info-label">Adresse</div>
                     <div class="info-value"><?php echo htmlspecialchars($etat['adresse']); ?></div>
-
-                    <?php if (!empty($etat['appartement'])): ?>
-                        <div class="info-label">Appartement</div>
-                        <div class="info-value"><?php echo htmlspecialchars($etat['appartement']); ?></div>
-                    <?php endif; ?>
 
                     <div class="info-label">Type</div>
                     <div class="info-value"><?php echo htmlspecialchars($etat['type_logement']); ?></div>
