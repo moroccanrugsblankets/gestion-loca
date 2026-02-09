@@ -106,6 +106,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         $pdo->commit();
         $_SESSION['success'] = "Inventaire mis à jour avec succès";
+        
+        // If finalizing, redirect to finalize page
+        if (isset($_POST['finalize']) && $_POST['finalize'] === '1') {
+            header("Location: finalize-inventaire.php?id=$inventaire_id");
+            exit;
+        }
+        
         header("Location: edit-inventaire.php?id=$inventaire_id");
         exit;
         
@@ -440,9 +447,14 @@ foreach ($existing_tenants as &$tenant) {
                 <a href="inventaires.php" class="btn btn-secondary">
                     <i class="bi bi-arrow-left"></i> Annuler
                 </a>
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-save"></i> Enregistrer
-                </button>
+                <div>
+                    <button type="submit" class="btn btn-secondary" aria-label="Enregistrer l'inventaire comme brouillon sans envoyer d'email">
+                        <i class="bi bi-save"></i> Enregistrer le brouillon
+                    </button>
+                    <button type="submit" name="finalize" value="1" class="btn btn-primary" aria-label="Finaliser et envoyer l'inventaire par email au locataire">
+                        <i class="bi bi-check-circle"></i> Finaliser et envoyer
+                    </button>
+                </div>
             </div>
         </form>
     </div>

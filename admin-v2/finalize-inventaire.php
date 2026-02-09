@@ -59,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 error_log("PDF file size: " . filesize($pdfPath) . " bytes");
                 
                 // Prepare email data with template variables
+                $typeLabel = $inventaire['type'] === 'entree' ? "d'entrée" : "de sortie";
                 $templateId = $inventaire['type'] === 'entree' ? 'inventaire_entree_envoye' : 'inventaire_sortie_envoye';
                 
                 $emailVariables = [

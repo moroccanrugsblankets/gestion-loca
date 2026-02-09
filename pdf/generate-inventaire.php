@@ -1,0 +1,657 @@
+<?php
+/**
+ * Génération du PDF pour Inventaire d'entrée/sortie
+ * My Invest Immobilier
+ * 
+ * Génère un document PDF structuré pour l'inventaire des équipements d'entrée ou de sortie
+ * avec toutes les sections obligatoires et signatures.
+ */
+
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/mail-templates.php';
+require_once __DIR__ . '/../includes/inventaire-template.php';
+
+// Signature image display size constants (for PDF rendering)
+define('INVENTAIRE_SIGNATURE_MAX_WIDTH', '20mm');
+define('INVENTAIRE_SIGNATURE_MAX_HEIGHT', '10mm');
+
+// Style CSS pour les images de signature (sans bordures)
+define('INVENTAIRE_SIGNATURE_IMG_STYLE', 'max-width: 150px; max-height: 40px; border: none; border-width: 0; border-style: none; border-color: transparent; outline-width: 0; padding: 0; background: transparent;');
+
+/**
+ * Générer le PDF de l'inventaire
+ * 
+ * @param int $inventaireId ID de l'inventaire
+ * @return string|false Chemin du fichier PDF généré, ou false en cas d'erreur
+ */
+function generateInventairePDF($inventaireId) {
+    global $config, $pdo;
+
+    error_log("=== generateInventairePDF - START ===");
+    error_log("Input - Inventaire ID: $inventaireId");
+
+    // Validation
+    $inventaireId = (int)$inventaireId;
+    if ($inventaireId <= 0) {
+        error_log("ERROR: ID d'inventaire invalide: $inventaireId");
+        return false;
+    }
+
+    try {
+        // Récupérer les données de l'inventaire
+        error_log("Fetching inventaire data from database...");
+        $stmt = $pdo->prepare("
+            SELECT inv.*, 
+                   l.reference,
+                   l.adresse as logement_adresse,
+                   l.appartement as logement_appartement,
+                   l.type as type_logement,
+                   c.reference_unique as contrat_ref
+            FROM inventaires inv
+            INNER JOIN logements l ON inv.logement_id = l.id
+            LEFT JOIN contrats c ON inv.contrat_id = c.id
+            WHERE inv.id = ?
+        ");
+        $stmt->execute([$inventaireId]);
+        $inventaire = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$inventaire) {
+            error_log("ERROR: Inventaire #$inventaireId non trouvé");
+            return false;
+        }
+        
+        error_log("Inventaire found - Reference: " . ($inventaire['reference_unique'] ?? 'NULL'));
+        error_log("Logement - Adresse: " . ($inventaire['adresse'] ?? 'NULL'));
+        error_log("Type: " . ($inventaire['type'] ?? 'NULL'));
+
+        // Récupérer les locataires associés à cet inventaire
+        error_log("Fetching locataires...");
+        $stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? ORDER BY id ASC");
+        $stmt->execute([$inventaireId]);
+        $locataires = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($locataires)) {
+            error_log("WARNING: Aucun locataire trouvé pour inventaire #$inventaireId, using fallback name");
+            // Use locataire_nom_complet from inventaire as fallback
+            if (!empty($inventaire['locataire_nom_complet'])) {
+                $locataires = [[
+                    'nom' => $inventaire['locataire_nom_complet'],
+                    'prenom' => '',
+                    'email' => $inventaire['locataire_email'] ?? '',
+                    'signature' => null,
+                    'certifie_exact' => false
+                ]];
+            }
+        }
+        
+        error_log("Found " . count($locataires) . " locataire(s)");
+
+        // Récupérer le template HTML depuis la base de données
+        error_log("Fetching HTML template from database...");
+        
+        $type = $inventaire['type'] ?? 'entree';
+        
+        // Use different template for exit inventory if available
+        if ($type === 'sortie') {
+            $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'inventaire_sortie_template_html'");
+            $stmt->execute();
+            $templateHtml = $stmt->fetchColumn();
+            
+            // If no exit template, fall back to entry template
+            if (empty($templateHtml)) {
+                error_log("No exit template found, falling back to entry template");
+                $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'inventaire_template_html'");
+                $stmt->execute();
+                $templateHtml = $stmt->fetchColumn();
+            } else {
+                error_log("Exit template loaded from database - Length: " . strlen($templateHtml) . " characters");
+            }
+        } else {
+            $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'inventaire_template_html'");
+            $stmt->execute();
+            $templateHtml = $stmt->fetchColumn();
+            
+            if (!empty($templateHtml)) {
+                error_log("Entry template loaded from database - Length: " . strlen($templateHtml) . " characters");
+            }
+        }
+        
+        // Si pas de template en base, utiliser le template par défaut
+        if (empty($templateHtml)) {
+            error_log("No template found in database, using default template");
+            if ($type === 'sortie' && function_exists('getDefaultInventaireSortieTemplate')) {
+                $templateHtml = getDefaultInventaireSortieTemplate();
+                error_log("Using default exit template");
+            } elseif (function_exists('getDefaultInventaireTemplate')) {
+                $templateHtml = getDefaultInventaireTemplate();
+                error_log("Using default entry template");
+            } else {
+                error_log("ERROR: Template functions not found");
+                return false;
+            }
+        }
+        
+        // Générer le HTML en remplaçant les variables
+        error_log("Replacing template variables...");
+        $html = replaceInventaireTemplateVariables($templateHtml, $inventaire, $locataires);
+        
+        if (!$html) {
+            error_log("ERROR: HTML generation failed");
+            return false;
+        }
+        
+        error_log("HTML generated - Length: " . strlen($html) . " characters");
+
+        // Créer le PDF avec TCPDF
+        error_log("Creating TCPDF instance...");
+        $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+        $pdf->SetCreator('MY INVEST IMMOBILIER');
+        
+        $typeLabel = ($type === 'entree') ? 'Entrée' : 'Sortie';
+        $pdf->SetTitle("Inventaire $typeLabel - " . ($inventaire['reference_unique'] ?? ''));
+        
+        $pdf->SetMargins(15, 10, 15);
+        $pdf->SetAutoPageBreak(true, 10);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->AddPage();
+        
+        // Write HTML to PDF with error handling
+        error_log("Writing HTML to PDF...");
+        try {
+            $pdf->writeHTML($html, true, false, true, false, '');
+            error_log("HTML written to PDF successfully");
+        } catch (Exception $htmlException) {
+            error_log("TCPDF writeHTML ERROR: " . $htmlException->getMessage());
+            error_log("HTML content length: " . strlen($html));
+            error_log("Stack trace: " . $htmlException->getTraceAsString());
+            throw new Exception("Erreur lors de la conversion HTML vers PDF: " . $htmlException->getMessage());
+        }
+
+        // Sauvegarder le PDF
+        error_log("Saving PDF to file...");
+        $pdfDir = dirname(__DIR__) . '/pdf/inventaires/';
+        if (!is_dir($pdfDir)) {
+            error_log("Creating directory: $pdfDir");
+            mkdir($pdfDir, 0755, true);
+        }
+
+        $dateStr = date('Ymd');
+        // Sanitize reference for filename
+        $safeReference = preg_replace('/[^a-zA-Z0-9_-]/', '_', $inventaire['reference_unique']);
+        $filename = "inventaire_{$type}_{$safeReference}_{$dateStr}.pdf";
+        $filepath = $pdfDir . $filename;
+        
+        error_log("Saving to: $filepath");
+        $pdf->Output($filepath, 'F');
+        
+        if (!file_exists($filepath)) {
+            error_log("ERROR: PDF file not created at: $filepath");
+            return false;
+        }
+        
+        error_log("PDF file created successfully - Size: " . filesize($filepath) . " bytes");
+
+        // Mettre à jour le statut de l'inventaire
+        if ($inventaire['statut'] === 'brouillon') {
+            error_log("Updating inventaire status to 'finalise'...");
+            $stmt = $pdo->prepare("UPDATE inventaires SET statut = 'finalise' WHERE id = ?");
+            $stmt->execute([$inventaireId]);
+        }
+
+        error_log("=== generateInventairePDF - SUCCESS ===");
+        error_log("PDF Generated: $filepath");
+        return $filepath;
+
+    } catch (Exception $e) {
+        error_log("=== generateInventairePDF - ERROR ===");
+        error_log("Exception type: " . get_class($e));
+        error_log("Error message: " . $e->getMessage());
+        error_log("Error file: " . $e->getFile() . ":" . $e->getLine());
+        error_log("Stack trace: " . $e->getTraceAsString());
+        return false;
+    }
+}
+
+/**
+ * Remplacer les variables dans le template HTML de l'inventaire
+ * 
+ * @param string $template Template HTML avec variables
+ * @param array $inventaire Données de l'inventaire
+ * @param array $locataires Liste des locataires
+ * @return string HTML avec variables remplacées
+ */
+function replaceInventaireTemplateVariables($template, $inventaire, $locataires) {
+    global $config;
+    
+    // Type
+    $type = $inventaire['type'] ?? 'entree';
+    $typeLabel = ($type === 'entree') ? "D'ENTRÉE" : "DE SORTIE";
+    
+    // Dates
+    $dateInventaire = !empty($inventaire['date_inventaire']) ? date('d/m/Y', strtotime($inventaire['date_inventaire'])) : date('d/m/Y');
+    $dateSignature = !empty($inventaire['date_signature']) ? date('d/m/Y', strtotime($inventaire['date_signature'])) : $dateInventaire;
+    
+    // Reference
+    $reference = htmlspecialchars($inventaire['reference_unique'] ?? 'N/A');
+    
+    // Adresse
+    $adresse = htmlspecialchars($inventaire['adresse'] ?? $inventaire['logement_adresse'] ?? '');
+    $appartement = htmlspecialchars($inventaire['appartement'] ?? $inventaire['logement_appartement'] ?? '');
+    
+    // Bailleur
+    $bailleurNom = htmlspecialchars($inventaire['bailleur_nom'] ?? $config['COMPANY_NAME'] ?? 'MY INVEST IMMOBILIER');
+    $bailleurRepresentant = htmlspecialchars($inventaire['bailleur_representant'] ?? '');
+    
+    // Locataire info
+    $locataireNom = htmlspecialchars($inventaire['locataire_nom_complet'] ?? '');
+    if (empty($locataireNom) && !empty($locataires)) {
+        $firstLocataire = $locataires[0];
+        $locataireNom = htmlspecialchars(trim(($firstLocataire['prenom'] ?? '') . ' ' . ($firstLocataire['nom'] ?? '')));
+    }
+    
+    // Equipements list - Build HTML table/list
+    $equipementsHtml = buildEquipementsHtml($inventaire, $type);
+    
+    // Observations générales
+    $observations = trim($inventaire['observations_generales'] ?? '');
+    $observations = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $observations);
+    $observationsEscaped = str_replace("\n", '<br>', htmlspecialchars($observations));
+    
+    if (empty($observations)) {
+        $observationsEscaped = 'Aucune observation particulière.';
+    }
+    
+    // Lieu de signature
+    $lieuSignature = htmlspecialchars(!empty($inventaire['lieu_signature']) ? $inventaire['lieu_signature'] : ($config['DEFAULT_SIGNATURE_LOCATION'] ?? 'Annemasse'));
+    
+    // Build signatures table
+    $signaturesTable = buildSignaturesTableInventaire($inventaire, $locataires);
+    
+    // Sortie-specific sections
+    $comparaisonSection = '';
+    $equipementsManquantsSection = '';
+    $depotGarantieSection = '';
+    
+    if ($type === 'sortie') {
+        // Comparaison avec entrée
+        if (!empty($inventaire['comparaison_entree'])) {
+            $comparaisonText = convertAndEscapeText($inventaire['comparaison_entree']);
+            $comparaisonSection = "<h2>4. Comparaison avec l'inventaire d'entrée</h2><div class='observations'>$comparaisonText</div>";
+        }
+        
+        // Equipements manquants/endommagés
+        $equipementsManquants = json_decode($inventaire['equipements_manquants'] ?? '[]', true) ?: [];
+        $equipementsEndommages = json_decode($inventaire['equipements_endommages'] ?? '[]', true) ?: [];
+        
+        if (!empty($equipementsManquants) || !empty($equipementsEndommages)) {
+            $equipementsManquantsSection = "<h2>5. Équipements manquants ou endommagés</h2>";
+            
+            if (!empty($equipementsManquants)) {
+                $equipementsManquantsSection .= "<h3>Équipements manquants</h3><ul>";
+                foreach ($equipementsManquants as $eq) {
+                    $nom = htmlspecialchars($eq['nom'] ?? '');
+                    $quantite = (int)($eq['quantite'] ?? 0);
+                    $equipementsManquantsSection .= "<li>$nom (Quantité: $quantite)</li>";
+                }
+                $equipementsManquantsSection .= "</ul>";
+            }
+            
+            if (!empty($equipementsEndommages)) {
+                $equipementsManquantsSection .= "<h3>Équipements endommagés</h3><ul>";
+                foreach ($equipementsEndommages as $eq) {
+                    $nom = htmlspecialchars($eq['nom'] ?? '');
+                    $observations = htmlspecialchars($eq['observations'] ?? '');
+                    $equipementsManquantsSection .= "<li>$nom";
+                    if (!empty($observations)) {
+                        $equipementsManquantsSection .= " - $observations";
+                    }
+                    $equipementsManquantsSection .= "</li>";
+                }
+                $equipementsManquantsSection .= "</ul>";
+            }
+        }
+        
+        // Dépôt de garantie
+        if (!empty($inventaire['depot_garantie_retenue']) || !empty($inventaire['depot_garantie_motif'])) {
+            $depotRetenue = number_format((float)($inventaire['depot_garantie_retenue'] ?? 0), 2, ',', ' ');
+            $depotMotif = convertAndEscapeText($inventaire['depot_garantie_motif'] ?? '');
+            
+            $depotGarantieSection = "<h2>6. Dépôt de garantie</h2>";
+            $depotGarantieSection .= "<div class='info-section'>";
+            $depotGarantieSection .= "<div class='info-row'><span class='info-label'>Montant retenu :</span><span class='info-value'>$depotRetenue €</span></div>";
+            if (!empty($depotMotif)) {
+                $depotGarantieSection .= "<div class='info-row'><span class='info-label'>Motif :</span><span class='info-value'>$depotMotif</span></div>";
+            }
+            $depotGarantieSection .= "</div>";
+        }
+    }
+    
+    // Prepare variable replacements
+    $vars = [
+        '{{reference}}' => $reference,
+        '{{type}}' => strtolower($type),
+        '{{type_label}}' => $typeLabel,
+        '{{date}}' => $dateInventaire,
+        '{{date_inventaire}}' => $dateInventaire,
+        '{{adresse}}' => $adresse,
+        '{{appartement}}' => $appartement,
+        '{{bailleur_nom}}' => $bailleurNom,
+        '{{bailleur_representant}}' => $bailleurRepresentant,
+        '{{locataire_nom}}' => $locataireNom,
+        '{{equipements}}' => $equipementsHtml,
+        '{{observations}}' => $observationsEscaped,
+        '{{lieu_signature}}' => $lieuSignature,
+        '{{date_signature}}' => $dateSignature,
+        '{{signatures_table}}' => $signaturesTable,
+        // Sortie-specific variables
+        '{{comparaison_section}}' => $comparaisonSection,
+        '{{equipements_manquants_section}}' => $equipementsManquantsSection,
+        '{{depot_garantie_section}}' => $depotGarantieSection,
+    ];
+    
+    // Handle conditional rows
+    if (!empty($appartement)) {
+        $vars['{{appartement_row}}'] = '<div class="info-row"><span class="info-label">Appartement :</span><span class="info-value">' . $appartement . '</span></div>';
+    } else {
+        $vars['{{appartement_row}}'] = '';
+    }
+    
+    if (!empty($bailleurRepresentant)) {
+        $vars['{{bailleur_representant_row}}'] = '<div class="info-row"><span class="info-label">Représenté par :</span><span class="info-value">' . $bailleurRepresentant . '</span></div>';
+    } else {
+        $vars['{{bailleur_representant_row}}'] = '';
+    }
+    
+    // Replace all variables
+    $html = str_replace(array_keys($vars), array_values($vars), $template);
+    
+    return $html;
+}
+
+/**
+ * Construire le HTML pour la liste des équipements
+ * 
+ * @param array $inventaire Données de l'inventaire
+ * @param string $type Type d'inventaire (entree/sortie)
+ * @return string HTML pour les équipements
+ */
+function buildEquipementsHtml($inventaire, $type) {
+    $equipements_data = json_decode($inventaire['equipements_data'] ?? '[]', true);
+    
+    if (!is_array($equipements_data) || empty($equipements_data)) {
+        return '<p><em>Aucun équipement enregistré.</em></p>';
+    }
+    
+    // Group by category
+    $equipements_by_category = [];
+    foreach ($equipements_data as $eq) {
+        $cat = $eq['categorie'] ?? 'Autre';
+        if (!isset($equipements_by_category[$cat])) {
+            $equipements_by_category[$cat] = [];
+        }
+        $equipements_by_category[$cat][] = $eq;
+    }
+    
+    $html = '';
+    
+    foreach ($equipements_by_category as $categorie => $equipements) {
+        $html .= '<h3>' . htmlspecialchars($categorie) . '</h3>';
+        $html .= '<table cellspacing="0" cellpadding="8">';
+        $html .= '<thead><tr>';
+        $html .= '<th width="30%">Équipement</th>';
+        $html .= '<th width="15%">Quantité</th>';
+        $html .= '<th width="15%">État</th>';
+        $html .= '<th width="40%">Observations</th>';
+        $html .= '</tr></thead><tbody>';
+        
+        foreach ($equipements as $eq) {
+            $nom = htmlspecialchars($eq['nom'] ?? '');
+            // Use quantite_presente if available, otherwise fall back to quantite_attendue (for initial inventory)
+            $quantite = isset($eq['quantite_presente']) ? (int)$eq['quantite_presente'] : (int)($eq['quantite_attendue'] ?? 0);
+            $etat = htmlspecialchars($eq['etat'] ?? '-');
+            $observations = htmlspecialchars($eq['observations'] ?? '-');
+            
+            // Translate état to French if needed
+            switch (strtolower($etat)) {
+                case 'bon':
+                    $etatLabel = 'Bon';
+                    break;
+                case 'moyen':
+                    $etatLabel = 'Moyen';
+                    break;
+                case 'mauvais':
+                    $etatLabel = 'Mauvais';
+                    break;
+                case 'neuf':
+                    $etatLabel = 'Neuf';
+                    break;
+                default:
+                    $etatLabel = $etat;
+            }
+            
+            $html .= '<tr>';
+            $html .= '<td>' . $nom . '</td>';
+            $html .= '<td style="text-align: center;">' . $quantite . '</td>';
+            $html .= '<td style="text-align: center;">' . $etatLabel . '</td>';
+            $html .= '<td>' . $observations . '</td>';
+            $html .= '</tr>';
+        }
+        
+        $html .= '</tbody></table>';
+    }
+    
+    return $html;
+}
+
+/**
+ * Convertit les balises HTML br en sauts de ligne, échappe le HTML, puis reconvertit en br
+ * Utilitaire pour préparer du texte pour l'affichage PDF
+ * 
+ * @param string $text Texte à convertir
+ * @return string Texte converti et échappé
+ */
+function convertAndEscapeText($text) {
+    $text = trim($text);
+    $text = str_ireplace(['<br>', '<br/>', '<br />'], "\n", $text);
+    $text = htmlspecialchars($text);
+    return str_replace("\n", '<br>', $text);
+}
+
+/**
+ * Convert base64 signature to physical file for inventaire
+ * Returns file path or original data if conversion fails
+ */
+function convertInventaireSignatureToPhysicalFile($signatureData, $prefix, $inventaireId, $locataireId = null) {
+    // If already a file path, return it
+    if (!preg_match('/^data:image\/(jpeg|jpg|png);base64,/', $signatureData)) {
+        return $signatureData;
+    }
+    
+    error_log("Converting base64 signature to physical file for {$prefix}");
+    
+    // Extract base64 data
+    if (!preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $signatureData, $matches)) {
+        error_log("Invalid data URI format for signature");
+        return $signatureData; // Return original if invalid
+    }
+    
+    $imageFormat = $matches[1];
+    $base64Data = $matches[2];
+    
+    // Decode base64
+    $imageData = base64_decode($base64Data, true);
+    if ($imageData === false) {
+        error_log("Failed to decode base64 signature");
+        return $signatureData;
+    }
+    
+    // Create uploads/signatures directory if it doesn't exist
+    $uploadsDir = dirname(__DIR__) . '/uploads/signatures';
+    if (!is_dir($uploadsDir)) {
+        if (!mkdir($uploadsDir, 0755, true)) {
+            error_log("Failed to create signatures directory");
+            return $signatureData;
+        }
+    }
+    
+    // Generate unique filename
+    $timestamp = time();
+    $suffix = $locataireId ? "_locataire_{$locataireId}" : "";
+    $filename = "{$prefix}_inventaire_{$inventaireId}{$suffix}_{$timestamp}.jpg";
+    $filepath = $uploadsDir . '/' . $filename;
+    
+    // Save physical file
+    if (file_put_contents($filepath, $imageData) === false) {
+        error_log("Failed to save signature file: $filepath");
+        return $signatureData;
+    }
+    
+    // Return relative path
+    $relativePath = 'uploads/signatures/' . $filename;
+    error_log("✓ Signature converted to physical file: $relativePath");
+    
+    return $relativePath;
+}
+
+/**
+ * Construire le tableau de signatures pour l'inventaire
+ * 
+ * @param array $inventaire Données de l'inventaire
+ * @param array $locataires Liste des locataires
+ * @return string HTML du tableau de signatures
+ */
+function buildSignaturesTableInventaire($inventaire, $locataires) {
+    global $pdo, $config;
+    
+    $nbCols = count($locataires) + 1; // +1 for landlord
+    $colWidth = 100 / $nbCols;
+
+    $html = '<table border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%; border: none; margin-top: 20px; text-align:center;"><tr>';
+
+    // Landlord column
+    $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px; border: none;">';
+    $html .= '<p><strong>Le bailleur :</strong></p>';
+    
+    // Get landlord signature from parametres - fetch both in one query using COALESCE
+    $stmt = $pdo->prepare("
+        SELECT COALESCE(
+            (SELECT valeur FROM parametres WHERE cle = 'signature_societe_inventaire_image' LIMIT 1),
+            (SELECT valeur FROM parametres WHERE cle = 'signature_societe_image' LIMIT 1)
+        ) AS signature_path
+    ");
+    $stmt->execute();
+    $landlordSigPath = $stmt->fetchColumn();
+
+    if (!empty($landlordSigPath)) {
+        $inventaireId = $inventaire['id'] ?? 0;
+        $originalLandlordSig = $landlordSigPath; // Store original for comparison
+        
+        // Convert base64 to physical file if needed
+        $landlordSigPath = convertInventaireSignatureToPhysicalFile($landlordSigPath, 'landlord', $inventaireId);
+        
+        // Update database with physical path if it was converted (check by comparing with original)
+        if (!empty($inventaireId) && $landlordSigPath !== $originalLandlordSig && 
+            preg_match('/^data:image/', $originalLandlordSig) && 
+            preg_match('/^uploads\/signatures\//', $landlordSigPath)) {
+            // Only update if signature was actually converted
+            $paramKey = 'signature_societe_inventaire_image';
+            $updateStmt = $pdo->prepare("UPDATE parametres SET valeur = ? WHERE cle = ?");
+            $updateStmt->execute([$landlordSigPath, $paramKey]);
+            error_log("✓ Updated landlord signature in database to physical file");
+        }
+        
+        if (preg_match('/^uploads\/signatures\//', $landlordSigPath)) {
+            // Verify file exists before adding to PDF
+            $fullPath = dirname(__DIR__) . '/' . $landlordSigPath;
+            if (file_exists($fullPath)) {
+                // Use public URL for signature image
+                $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($landlordSigPath, '/');
+                $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" width="120" border="0">';
+            } else {
+                error_log("Landlord signature file not found: $fullPath");
+            }
+        } else {
+            // Still base64 after conversion attempt - use as fallback but log warning
+            error_log("WARNING: Using base64 signature for landlord (conversion may have failed)");
+            $html .= '<img src="' . htmlspecialchars($landlordSigPath) . '" alt="Signature Bailleur" width="120" border="0">';
+        }
+    }
+    
+    $placeSignature = !empty($inventaire['lieu_signature']) ? htmlspecialchars($inventaire['lieu_signature']) : htmlspecialchars($config['DEFAULT_SIGNATURE_LOCATION'] ?? 'Annemasse');
+    $html .= '<p style="font-size:8pt;"><br>&nbsp;<br>&nbsp;<br>Fait à ' . $placeSignature . '</p>';
+    
+    if (!empty($inventaire['date_inventaire'])) {
+        $signDate = date('d/m/Y', strtotime($inventaire['date_inventaire']));
+        $html .= '<p style="font-size:8pt;">Le ' . $signDate . '</p>';
+    }
+    
+    $html .= '<p style="font-size:9pt;">' . htmlspecialchars($inventaire['bailleur_nom'] ?? $config['COMPANY_NAME']) . '</p>';
+    $html .= '</td>';
+
+    // Tenant columns
+    foreach ($locataires as $idx => $tenantInfo) {
+        $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px; border: none;">';
+
+        $tenantLabel = ($nbCols === 2) ? 'Locataire :' : 'Locataire ' . ($idx + 1) . ' :';
+        $html .= '<p><strong>' . $tenantLabel . '</strong></p>';
+
+        // Display tenant signature if available
+        if (!empty($tenantInfo['signature'])) {
+            $originalSignature = $tenantInfo['signature'];
+            $signatureData = $originalSignature;
+            $tenantDbId = $tenantInfo['id'] ?? null;
+            $inventaireId = $inventaire['id'] ?? 0;
+            
+            // Convert base64 to physical file if needed
+            $signatureData = convertInventaireSignatureToPhysicalFile($signatureData, 'tenant', $inventaireId, $tenantDbId);
+            
+            // Update database if signature was actually converted (avoid race conditions by checking conversion occurred)
+            if ($tenantDbId && $signatureData !== $originalSignature && 
+                preg_match('/^data:image/', $originalSignature) && 
+                preg_match('/^uploads\/signatures\//', $signatureData)) {
+                $updateStmt = $pdo->prepare("UPDATE inventaire_locataires SET signature = ? WHERE id = ? AND signature = ?");
+                $updateStmt->execute([$signatureData, $tenantDbId, $originalSignature]);
+                if ($updateStmt->rowCount() > 0) {
+                    error_log("✓ Updated tenant signature in database to physical file");
+                }
+            }
+            
+            if (preg_match('/^uploads\/signatures\//', $signatureData)) {
+                // File path format - verify file exists before using public URL
+                $fullPath = dirname(__DIR__) . '/' . $signatureData;
+                if (file_exists($fullPath)) {
+                    // Use public URL
+                    $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($signatureData, '/');
+                    $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" width="150" border="0">';
+                } else {
+                    error_log("Tenant signature file not found: $fullPath");
+                }
+            } else {
+                // Still base64 after conversion attempt - use as fallback but log warning
+                error_log("WARNING: Using base64 signature for tenant (conversion may have failed)");
+                $html .= '<img src="' . htmlspecialchars($signatureData) . '" alt="Signature Locataire" width="150" border="0">';
+            }
+            
+            if (!empty($tenantInfo['date_signature'])) {
+                $signDate = date('d/m/Y à H:i', strtotime($tenantInfo['date_signature']));
+                $html .= '<p style="font-size:8pt;"><br>&nbsp;<br>&nbsp;<br>Signé le ' . $signDate . '</p>';
+            }
+            
+            // Display "Certifié exact" checkbox status
+            if (!empty($tenantInfo['certifie_exact'])) {
+                $html .= '<p style="font-size:8pt; margin-top: 5px;">✓ Certifié exact</p>';
+            }
+        }
+
+        $tenantName = htmlspecialchars(trim(($tenantInfo['prenom'] ?? '') . ' ' . ($tenantInfo['nom'] ?? '')));
+        $html .= '<p style="font-size:9pt;">' . $tenantName . '</p>';
+        $html .= '</td>';
+    }
+
+    $html .= '</tr></table>';
+    
+    return $html;
+}
