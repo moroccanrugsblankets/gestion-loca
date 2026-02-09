@@ -94,12 +94,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 // Envoyer l'email de finalisation aux locataires
                                 $locataires = getTenantsByContract($contratId);
                                 foreach ($locataires as $locataire) {
+                                    // Préparer le lien pour l'upload du justificatif
+                                    $lienUpload = $config['SITE_URL'] . '/envoyer-justificatif.php?token=' . $contrat['token_signature'];
+                                    
                                     // Préparer les variables pour le template
                                     $variables = [
                                         'nom' => $locataire['nom'],
                                         'prenom' => $locataire['prenom'],
                                         'reference' => $contrat['reference_unique'],
-                                        'depot_garantie' => formatMontant($contrat['depot_garantie'])
+                                        'depot_garantie' => formatMontant($contrat['depot_garantie']),
+                                        'lien_upload' => $lienUpload
                                     ];
                                     
                                     // Envoyer l'email de confirmation avec le contrat PDF

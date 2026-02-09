@@ -558,11 +558,13 @@ $templates = [
                 </div>
             </div>
             
-            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">
-                <h3 style="margin-top: 0;">📧 Comment transmettre votre justificatif ?</h3>
-                <p style="margin-bottom: 0;">Merci d\'envoyer votre justificatif de virement (capture d\'écran ou PDF) par email à :</p>
-                <p style="font-size: 18px; margin: 10px 0;"><strong>contact@myinvest-immobilier.fr</strong></p>
-                <p style="margin-bottom: 0;">Ou par téléphone : <strong>01 23 45 67 89</strong></p>
+            <div style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 20px; margin: 20px 0; border-radius: 4px; text-align: center;">
+                <h3 style="margin-top: 0; color: #2e7d32;">📤 Transmettre votre justificatif</h3>
+                <p style="margin-bottom: 15px;">Une fois le virement effectué, cliquez sur le bouton ci-dessous pour envoyer votre justificatif :</p>
+                <a href="{{lien_upload}}" style="display: inline-block; padding: 15px 40px; background: #4caf50; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                    Envoyer mon justificatif
+                </a>
+                <p style="margin-top: 15px; font-size: 12px; color: #666;">Formats acceptés : JPG, PNG, PDF (max 5 Mo)</p>
             </div>
             
             <p><strong>Important :</strong> La prise d\'effet du bail et la remise des clés interviendront uniquement après réception et vérification du justificatif de paiement.</p>
@@ -578,8 +580,68 @@ $templates = [
     </div>
 </body>
 </html>',
-        'variables_disponibles' => '["nom", "prenom", "reference", "depot_garantie"]',
+        'variables_disponibles' => '["nom", "prenom", "reference", "depot_garantie", "lien_upload"]',
         'description' => 'Email automatique envoyé après signature du contrat pour demander le justificatif de paiement du dépôt de garantie'
+    ],
+    [
+        'identifiant' => 'notification_justificatif_paiement_admin',
+        'nom' => 'Notification Admin - Justificatif de paiement reçu',
+        'sujet' => 'Justificatif reçu - Contrat {{reference}}',
+        'corps_html' => '<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #28a745; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="margin: 0;">📄 Justificatif de paiement reçu</h1>
+        </div>
+        <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px;">
+            <div style="background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <strong>✅ Nouveau justificatif :</strong> Un client a transmis son justificatif de virement du dépôt de garantie.
+            </div>
+            
+            <h2>Informations du contrat</h2>
+            
+            <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                <tr>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; width: 40%;">Référence</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{reference}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">Logement</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{logement}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">Locataires</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{locataires}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">Date de réception</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{date_envoi}}</td>
+                </tr>
+            </table>
+            
+            <p><strong>Action requise :</strong></p>
+            <ol>
+                <li>Vérifier le justificatif de paiement dans le dossier du contrat</li>
+                <li>Valider que le montant correspond au dépôt de garantie</li>
+                <li>Confirmer la réception et organiser la remise des clés</li>
+            </ol>
+            
+            <p style="text-align: center;">
+                <a href="{{lien_admin}}" style="display: inline-block; padding: 12px 30px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">Voir le contrat</a>
+            </p>
+        </div>
+        <div style="text-align: center; padding: 20px; font-size: 12px; color: #666;">
+            <p>MY Invest Immobilier - Système de gestion des contrats</p>
+        </div>
+    </div>
+</body>
+</html>',
+        'variables_disponibles' => '["reference", "logement", "locataires", "date_envoi", "lien_admin"]',
+        'description' => 'Email envoyé aux administrateurs quand un client envoie son justificatif de paiement'
     ]
 ];
 
