@@ -580,7 +580,7 @@ function formatDateFr($date, $format = 'd/m/Y') {
  * @return string
  */
 function formatMontant($montant) {
-    return number_format($montant, 2, ',', ' ') . ' €';
+    return number_format($montant, 0, ',', '') . '€';
 }
 
 /**

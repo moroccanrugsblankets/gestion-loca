@@ -2,6 +2,7 @@
 require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
+require_once '../includes/functions.php';
 require_once '../includes/mail-templates.php';
 
 // Helper function to log candidature actions

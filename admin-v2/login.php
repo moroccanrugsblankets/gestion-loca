@@ -43,7 +43,7 @@ if (isset($_POST['login'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administration - MY Invest Immobilier</title>
+    <title>Administration - My Invest Immobilier</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -71,7 +71,7 @@ if (isset($_POST['login'])) {
 <body>
     <div class="login-card">
         <div class="logo">
-            <h2>MY Invest Immobilier</h2>
+            <h2>My Invest Immobilier</h2>
             <p class="text-muted">Administration</p>
         </div>
         
