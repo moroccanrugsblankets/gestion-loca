@@ -194,7 +194,7 @@ if ($search) {
     $params[] = $search_param;
 }
 
-$sql .= " ORDER BY created_at DESC";
+$sql .= " ORDER BY reference ASC";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
