@@ -179,7 +179,9 @@ function generateInventairePDF($inventaireId) {
         }
 
         $dateStr = date('Ymd');
-        $filename = "inventaire_{$type}_{$inventaire['reference_unique']}_{$dateStr}.pdf";
+        // Sanitize reference for filename
+        $safeReference = preg_replace('/[^a-zA-Z0-9_-]/', '_', $inventaire['reference_unique']);
+        $filename = "inventaire_{$type}_{$safeReference}_{$dateStr}.pdf";
         $filepath = $pdfDir . $filename;
         
         error_log("Saving to: $filepath");
@@ -407,6 +409,7 @@ function buildEquipementsHtml($inventaire, $type) {
         
         foreach ($equipements as $eq) {
             $nom = htmlspecialchars($eq['nom'] ?? '');
+            // Use quantite_presente if available, otherwise fall back to quantite_attendue (for initial inventory)
             $quantite = isset($eq['quantite_presente']) ? (int)$eq['quantite_presente'] : (int)($eq['quantite_attendue'] ?? 0);
             $etat = htmlspecialchars($eq['etat'] ?? '-');
             $observations = htmlspecialchars($eq['observations'] ?? '-');
@@ -532,37 +535,32 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
     $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px; border: none;">';
     $html .= '<p><strong>Le bailleur :</strong></p>';
     
-    // Get landlord signature from parametres - use inventaire specific signature
-    $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_inventaire_image'");
+    // Get landlord signature from parametres - fetch both in one query using COALESCE
+    $stmt = $pdo->prepare("
+        SELECT COALESCE(
+            (SELECT valeur FROM parametres WHERE cle = 'signature_societe_inventaire_image' LIMIT 1),
+            (SELECT valeur FROM parametres WHERE cle = 'signature_societe_image' LIMIT 1)
+        ) AS signature_path
+    ");
     $stmt->execute();
     $landlordSigPath = $stmt->fetchColumn();
-    
-    // Fallback to general signature if inventaire specific one not found
-    if (empty($landlordSigPath)) {
-        $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_image'");
-        $stmt->execute();
-        $landlordSigPath = $stmt->fetchColumn();
-    }
 
     if (!empty($landlordSigPath)) {
-        // Convert base64 to physical file if needed
         $inventaireId = $inventaire['id'] ?? 0;
+        $originalLandlordSig = $landlordSigPath; // Store original for comparison
+        
+        // Convert base64 to physical file if needed
         $landlordSigPath = convertInventaireSignatureToPhysicalFile($landlordSigPath, 'landlord', $inventaireId);
         
-        // Update database with physical path if it was converted
-        if (!empty($inventaireId) && !preg_match('/^data:image/', $landlordSigPath) && preg_match('/^uploads\/signatures\//', $landlordSigPath)) {
-            // Update the parameter with the new physical path
+        // Update database with physical path if it was converted (check by comparing with original)
+        if (!empty($inventaireId) && $landlordSigPath !== $originalLandlordSig && 
+            preg_match('/^data:image/', $originalLandlordSig) && 
+            preg_match('/^uploads\/signatures\//', $landlordSigPath)) {
+            // Only update if signature was actually converted
             $paramKey = 'signature_societe_inventaire_image';
-            $updateStmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = ?");
-            $updateStmt->execute([$paramKey]);
-            $currentValue = $updateStmt->fetchColumn();
-            
-            // Only update if current value is base64 (to avoid overwriting if already updated)
-            if ($currentValue && preg_match('/^data:image/', $currentValue)) {
-                $updateStmt = $pdo->prepare("UPDATE parametres SET valeur = ? WHERE cle = ?");
-                $updateStmt->execute([$landlordSigPath, $paramKey]);
-                error_log("✓ Updated landlord signature in database to physical file");
-            }
+            $updateStmt = $pdo->prepare("UPDATE parametres SET valeur = ? WHERE cle = ?");
+            $updateStmt->execute([$landlordSigPath, $paramKey]);
+            error_log("✓ Updated landlord signature in database to physical file");
         }
         
         if (preg_match('/^uploads\/signatures\//', $landlordSigPath)) {
@@ -602,19 +600,21 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
 
         // Display tenant signature if available
         if (!empty($tenantInfo['signature'])) {
-            $signatureData = $tenantInfo['signature'];
+            $originalSignature = $tenantInfo['signature'];
+            $signatureData = $originalSignature;
             $tenantDbId = $tenantInfo['id'] ?? null;
             $inventaireId = $inventaire['id'] ?? 0;
             
             // Convert base64 to physical file if needed
             $signatureData = convertInventaireSignatureToPhysicalFile($signatureData, 'tenant', $inventaireId, $tenantDbId);
             
-            // Update database if signature was converted from base64
-            if ($tenantDbId && !preg_match('/^data:image/', $signatureData) && preg_match('/^uploads\/signatures\//', $signatureData)) {
-                // Check if this is the original base64
-                if (preg_match('/^data:image/', $tenantInfo['signature'])) {
-                    $updateStmt = $pdo->prepare("UPDATE inventaire_locataires SET signature = ? WHERE id = ?");
-                    $updateStmt->execute([$signatureData, $tenantDbId]);
+            // Update database if signature was actually converted (avoid race conditions by checking conversion occurred)
+            if ($tenantDbId && $signatureData !== $originalSignature && 
+                preg_match('/^data:image/', $originalSignature) && 
+                preg_match('/^uploads\/signatures\//', $signatureData)) {
+                $updateStmt = $pdo->prepare("UPDATE inventaire_locataires SET signature = ? WHERE id = ? AND signature = ?");
+                $updateStmt->execute([$signatureData, $tenantDbId, $originalSignature]);
+                if ($updateStmt->rowCount() > 0) {
                     error_log("✓ Updated tenant signature in database to physical file");
                 }
             }
