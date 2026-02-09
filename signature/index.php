@@ -36,7 +36,7 @@ if (!isContractValid($contrat)) {
     if ($contrat['statut'] === 'signe') {
         die('Ce contrat a déjà été signé.');
     } elseif ($contrat['statut'] === 'expire') {
-        die('Ce lien a expiré. Veuillez contacter MY Invest Immobilier.');
+        die('Ce lien a expiré. Veuillez contacter My Invest Immobilier.');
     } else {
         die('Ce lien a expiré. Il était valide jusqu\'au ' . formatDateFr($contrat['date_expiration'], 'd/m/Y à H:i'));
     }
@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="text-center">
                         <h1>Refus enregistré</h1>
                         <p class="lead">Votre refus a été enregistré. La procédure est terminée.</p>
-                        <p>Si vous avez des questions, veuillez contacter MY Invest Immobilier.</p>
+                        <p>Si vous avez des questions, veuillez contacter My Invest Immobilier.</p>
                     </div>
                 </div>
             </body>
@@ -93,14 +93,14 @@ $csrfToken = generateCsrfToken();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Signature de bail - MY Invest Immobilier</title>
+    <title>Signature de bail - My Invest Immobilier</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
     <div class="container mt-5">
         <div class="text-center mb-4">
-            <img src="../assets/images/logo.png" alt="MY Invest Immobilier" class="logo mb-3" 
+            <img src="../assets/images/logo.png" alt="My Invest Immobilier" class="logo mb-3" 
                  onerror="this.style.display='none'">
             <h1 class="h2">Signature de contrat de bail</h1>
         </div>
@@ -130,7 +130,7 @@ $csrfToken = generateCsrfToken();
                                 La prise d'effet du bail ainsi que la remise des clés interviendront uniquement après réception complète de l'ensemble des éléments ci-dessus.
                             </p>
                             <p>
-                                À défaut de réception complète du dossier dans le délai indiqué, la réservation du logement pourra être remise en disponibilité sans autre formalité.
+                                À défaut de réception complète du dossier dans le délai indiqué, la réservation du logement pourra être annulée et remise à la disponibilité d'autres clients.
                             </p>
                             <p class="text-danger">
                                 <strong>⚠️ Important :</strong> Ce lien expire le 

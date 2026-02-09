@@ -113,7 +113,7 @@ Nous vous rappelons que :
 
 La prise d'effet du bail intervient après le règlement immédiat du dépôt de garantie, correspondant à deux mois de loyer ($depotGarantie), par virement bancaire instantané sur le compte suivant :
 
-MY Invest Immobilier
+My Invest Immobilier
 IBAN : FR76 1027 8021 6000 0206 1834 585
 BIC : CMCIFRA
 
@@ -418,7 +418,7 @@ function getCandidatureRecueEmailHTML($prenom, $nom, $logement, $uploaded_count)
             <p>Il est actuellement en cours d\'étude. Une réponse vous sera apportée entre 1 et 4 jours ouvrés.</p>
         </div>
         <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666;">
-            <p>© ' . date('Y') . ' MY Invest Immobilier - Tous droits réservés</p>
+            <p>© ' . date('Y') . ' My Invest Immobilier - Tous droits réservés</p>
             <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre directement.</p>
         </div>
     </div>
@@ -482,7 +482,7 @@ function getInvitationSignatureEmailHTML($signatureLink, $adresse, $nb_locataire
             <p>Nous restons à votre disposition en cas de question.</p>
         </div>
         <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666;">
-            <p>© ' . date('Y') . ' MY Invest Immobilier - Tous droits réservés</p>
+            <p>© ' . date('Y') . ' My Invest Immobilier - Tous droits réservés</p>
         </div>
     </div>
 </body>
@@ -560,7 +560,7 @@ function getStatusChangeEmailHTML($nom_complet, $statut, $commentaire = '') {
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0;">
     <div style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; padding: 30px 20px; text-align: center;">
-            <h1 style="margin: 0; font-size: 28px;">MY Invest Immobilier</h1>
+            <h1 style="margin: 0; font-size: 28px;">My Invest Immobilier</h1>
         </div>
         <div style="padding: 30px;">
             <p style="margin: 15px 0;">Bonjour,</p>
@@ -575,7 +575,7 @@ function getStatusChangeEmailHTML($nom_complet, $statut, $commentaire = '') {
     $html .= '
         </div>
         <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e9ecef;">
-            <p>MY Invest Immobilier - Gestion locative professionnelle</p>
+            <p>My Invest Immobilier - Gestion locative professionnelle</p>
         </div>
     </div>
 </body>
@@ -619,14 +619,15 @@ function sendEmailToAdmins($subject, $body, $attachmentPath = null, $isHtml = tr
     // Liste des emails administrateurs (use associative array for O(1) duplicate checking)
     $adminEmailsMap = [];
     
-    // Email principal
-    if (!empty($config['ADMIN_EMAIL'])) {
+    // Email principal - use parameter or fallback to config
+    $adminEmail = getAdminEmail();
+    if (!empty($adminEmail)) {
         // Validate email format
-        if (filter_var($config['ADMIN_EMAIL'], FILTER_VALIDATE_EMAIL)) {
-            $adminEmailsMap[$config['ADMIN_EMAIL']] = true;
+        if (filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+            $adminEmailsMap[$adminEmail] = true;
         } else {
-            $results['errors'][] = "Invalid ADMIN_EMAIL format: " . $config['ADMIN_EMAIL'];
-            error_log("Invalid ADMIN_EMAIL configured: " . $config['ADMIN_EMAIL']);
+            $results['errors'][] = "Invalid ADMIN_EMAIL format: " . $adminEmail;
+            error_log("Invalid ADMIN_EMAIL configured: " . $adminEmail);
         }
     }
     
@@ -781,7 +782,7 @@ function getAdminNewCandidatureEmailHTML($candidature, $logement, $nb_documents)
             </div>
         </div>
         <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666;">
-            <p>© ' . date('Y') . ' MY Invest Immobilier - Système de Gestion des Candidatures</p>
+            <p>© ' . date('Y') . ' My Invest Immobilier - Système de Gestion des Candidatures</p>
         </div>
     </div>
 </body>

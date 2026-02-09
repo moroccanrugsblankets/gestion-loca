@@ -264,6 +264,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="col-md-6">
                         <label class="form-label">Nombre de locataires *</label>
                         <select name="nb_locataires" class="form-select" required>
+                            <option value="">---</option>
                             <option value="1">1 locataire</option>
                             <option value="2">2 locataires</option>
                         </select>

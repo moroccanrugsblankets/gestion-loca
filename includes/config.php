@@ -40,7 +40,7 @@ $config = [
     // CONFIGURATION EMAIL
     // =====================================================
     'MAIL_FROM' => 'contact@myinvest-immobilier.com',
-    'MAIL_FROM_NAME' => 'MY Invest Immobilier',
+    'MAIL_FROM_NAME' => 'My Invest Immobilier',
     
     // Configuration SMTP pour PHPMailer
     // ⚠️ IMPORTANT: Les emails ne seront PAS envoyés tant que SMTP_PASSWORD n'est pas configuré!
@@ -63,10 +63,10 @@ $config = [
     // Coordonnées bancaires
     'IBAN' => 'FR76 1027 8021 6000 0206 1834 585',
     'BIC' => 'CMCIFRA',
-    'BANK_NAME' => 'MY Invest Immobilier',
+    'BANK_NAME' => 'My Invest Immobilier',
     
     // Coordonnées société
-    'COMPANY_NAME' => 'MY Invest Immobilier',
+    'COMPANY_NAME' => 'My Invest Immobilier',
     'COMPANY_EMAIL' => 'contact@myinvest-immobilier.com',
     'COMPANY_PHONE' => '+33 (0)4 XX XX XX XX',
     
@@ -97,7 +97,7 @@ $config = [
     // =====================================================
     // CONTRAT DE BAIL
     // =====================================================
-    'BAILLEUR_NOM' => 'MY Invest Immobilier (SCI)',
+    'BAILLEUR_NOM' => 'My Invest Immobilier (SCI)',
     'BAILLEUR_REPRESENTANT' => 'Maxime Alexandre',
     'BAILLEUR_EMAIL' => 'contact@myinvest-immobilier.com',
     

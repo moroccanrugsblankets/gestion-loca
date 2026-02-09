@@ -219,7 +219,7 @@ function getDefaultEtatLieuxTemplate() {
     </div>
 
     <div style="margin-top: 30px; font-size: 8pt; text-align: center; color: #666;">
-        <p>Document généré électroniquement par MY Invest Immobilier</p>
+        <p>Document généré électroniquement par My Invest Immobilier</p>
         <p>État des lieux - Référence : {{reference}}</p>
     </div>
 </body>
@@ -498,7 +498,7 @@ function getDefaultExitEtatLieuxTemplate() {
     </div>
 
     <div style="margin-top: 30px; font-size: 8pt; text-align: center; color: #666;">
-        <p>Document généré électroniquement par MY Invest Immobilier</p>
+        <p>Document généré électroniquement par My Invest Immobilier</p>
         <p>État des lieux de sortie - Référence : {{reference}}</p>
     </div>
 </body>

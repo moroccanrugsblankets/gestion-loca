@@ -194,7 +194,7 @@ function getDefaultInventaireTemplate() {
     </div>
 
     <div class="footer">
-        <p>Document généré électroniquement par MY Invest Immobilier</p>
+        <p>Document généré électroniquement par My Invest Immobilier</p>
         <p>Inventaire d'entrée - Référence : {{reference}}</p>
     </div>
 </body>
@@ -431,7 +431,7 @@ function getDefaultInventaireSortieTemplate() {
     </div>
 
     <div class="footer">
-        <p>Document généré électroniquement par MY Invest Immobilier</p>
+        <p>Document généré électroniquement par My Invest Immobilier</p>
         <p>Inventaire de sortie - Référence : {{reference}}</p>
     </div>
 </body>
