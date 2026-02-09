@@ -24,8 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 SELECT inv.*, 
                        c.id as contrat_id,
                        c.reference_unique as contrat_ref,
-                       l.adresse as logement_adresse,
-                       l.appartement as logement_appartement
+                       l.adresse as logement_adresse
                 FROM inventaires inv
                 LEFT JOIN contrats c ON inv.contrat_id = c.id
                 LEFT JOIN logements l ON inv.logement_id = l.id
@@ -158,8 +157,7 @@ try {
         SELECT inv.*, 
                c.id as contrat_id,
                c.reference_unique as contrat_ref,
-               l.adresse as logement_adresse,
-               l.appartement as logement_appartement
+               l.adresse as logement_adresse
         FROM inventaires inv
         LEFT JOIN contrats c ON inv.contrat_id = c.id
         LEFT JOIN logements l ON inv.logement_id = l.id
