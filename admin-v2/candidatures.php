@@ -173,6 +173,9 @@ $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <a href="candidature-actions.php?id=<?php echo $cand['id']; ?>" class="btn btn-outline-secondary" title="Actions">
                                             <i class="bi bi-gear"></i>
                                         </a>
+                                        <button type="button" class="btn btn-outline-danger" title="Supprimer" onclick="confirmDelete(<?php echo $cand['id']; ?>, '<?php echo htmlspecialchars($cand['reference_unique'] ?? 'N/A', ENT_QUOTES); ?>')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -192,6 +195,37 @@ $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
     
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="deleteModalLabel">Confirmer la suppression</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Êtes-vous sûr de vouloir supprimer la candidature <strong id="candidatureRef"></strong> ?</p>
+                    <p class="text-danger mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>Cette action est irréversible.</p>
+                </div>
+                <div class="modal-footer">
+                    <form method="POST" action="delete-candidature.php" id="deleteForm">
+                        <input type="hidden" name="candidature_id" id="candidatureId">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-danger">Supprimer</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    function confirmDelete(candidatureId, candidatureRef) {
+        document.getElementById('candidatureId').value = candidatureId;
+        document.getElementById('candidatureRef').textContent = candidatureRef;
+        var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        deleteModal.show();
+    }
+    </script>
 </body>
 </html>

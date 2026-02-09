@@ -124,7 +124,7 @@ try {
                             <h6><i class="bi bi-calendar-event me-2"></i>Délai de traitement</h6>
                             <p class="mb-0">
                                 Votre candidature sera étudiée et vous recevrez une réponse par email dans un délai de 
-                                <strong>4 jours ouvrés</strong> (du lundi au vendredi, hors jours fériés).
+                                <strong>entre 1 et 4 jours ouvrés</strong> (du lundi au vendredi, hors jours fériés).
                             </p>
                         </div>
 
