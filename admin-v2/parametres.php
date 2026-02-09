@@ -211,7 +211,8 @@ foreach ($allParams as $param) {
                                     'type_revenus_accepte' => 'Type de revenus accepté',
                                     'nb_occupants_acceptes' => 'Nombres d\'occupants acceptés',
                                     'garantie_visale_requise' => 'Garantie Visale requise',
-                                    'email_signature' => 'Signature des emails'
+                                    'email_signature' => 'Signature des emails',
+                                    'logo_societe' => 'Logo de la société'
                                 ];
                                 echo $labels[$param['cle']] ?? $param['cle'];
                                 ?>
@@ -250,6 +251,28 @@ foreach ($allParams as $param) {
                                         <iframe srcdoc="<?php echo htmlspecialchars($param['valeur']); ?>" 
                                                 style="border: none; width: 100%; min-height: 150px;"
                                                 sandbox="allow-same-origin"></iframe>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
+                            <?php elseif ($param['cle'] === 'logo_societe'): ?>
+                                <input type="text" 
+                                       name="parametres[<?php echo $param['cle']; ?>]" 
+                                       class="form-control" 
+                                       value="<?php echo htmlspecialchars($param['valeur']); ?>"
+                                       placeholder="/assets/images/logo-my-invest-immobilier-carre.jpg"
+                                       required>
+                                <small class="text-muted">Chemin relatif vers le fichier logo (ex: /assets/images/logo.jpg ou /assets/images/logo.svg)</small>
+                                <?php if (!empty($param['valeur'])): ?>
+                                <div class="mt-2">
+                                    <strong>Aperçu du logo:</strong>
+                                    <div class="border p-3 mt-2" style="background: #f8f9fa;">
+                                        <img src="<?php echo htmlspecialchars($param['valeur']); ?>" 
+                                             alt="Logo société" 
+                                             style="max-width: 150px; max-height: 150px;"
+                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                        <div style="display:none; color: #dc3545;">
+                                            <i class="bi bi-exclamation-triangle"></i> Logo non trouvé au chemin spécifié
+                                        </div>
                                     </div>
                                 </div>
                                 <?php endif; ?>

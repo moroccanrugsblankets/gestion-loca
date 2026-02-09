@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logo Implementation Preview - My Invest Immobilier</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .demo-container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .sidebar {
+            width: 250px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            min-height: 400px;
+        }
+        .logo {
+            text-align: center;
+            padding: 20px 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .logo img {
+            max-width: 100%;
+            max-height: 80px;
+            margin-bottom: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .logo h4 {
+            margin: 10px 0 5px 0;
+            font-weight: 600;
+        }
+        .logo small {
+            opacity: 0.8;
+        }
+        .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 12px 15px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+        }
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        .nav-link.active {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        .nav-link i {
+            margin-right: 10px;
+            width: 20px;
+        }
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        @media (max-width: 768px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+        }
+        .badge-new {
+            background: #28a745;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">
+            <i class="bi bi-image"></i> Logo Implementation Preview
+        </h1>
+        
+        <!-- Overview -->
+        <div class="demo-container">
+            <h3>Overview</h3>
+            <p>This implementation adds a configurable company logo to the admin menu, replacing the text "MY Invest Immobilier".</p>
+            <ul>
+                <li>✅ New parameter <code>logo_societe</code> added to the database</li>
+                <li>✅ Default value: <code>/assets/images/logo-my-invest-immobilier-carre.jpg</code></li>
+                <li>✅ Configurable via the Paramètres page</li>
+                <li>✅ Displays in the admin menu with fallback to text if logo not found</li>
+            </ul>
+        </div>
+
+        <!-- Before/After Comparison -->
+        <div class="demo-container">
+            <h3>Before vs After Comparison</h3>
+            <div class="comparison-grid">
+                <!-- Before -->
+                <div>
+                    <h5>Before (Text Only)</h5>
+                    <div class="sidebar">
+                        <div class="logo">
+                            <i class="bi bi-building" style="font-size: 2rem;"></i>
+                            <h4>MY Invest</h4>
+                            <small>Immobilier</small>
+                        </div>
+                        <div class="nav flex-column">
+                            <a class="nav-link active" href="#">
+                                <i class="bi bi-speedometer2"></i> Tableau de bord
+                            </a>
+                            <a class="nav-link" href="#">
+                                <i class="bi bi-file-earmark-text"></i> Candidatures
+                            </a>
+                            <a class="nav-link" href="#">
+                                <i class="bi bi-house-door"></i> Logements
+                            </a>
+                            <a class="nav-link" href="#">
+                                <i class="bi bi-gear"></i> Paramètres
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- After -->
+                <div>
+                    <h5>After (With Logo) <span class="badge-new">NEW</span></h5>
+                    <div class="sidebar">
+                        <div class="logo">
+                            <img src="assets/images/logo-my-invest-immobilier-carre.svg" alt="Logo société">
+                        </div>
+                        <div class="nav flex-column">
+                            <a class="nav-link active" href="#">
+                                <i class="bi bi-speedometer2"></i> Tableau de bord
+                            </a>
+                            <a class="nav-link" href="#">
+                                <i class="bi bi-file-earmark-text"></i> Candidatures
+                            </a>
+                            <a class="nav-link" href="#">
+                                <i class="bi bi-house-door"></i> Logements
+                            </a>
+                            <a class="nav-link" href="#">
+                                <i class="bi bi-gear"></i> Paramètres
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Database Changes -->
+        <div class="demo-container">
+            <h3>Database Changes</h3>
+            <p>Migration file: <code>migrations/040_add_logo_societe_parameter.sql</code></p>
+            <div class="code-block">
+INSERT INTO parametres (cle, valeur, type, description, groupe) VALUES
+('logo_societe', '/assets/images/logo-my-invest-immobilier-carre.jpg', 'string', 'Logo de la société à afficher dans le menu (chemin relatif)', 'general')
+ON DUPLICATE KEY UPDATE cle=cle;
+            </div>
+        </div>
+
+        <!-- Code Changes -->
+        <div class="demo-container">
+            <h3>Code Changes</h3>
+            
+            <h5>1. Menu (admin-v2/includes/menu.php)</h5>
+            <div class="code-block">
+// Fetch logo from database
+$stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'logo_societe'");
+$stmt->execute();
+$result = $stmt->fetch(PDO::FETCH_ASSOC);
+if ($result) {
+    $logo_societe = $result['valeur'];
+}
+
+// Display logo with fallback
+&lt;div class="logo"&gt;
+    &lt;?php if ($logo_societe && file_exists($_SERVER['DOCUMENT_ROOT'] . $logo_societe)): ?&gt;
+        &lt;img src="&lt;?php echo htmlspecialchars($logo_societe); ?&gt;" 
+             alt="Logo société" 
+             style="max-width: 100%; max-height: 80px; margin-bottom: 10px;"&gt;
+    &lt;?php else: ?&gt;
+        &lt;i class="bi bi-building" style="font-size: 2rem;"&gt;&lt;/i&gt;
+        &lt;h4&gt;MY Invest&lt;/h4&gt;
+        &lt;small&gt;Immobilier&lt;/small&gt;
+    &lt;?php endif; ?&gt;
+&lt;/div&gt;
+            </div>
+
+            <h5 class="mt-3">2. Parameters Page (admin-v2/parametres.php)</h5>
+            <div class="code-block">
+// Added logo_societe to labels array
+'logo_societe' => 'Logo de la société'
+
+// Special handling for logo display with preview
+&lt;?php elseif ($param['cle'] === 'logo_societe'): ?&gt;
+    &lt;input type="text" 
+           name="parametres[&lt;?php echo $param['cle']; ?&gt;]" 
+           class="form-control" 
+           value="&lt;?php echo htmlspecialchars($param['valeur']); ?&gt;"
+           placeholder="/assets/images/logo-my-invest-immobilier-carre.jpg"
+           required&gt;
+    &lt;small class="text-muted"&gt;Chemin relatif vers le fichier logo&lt;/small&gt;
+    &lt;!-- Logo preview with error handling --&gt;
+    &lt;div class="mt-2"&gt;
+        &lt;strong&gt;Aperçu du logo:&lt;/strong&gt;
+        &lt;div class="border p-3 mt-2"&gt;
+            &lt;img src="..." onerror="this.style.display='none'; ..."&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;?php endif; ?&gt;
+            </div>
+        </div>
+
+        <!-- Usage Instructions -->
+        <div class="demo-container">
+            <h3>Usage Instructions</h3>
+            <ol>
+                <li><strong>Run Migration:</strong> Execute <code>php run-migrations.php</code> to add the parameter to the database</li>
+                <li><strong>Add Logo File:</strong> Place your company logo at <code>/assets/images/logo-my-invest-immobilier-carre.jpg</code></li>
+                <li><strong>Access Admin Panel:</strong> The logo will automatically appear in the menu</li>
+                <li><strong>Configure (Optional):</strong> Go to Paramètres page to change the logo path if needed</li>
+            </ol>
+            
+            <div class="alert alert-info mt-3">
+                <i class="bi bi-info-circle"></i>
+                <strong>Note:</strong> A temporary SVG placeholder logo is included for demonstration. Replace it with your actual company logo (.jpg, .png, or .svg).
+            </div>
+        </div>
+
+        <!-- Features -->
+        <div class="demo-container">
+            <h3>Features</h3>
+            <ul>
+                <li>✅ <strong>Configurable:</strong> Logo path can be changed via Paramètres page</li>
+                <li>✅ <strong>Fallback:</strong> Shows original text if logo file not found</li>
+                <li>✅ <strong>Preview:</strong> Paramètres page shows logo preview with error handling</li>
+                <li>✅ <strong>Flexible:</strong> Supports .jpg, .png, .svg, and other image formats</li>
+                <li>✅ <strong>Responsive:</strong> Logo automatically scales to fit menu width</li>
+                <li>✅ <strong>Secure:</strong> Uses htmlspecialchars() to prevent XSS</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
