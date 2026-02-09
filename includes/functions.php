@@ -461,7 +461,7 @@ function finalizeContract($contratId) {
                    c.reference_unique as reference_contrat,
                    l.reference,
                    l.adresse,
-                   l.appartement,
+                   
                    l.type,
                    l.surface,
                    l.loyer,

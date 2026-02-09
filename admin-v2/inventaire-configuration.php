@@ -164,7 +164,7 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                         <span class="variable-tag" onclick="copyVariable('{{reference}}')">{{reference}}</span>
                         <span class="variable-tag" onclick="copyVariable('{{date}}')">{{date}}</span>
                         <span class="variable-tag" onclick="copyVariable('{{adresse}}')">{{adresse}}</span>
-                        <span class="variable-tag" onclick="copyVariable('{{appartement}}')">{{appartement}}</span>
+                        
                         <span class="variable-tag" onclick="copyVariable('{{locataire_nom}}')">{{locataire_nom}}</span>
                         <span class="variable-tag" onclick="copyVariable('{{equipements}}')">{{equipements}}</span>
                         <span class="variable-tag" onclick="copyVariable('{{observations}}')">{{observations}}</span>
@@ -208,7 +208,7 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                         <span class="variable-tag" onclick="copyVariable('{{reference}}')">{{reference}}</span>
                         <span class="variable-tag" onclick="copyVariable('{{date}}')">{{date}}</span>
                         <span class="variable-tag" onclick="copyVariable('{{adresse}}')">{{adresse}}</span>
-                        <span class="variable-tag" onclick="copyVariable('{{appartement}}')">{{appartement}}</span>
+                        
                         <span class="variable-tag" onclick="copyVariable('{{locataire_nom}}')">{{locataire_nom}}</span>
                         <span class="variable-tag" onclick="copyVariable('{{equipements}}')">{{equipements}}</span>
                         <span class="variable-tag" onclick="copyVariable('{{comparaison}}')">{{comparaison}}</span>
