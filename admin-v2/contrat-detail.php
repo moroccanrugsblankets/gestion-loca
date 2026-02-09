@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $adminInfo = fetchOne("SELECT nom, prenom FROM administrateurs WHERE id = ?", [$adminId]);
         $adminName = $adminInfo ? $adminInfo['prenom'] . ' ' . $adminInfo['nom'] : 'Administrateur';
         
-        // Send email to client
+        // Send email to client with admin in Cc
         if (!empty($locataires)) {
             $firstTenant = $locataires[0];
             sendTemplatedEmail('contrat_valide_client', $firstTenant['email'], [
@@ -114,17 +114,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 'date_prise_effet' => date('d/m/Y', strtotime($contrat['date_prise_effet'])),
                 'depot_garantie' => number_format($contrat['depot_garantie'], 2, ',', ' '),
                 'lien_telecharger' => BASE_URL . '/pdf/download.php?contrat_id=' . $contractId
-            ]);
+            ], null, true); // isAdminEmail = true to add admins in Cc
         }
-        
-        // Send email to admins
-        sendTemplatedEmail('contrat_valide_admin', ADMIN_EMAIL, [
-            'reference' => $contrat['reference_contrat'],
-            'logement' => $contrat['reference'] . ' - ' . $contrat['adresse'],
-            'locataires' => implode(', ', $locatairesNames),
-            'admin_nom' => $adminName,
-            'date_validation' => date('d/m/Y H:i')
-        ]);
         
         $_SESSION['success'] = "Contrat validé avec succès. La signature électronique de la société a été ajoutée au PDF.";
         header('Location: contrat-detail.php?id=' . $contractId);
@@ -207,18 +198,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 'reference' => $contrat['reference_contrat'],
                 'logement' => $contrat['reference'] . ' - ' . $contrat['adresse'],
                 'motif_annulation' => $motif
-            ]);
+            ], null, true); // isAdminEmail = true to add admins in Cc
         }
-        
-        // Send email to admins
-        sendTemplatedEmail('contrat_annule_admin', ADMIN_EMAIL, [
-            'reference' => $contrat['reference_contrat'],
-            'logement' => $contrat['reference'] . ' - ' . $contrat['adresse'],
-            'locataires' => implode(', ', $locatairesNames),
-            'admin_nom' => $adminName,
-            'date_annulation' => date('d/m/Y H:i'),
-            'motif_annulation' => $motif
-        ]);
         
         $_SESSION['success'] = "Contrat annulé. Le client a été notifié.";
         header('Location: contrat-detail.php?id=' . $contractId);
