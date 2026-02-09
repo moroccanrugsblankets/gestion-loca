@@ -123,7 +123,7 @@ try {
                         <div class="alert alert-info">
                             <h6><i class="bi bi-calendar-event me-2"></i>Délai de traitement</h6>
                             <p class="mb-0">
-                                Votre candidature sera étudiée et vous recevrez une réponse par email dans un délai de 
+                                Votre candidature sera étudiée et vous recevrez une réponse par email dans un délai 
                                 <strong>entre 1 et 4 jours ouvrés</strong> (du lundi au vendredi, hors jours fériés).
                             </p>
                         </div>
@@ -138,9 +138,8 @@ try {
 
                         <h6 class="mt-4">Si votre candidature est acceptée :</h6>
                         <ul class="mb-0">
-                            <li>Vous recevrez un email avec un bouton pour confirmer votre intérêt</li>
+                            <li>Vous recevrez un e-mail vous informant de l'acceptation de votre dossier</li>
                             <li>Nous vous contacterons via WhatsApp pour organiser une visite</li>
-                            <li>Après visite, possibilité d'envoi du contrat de bail</li>
                         </ul>
                     </div>
                 </div>
