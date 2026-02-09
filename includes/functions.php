@@ -582,14 +582,14 @@ function getAllLogements() {
  */
 function getAllContracts($statut = null) {
     if ($statut) {
-        $sql = "SELECT c.*, l.reference, l.adresse, l.appartement 
+        $sql = "SELECT c.*, l.reference, l.adresse 
                 FROM contrats c 
                 INNER JOIN logements l ON c.logement_id = l.id 
                 WHERE c.statut = ?
                 ORDER BY c.date_creation DESC";
         return fetchAll($sql, [$statut]);
     } else {
-        $sql = "SELECT c.*, l.reference, l.adresse, l.appartement 
+        $sql = "SELECT c.*, l.reference, l.adresse 
                 FROM contrats c 
                 INNER JOIN logements l ON c.logement_id = l.id 
                 ORDER BY c.date_creation DESC";

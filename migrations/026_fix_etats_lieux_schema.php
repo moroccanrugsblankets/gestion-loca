@@ -36,7 +36,7 @@ try {
         // Identification
         "ADD COLUMN reference_unique VARCHAR(100) UNIQUE NULL AFTER type",
         "ADD COLUMN adresse TEXT NULL AFTER date_etat",
-        "ADD COLUMN appartement VARCHAR(50) NULL AFTER adresse",
+        
         "ADD COLUMN bailleur_nom VARCHAR(255) NULL AFTER appartement",
         
         // Relevé des compteurs

@@ -678,7 +678,6 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
         '{{type_label}}' => $typeLabel,
         '{{date_etat}}' => $dateEtat,
         '{{adresse}}' => $adresse,
-        '{{appartement}}' => $appartement,
         '{{type_logement}}' => $typeLogement,
         '{{surface}}' => $surface,
         '{{bailleur_nom}}' => $bailleurNom,

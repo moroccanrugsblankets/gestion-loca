@@ -17,7 +17,7 @@ $stmt = $pdo->prepare("
     SELECT c.*, 
            l.reference,
            l.adresse,
-           l.appartement,
+           
            l.type,
            l.surface,
            l.loyer,

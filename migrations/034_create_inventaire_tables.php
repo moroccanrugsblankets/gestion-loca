@@ -52,7 +52,7 @@ try {
         -- Identification
         date_inventaire DATE NOT NULL,
         adresse TEXT NOT NULL,
-        appartement VARCHAR(50),
+        
         
         -- Participants
         locataire_nom_complet VARCHAR(255),

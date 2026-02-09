@@ -23,7 +23,7 @@ if (!in_array($type, ['entree', 'sortie'])) {
 
 // Récupérer contrat
 $stmt = $pdo->prepare("
-    SELECT c.*, l.reference, l.adresse, l.appartement, l.type as type_logement, l.surface
+    SELECT c.*, l.reference, l.adresse, l.type as type_logement, l.surface
     FROM contrats c
     INNER JOIN logements l ON c.logement_id = l.id
     WHERE c.id = ?

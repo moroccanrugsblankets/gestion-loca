@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                        c.id as contrat_id,
                        c.reference_unique as contrat_ref,
                        l.adresse as logement_adresse,
-                       l.appartement as logement_appartement
+                       
                 FROM etats_lieux edl
                 LEFT JOIN contrats c ON edl.contrat_id = c.id
                 LEFT JOIN logements l ON c.logement_id = l.id
@@ -151,7 +151,7 @@ try {
                c.id as contrat_id,
                c.reference_unique as contrat_ref,
                l.adresse as logement_adresse,
-               l.appartement as logement_appartement
+               
         FROM etats_lieux edl
         LEFT JOIN contrats c ON edl.contrat_id = c.id
         LEFT JOIN logements l ON c.logement_id = l.id

@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Find the active contract for this logement
     $stmt = $pdo->prepare("
         SELECT c.*, 
-               l.adresse, l.appartement,
+               l.adresse, 
                l.default_cles_appartement, l.default_cles_boite_lettres,
                l.default_etat_piece_principale, l.default_etat_cuisine, l.default_etat_salle_eau
         FROM contrats c
