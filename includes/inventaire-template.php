@@ -161,10 +161,6 @@ function getDefaultInventaireTemplate() {
             <span class="info-label">Adresse :</span>
             <span class="info-value">{{adresse}}</span>
         </div>
-        <div class="info-row">
-            <span class="info-label">Appartement :</span>
-            <span class="info-value">{{appartement}}</span>
-        </div>
     </div>
 
     <h2>2. Locataire</h2>
@@ -394,10 +390,6 @@ function getDefaultInventaireSortieTemplate() {
         <div class="info-row">
             <span class="info-label">Adresse :</span>
             <span class="info-value">{{adresse}}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">Appartement :</span>
-            <span class="info-value">{{appartement}}</span>
         </div>
     </div>
 

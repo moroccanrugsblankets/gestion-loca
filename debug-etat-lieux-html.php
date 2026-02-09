@@ -28,7 +28,7 @@ $contrat = [
     'id' => 1,
     'reference' => 'TEST-001',
     'adresse' => '123 Test Street',
-    'appartement' => 'Apt 1',
+    
     'type_logement' => 'Studio',
     'surface' => '25'
 ];
@@ -51,7 +51,7 @@ $etatLieux = [
     'cles_autre' => 0,
     'cles_total' => 3,
     'adresse' => '123 Test Street',
-    'appartement' => 'Apt 1',
+    
     'bailleur_nom' => 'MY INVEST IMMOBILIER',
     'bailleur_representant' => 'John Doe',
     'locataire_email' => 'test@example.com',
@@ -81,7 +81,6 @@ $vars = [
     '{{type_label}}' => $typeLabel,
     '{{date_etat}}' => $dateEtat,
     '{{adresse}}' => htmlspecialchars($contrat['adresse']),
-    '{{appartement}}' => htmlspecialchars($contrat['appartement'] ?? ''),
     '{{type_logement}}' => htmlspecialchars($contrat['type_logement']),
     '{{surface}}' => htmlspecialchars($contrat['surface']),
     '{{bailleur_nom}}' => htmlspecialchars($etatLieux['bailleur_nom']),
@@ -102,7 +101,6 @@ $vars = [
     '{{date_signature}}' => $dateSignature,
     '{{signatures_table}}' => '<table cellspacing="0" cellpadding="0"><tr><td>Mock signatures</td></tr></table>',
     '{{signature_agence}}' => 'MY INVEST IMMOBILIER',
-    '{{appartement_row}}' => '<br><strong>Appartement : </strong>' . htmlspecialchars($contrat['appartement'] ?? ''),
     '{{bailleur_representant_row}}' => '<br><strong>Représenté par : </strong>' . htmlspecialchars($etatLieux['bailleur_representant']),
     '{{observations_section}}' => ''
 ];

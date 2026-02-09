@@ -153,6 +153,10 @@ SET valeur = '<!DOCTYPE html>
             <span class=\"info-label\">Adresse :</span>
             <span class=\"info-value\">{{adresse}}</span>
         </div>
+        <div class=\"info-row\">
+            <span class=\"info-label\">Appartement :</span>
+            <span class=\"info-value\">{{appartement}}</span>
+        </div>
     </div>
 
     <h2>2. Locataire</h2>
@@ -377,6 +381,8 @@ SET valeur = '<!DOCTYPE html>
             <span class=\"info-value\">{{adresse}}</span>
         </div>
         <div class=\"info-row\">
+            <span class=\"info-label\">Appartement :</span>
+            <span class=\"info-value\">{{appartement}}</span>
         </div>
     </div>
 
@@ -574,6 +580,10 @@ SELECT 'inventaire_template_html', '<!DOCTYPE html>
         <div class=\"info-row\">
             <span class=\"info-label\">Adresse :</span>
             <span class=\"info-value\">{{adresse}}</span>
+        </div>
+        <div class=\"info-row\">
+            <span class=\"info-label\">Appartement :</span>
+            <span class=\"info-value\">{{appartement}}</span>
         </div>
     </div>
 
@@ -797,7 +807,13 @@ SELECT 'inventaire_sortie_template_html', '<!DOCTYPE html>
             <span class=\"info-label\">Adresse :</span>
             <span class=\"info-value\">{{adresse}}</span>
         </div>
+        <div class=\"info-row\">
+            <span class=\"info-label\">Appartement :</span>
+            <span class=\"info-value\">{{appartement}}</span>
+        </div>
     </div>
+
+    <h2>2. Locataire</h2>
     
     <div class=\"info-section\">
         <div class=\"info-row\">

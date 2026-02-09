@@ -315,8 +315,7 @@ function getDefaultContractTemplate() {
     <p><strong>Adresse :</strong><br>
     {{adresse}}</p>
     
-    <p><strong>Appartement :</strong> {{appartement}}<br>
-    <strong>Type :</strong> {{type}} - Logement meublé<br>
+    <p><strong>Type :</strong> {{type}} - Logement meublé<br>
     <strong>Surface habitable :</strong> ~ {{surface}} m²<br>
     <strong>Usage :</strong> Résidence principale<br>
     <strong>Parking :</strong> {{parking}}</p>
@@ -547,7 +546,6 @@ HTML;
                     <span class="variable-tag" onclick="copyVariable('{{locataires_signatures}}')">{{locataires_signatures}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{signature_agence}}')">{{signature_agence}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{adresse}}')">{{adresse}}</span>
-                    <span class="variable-tag" onclick="copyVariable('{{appartement}}')">{{appartement}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{type}}')">{{type}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{surface}}')">{{surface}}</span>
                     <span class="variable-tag" onclick="copyVariable('{{parking}}')">{{parking}}</span>
@@ -655,7 +653,6 @@ HTML;
                 .replace(/\{\{locataires_signatures\}\}/g, 'Jean DUPONT - Lu et approuvé')
                 .replace(/\{\{signature_agence\}\}/g, '<p><strong>MY INVEST IMMOBILIER</strong><br>Représenté par M. ALEXANDRE<br>Lu et approuvé</p>')
                 .replace(/\{\{adresse\}\}/g, '123 Rue de la République, 74100 Annemasse')
-                .replace(/\{\{appartement\}\}/g, 'Appartement 15')
                 .replace(/\{\{type\}\}/g, 'T2')
                 .replace(/\{\{surface\}\}/g, '45')
                 .replace(/\{\{parking\}\}/g, 'Place n°12')

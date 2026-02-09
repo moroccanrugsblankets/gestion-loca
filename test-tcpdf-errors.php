@@ -34,7 +34,6 @@ $vars = [
     '{{type_label}}' => $typeLabel,
     '{{date_etat}}' => $dateEtat,
     '{{adresse}}' => htmlspecialchars('123 Test Street'),
-    '{{appartement}}' => htmlspecialchars('Apt 1'),
     '{{type_logement}}' => htmlspecialchars('Studio'),
     '{{surface}}' => htmlspecialchars('25'),
     '{{bailleur_nom}}' => htmlspecialchars('MY INVEST IMMOBILIER'),
@@ -55,7 +54,7 @@ $vars = [
     '{{date_signature}}' => $dateSignature,
     '{{signatures_table}}' => '<table cellspacing="0" cellpadding="0"><tr><td>Mock signatures</td></tr></table>',
     '{{signature_agence}}' => 'MY INVEST IMMOBILIER',
-    '{{appartement_row}}' => '<br><strong>Appartement : </strong>Apt 1',
+    '{{appartement_row}}' => '',
     '{{bailleur_representant_row}}' => '<br><strong>Représenté par : </strong>John Doe',
     '{{observations_section}}' => ''
 ];

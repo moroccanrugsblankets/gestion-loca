@@ -30,7 +30,7 @@ function generateContratPDF($contratId) {
             SELECT c.*, 
                    l.reference,
                    l.adresse,
-                   l.appartement,
+                   
                    l.type,
                    l.surface,
                    l.loyer,
@@ -192,7 +192,6 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
         '{{reference_unique}}' => htmlspecialchars($contrat['reference_unique'] ?? ''),
         '{{locataires_info}}' => $locatairesInfoHtml,
         '{{adresse}}' => htmlspecialchars($contrat['adresse'] ?? ''),
-        '{{appartement}}' => htmlspecialchars($contrat['appartement'] ?? ''),
         '{{type}}' => htmlspecialchars($contrat['type'] ?? ''),
         '{{surface}}' => htmlspecialchars($contrat['surface'] ?? ''),
         '{{parking}}' => htmlspecialchars($contrat['parking'] ?? ''),
@@ -334,8 +333,7 @@ function getDefaultContractTemplate() {
 
     <h2>2. Désignation du logement</h2>
     <p><strong>Adresse :</strong><br>{{adresse}}</p>
-    <p><strong>Appartement :</strong> {{appartement}}<br>
-       <strong>Type :</strong> {{type}} - Logement meublé<br>
+    <p><strong>Type :</strong> {{type}} - Logement meublé<br>
        <strong>Surface :</strong> ~ {{surface}} m²<br>
        <strong>Usage :</strong> Résidence principale<br>
        <strong>Parking :</strong> {{parking}}</p>

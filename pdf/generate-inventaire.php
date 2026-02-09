@@ -105,7 +105,7 @@ function generateInventairePDF($inventaireId) {
             SELECT inv.*, 
                    l.reference,
                    l.adresse as logement_adresse,
-                   l.appartement as logement_appartement,
+                   
                    l.type as type_logement,
                    c.reference_unique as contrat_ref
             FROM inventaires inv
@@ -302,7 +302,6 @@ function replaceInventaireTemplateVariables($template, $inventaire, $locataires)
     
     // Adresse
     $adresse = htmlspecialchars($inventaire['adresse'] ?? $inventaire['logement_adresse'] ?? '');
-    $appartement = htmlspecialchars($inventaire['appartement'] ?? $inventaire['logement_appartement'] ?? '');
     
     // Bailleur
     $bailleurNom = htmlspecialchars($inventaire['bailleur_nom'] ?? $config['COMPANY_NAME'] ?? 'MY INVEST IMMOBILIER');
@@ -400,7 +399,6 @@ function replaceInventaireTemplateVariables($template, $inventaire, $locataires)
         '{{date}}' => $dateInventaire,
         '{{date_inventaire}}' => $dateInventaire,
         '{{adresse}}' => $adresse,
-        '{{appartement}}' => $appartement,
         '{{bailleur_nom}}' => $bailleurNom,
         '{{bailleur_representant}}' => $bailleurRepresentant,
         '{{locataire_nom}}' => $locataireNom,
@@ -416,11 +414,7 @@ function replaceInventaireTemplateVariables($template, $inventaire, $locataires)
     ];
     
     // Handle conditional rows
-    if (!empty($appartement)) {
-        $vars['{{appartement_row}}'] = '<div class="info-row"><span class="info-label">Appartement :</span><span class="info-value">' . $appartement . '</span></div>';
-    } else {
-        $vars['{{appartement_row}}'] = '';
-    }
+    $vars['{{appartement_row}}'] = '';
     
     if (!empty($bailleurRepresentant)) {
         $vars['{{bailleur_representant_row}}'] = '<div class="info-row"><span class="info-label">Représenté par :</span><span class="info-value">' . $bailleurRepresentant . '</span></div>';

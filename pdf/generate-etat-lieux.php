@@ -113,7 +113,7 @@ function generateEtatDesLieuxPDF($contratId, $type = 'entree') {
             SELECT c.*, 
                    l.reference,
                    l.adresse,
-                   l.appartement,
+                   
                    l.type as type_logement,
                    l.surface,
                    l.loyer,
@@ -326,7 +326,6 @@ function createDefaultEtatLieux($contratId, $type, $contrat, $locataires) {
                 reference_unique,
                 date_etat,
                 adresse,
-                appartement,
                 bailleur_nom,
                 bailleur_representant,
                 locataire_email,
@@ -343,7 +342,7 @@ function createDefaultEtatLieux($contratId, $type, $contrat, $locataires) {
                 etat_general,
                 lieu_signature,
                 statut
-            ) VALUES (?, ?, ?, CURDATE(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'brouillon')
+            ) VALUES (?, ?, ?, CURDATE(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'brouillon')
         ");
         
         $defaultTexts = getDefaultPropertyDescriptions($type);
@@ -353,7 +352,6 @@ function createDefaultEtatLieux($contratId, $type, $contrat, $locataires) {
             $type,
             $referenceUnique,
             $contrat['adresse'],
-            $contrat['appartement'] ?? '',
             $config['COMPANY_NAME'] ?? 'MY INVEST IMMOBILIER',
             $config['BAILLEUR_REPRESENTANT'] ?? '',
             $locataireEmail,
@@ -451,7 +449,6 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
     
     // Adresse
     $adresse = htmlspecialchars($etatLieux['adresse'] ?? $contrat['adresse'] ?? '');
-    $appartement = htmlspecialchars($etatLieux['appartement'] ?? $contrat['appartement'] ?? '');
     $typeLogement = htmlspecialchars($contrat['type_logement'] ?? $contrat['type'] ?? '');
     $surface = htmlspecialchars($contrat['surface'] ?? '');
     
@@ -713,11 +710,7 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
     ];
     
     // Handle conditional rows (use already-escaped variables)
-    if (!empty($appartement)) {
-        $vars['{{appartement_row}}'] = '<br><strong>Appartement : </strong>' . $appartement;
-    } else {
-        $vars['{{appartement_row}}'] = '';
-    }
+    $vars['{{appartement_row}}'] = '';
     
     if (!empty($bailleurRepresentant)) {
         $vars['{{bailleur_representant_row}}'] = '<br><strong>Représenté par : </strong>' . $bailleurRepresentant;
@@ -812,7 +805,6 @@ function generateEntreeHTML($contrat, $locataires, $etatLieux) {
     
     $dateEtat = !empty($etatLieux['date_etat']) ? date('d/m/Y', strtotime($etatLieux['date_etat'])) : date('d/m/Y');
     $adresse = htmlspecialchars($etatLieux['adresse'] ?? $contrat['adresse']);
-    $appartement = htmlspecialchars($etatLieux['appartement'] ?? $contrat['appartement'] ?? '');
     
     // Bailleur
     $bailleurNom = htmlspecialchars($etatLieux['bailleur_nom'] ?? $config['COMPANY_NAME']);
@@ -957,9 +949,6 @@ function generateEntreeHTML($contrat, $locataires, $etatLieux) {
         <p><strong>Adresse du logement :</strong><br>$adresse
 HTML;
 
-    if ($appartement) {
-        $html .= "<br>Appartement : $appartement";
-    }
     
     $html .= <<<HTML
 </p>
@@ -1037,7 +1026,6 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
     
     $dateEtat = !empty($etatLieux['date_etat']) ? date('d/m/Y', strtotime($etatLieux['date_etat'])) : date('d/m/Y');
     $adresse = htmlspecialchars($etatLieux['adresse'] ?? $contrat['adresse']);
-    $appartement = htmlspecialchars($etatLieux['appartement'] ?? $contrat['appartement'] ?? '');
     
     // Bailleur
     $bailleurNom = htmlspecialchars($etatLieux['bailleur_nom'] ?? $config['COMPANY_NAME']);
@@ -1222,9 +1210,6 @@ function generateSortieHTML($contrat, $locataires, $etatLieux) {
         <p><strong>Adresse du logement :</strong><br>$adresse
 HTML;
 
-    if ($appartement) {
-        $html .= "<br>Appartement : $appartement";
-    }
     
     $html .= <<<HTML
 </p>
@@ -1535,7 +1520,7 @@ function sendEtatDesLieuxEmail($contratId, $type, $pdfPath) {
     try {
         // Récupérer le contrat et locataires
         $stmt = $pdo->prepare("
-            SELECT c.*, l.adresse, l.appartement, l.reference
+            SELECT c.*, l.adresse,  l.reference
             FROM contrats c
             INNER JOIN logements l ON c.logement_id = l.id
             WHERE c.id = ?
@@ -1573,9 +1558,6 @@ function sendEtatDesLieuxEmail($contratId, $type, $pdfPath) {
         }
         
         $adresse = $contrat['adresse'];
-        if (!empty($contrat['appartement'])) {
-            $adresse .= ' - ' . $contrat['appartement'];
-        }
         
         $body = "Bonjour,\n\n";
         $body .= "Veuillez trouver ci-joint l'état des lieux $typeLabel pour le logement situé au :\n";
