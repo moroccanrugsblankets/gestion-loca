@@ -342,6 +342,81 @@ function updateEtatLieuxTenantSignature($etatLieuxLocataireId, $signatureData, $
 }
 
 /**
+ * Update inventaire tenant signature as physical file
+ * @param int $inventaireLocataireId
+ * @param string $signatureData Base64 image data
+ * @param int $inventaireId
+ * @return bool
+ */
+function updateInventaireTenantSignature($inventaireLocataireId, $signatureData, $inventaireId) {
+    global $pdo;
+    
+    // Validate signature data size
+    $maxSize = 2 * 1024 * 1024; // 2MB limit
+    if (strlen($signatureData) > $maxSize) {
+        error_log("Signature data too large: " . strlen($signatureData) . " bytes for inventaire_locataire ID: $inventaireLocataireId");
+        return false;
+    }
+    
+    // Validate that signature data is a valid data URL
+    if (!preg_match('/^data:image\/(png|jpeg|jpg);base64,([A-Za-z0-9+\/=]+)$/', $signatureData, $matches)) {
+        error_log("Invalid signature data format for inventaire_locataire ID: $inventaireLocataireId");
+        return false;
+    }
+    
+    $imageFormat = $matches[1];
+    $base64Data = $matches[2];
+    
+    // Decode base64 to image data
+    $imageData = base64_decode($base64Data);
+    if ($imageData === false) {
+        error_log("Failed to decode base64 signature for inventaire_locataire ID: $inventaireLocataireId");
+        return false;
+    }
+    
+    // Create uploads directory if it doesn't exist
+    $baseDir = dirname(__DIR__);
+    $uploadsDir = $baseDir . '/uploads/signatures';
+    if (!is_dir($uploadsDir)) {
+        if (!mkdir($uploadsDir, 0755, true)) {
+            error_log("Failed to create signatures directory for inventaire_locataire ID: $inventaireLocataireId");
+            return false;
+        }
+    }
+    
+    // Generate unique filename
+    $filename = "inventaire_tenant_{$inventaireId}_{$inventaireLocataireId}_" . time() . ".jpg";
+    $filepath = $uploadsDir . '/' . $filename;
+    
+    // Save physical file
+    if (file_put_contents($filepath, $imageData) === false) {
+        error_log("Failed to save signature file for inventaire_locataire ID: $inventaireLocataireId");
+        return false;
+    }
+    
+    // Store relative path instead of base64
+    $relativePath = 'uploads/signatures/' . $filename;
+    error_log("Inventaire signature saved as physical file: $relativePath for inventaire_locataire ID: $inventaireLocataireId");
+    
+    $sql = "UPDATE inventaire_locataires 
+            SET signature = ?, date_signature = NOW()
+            WHERE id = ? AND inventaire_id = ?";
+    
+    $stmt = executeQuery($sql, [$relativePath, $inventaireLocataireId, $inventaireId]);
+    
+    if ($stmt === false) {
+        error_log("Failed to update signature for inventaire_locataire ID: $inventaireLocataireId");
+        // Clean up the file if database update failed
+        if (file_exists($filepath)) {
+            unlink($filepath);
+        }
+        return false;
+    }
+    
+    return true;
+}
+
+/**
  * Mettre à jour les pièces d'identité d'un locataire
  * @param int $locataireId
  * @param string $recto
