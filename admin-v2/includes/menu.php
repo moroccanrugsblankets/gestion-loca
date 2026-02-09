@@ -7,6 +7,20 @@
 // Get the current page to highlight active menu item
 $current_page = basename($_SERVER['PHP_SELF']);
 
+// Get logo from parameters
+$logo_societe = null;
+try {
+    $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'logo_societe'");
+    $stmt->execute();
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($result) {
+        $logo_societe = $result['valeur'];
+    }
+} catch (Exception $e) {
+    // If parameter doesn't exist yet, use default
+    $logo_societe = null;
+}
+
 // Map detail pages to their parent menu items
 $page_to_menu_map = [
     'candidature-detail.php' => 'candidatures.php',
@@ -47,9 +61,15 @@ $active_menu = $page_to_menu_map[$current_page] ?? $current_page;
 <!-- Sidebar -->
 <div class="sidebar" id="sidebar">
     <div class="logo">
-        <i class="bi bi-building" style="font-size: 2rem;"></i>
-        <h4>MY Invest</h4>
-        <small>Immobilier</small>
+        <?php if ($logo_societe && file_exists($_SERVER['DOCUMENT_ROOT'] . $logo_societe)): ?>
+            <img src="<?php echo htmlspecialchars($logo_societe); ?>" 
+                 alt="Logo société" 
+                 style="max-width: 100%; max-height: 80px; margin-bottom: 10px;">
+        <?php else: ?>
+            <i class="bi bi-building" style="font-size: 2rem;"></i>
+            <h4>MY Invest</h4>
+            <small>Immobilier</small>
+        <?php endif; ?>
     </div>
     <ul class="nav flex-column mt-4">
         <li class="nav-item">
