@@ -138,9 +138,8 @@ try {
 
                         <h6 class="mt-4">Si votre candidature est acceptée :</h6>
                         <ul class="mb-0">
-                            <li>Vous recevrez un email avec un bouton pour confirmer votre intérêt</li>
+                            <li>Vous recevrez un e-mail vous informant de l'acceptation de votre dossier</li>
                             <li>Nous vous contacterons via WhatsApp pour organiser une visite</li>
-                            <li>Après visite, possibilité d'envoi du contrat de bail</li>
                         </ul>
                     </div>
                 </div>
