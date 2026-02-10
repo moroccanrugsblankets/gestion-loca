@@ -78,13 +78,13 @@ $active_menu = $page_to_menu_map[$current_page] ?? $current_page;
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link <?php echo $active_menu === 'candidatures.php' ? 'active' : ''; ?>" href="candidatures.php">
-                <i class="bi bi-file-earmark-text"></i> Candidatures
+            <a class="nav-link <?php echo $active_menu === 'logements.php' ? 'active' : ''; ?>" href="logements.php">
+                <i class="bi bi-house-door"></i> Logements
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link <?php echo $active_menu === 'logements.php' ? 'active' : ''; ?>" href="logements.php">
-                <i class="bi bi-house-door"></i> Logements
+            <a class="nav-link <?php echo $active_menu === 'candidatures.php' ? 'active' : ''; ?>" href="candidatures.php">
+                <i class="bi bi-file-earmark-text"></i> Candidatures
             </a>
         </li>
         <li class="nav-item">
@@ -100,21 +100,6 @@ $active_menu = $page_to_menu_map[$current_page] ?? $current_page;
                 </li>
             </ul>
             <?php endif; ?>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link <?php echo $active_menu === 'parametres.php' ? 'active' : ''; ?>" href="parametres.php">
-                <i class="bi bi-gear"></i> Paramètres
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link <?php echo $active_menu === 'cron-jobs.php' ? 'active' : ''; ?>" href="cron-jobs.php">
-                <i class="bi bi-clock-history"></i> Tâches Automatisées
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link <?php echo $active_menu === 'email-templates.php' ? 'active' : ''; ?>" href="email-templates.php">
-                <i class="bi bi-envelope"></i> Templates d'Email
-            </a>
         </li>
         <li class="nav-item">
             <a class="nav-link <?php echo $active_menu === 'etats-lieux.php' ? 'active' : ''; ?>" href="etats-lieux.php">
@@ -143,6 +128,21 @@ $active_menu = $page_to_menu_map[$current_page] ?? $current_page;
                 </li>
             </ul>
             <?php endif; ?>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link <?php echo $active_menu === 'email-templates.php' ? 'active' : ''; ?>" href="email-templates.php">
+                <i class="bi bi-envelope"></i> Templates d'Email
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link <?php echo $active_menu === 'parametres.php' ? 'active' : ''; ?>" href="parametres.php">
+                <i class="bi bi-gear"></i> Paramètres
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link <?php echo $active_menu === 'cron-jobs.php' ? 'active' : ''; ?>" href="cron-jobs.php">
+                <i class="bi bi-clock-history"></i> Tâches Automatisées
+            </a>
         </li>
         <li class="nav-item">
             <a class="nav-link <?php echo $active_menu === 'administrateurs.php' ? 'active' : ''; ?>" href="administrateurs.php">
