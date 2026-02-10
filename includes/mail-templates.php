@@ -208,8 +208,8 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
             $mail->addCC($config['ADMIN_EMAIL_SECONDARY']);
         }
         
-        // Ajouter BCC pour contact@myinvest-immobilier.com si c'est un email admin
-        if ($isAdminEmail && !empty($config['ADMIN_EMAIL_BCC'])) {
+        // Ajouter BCC pour contact@myinvest-immobilier.com si c'est un email admin OU si addAdminBcc est activé
+        if (($isAdminEmail || $addAdminBcc) && !empty($config['ADMIN_EMAIL_BCC'])) {
             $mail->addBCC($config['ADMIN_EMAIL_BCC']);
         }
         
@@ -228,11 +228,6 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
             } catch (Exception $e) {
                 error_log("Could not fetch admin emails for BCC: " . $e->getMessage());
             }
-        }
-        
-        // Ajouter BCC config si addAdminBcc est activé
-        if ($addAdminBcc && !empty($config['ADMIN_EMAIL_BCC'])) {
-            $mail->addBCC($config['ADMIN_EMAIL_BCC']);
         }
         
         // Replace {{signature}} placeholder if present in body
