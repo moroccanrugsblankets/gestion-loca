@@ -180,6 +180,7 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
     }
     
     // Create a 2-column table for locataires_info
+    // Note: This table supports up to 2 tenants. For more than 2 tenants, only the first 2 are displayed in the table.
     $locatairesInfoHtml = '<table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">';
     $locatairesInfoHtml .= '<tr style="background-color: #f8f9fa;">';
     $locatairesInfoHtml .= '<th style="border: 1px solid #ddd; padding: 8px; text-align: left; width: 50%;">Locataire 1</th>';
@@ -202,6 +203,20 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
     }
     $locatairesInfoHtml .= '</tr>';
     $locatairesInfoHtml .= '</table>';
+    
+    // If there are more than 2 tenants, append additional tenants below the table
+    if (count($locatairesInfo) > 2) {
+        $locatairesInfoHtml .= '<div style="margin-top: 10px;">';
+        for ($i = 2; $i < count($locatairesInfo); $i++) {
+            $locatairesInfoHtml .= '<p style="margin: 5px 0;">';
+            $locatairesInfoHtml .= '<strong>Locataire ' . ($i + 1) . ' : </strong>';
+            $locatairesInfoHtml .= $locatairesInfo[$i]['nom_complet'] . ', ';
+            $locatairesInfoHtml .= 'né(e) le ' . $locatairesInfo[$i]['date_naissance'] . ', ';
+            $locatairesInfoHtml .= 'Email : ' . $locatairesInfo[$i]['email'];
+            $locatairesInfoHtml .= '</p>';
+        }
+        $locatairesInfoHtml .= '</div>';
+    }
 
     $datePriseEffet = !empty($contrat['date_prise_effet']) ? date('d/m/Y', strtotime($contrat['date_prise_effet'])) : 'N/A';
     $dateSignature = !empty($contrat['date_signature']) ? date('d/m/Y', strtotime($contrat['date_signature'])) : date('d/m/Y');

@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $versoFile = $_FILES['piece_verso'] ?? null;
         
         if (!$rectoFile || $rectoFile['error'] === UPLOAD_ERR_NO_FILE) {
-            $error = 'Veuillez télécharger la pièce d\'identité / passport recto.';
+            $error = 'Veuillez télécharger la pièce d\'identité / Passport recto.';
         } else {
             // Valider le fichier recto
             $rectoValidation = validateUploadedFile($rectoFile);
