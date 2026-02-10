@@ -105,7 +105,7 @@ echo "Test 4: Simulate Signature Replacement\n";
 echo "-----------------------------------------------\n";
 
 $bodyWithSignature = '<html><body><p>Hello,</p><p>Test email content.</p>{{signature}}</body></html>';
-$mockSignature = '<br><br><table><tr><td><strong>MY Invest Immobilier</strong><br>contact@myinvest-immobilier.com</td></tr></table>';
+$mockSignature = '<br><br><table><tr><td><strong>My Invest Immobilier</strong><br>contact@myinvest-immobilier.com</td></tr></table>';
 
 // Simulate what sendEmail does
 if (strpos($bodyWithSignature, '{{signature}}') !== false) {

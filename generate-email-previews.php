@@ -52,7 +52,7 @@ $indexHtml = '<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aperçu des Templates Email - MY Invest Immobilier</title>
+    <title>Aperçu des Templates Email - My Invest Immobilier</title>
     <style>
         body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
         h1 { color: #667eea; }
@@ -81,7 +81,7 @@ $indexHtml = '<!DOCTYPE html>
 </head>
 <body>
     <h1>📧 Aperçu des Templates Email</h1>
-    <p>MY Invest Immobilier - PHPMailer avec design HTML</p>
+    <p>My Invest Immobilier - PHPMailer avec design HTML</p>
     
     <h2>Templates disponibles :</h2>
     <ul class="template-list">

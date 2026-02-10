@@ -10,7 +10,7 @@ require_once __DIR__ . '/includes/db.php';
 echo "=== Mise à jour de la signature email ===\n\n";
 
 // The correct signature format with both HTML border attribute and CSS styles
-$correctSignature = '<p>Sincères salutations</p><p style="margin-top: 20px;"><table style="border: 0; border-collapse: collapse;"><tbody><tr><td style="padding-right: 15px;"><img src="https://www.myinvest-immobilier.com/images/logo.png" alt="MY Invest Immobilier" style="max-width: 120px; border: 0; border-style: none; outline: none; display: block;" border="0"></td><td><h3 style="margin: 0; color: #2c3e50;">MY INVEST IMMOBILIER</h3></td></tr></tbody></table></p>';
+$correctSignature = '<p>Sincères salutations</p><p style="margin-top: 20px;"><table style="border: 0; border-collapse: collapse;"><tbody><tr><td style="padding-right: 15px;"><img src="https://www.myinvest-immobilier.com/images/logo.png" alt="My Invest Immobilier" style="max-width: 120px; border: 0; border-style: none; outline: none; display: block;" border="0"></td><td><h3 style="margin: 0; color: #2c3e50;">MY INVEST IMMOBILIER</h3></td></tr></tbody></table></p>';
 
 try {
     // Get current signature

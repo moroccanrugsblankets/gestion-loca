@@ -104,14 +104,14 @@ $csrfToken = generateCsrfToken();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Envoi du justificatif de paiement - MY Invest Immobilier</title>
+    <title>Envoi du justificatif de paiement - My Invest Immobilier</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
     <div class="container mt-5">
         <div class="text-center mb-4">
-            <img src="assets/images/logo.png" alt="MY Invest Immobilier" class="logo mb-3" 
+            <img src="assets/images/logo.png" alt="My Invest Immobilier" class="logo mb-3" 
                  onerror="this.style.display='none'">
             <h1 class="h2">Envoi du justificatif de paiement</h1>
         </div>

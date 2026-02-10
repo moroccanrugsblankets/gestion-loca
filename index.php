@@ -9,17 +9,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Signature de bail en ligne - MY Invest Immobilier</title>
+    <title>Signature de bail en ligne - My Invest Immobilier</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
     <div class="container mt-5">
         <div class="text-center mb-5">
-            <img src="assets/images/logo.png" alt="MY Invest Immobilier" class="logo mb-3" 
+            <img src="assets/images/logo.png" alt="My Invest Immobilier" class="logo mb-3" 
                  onerror="this.style.display='none'">
             <h1 class="display-4">Signature de Bail en Ligne</h1>
-            <p class="lead text-muted">MY Invest Immobilier</p>
+            <p class="lead text-muted">My Invest Immobilier</p>
         </div>
 
         <div class="row justify-content-center">
@@ -106,7 +106,7 @@
     <footer class="mt-5 py-4 bg-light">
         <div class="container text-center">
             <p class="text-muted mb-0">
-                &copy; <?= date('Y') ?> MY Invest Immobilier - Tous droits réservés
+                &copy; <?= date('Y') ?> My Invest Immobilier - Tous droits réservés
             </p>
         </div>
     </footer>
