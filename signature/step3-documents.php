@@ -107,10 +107,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     ];
                                     
                                     // Envoyer l'email de confirmation avec le contrat PDF
-                                    sendTemplatedEmail('contrat_finalisation_client', $locataire['email'], $variables, $pdfPath, false);
+                                    sendTemplatedEmail('contrat_finalisation_client', $locataire['email'], $variables, $pdfPath, false, false);
                                     
-                                    // Envoyer l'email de demande de justificatif de paiement (en parallèle)
-                                    sendTemplatedEmail('demande_justificatif_paiement', $locataire['email'], $variables, null, false);
+                                    // Envoyer l'email de demande de justificatif de paiement (en parallèle) avec admin en BCC
+                                    sendTemplatedEmail('demande_justificatif_paiement', $locataire['email'], $variables, null, false, true);
                                 }
                                 
                                 // Envoyer une notification aux administrateurs avec le PDF

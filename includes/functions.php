@@ -737,9 +737,10 @@ function replaceTemplateVariables($template, $data) {
  * @param array $variables Variables to replace in template
  * @param string|null $attachmentPath Optional attachment path
  * @param bool $isAdminEmail Whether this is an admin email (for CC to secondary admin)
+ * @param bool $addAdminBcc Whether to add admins in BCC (for client emails where admins need invisible copy)
  * @return bool Success status
  */
-function sendTemplatedEmail($templateId, $to, $variables = [], $attachmentPath = null, $isAdminEmail = false) {
+function sendTemplatedEmail($templateId, $to, $variables = [], $attachmentPath = null, $isAdminEmail = false, $addAdminBcc = false) {
     $template = getEmailTemplate($templateId);
     
     if (!$template) {
@@ -752,7 +753,7 @@ function sendTemplatedEmail($templateId, $to, $variables = [], $attachmentPath =
     $body = replaceTemplateVariables($template['corps_html'], $variables);
     
     // Send email using the existing sendEmail function
-    return sendEmail($to, $subject, $body, $attachmentPath, true, $isAdminEmail);
+    return sendEmail($to, $subject, $body, $attachmentPath, true, $isAdminEmail, null, null, $addAdminBcc);
 }
 
 /**
