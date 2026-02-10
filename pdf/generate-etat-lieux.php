@@ -1506,7 +1506,7 @@ function buildSignaturesTableEtatLieux($contrat, $locataires, $etatLieux) {
 }
 
 /**
- * Envoyer l'état des lieux par email au locataire et à gestion@myinvest-immobilier.com
+ * Envoyer l'état des lieux par email au locataire et à l'email admin configuré
  * 
  * @param int $contratId ID du contrat
  * @param string $type Type d'état des lieux: 'entree' ou 'sortie'
@@ -1585,8 +1585,8 @@ function sendEtatDesLieuxEmail($contratId, $type, $pdfPath) {
             }
         }
         
-        // Envoyer une copie à gestion@myinvest-immobilier.com
-        $gestionEmail = 'gestion@myinvest-immobilier.com';
+        // Envoyer une copie à l'email admin configuré
+        $gestionEmail = getAdminEmail();
         $emailSent = sendEmail(
             $gestionEmail,
             "[COPIE] $subject",
