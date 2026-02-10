@@ -250,7 +250,7 @@ $csrfToken = generateCsrfToken();
                                 </small>
                             </div>
 
-                            <?php if ($numeroLocataire === 1 && $contrat['nb_locataires'] > 1 && $numeroLocataire < 2): ?>
+                            <?php if ($numeroLocataire === 1 && $contrat['nb_locataires'] > 1): ?>
                                 <div class="mb-4">
                                     <label class="form-label">Y a-t-il un second locataire ? *</label>
                                     <div class="form-check">
