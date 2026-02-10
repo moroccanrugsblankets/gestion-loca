@@ -65,6 +65,6 @@ SET
     </div>
 </body>
 </html>',
-    variables_disponibles = ''["nom", "prenom", "reference", "depot_garantie", "lien_upload"]'',
+    variables_disponibles = '["nom", "prenom", "reference", "depot_garantie", "lien_upload"]',
     updated_at = NOW()
-WHERE identifiant = ''demande_justificatif_paiement'';
+WHERE identifiant = 'demande_justificatif_paiement';
