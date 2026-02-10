@@ -82,7 +82,6 @@ $templates = $stmt->fetchAll(PDO::FETCH_ASSOC);
             margin-bottom: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             transition: transform 0.2s;
-            cursor: move;
         }
         .template-card:hover {
             transform: translateY(-2px);
