@@ -299,10 +299,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="card-body">
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <strong>Loyer mensuel HT:</strong> <span id="preview_loyer">-</span> €
+                                        <strong>Loyer mensuel:</strong> <span id="preview_loyer">-</span> €
                                     </div>
                                     <div class="col-md-6">
-                                        <strong>Charges:</strong> <span id="preview_charges">-</span> €
+                                        <strong>Provisions sur charges:</strong> <span id="preview_charges">-</span> €
                                     </div>
                                     <div class="col-md-6">
                                         <strong>Total mensuel:</strong> <span id="preview_total">-</span> €

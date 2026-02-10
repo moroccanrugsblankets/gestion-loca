@@ -142,13 +142,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         'reference' => $contrat['reference_unique'],
                                         'logement' => $contrat['adresse'],
                                         'locataires' => $locatairesStr,
+                                        'date_signature' => date('d/m/Y à H:i'),
                                         'date_finalisation' => date('d/m/Y à H:i'),
                                         'depot_garantie' => formatMontant($contrat['depot_garantie']),
                                         'lien_admin' => $lienAdmin
                                     ];
                                     
                                     // Envoyer l'email admin avec le template HTML - TO admin email, not client
-                                    sendTemplatedEmail('contrat_signe_client_admin', getAdminEmail(), $adminVariables, $pdfPath, true);
+                                    sendTemplatedEmail('contrat_finalisation_admin', getAdminEmail(), $adminVariables, $pdfPath, true);
                                 }
                                 
                                 logAction($contratId, 'finalisation_contrat', 'Contrat finalisé et emails envoyés (confirmation + demande justificatif)');
