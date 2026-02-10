@@ -142,6 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         'reference' => $contrat['reference_unique'],
                                         'logement' => $contrat['adresse'],
                                         'locataires' => $locatairesStr,
+                                        'date_signature' => date('d/m/Y à H:i'),
                                         'date_finalisation' => date('d/m/Y à H:i'),
                                         'depot_garantie' => formatMontant($contrat['depot_garantie']),
                                         'lien_admin' => $lienAdmin

@@ -314,7 +314,7 @@ function buildSignaturesTable($contrat, $locataires) {
 
         if (!empty($loc['signature_data']) && preg_match('/^uploads\/signatures\//', $loc['signature_data'])) {
             $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($loc['signature_data'], '/');
-			$html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" width="150" border="0">';
+			$html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" width="180" border="0">';
         }
         
         // Add "Certifié exact" checkbox indicator - always show for clarity
