@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             ];
                             
                             // Envoyer l'email de notification aux administrateurs
-                            sendTemplatedEmail('notification_justificatif_paiement_admin', $config['ADMIN_EMAIL'], $adminVariables, null, true);
+                            sendTemplatedEmail('notification_justificatif_paiement_admin', getAdminEmail(), $adminVariables, null, true);
                         }
                         
                         $success = true;
