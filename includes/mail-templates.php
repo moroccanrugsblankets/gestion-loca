@@ -137,9 +137,10 @@ Nous restons à votre disposition pour toute question.";
  * @param bool $isAdminEmail Si true, envoie aussi à l'adresse secondaire si configurée
  * @param string|null $replyTo Email de réponse personnalisé (optionnel)
  * @param string|null $replyToName Nom pour l'email de réponse (optionnel)
+ * @param bool $addAdminBcc Si true, ajoute les administrateurs en copie cachée (BCC) - pour emails clients avec copie admin invisible
  * @return bool True si l'email a été envoyé avec succès
  */
-function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true, $isAdminEmail = false, $replyTo = null, $replyToName = null) {
+function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true, $isAdminEmail = false, $replyTo = null, $replyToName = null, $addAdminBcc = false) {
     global $config, $pdo;
     
     // Validate SMTP configuration if SMTP auth is enabled
@@ -209,6 +210,28 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
         
         // Ajouter BCC pour contact@myinvest-immobilier.com si c'est un email admin
         if ($isAdminEmail && !empty($config['ADMIN_EMAIL_BCC'])) {
+            $mail->addBCC($config['ADMIN_EMAIL_BCC']);
+        }
+        
+        // Si addAdminBcc est activé, ajouter tous les administrateurs en BCC (copie cachée invisible pour le client)
+        if ($addAdminBcc && $pdo) {
+            try {
+                $stmt = $pdo->prepare("SELECT email FROM administrateurs WHERE actif = TRUE");
+                $stmt->execute();
+                $admins = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                foreach ($admins as $admin) {
+                    if (!empty($admin['email']) && filter_var($admin['email'], FILTER_VALIDATE_EMAIL)) {
+                        $mail->addBCC($admin['email']);
+                    }
+                }
+            } catch (Exception $e) {
+                error_log("Could not fetch admin emails for BCC: " . $e->getMessage());
+            }
+        }
+        
+        // Ajouter BCC config si addAdminBcc est activé
+        if ($addAdminBcc && !empty($config['ADMIN_EMAIL_BCC'])) {
             $mail->addBCC($config['ADMIN_EMAIL_BCC']);
         }
         
