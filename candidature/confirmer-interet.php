@@ -53,7 +53,7 @@ if (isset($_GET['ref'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confirmation d'intérêt - MY Invest Immobilier</title>
+    <title>Confirmation d'intérêt - My Invest Immobilier</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
@@ -66,7 +66,7 @@ if (isset($_GET['ref'])) {
 <body>
     <div class="container py-5">
         <div class="logo-section">
-            <h1>MY Invest Immobilier</h1>
+            <h1>My Invest Immobilier</h1>
         </div>
         
         <div class="row justify-content-center">

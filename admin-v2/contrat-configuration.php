@@ -351,7 +351,7 @@ function getDefaultContractTemplate() {
     {{signatures_table}}
 
     <div class="footer" style="margin-top: 40px; font-size: 8pt; text-align: center; color: #666;">
-        <p>Document généré électroniquement par MY Invest Immobilier</p>
+        <p>Document généré électroniquement par My Invest Immobilier</p>
         <p>Contrat de bail - Référence : {{reference_unique}}</p>
     </div>
 </body>

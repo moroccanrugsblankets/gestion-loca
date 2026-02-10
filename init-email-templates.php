@@ -42,7 +42,7 @@ $templates = [
     [
         'identifiant' => 'candidature_recue',
         'nom' => 'Accusé de réception de candidature',
-        'sujet' => 'Votre candidature a bien été reçue - MY Invest Immobilier',
+        'sujet' => 'Votre candidature a bien été reçue - My Invest Immobilier',
         'corps_html' => '<!DOCTYPE html>
 <html>
 <head>
@@ -51,7 +51,7 @@ $templates = [
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
     <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: #2c3e50; color: white; padding: 20px; text-align: center;">
-            <h1>MY Invest Immobilier</h1>
+            <h1>My Invest Immobilier</h1>
         </div>
         <div style="background: #f8f9fa; padding: 30px;">
             <h2>Bonjour {{prenom}} {{nom}},</h2>
@@ -88,7 +88,7 @@ $templates = [
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0;">
     <div style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center;">
-            <h1 style="margin: 0; font-size: 28px;">MY Invest Immobilier</h1>
+            <h1 style="margin: 0; font-size: 28px;">My Invest Immobilier</h1>
         </div>
         <div style="padding: 30px;">
             <p style="margin: 15px 0;">Bonjour,</p>
@@ -103,7 +103,7 @@ $templates = [
             {{signature}}
         </div>
         <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e9ecef;">
-            <p>MY Invest Immobilier - Gestion locative professionnelle</p>
+            <p>My Invest Immobilier - Gestion locative professionnelle</p>
         </div>
     </div>
 </body>
@@ -124,7 +124,7 @@ $templates = [
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0;">
     <div style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center;">
-            <h1 style="margin: 0; font-size: 28px;">MY Invest Immobilier</h1>
+            <h1 style="margin: 0; font-size: 28px;">My Invest Immobilier</h1>
         </div>
         <div style="padding: 30px;">
             <p style="margin: 15px 0;">Bonjour,</p>
@@ -138,7 +138,7 @@ $templates = [
             {{signature}}
         </div>
         <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e9ecef;">
-            <p>MY Invest Immobilier - Gestion locative professionnelle</p>
+            <p>My Invest Immobilier - Gestion locative professionnelle</p>
         </div>
     </div>
 </body>
@@ -149,7 +149,7 @@ $templates = [
     [
         'identifiant' => 'statut_visite_planifiee',
         'nom' => 'Visite planifiée',
-        'sujet' => 'Visite de logement planifiée - MY Invest Immobilier',
+        'sujet' => 'Visite de logement planifiée - My Invest Immobilier',
         'corps_html' => '<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -159,7 +159,7 @@ $templates = [
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0;">
     <div style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center;">
-            <h1 style="margin: 0; font-size: 28px;">MY Invest Immobilier</h1>
+            <h1 style="margin: 0; font-size: 28px;">My Invest Immobilier</h1>
         </div>
         <div style="padding: 30px;">
             <p style="margin: 15px 0;">Bonjour {{nom}},</p>
@@ -175,7 +175,7 @@ $templates = [
             {{signature}}
         </div>
         <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e9ecef;">
-            <p>MY Invest Immobilier - Gestion locative professionnelle</p>
+            <p>My Invest Immobilier - Gestion locative professionnelle</p>
         </div>
     </div>
 </body>
@@ -186,7 +186,7 @@ $templates = [
     [
         'identifiant' => 'statut_contrat_envoye',
         'nom' => 'Contrat envoyé',
-        'sujet' => 'Contrat de bail - MY Invest Immobilier',
+        'sujet' => 'Contrat de bail - My Invest Immobilier',
         'corps_html' => '<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -196,7 +196,7 @@ $templates = [
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0;">
     <div style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center;">
-            <h1 style="margin: 0; font-size: 28px;">MY Invest Immobilier</h1>
+            <h1 style="margin: 0; font-size: 28px;">My Invest Immobilier</h1>
         </div>
         <div style="padding: 30px;">
             <p style="margin: 15px 0;">Bonjour {{nom}},</p>
@@ -212,7 +212,7 @@ $templates = [
             {{signature}}
         </div>
         <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e9ecef;">
-            <p>MY Invest Immobilier - Gestion locative professionnelle</p>
+            <p>My Invest Immobilier - Gestion locative professionnelle</p>
         </div>
     </div>
 </body>
@@ -223,7 +223,7 @@ $templates = [
     [
         'identifiant' => 'statut_contrat_signe',
         'nom' => 'Contrat signé',
-        'sujet' => 'Contrat signé - MY Invest Immobilier',
+        'sujet' => 'Contrat signé - My Invest Immobilier',
         'corps_html' => '<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -233,7 +233,7 @@ $templates = [
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0;">
     <div style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center;">
-            <h1 style="margin: 0; font-size: 28px;">MY Invest Immobilier</h1>
+            <h1 style="margin: 0; font-size: 28px;">My Invest Immobilier</h1>
         </div>
         <div style="padding: 30px;">
             <p style="margin: 15px 0;">Bonjour {{nom}},</p>
@@ -249,7 +249,7 @@ $templates = [
             {{signature}}
         </div>
         <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e9ecef;">
-            <p>MY Invest Immobilier - Gestion locative professionnelle</p>
+            <p>My Invest Immobilier - Gestion locative professionnelle</p>
         </div>
     </div>
 </body>
@@ -314,7 +314,7 @@ $templates = [
             {{signature}}
         </div>
         <div style="text-align: center; padding: 20px; font-size: 12px; color: #666;">
-            <p>MY Invest Immobilier - Système de gestion des candidatures</p>
+            <p>My Invest Immobilier - Système de gestion des candidatures</p>
         </div>
     </div>
 </body>
@@ -372,7 +372,7 @@ $templates = [
             {{signature}}
         </div>
         <div style="background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666;">
-            <p>MY Invest Immobilier - Gestion locative professionnelle</p>
+            <p>My Invest Immobilier - Gestion locative professionnelle</p>
         </div>
     </div>
 </body>
@@ -412,7 +412,7 @@ $templates = [
             <div style="background: #fff; border: 2px solid #3498db; padding: 20px; margin: 20px 0; border-radius: 8px;">
                 <h3 style="color: #2c3e50; margin-top: 0;">Coordonnées Bancaires</h3>
                 <div style="margin: 10px 0;">
-                    <strong style="display: inline-block; min-width: 120px; color: #555;">Bénéficiaire :</strong> MY Invest Immobilier
+                    <strong style="display: inline-block; min-width: 120px; color: #555;">Bénéficiaire :</strong> My Invest Immobilier
                 </div>
                 <div style="margin: 10px 0;">
                     <strong style="display: inline-block; min-width: 120px; color: #555;">IBAN :</strong> FR76 1027 8021 6000 0206 1834 585
@@ -436,8 +436,8 @@ $templates = [
             {{signature}}
         </div>
         <div style="text-align: center; padding: 20px; font-size: 12px; color: #666; margin-top: 20px;">
-            <p>MY Invest Immobilier - Gestion locative professionnelle<br>
-            © 2026 MY Invest Immobilier - Tous droits réservés</p>
+            <p>My Invest Immobilier - Gestion locative professionnelle<br>
+            © 2026 My Invest Immobilier - Tous droits réservés</p>
         </div>
     </div>
 </body>
@@ -506,8 +506,8 @@ $templates = [
             {{signature}}
         </div>
         <div style="text-align: center; padding: 20px; font-size: 12px; color: #666; margin-top: 20px;">
-            <p>MY Invest Immobilier - Système de gestion des contrats<br>
-            © 2026 MY Invest Immobilier</p>
+            <p>My Invest Immobilier - Système de gestion des contrats<br>
+            © 2026 My Invest Immobilier</p>
         </div>
     </div>
 </body>
@@ -545,7 +545,7 @@ $templates = [
             <div style="background: #fff; border: 2px solid #3498db; padding: 20px; margin: 20px 0; border-radius: 8px;">
                 <h3 style="color: #2c3e50; margin-top: 0;">Rappel des Coordonnées Bancaires</h3>
                 <div style="margin: 10px 0;">
-                    <strong style="display: inline-block; min-width: 120px; color: #555;">Bénéficiaire :</strong> MY Invest Immobilier
+                    <strong style="display: inline-block; min-width: 120px; color: #555;">Bénéficiaire :</strong> My Invest Immobilier
                 </div>
                 <div style="margin: 10px 0;">
                     <strong style="display: inline-block; min-width: 120px; color: #555;">IBAN :</strong> FR76 1027 8021 6000 0206 1834 585
@@ -574,8 +574,8 @@ $templates = [
             {{signature}}
         </div>
         <div style="text-align: center; padding: 20px; font-size: 12px; color: #666; margin-top: 20px;">
-            <p>MY Invest Immobilier - Gestion locative professionnelle<br>
-            © 2026 MY Invest Immobilier - Tous droits réservés</p>
+            <p>My Invest Immobilier - Gestion locative professionnelle<br>
+            © 2026 My Invest Immobilier - Tous droits réservés</p>
         </div>
     </div>
 </body>
@@ -635,7 +635,7 @@ $templates = [
             </p>
         </div>
         <div style="text-align: center; padding: 20px; font-size: 12px; color: #666;">
-            <p>MY Invest Immobilier - Système de gestion des contrats</p>
+            <p>My Invest Immobilier - Système de gestion des contrats</p>
         </div>
     </div>
 </body>

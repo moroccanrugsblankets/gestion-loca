@@ -54,26 +54,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $versoFile = $_FILES['piece_verso'] ?? null;
         
         if (!$rectoFile || $rectoFile['error'] === UPLOAD_ERR_NO_FILE) {
-            $error = 'Veuillez télécharger la pièce d\'identité recto.';
-        } elseif (!$versoFile || $versoFile['error'] === UPLOAD_ERR_NO_FILE) {
-            $error = 'Veuillez télécharger la pièce d\'identité verso.';
+            $error = 'Veuillez télécharger la pièce d\'identité / Passport recto.';
         } else {
             // Valider le fichier recto
             $rectoValidation = validateUploadedFile($rectoFile);
             if (!$rectoValidation['success']) {
                 $error = 'Recto : ' . $rectoValidation['error'];
             } else {
-                // Valider le fichier verso
-                $versoValidation = validateUploadedFile($versoFile);
-                if (!$versoValidation['success']) {
-                    $error = 'Verso : ' . $versoValidation['error'];
-                } else {
-                    // Sauvegarder les fichiers
-                    if (saveUploadedFile($rectoFile, $rectoValidation['filename']) && 
-                        saveUploadedFile($versoFile, $versoValidation['filename'])) {
+                // Valider le fichier verso (optionnel)
+                $versoValidation = null;
+                if ($versoFile && $versoFile['error'] !== UPLOAD_ERR_NO_FILE) {
+                    $versoValidation = validateUploadedFile($versoFile);
+                    if (!$versoValidation['success']) {
+                        $error = 'Verso : ' . $versoValidation['error'];
+                    }
+                }
+                
+                if (!isset($error)) {
+                    // Sauvegarder le fichier recto (obligatoire)
+                    $rectoSaved = saveUploadedFile($rectoFile, $rectoValidation['filename']);
+                    
+                    // Sauvegarder le fichier verso (optionnel)
+                    $versoSaved = true;
+                    $versoFilename = null;
+                    if ($versoValidation) {
+                        $versoSaved = saveUploadedFile($versoFile, $versoValidation['filename']);
+                        $versoFilename = $versoValidation['filename'];
+                    }
+                    
+                    if ($rectoSaved && $versoSaved) {
                         
                         // Mettre à jour le locataire
-                        if (updateTenantDocuments($locataireId, $rectoValidation['filename'], $versoValidation['filename'])) {
+                        if (updateTenantDocuments($locataireId, $rectoValidation['filename'], $versoFilename)) {
                             logAction($contratId, 'upload_documents', "Locataire $numeroLocataire a uploadé ses documents");
                             
                             // Vérifier s'il y a un second locataire
@@ -164,14 +176,14 @@ $csrfToken = generateCsrfToken();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vérification d'identité - MY Invest Immobilier</title>
+    <title>Vérification d'identité - My Invest Immobilier</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
     <div class="container mt-5">
         <div class="text-center mb-4">
-            <img src="../assets/images/logo.png" alt="MY Invest Immobilier" class="logo mb-3" 
+            <img src="../assets/images/logo.png" alt="My Invest Immobilier" class="logo mb-3" 
                  onerror="this.style.display='none'">
             <h1 class="h2">Vérification d'identité du ou des locataires</h1>
         </div>
@@ -217,7 +229,7 @@ $csrfToken = generateCsrfToken();
                             
                             <div class="mb-3">
                                 <label for="piece_recto" class="form-label">
-                                    Pièce d'identité - Recto *
+                                    Pièce d'identité / Passport - Recto *
                                 </label>
                                 <input type="file" class="form-control" id="piece_recto" name="piece_recto" 
                                        accept=".jpg,.jpeg,.png,.pdf" required>
@@ -228,12 +240,12 @@ $csrfToken = generateCsrfToken();
 
                             <div class="mb-3">
                                 <label for="piece_verso" class="form-label">
-                                    Pièce d'identité - Verso *
+                                    Pièce d'identité / Passport - Verso
                                 </label>
                                 <input type="file" class="form-control" id="piece_verso" name="piece_verso" 
-                                       accept=".jpg,.jpeg,.png,.pdf" required>
+                                       accept=".jpg,.jpeg,.png,.pdf">
                                 <small class="form-text text-muted">
-                                    Formats acceptés : JPG, PNG, PDF - Taille max : 5 Mo
+                                    Formats acceptés : JPG, PNG, PDF - Taille max : 5 Mo (optionnel pour les passeports)
                                 </small>
                             </div>
 

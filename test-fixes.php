@@ -33,7 +33,7 @@ testResult(
 
 testResult(
     strpos($sendEmailContent, 'Cordialement,<br>') === false && 
-    strpos($sendEmailContent, 'L\'équipe MY Invest Immobilier') === false,
+    strpos($sendEmailContent, 'L\'équipe My Invest Immobilier') === false,
     "Pas de signature hardcodée trouvée",
     "Template contient encore une signature hardcodée"
 );

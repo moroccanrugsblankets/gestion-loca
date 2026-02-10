@@ -97,7 +97,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Réponse Candidature - MY Invest Immobilier</title>
+    <title>Réponse Candidature - My Invest Immobilier</title>
     <style>
         body {
             font-family: Arial, sans-serif;

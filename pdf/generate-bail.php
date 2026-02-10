@@ -341,7 +341,7 @@ function generateBailHTML($contrat, $locataires) {
     
     <div class="signature-block">
         <h3>Le bailleur</h3>
-        <p><strong>MY Invest Immobilier (SCI)</strong><br>
+        <p><strong>My Invest Immobilier (SCI)</strong><br>
         Représentée par Maxime Alexandre<br>
         Lu et approuvé</p>';
     
@@ -463,7 +463,7 @@ function generateBailHTML($contrat, $locataires) {
     </div>
 
     <div class="footer">
-        <p>Document généré électroniquement par MY Invest Immobilier</p>
+        <p>Document généré électroniquement par My Invest Immobilier</p>
         <p>Contrat de bail - Référence : ' . htmlspecialchars($contrat['reference']) . '</p>
         <p>contact@myinvest-immobilier.com</p>
     </div>
