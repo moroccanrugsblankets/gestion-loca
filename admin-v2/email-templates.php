@@ -17,6 +17,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $_SESSION['success'] = "Template mis à jour avec succès";
         header('Location: email-templates.php');
         exit;
+    } elseif ($_POST['action'] === 'update_order') {
+        // Handle AJAX request to update template order
+        header('Content-Type: application/json');
+        
+        $order = json_decode($_POST['order'], true);
+        if (is_array($order)) {
+            $pdo->beginTransaction();
+            try {
+                $stmt = $pdo->prepare("UPDATE email_templates SET ordre = ? WHERE id = ?");
+                foreach ($order as $index => $templateId) {
+                    $stmt->execute([$index + 1, (int)$templateId]);
+                }
+                $pdo->commit();
+                echo json_encode(['success' => true]);
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+            }
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Invalid order data']);
+        }
+        exit;
     }
 }
 
@@ -29,7 +51,7 @@ if (isset($_GET['edit'])) {
 }
 
 // Get all templates
-$stmt = $pdo->query("SELECT * FROM email_templates ORDER BY identifiant");
+$stmt = $pdo->query("SELECT * FROM email_templates ORDER BY ordre ASC, id ASC");
 $templates = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
@@ -40,6 +62,8 @@ $templates = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <title>Templates d'Email - My Invest Immobilier</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- SortableJS for drag & drop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <!-- TinyMCE Cloud - API key is public and domain-restricted -->
     <script src="https://cdn.tiny.cloud/1/odjqanpgdv2zolpduplee65ntoou1b56hg6gvgxvrt8dreh0/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
     <?php require_once __DIR__ . '/includes/sidebar-styles.php'; ?>
@@ -62,6 +86,22 @@ $templates = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .template-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .template-card.sortable-ghost {
+            opacity: 0.4;
+            background: #f0f0f0;
+        }
+        .template-card.sortable-drag {
+            opacity: 0.8;
+            transform: rotate(2deg);
+        }
+        .drag-handle {
+            cursor: grab;
+            color: #6c757d;
+            margin-right: 10px;
+        }
+        .drag-handle:active {
+            cursor: grabbing;
         }
         .template-card h5 {
             color: #2c3e50;
@@ -113,6 +153,10 @@ $templates = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <a href="email-templates.php" class="btn btn-secondary">
                     <i class="bi bi-arrow-left"></i> Retour à la liste
                 </a>
+                <?php else: ?>
+                <div class="text-muted small">
+                    <i class="bi bi-arrows-move"></i> Glissez-déposez pour réorganiser
+                </div>
                 <?php endif; ?>
             </div>
         </div>
@@ -181,12 +225,15 @@ $templates = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         <?php else: ?>
             <!-- List Templates -->
-            <div class="row">
+            <div class="row" id="templates-list">
                 <?php foreach ($templates as $tpl): ?>
-                <div class="col-md-6 col-lg-4">
+                <div class="col-md-6 col-lg-4" data-template-id="<?php echo $tpl['id']; ?>">
                     <div class="template-card">
                         <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h5><?php echo htmlspecialchars($tpl['nom']); ?></h5>
+                            <div class="d-flex align-items-start flex-grow-1">
+                                <i class="bi bi-grip-vertical drag-handle fs-5"></i>
+                                <h5 class="mb-0"><?php echo htmlspecialchars($tpl['nom']); ?></h5>
+                            </div>
                             <?php if ($tpl['actif']): ?>
                                 <span class="badge bg-success">Actif</span>
                             <?php else: ?>
@@ -224,6 +271,76 @@ $templates = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Initialize drag & drop for template cards
+        document.addEventListener('DOMContentLoaded', function() {
+            const templatesList = document.getElementById('templates-list');
+            
+            if (templatesList) {
+                // Initialize Sortable
+                const sortable = Sortable.create(templatesList, {
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    dragClass: 'sortable-drag',
+                    handle: '.drag-handle',
+                    onEnd: function(evt) {
+                        // Get the new order of template IDs
+                        const templateItems = templatesList.querySelectorAll('[data-template-id]');
+                        const order = [];
+                        templateItems.forEach(function(item) {
+                            order.push(item.getAttribute('data-template-id'));
+                        });
+                        
+                        // Send AJAX request to save the new order
+                        saveTemplateOrder(order);
+                    }
+                });
+            }
+        });
+        
+        // Function to save template order via AJAX
+        function saveTemplateOrder(order) {
+            const formData = new FormData();
+            formData.append('action', 'update_order');
+            formData.append('order', JSON.stringify(order));
+            
+            fetch('email-templates.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Order saved successfully');
+                    // Optional: Show a success message
+                    showNotification('Ordre sauvegardé avec succès', 'success');
+                } else {
+                    console.error('Failed to save order:', data.error);
+                    showNotification('Erreur lors de la sauvegarde de l\'ordre', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving order:', error);
+                showNotification('Erreur lors de la sauvegarde de l\'ordre', 'error');
+            });
+        }
+        
+        // Function to show notification
+        function showNotification(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
+            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
+        
         // Initialize TinyMCE on the email body editor
         tinymce.init({
             selector: 'textarea.code-editor',
