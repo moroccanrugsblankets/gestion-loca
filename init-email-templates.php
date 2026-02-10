@@ -551,8 +551,8 @@ $templates = [
                 <div style="margin: 10px 0;">
                     <strong style="display: inline-block; min-width: 120px; color: #555;">Bénéficiaire :</strong> My Invest Immobilier
                 </div>
-                <div style="margin: 10px 0;">
-                    <strong style="display: inline-block; min-width: 120px; color: #555;">IBAN :</strong> FR76 1027 8021 6000 0206 1834 585
+                <div style="margin: 10px 0; white-space: nowrap;">
+                    <strong style="display: inline-block; min-width: 120px; color: #555;">IBAN :</strong> <span style="font-family: monospace; letter-spacing: 1px;">FR76&nbsp;1027&nbsp;8021&nbsp;6000&nbsp;0206&nbsp;1834&nbsp;585</span>
                 </div>
                 <div style="margin: 10px 0;">
                     <strong style="display: inline-block; min-width: 120px; color: #555;">BIC :</strong> CMCIFRA
