@@ -60,10 +60,11 @@ $action = "Changement de statut: $ancien_statut → $nouveau_statut";
 $details = $commentaire ? "Commentaire: $commentaire" : null;
 
 $stmt = $pdo->prepare("
-    INSERT INTO logs (candidature_id, action, details, ip_address, created_at)
-    VALUES (?, ?, ?, ?, NOW())
+    INSERT INTO logs (type_entite, entite_id, action, details, ip_address, created_at)
+    VALUES (?, ?, ?, ?, ?, NOW())
 ");
 $stmt->execute([
+    'candidature',
     $candidature_id,
     $action,
     $details,
@@ -96,16 +97,16 @@ if ($send_email) {
         ];
         
         // Send templated email
-        $isAdminEmail = ($nouveau_statut === 'refuse');
-        $emailSent = sendTemplatedEmail($templateId, $to, $variables, null, $isAdminEmail);
+        $emailSent = sendTemplatedEmail($templateId, $to, $variables, null, false);
         
         if ($emailSent) {
             // Log email sent
             $stmt = $pdo->prepare("
-                INSERT INTO logs (candidature_id, action, details, ip_address, created_at)
-                VALUES (?, ?, ?, ?, NOW())
+                INSERT INTO logs (type_entite, entite_id, action, details, ip_address, created_at)
+                VALUES (?, ?, ?, ?, ?, NOW())
             ");
             $stmt->execute([
+                'candidature',
                 $candidature_id,
                 "Email envoyé",
                 "Template: $templateId",
