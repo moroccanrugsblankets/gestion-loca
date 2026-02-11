@@ -1606,7 +1606,8 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                     if (!response.ok) {
                         return response.json().then(data => {
                             throw new Error(data.error || 'Erreur serveur');
-                        }).catch(() => {
+                        }, () => {
+                            // JSON parsing failed - not a JSON response
                             throw new Error('Erreur de connexion au serveur');
                         });
                     }
@@ -1726,7 +1727,8 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                 if (!response.ok) {
                     return response.json().then(data => {
                         throw new Error(data.error || 'Erreur serveur');
-                    }).catch(() => {
+                    }, () => {
+                        // JSON parsing failed - not a JSON response
                         throw new Error('Erreur de connexion au serveur');
                     });
                 }
