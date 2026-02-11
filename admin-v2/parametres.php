@@ -152,7 +152,7 @@ foreach ($allParams as $param) {
                     <?php 
                     // Group delay parameters together
                     $delayParamsKeys = ['delai_reponse_valeur', 'delai_reponse_unite'];
-                    $obsoleteParams = ['delai_reponse_jours', 'delai_refus_auto_heures']; // Parameters to hide
+                    $obsoleteParams = ['delai_reponse_jours', 'delai_refus_auto_heures', 'email_admin']; // Parameters to hide
                     $delayParams = [];
                     $otherParams = [];
                     foreach ($params as $param) {

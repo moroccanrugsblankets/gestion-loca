@@ -46,6 +46,11 @@ if (!isContractValid($contrat)) {
 $_SESSION['signature_token'] = $token;
 $_SESSION['contrat_id'] = $contrat['id'];
 
+// Clear any previous tenant session data to ensure proper flow
+// This allows the defensive fallback in step1/step2/step3 to correctly determine next step
+unset($_SESSION['current_locataire_id']);
+unset($_SESSION['current_locataire_numero']);
+
 // Traitement de l'acceptation/refus
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($_POST['csrf_token']) || !verifyCsrfToken($_POST['csrf_token'])) {
