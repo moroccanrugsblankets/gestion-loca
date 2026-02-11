@@ -362,7 +362,7 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                                 $stmt = $pdo->query("
                                     SELECT l.id, l.reference, l.type, l.adresse,
                                            (
-                                               SELECT CONCAT(cand.prenom, ' ', cand.nom)
+                                               SELECT CONCAT_WS(' ', cand.prenom, cand.nom)
                                                FROM contrats c
                                                LEFT JOIN candidatures cand ON c.candidature_id = cand.id
                                                WHERE c.logement_id = l.id AND c.statut = 'valide'
