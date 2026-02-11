@@ -1620,7 +1620,7 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                     // Check for redirect (session expired)
                     if (data.redirect) {
                         window.location.href = data.redirect;
-                        throw new Error('Session expirée');
+                        return;
                     }
                     return data;
                 });
