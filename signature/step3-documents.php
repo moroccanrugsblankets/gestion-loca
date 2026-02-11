@@ -16,6 +16,8 @@ if (!isset($_SESSION['signature_token']) || !isset($_SESSION['contrat_id'])) {
 $contratId = $_SESSION['contrat_id'];
 
 // Si current_locataire_id n'est pas défini, déterminer automatiquement le premier locataire qui a signé mais pas uploadé de documents
+// FIX #212: Defensive fallback to ensure tenant 1 uploads documents before tenant 2
+// getTenantsByContract() orders by 'ordre ASC', so iteration will find tenant 1 first
 if (!isset($_SESSION['current_locataire_id'])) {
     $locatairesExistants = getTenantsByContract($contratId);
     $locataireSansDocuments = null;
@@ -24,7 +26,7 @@ if (!isset($_SESSION['current_locataire_id'])) {
         // Le locataire doit avoir signé mais pas encore uploadé de documents
         if (!empty($locataire['signature_timestamp']) && empty($locataire['piece_identite_recto'])) {
             $locataireSansDocuments = $locataire;
-            break;
+            break;  // Stop at first tenant without documents (will be tenant with lowest 'ordre')
         }
     }
     
