@@ -41,12 +41,13 @@ $numeroLocataire = count($locatairesExistants) + 1;
 
 if ($numeroLocataire > $contrat['nb_locataires']) {
     // Tous les locataires ont déjà saisi leurs infos
-    // Trouver le premier locataire qui n'a pas encore signé
+    // FIX #212: Trouver le premier locataire qui n'a pas encore signé pour assurer l'ordre correct
+    // getTenantsByContract() returns tenants ordered by 'ordre ASC' (tenant 1, then tenant 2)
     $locataireNonSigne = null;
     foreach ($locatairesExistants as $locataire) {
         if (empty($locataire['signature_timestamp'])) {
             $locataireNonSigne = $locataire;
-            break;
+            break;  // Stop at first unsigned tenant (will be tenant with lowest 'ordre')
         }
     }
     

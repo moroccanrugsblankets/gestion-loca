@@ -15,6 +15,8 @@ if (!isset($_SESSION['signature_token']) || !isset($_SESSION['contrat_id'])) {
 $contratId = $_SESSION['contrat_id'];
 
 // Si current_locataire_id n'est pas défini, déterminer automatiquement le premier locataire non signé
+// FIX #212: Defensive fallback to ensure tenant 1 is always shown before tenant 2
+// getTenantsByContract() orders by 'ordre ASC', so iteration will find tenant 1 first
 if (!isset($_SESSION['current_locataire_id'])) {
     $locatairesExistants = getTenantsByContract($contratId);
     $locataireNonSigne = null;
@@ -22,7 +24,7 @@ if (!isset($_SESSION['current_locataire_id'])) {
     foreach ($locatairesExistants as $locataire) {
         if (empty($locataire['signature_timestamp'])) {
             $locataireNonSigne = $locataire;
-            break;
+            break;  // Stop at first unsigned tenant (will be tenant with lowest 'ordre')
         }
     }
     

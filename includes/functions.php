@@ -158,6 +158,8 @@ function isContractValid($contract) {
 
 /**
  * Obtenir les locataires d'un contrat
+ * IMPORTANT: Returns tenants ordered by 'ordre ASC' to ensure tenant 1 is always processed before tenant 2
+ * This ordering is critical for the signature workflow (fix #212)
  * @param int $contratId
  * @return array
  */
