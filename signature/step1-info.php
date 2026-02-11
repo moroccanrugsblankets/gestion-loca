@@ -40,9 +40,27 @@ $locatairesExistants = getTenantsByContract($contratId);
 $numeroLocataire = count($locatairesExistants) + 1;
 
 if ($numeroLocataire > $contrat['nb_locataires']) {
-    // Tous les locataires ont déjà saisi leurs infos, rediriger vers step2
-    header('Location: step2-signature.php');
-    exit;
+    // Tous les locataires ont déjà saisi leurs infos
+    // Trouver le premier locataire qui n'a pas encore signé
+    $locataireNonSigne = null;
+    foreach ($locatairesExistants as $locataire) {
+        if (empty($locataire['signature_timestamp'])) {
+            $locataireNonSigne = $locataire;
+            break;
+        }
+    }
+    
+    if ($locataireNonSigne) {
+        // Définir le locataire actuel dans la session
+        $_SESSION['current_locataire_id'] = $locataireNonSigne['id'];
+        $_SESSION['current_locataire_numero'] = $locataireNonSigne['ordre'];
+        header('Location: step2-signature.php');
+        exit;
+    } else {
+        // Tous les locataires ont signé, rediriger vers step3
+        header('Location: step3-documents.php');
+        exit;
+    }
 }
 
 $error = '';

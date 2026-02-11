@@ -8,11 +8,32 @@ require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/functions.php';
 
 // Vérifier la session
-if (!isset($_SESSION['signature_token']) || !isset($_SESSION['contrat_id']) || !isset($_SESSION['current_locataire_id'])) {
-    die('Session invalide. Veuillez recommencer la procédure.');
+if (!isset($_SESSION['signature_token']) || !isset($_SESSION['contrat_id'])) {
+    die('Session invalide. Veuillez utiliser le lien fourni dans votre email.');
 }
 
 $contratId = $_SESSION['contrat_id'];
+
+// Si current_locataire_id n'est pas défini, déterminer automatiquement le premier locataire non signé
+if (!isset($_SESSION['current_locataire_id'])) {
+    $locatairesExistants = getTenantsByContract($contratId);
+    $locataireNonSigne = null;
+    
+    foreach ($locatairesExistants as $locataire) {
+        if (empty($locataire['signature_timestamp'])) {
+            $locataireNonSigne = $locataire;
+            break;
+        }
+    }
+    
+    if (!$locataireNonSigne) {
+        die('Tous les locataires ont déjà signé.');
+    }
+    
+    $_SESSION['current_locataire_id'] = $locataireNonSigne['id'];
+    $_SESSION['current_locataire_numero'] = $locataireNonSigne['ordre'];
+}
+
 $locataireId = $_SESSION['current_locataire_id'];
 $numeroLocataire = $_SESSION['current_locataire_numero'];
 
