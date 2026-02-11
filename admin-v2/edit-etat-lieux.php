@@ -1182,6 +1182,12 @@ if ($isSortie && !empty($etat['contrat_id'])) {
             </div>
             <?php endif; ?>
 
+            <?php
+            // Initialize $bilanRows for use in JavaScript (line 1927)
+            // Will be populated if $isSortie is true
+            $bilanRows = [];
+            ?>
+
             <?php if ($isSortie): ?>
             <!-- Bilan du logement (Sortie uniquement) -->
             <div class="form-card">
@@ -1215,7 +1221,7 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                             </thead>
                             <tbody id="bilanTableBody">
                                 <?php
-                                $bilanRows = [];
+                                // Populate $bilanRows for sortie type
                                 if (!empty($etat['bilan_logement_data'])) {
                                     $bilanRows = json_decode($etat['bilan_logement_data'], true) ?: [];
                                 }
