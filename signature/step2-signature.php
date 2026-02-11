@@ -128,6 +128,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $signatureSaved = true;
                 } else {
                     // Locataire 2 or single tenant contract - go directly to documents
+                    // Clear session to let step3 defensive fallback find the first tenant without documents
+                    unset($_SESSION['current_locataire_id']);
+                    unset($_SESSION['current_locataire_numero']);
                     header('Location: step3-documents.php');
                     exit;
                 }
