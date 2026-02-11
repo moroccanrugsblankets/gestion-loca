@@ -361,22 +361,15 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                                 // Get all logements with their last validated contract and tenant information
                                 $stmt = $pdo->query("
                                     SELECT l.id, l.reference, l.type, l.adresse,
-                                           CONCAT(cand.prenom, ' ', cand.nom) as nom_locataire
+                                           (
+                                               SELECT CONCAT(cand.prenom, ' ', cand.nom)
+                                               FROM contrats c
+                                               LEFT JOIN candidatures cand ON c.candidature_id = cand.id
+                                               WHERE c.logement_id = l.id AND c.statut = 'valide'
+                                               ORDER BY c.date_creation DESC, c.id DESC
+                                               LIMIT 1
+                                           ) as nom_locataire
                                     FROM logements l
-                                    LEFT JOIN (
-                                        SELECT c1.logement_id, c1.candidature_id
-                                        FROM contrats c1
-                                        INNER JOIN (
-                                            SELECT logement_id, MAX(date_creation) as max_date, MAX(id) as max_id
-                                            FROM contrats
-                                            WHERE statut = 'valide'
-                                            GROUP BY logement_id
-                                        ) c2 ON c1.logement_id = c2.logement_id 
-                                            AND c1.date_creation = c2.max_date
-                                            AND c1.id = c2.max_id
-                                        WHERE c1.statut = 'valide'
-                                    ) c ON l.id = c.logement_id
-                                    LEFT JOIN candidatures cand ON c.candidature_id = cand.id
                                     ORDER BY l.reference
                                 ");
                                 while ($logement = $stmt->fetch(PDO::FETCH_ASSOC)) {
