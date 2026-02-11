@@ -170,6 +170,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $statut_filter = isset($_GET['statut']) ? $_GET['statut'] : '';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
+// Map UI status values to database values
+// Note: 'Réservé' and 'Loué' both map to 'en_location' in the database
+// This is consistent with the existing system design
+$statut_ui_to_db_map = [
+    'Disponible' => 'disponible',
+    'Réservé' => 'en_location',
+    'Loué' => 'en_location',
+    'Maintenance' => 'maintenance',
+    'Indisponible' => 'indisponible'
+];
+
+// Default to showing only "Disponible" properties if no filter is explicitly set
+// Check if this is a fresh page load (no statut or search parameters)
+if (!isset($_GET['statut']) && !isset($_GET['search'])) {
+    $statut_filter = 'Disponible';
+}
+
+// Convert UI status to database status for query
+$statut_db = '';
+if ($statut_filter && isset($statut_ui_to_db_map[$statut_filter])) {
+    $statut_db = $statut_ui_to_db_map[$statut_filter];
+}
+
 // Build query - explicitly select columns we need
 $sql = "SELECT id, reference, adresse, type, surface, loyer, charges, 
         depot_garantie, parking, statut, date_disponibilite, created_at, updated_at,
@@ -181,9 +204,9 @@ $sql = "SELECT id, reference, adresse, type, surface, loyer, charges,
         FROM logements WHERE 1=1";
 $params = [];
 
-if ($statut_filter) {
+if ($statut_db) {
     $sql .= " AND statut = ?";
-    $params[] = $statut_filter;
+    $params[] = $statut_db;
 }
 
 if ($search) {
