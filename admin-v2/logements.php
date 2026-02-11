@@ -171,6 +171,8 @@ $statut_filter = isset($_GET['statut']) ? $_GET['statut'] : '';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
 // Map UI status values to database values
+// Note: 'Réservé' and 'Loué' both map to 'en_location' in the database
+// This is consistent with the existing system design
 $statut_ui_to_db_map = [
     'Disponible' => 'disponible',
     'Réservé' => 'en_location',
@@ -180,7 +182,7 @@ $statut_ui_to_db_map = [
 ];
 
 // Default to showing only "Disponible" properties if no filter is explicitly set
-// Check if this is a fresh page load (no GET parameters at all)
+// Check if this is a fresh page load (no statut or search parameters)
 if (!isset($_GET['statut']) && !isset($_GET['search'])) {
     $statut_filter = 'Disponible';
 }
