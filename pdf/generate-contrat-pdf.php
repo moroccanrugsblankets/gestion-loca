@@ -179,23 +179,23 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
         ];
     }
     
-    // Create a 2-column table for locataires_info
-    // Note: This table supports up to 2 tenants. For more than 2 tenants, only the first 2 are displayed in the table.
-    $locatairesInfoHtml = '<table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">';
-    $locatairesInfoHtml .= '<tr style="background-color: #f8f9fa;">';
-    $locatairesInfoHtml .= '<th style="border: 1px solid #ddd; padding: 8px; text-align: left; width: 50%;">Locataire 1</th>';
+    // Create a simple table for locataires_info without borders and colors
+    // Just add ":" after "Locataire 1" and "Locataire 2"
+    $locatairesInfoHtml = '<table style="width: 100%; border-collapse: collapse;">';
+    $locatairesInfoHtml .= '<tr>';
+    $locatairesInfoHtml .= '<th style="padding: 8px; text-align: left; width: 50%;">Locataire 1:</th>';
     if (count($locatairesInfo) > 1) {
-        $locatairesInfoHtml .= '<th style="border: 1px solid #ddd; padding: 8px; text-align: left; width: 50%;">Locataire 2</th>';
+        $locatairesInfoHtml .= '<th style="padding: 8px; text-align: left; width: 50%;">Locataire 2:</th>';
     }
     $locatairesInfoHtml .= '</tr>';
     $locatairesInfoHtml .= '<tr>';
-    $locatairesInfoHtml .= '<td style="border: 1px solid #ddd; padding: 8px; vertical-align: top;">';
+    $locatairesInfoHtml .= '<td style="padding: 8px; vertical-align: top;">';
     $locatairesInfoHtml .= '<strong>' . $locatairesInfo[0]['nom_complet'] . '</strong><br>';
     $locatairesInfoHtml .= 'Né(e) le ' . $locatairesInfo[0]['date_naissance'] . '<br>';
     $locatairesInfoHtml .= 'Email : ' . $locatairesInfo[0]['email'];
     $locatairesInfoHtml .= '</td>';
     if (count($locatairesInfo) > 1) {
-        $locatairesInfoHtml .= '<td style="border: 1px solid #ddd; padding: 8px; vertical-align: top;">';
+        $locatairesInfoHtml .= '<td style="padding: 8px; vertical-align: top;">';
         $locatairesInfoHtml .= '<strong>' . $locatairesInfo[1]['nom_complet'] . '</strong><br>';
         $locatairesInfoHtml .= 'Né(e) le ' . $locatairesInfo[1]['date_naissance'] . '<br>';
         $locatairesInfoHtml .= 'Email : ' . $locatairesInfo[1]['email'];
@@ -209,7 +209,7 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
         $locatairesInfoHtml .= '<div style="margin-top: 10px;">';
         for ($i = 2; $i < count($locatairesInfo); $i++) {
             $locatairesInfoHtml .= '<p style="margin: 5px 0;">';
-            $locatairesInfoHtml .= '<strong>Locataire ' . ($i + 1) . ' : </strong>';
+            $locatairesInfoHtml .= '<strong>Locataire ' . ($i + 1) . ':</strong> ';
             $locatairesInfoHtml .= $locatairesInfo[$i]['nom_complet'] . ', ';
             $locatairesInfoHtml .= 'né(e) le ' . $locatairesInfo[$i]['date_naissance'] . ', ';
             $locatairesInfoHtml .= 'Email : ' . $locatairesInfo[$i]['email'];

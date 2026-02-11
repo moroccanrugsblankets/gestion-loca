@@ -936,19 +936,13 @@ function toBooleanParam($value) {
 }
 
 /**
- * Get admin email from parameter or config
+ * Get admin email from config
  * @return string Admin email address
  */
 function getAdminEmail() {
     global $config;
     
-    // Try to get from parameter first
-    $emailFromParam = getParameter('email_admin', null);
-    if ($emailFromParam && filter_var($emailFromParam, FILTER_VALIDATE_EMAIL)) {
-        return $emailFromParam;
-    }
-    
-    // Fallback to config
+    // Use only config value
     return $config['ADMIN_EMAIL'] ?? 'location@myinvest-immobilier.com';
 }
 
