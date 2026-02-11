@@ -1742,39 +1742,37 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                     return;
                 }
                 
-                if (data.success) {
-                    // Get the parent container
-                    const photoContainer = button.closest('.position-relative');
-                    const photosWrapper = photoContainer.parentElement;
-                    
-                    // Remove the photo element
-                    photoContainer.remove();
-                    
-                    // Update count or remove alert if no photos left
-                    const alertElement = photosWrapper.previousElementSibling;
-                    if (alertElement && alertElement.classList.contains('alert-success')) {
-                        const remainingPhotos = photosWrapper.querySelectorAll('.position-relative').length;
-                        if (remainingPhotos === 0) {
-                            // Remove both alert and photos wrapper
-                            alertElement.parentElement.remove();
-                        } else {
-                            // Update count
-                            const countSpan = alertElement.querySelector('span');
-                            if (countSpan) {
-                                countSpan.innerHTML = `<i class="bi bi-check-circle"></i> ${remainingPhotos} photo(s) enregistrée(s)`;
-                            }
+                // Get the parent container
+                const photoContainer = button.closest('.position-relative');
+                const photosWrapper = photoContainer.parentElement;
+                
+                // Remove the photo element
+                photoContainer.remove();
+                
+                // Update count or remove alert if no photos left
+                const alertElement = photosWrapper.previousElementSibling;
+                if (alertElement && alertElement.classList.contains('alert-success')) {
+                    const remainingPhotos = photosWrapper.querySelectorAll('.position-relative').length;
+                    if (remainingPhotos === 0) {
+                        // Remove both alert and photos wrapper
+                        alertElement.parentElement.remove();
+                    } else {
+                        // Update count
+                        const countSpan = alertElement.querySelector('span');
+                        if (countSpan) {
+                            countSpan.innerHTML = `<i class="bi bi-check-circle"></i> ${remainingPhotos} photo(s) enregistrée(s)`;
                         }
                     }
-                    
-                    // Show success message
-                    const alert = document.createElement('div');
-                    alert.className = 'alert alert-success alert-dismissible fade show';
-                    alert.innerHTML = '<i class="bi bi-check-circle"></i> Photo supprimée avec succès <button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
-                    document.querySelector('.main-content').insertBefore(alert, document.querySelector('.form-card'));
-                    
-                    // Auto-dismiss after 3 seconds
-                    setTimeout(() => alert.remove(), 3000);
                 }
+                
+                // Show success message
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-success alert-dismissible fade show';
+                alert.innerHTML = '<i class="bi bi-check-circle"></i> Photo supprimée avec succès <button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+                document.querySelector('.main-content').insertBefore(alert, document.querySelector('.form-card'));
+                
+                // Auto-dismiss after 3 seconds
+                setTimeout(() => alert.remove(), 3000);
             })
             .catch(error => {
                 console.error('Error:', error);
