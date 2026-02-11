@@ -361,11 +361,10 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                                 // Get all logements with their last validated contract and tenant information
                                 $stmt = $pdo->query("
                                     SELECT l.id, l.reference, l.type, l.adresse,
-                                           c.reference_unique as contrat_ref,
                                            CONCAT(cand.prenom, ' ', cand.nom) as nom_locataire
                                     FROM logements l
                                     LEFT JOIN (
-                                        SELECT c1.logement_id, c1.reference_unique, c1.candidature_id
+                                        SELECT c1.logement_id, c1.candidature_id
                                         FROM contrats c1
                                         INNER JOIN (
                                             SELECT logement_id, MAX(date_creation) as max_date
