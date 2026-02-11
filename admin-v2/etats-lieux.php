@@ -367,11 +367,13 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                                         SELECT c1.logement_id, c1.candidature_id
                                         FROM contrats c1
                                         INNER JOIN (
-                                            SELECT logement_id, MAX(date_creation) as max_date
+                                            SELECT logement_id, MAX(date_creation) as max_date, MAX(id) as max_id
                                             FROM contrats
                                             WHERE statut = 'valide'
                                             GROUP BY logement_id
-                                        ) c2 ON c1.logement_id = c2.logement_id AND c1.date_creation = c2.max_date
+                                        ) c2 ON c1.logement_id = c2.logement_id 
+                                            AND c1.date_creation = c2.max_date
+                                            AND c1.id = c2.max_id
                                         WHERE c1.statut = 'valide'
                                     ) c ON l.id = c.logement_id
                                     LEFT JOIN candidatures cand ON c.candidature_id = cand.id
