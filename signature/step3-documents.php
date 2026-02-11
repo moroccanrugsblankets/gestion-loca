@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 
-                if (!isset($error)) {
+                if (empty($error)) {
                     // Sauvegarder le fichier recto (obligatoire)
                     $rectoSaved = saveUploadedFile($rectoFile, $rectoValidation['filename']);
                     
@@ -88,8 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if (updateTenantDocuments($locataireId, $rectoValidation['filename'], $versoFilename)) {
                             logAction($contratId, 'upload_documents', "Locataire $numeroLocataire a uploadé ses documents");
                             
-                            // Vérifier s'il y a un second locataire
-                            if ($secondLocataire === 'oui' && $numeroLocataire < $contrat['nb_locataires']) {
+                            // Vérifier s'il y a un second locataire (maximum 2 locataires)
+                            if ($secondLocataire === 'oui' && $numeroLocataire < $contrat['nb_locataires'] && $numeroLocataire < 2) {
                                 // Retour au step1 pour le second locataire
                                 unset($_SESSION['current_locataire_id']);
                                 unset($_SESSION['current_locataire_numero']);
