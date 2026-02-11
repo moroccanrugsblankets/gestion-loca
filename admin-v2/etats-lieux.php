@@ -358,13 +358,14 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                             <select name="logement_id" class="form-select" required>
                                 <option value="">-- Sélectionner un logement --</option>
                                 <?php
-                                // Get all logements with their last validated contract reference
+                                // Get all logements with their last validated contract and tenant information
                                 $stmt = $pdo->query("
                                     SELECT l.id, l.reference, l.type, l.adresse,
-                                           c.reference_unique as contrat_ref
+                                           c.reference_unique as contrat_ref,
+                                           CONCAT(cand.prenom, ' ', cand.nom) as nom_locataire
                                     FROM logements l
                                     LEFT JOIN (
-                                        SELECT c1.logement_id, c1.reference_unique
+                                        SELECT c1.logement_id, c1.reference_unique, c1.candidature_id
                                         FROM contrats c1
                                         INNER JOIN (
                                             SELECT logement_id, MAX(date_creation) as max_date
@@ -374,23 +375,24 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                                         ) c2 ON c1.logement_id = c2.logement_id AND c1.date_creation = c2.max_date
                                         WHERE c1.statut = 'valide'
                                     ) c ON l.id = c.logement_id
+                                    LEFT JOIN candidatures cand ON c.candidature_id = cand.id
                                     ORDER BY l.reference
                                 ");
                                 while ($logement = $stmt->fetch(PDO::FETCH_ASSOC)) {
                                     $id = htmlspecialchars($logement['id'], ENT_QUOTES, 'UTF-8');
                                     $reference = htmlspecialchars($logement['reference'], ENT_QUOTES, 'UTF-8');
                                     $type = htmlspecialchars($logement['type'], ENT_QUOTES, 'UTF-8');
-                                    $contrat_ref = $logement['contrat_ref'] ? htmlspecialchars($logement['contrat_ref'], ENT_QUOTES, 'UTF-8') : '';
+                                    $nom_locataire = $logement['nom_locataire'] ? htmlspecialchars($logement['nom_locataire'], ENT_QUOTES, 'UTF-8') : '';
                                     
                                     $display = "{$reference} - {$type}";
-                                    if ($contrat_ref) {
-                                        $display .= " ({$contrat_ref})";
+                                    if ($nom_locataire) {
+                                        $display .= " ({$nom_locataire})";
                                     }
                                     echo "<option value='{$id}'>{$display}</option>";
                                 }
                                 ?>
                             </select>
-                            <small class="form-text text-muted">Un contrat validé est requis pour créer un état des lieux. Les logements avec contrat validé affichent la référence entre parenthèses.</small>
+                            <small class="form-text text-muted">Un contrat validé est requis pour créer un état des lieux. Les logements avec contrat validé affichent le nom du locataire entre parenthèses.</small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Date:</label>
