@@ -1995,8 +1995,12 @@ if ($isSortie && !empty($etat['contrat_id'])) {
         
         // Update add row button state
         function updateBilanRowButton() {
-            const rowCount = document.querySelectorAll('.bilan-row').length;
             const addBtn = document.getElementById('addBilanRowBtn');
+            if (!addBtn) {
+                return; // Exit if button doesn't exist
+            }
+            
+            const rowCount = document.querySelectorAll('.bilan-row').length;
             if (rowCount >= MAX_BILAN_ROWS) {
                 addBtn.disabled = true;
                 addBtn.innerHTML = '<i class="bi bi-exclamation-circle"></i> Maximum atteint (20 lignes)';
@@ -2008,6 +2012,14 @@ if ($isSortie && !empty($etat['contrat_id'])) {
         
         // Calculate totals for bilan table
         function calculateBilanTotals() {
+            // Check if elements exist (bilan section only exists for "sortie" type)
+            const totalValeurElement = document.getElementById('totalValeur');
+            const totalMontantDuElement = document.getElementById('totalMontantDu');
+            
+            if (!totalValeurElement || !totalMontantDuElement) {
+                return; // Exit if elements don't exist
+            }
+            
             let totalValeur = 0;
             let totalMontantDu = 0;
             
@@ -2021,8 +2033,8 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                 totalMontantDu += value;
             });
             
-            document.getElementById('totalValeur').textContent = totalValeur.toFixed(2) + ' €';
-            document.getElementById('totalMontantDu').textContent = totalMontantDu.toFixed(2) + ' €';
+            totalValeurElement.textContent = totalValeur.toFixed(2) + ' €';
+            totalMontantDuElement.textContent = totalMontantDu.toFixed(2) + ' €';
         }
         
         // Validate bilan fields (red border if empty, green if valid)
