@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview: Justificatif Display Feature</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        .detail-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .detail-card h5 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+        }
+        .preview-container {
+            background: #f8f9fa;
+            padding: 30px;
+            min-height: 100vh;
+        }
+        .comparison-header {
+            background: #3498db;
+            color: white;
+            padding: 15px;
+            border-radius: 8px 8px 0 0;
+            margin-top: 20px;
+        }
+        .before-box {
+            border-left: 4px solid #e74c3c;
+        }
+        .after-box {
+            border-left: 4px solid #27ae60;
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <div class="container">
+            <h1 class="mb-4"><i class="bi bi-file-earmark-diff"></i> Justificatif Display Feature Preview</h1>
+            <p class="lead">Visual comparison of the contract details page before and after the implementation</p>
+
+            <!-- BEFORE -->
+            <div class="comparison-header bg-danger">
+                <h3 class="mb-0"><i class="bi bi-x-circle"></i> BEFORE Implementation</h3>
+            </div>
+            <div class="detail-card before-box">
+                <h5><i class="bi bi-file-earmark-text"></i> Documents Envoyés</h5>
+                <p class="text-muted">Aucun document envoyé pour le moment.</p>
+            </div>
+
+            <!-- AFTER - No Documents -->
+            <div class="comparison-header bg-success">
+                <h3 class="mb-0"><i class="bi bi-check-circle"></i> AFTER Implementation - No Documents Yet</h3>
+            </div>
+            <div class="detail-card after-box">
+                <h5><i class="bi bi-file-earmark-text"></i> Documents Envoyés</h5>
+                <p class="text-muted">Aucun document envoyé pour le moment.</p>
+                <p class="small text-success"><i class="bi bi-info-circle"></i> Same as before when no documents are uploaded</p>
+            </div>
+
+            <!-- AFTER - With Justificatif Only -->
+            <div class="comparison-header bg-success">
+                <h3 class="mb-0"><i class="bi bi-check-circle"></i> AFTER Implementation - Justificatif Uploaded</h3>
+            </div>
+            <div class="detail-card after-box">
+                <h5><i class="bi bi-file-earmark-text"></i> Documents Envoyés</h5>
+                <div class="mb-4">
+                    <h6><i class="bi bi-receipt"></i> Justificatif de dépôt de garantie</h6>
+                    <p class="text-muted small mb-2">
+                        Envoyé le 11/02/2026 à 14:30
+                    </p>
+                    <div class="row mt-2">
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title"><i class="bi bi-receipt"></i> Justificatif de virement du dépôt de garantie</h6>
+                                    <a href="#" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-download"></i> Télécharger
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle"></i> <strong>NEW!</strong> The justificatif uploaded via /envoyer-justificatif.php is now displayed here
+                </div>
+            </div>
+
+            <!-- AFTER - With All Documents -->
+            <div class="comparison-header bg-success">
+                <h3 class="mb-0"><i class="bi bi-check-circle"></i> AFTER Implementation - All Documents Uploaded</h3>
+            </div>
+            <div class="detail-card after-box">
+                <h5><i class="bi bi-file-earmark-text"></i> Documents Envoyés</h5>
+                
+                <!-- Contract-level justificatif -->
+                <div class="mb-4">
+                    <h6><i class="bi bi-receipt"></i> Justificatif de dépôt de garantie</h6>
+                    <p class="text-muted small mb-2">
+                        Envoyé le 11/02/2026 à 14:30
+                    </p>
+                    <div class="row mt-2">
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title"><i class="bi bi-receipt"></i> Justificatif de virement du dépôt de garantie</h6>
+                                    <a href="#" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-download"></i> Télécharger
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tenant documents (existing functionality) -->
+                <div class="mb-4">
+                    <h6><i class="bi bi-person"></i> Locataire 1 - Jean Dupont</h6>
+                    <div class="row mt-2">
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title"><i class="bi bi-card-image"></i> Pièce d'identité (Recto)</h6>
+                                    <img src="https://via.placeholder.com/150x100?text=ID+Recto" class="img-fluid mb-2" style="max-height: 150px; object-fit: cover;" alt="ID Recto">
+                                    <a href="#" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-download"></i> Télécharger
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title"><i class="bi bi-card-image"></i> Pièce d'identité (Verso)</h6>
+                                    <img src="https://via.placeholder.com/150x100?text=ID+Verso" class="img-fluid mb-2" style="max-height: 150px; object-fit: cover;" alt="ID Verso">
+                                    <a href="#" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-download"></i> Télécharger
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title"><i class="bi bi-receipt"></i> Justificatif de paiement</h6>
+                                    <a href="#" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-download"></i> Télécharger
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> <strong>Note:</strong> Contract-level justificatif is displayed first, followed by tenant documents
+                </div>
+            </div>
+
+            <!-- Summary -->
+            <div class="card mt-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-list-check"></i> Implementation Summary</h4>
+                </div>
+                <div class="card-body">
+                    <h5>What Changed:</h5>
+                    <ul>
+                        <li>✅ Added contract-level justificatif display in the "Documents Envoyés" section</li>
+                        <li>✅ Shows upload date and time for better tracking</li>
+                        <li>✅ Reuses existing `renderDocumentCard()` helper for consistency</li>
+                        <li>✅ Contract documents shown before tenant documents</li>
+                        <li>✅ No breaking changes to existing functionality</li>
+                    </ul>
+
+                    <h5 class="mt-4">Security:</h5>
+                    <ul>
+                        <li>🔒 Uses existing security validation functions</li>
+                        <li>🔒 Proper file path validation</li>
+                        <li>🔒 XSS protection with htmlspecialchars()</li>
+                        <li>🔒 Directory traversal prevention</li>
+                    </ul>
+
+                    <h5 class="mt-4">Files Modified:</h5>
+                    <ul>
+                        <li><code>admin-v2/contrat-detail.php</code> - Added justificatif display logic (22 lines added)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

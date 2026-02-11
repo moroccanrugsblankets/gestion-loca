@@ -691,7 +691,7 @@ if ($contrat['validated_by']) {
                 echo '</div>';
             }
             
-            // Check if any tenant has documents
+            // Check if any tenant has documents or if contract has justificatif
             $hasDocuments = false;
             foreach ($locataires as $locataire) {
                 if (tenantHasDocuments($locataire)) {
@@ -700,9 +700,29 @@ if ($contrat['validated_by']) {
                 }
             }
             
-            if (!$hasDocuments): ?>
+            // Check if contract has justificatif de paiement
+            $hasContractJustificatif = !empty($contrat['justificatif_paiement']);
+            $hasAnyDocuments = $hasDocuments || $hasContractJustificatif;
+            
+            if (!$hasAnyDocuments): ?>
                 <p class="text-muted">Aucun document envoyé pour le moment.</p>
             <?php else: ?>
+                <?php if ($hasContractJustificatif): ?>
+                    <div class="mb-4">
+                        <h6><i class="bi bi-receipt"></i> Justificatif de dépôt de garantie</h6>
+                        <?php if (!empty($contrat['date_envoi_justificatif'])): ?>
+                            <p class="text-muted small mb-2">
+                                Envoyé le <?php echo date('d/m/Y à H:i', strtotime($contrat['date_envoi_justificatif'])); ?>
+                            </p>
+                        <?php endif; ?>
+                        <div class="row mt-2">
+                            <?php
+                            renderDocumentCard($contrat['justificatif_paiement'], 'Justificatif de virement du dépôt de garantie', 'receipt');
+                            ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                
                 <?php foreach ($locataires as $locataire): ?>
                     <?php if (!tenantHasDocuments($locataire)) continue; ?>
                     <div class="mb-4">
