@@ -13,7 +13,27 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Check if this is an AJAX request
+$isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+// Also check if the request expects JSON response (for fetch API calls)
+$expectsJson = isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false;
+
+/**
+ * Send JSON error response for AJAX requests
+ */
+function sendAjaxAuthError($message, $redirectUrl) {
+    header('Content-Type: application/json');
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => $message, 'redirect' => $redirectUrl]);
+    exit;
+}
+
 if (!isset($_SESSION['admin_id'])) {
+    if ($isAjax || $expectsJson) {
+        // Clean up session before responding
+        session_destroy();
+        sendAjaxAuthError('Session expirée. Veuillez vous reconnecter.', 'login.php');
+    }
     header('Location: login.php');
     exit;
 }
@@ -21,6 +41,9 @@ if (!isset($_SESSION['admin_id'])) {
 // Auto-logout after 2 hours of inactivity
 if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 7200)) {
     session_destroy();
+    if ($isAjax || $expectsJson) {
+        sendAjaxAuthError('Session expirée (timeout). Veuillez vous reconnecter.', 'login.php?timeout=1');
+    }
     header('Location: login.php?timeout=1');
     exit;
 }

@@ -1522,30 +1522,9 @@ if ($isSortie && !empty($etat['contrat_id'])) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Calculate total keys
-        function calculateTotalKeys() {
-            const appart = parseInt(document.querySelector('[name="cles_appartement"]').value) || 0;
-            const boite = parseInt(document.querySelector('[name="cles_boite_lettres"]').value) || 0;
-            const autre = parseInt(document.querySelector('[name="cles_autre"]').value) || 0;
-            document.getElementById('cles_total').value = appart + boite + autre;
-        }
-        
-        // Toggle degradations details
-        function toggleDegradationsDetails() {
-            const checkbox = document.getElementById('degradations_constatees');
-            const container = document.getElementById('degradations_details_container');
-            container.style.display = checkbox.checked ? 'block' : 'none';
-        }
-        
-        // Toggle deposit guarantee details
-        function toggleDepotDetails() {
-            const select = document.getElementById('depot_garantie_status');
-            const container = document.getElementById('depot_details_container');
-            const selectedValue = select.value;
-            
-            // Show details only if restitution_partielle or retenue_totale
-            container.style.display = (selectedValue === 'restitution_partielle' || selectedValue === 'retenue_totale') ? 'block' : 'none';
-        }
+        // ========================================
+        // Photo Upload Functions (must be defined first for inline event handlers)
+        // ========================================
         
         // Helper function to create photo HTML element
         function createPhotoElement(photoData) {
@@ -1618,12 +1597,30 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                 
                 const uploadPromise = fetch('upload-etat-lieux-photo.php', {
                     method: 'POST',
+                    headers: {
+                        'Accept': 'application/json'
+                    },
                     body: formData
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.error || 'Erreur serveur');
+                        }, () => {
+                            // JSON parsing failed - not a JSON response
+                            throw new Error('Erreur de connexion au serveur');
+                        });
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (!data.success) {
                         throw new Error(data.error || 'Erreur inconnue');
+                    }
+                    // Check for redirect (session expired)
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                        return;
                     }
                     return data;
                 });
@@ -1722,53 +1719,97 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': 'application/json'
                 },
                 body: 'photo_id=' + encodeURIComponent(photoId)
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || 'Erreur serveur');
+                    }, () => {
+                        // JSON parsing failed - not a JSON response
+                        throw new Error('Erreur de connexion au serveur');
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
-                if (data.success) {
-                    // Get the parent container
-                    const photoContainer = button.closest('.position-relative');
-                    const photosWrapper = photoContainer.parentElement;
-                    
-                    // Remove the photo element
-                    photoContainer.remove();
-                    
-                    // Update count or remove alert if no photos left
-                    const alertElement = photosWrapper.previousElementSibling;
-                    if (alertElement && alertElement.classList.contains('alert-success')) {
-                        const remainingPhotos = photosWrapper.querySelectorAll('.position-relative').length;
-                        if (remainingPhotos === 0) {
-                            // Remove both alert and photos wrapper
-                            alertElement.parentElement.remove();
-                        } else {
-                            // Update count
-                            const countSpan = alertElement.querySelector('span');
-                            if (countSpan) {
-                                countSpan.innerHTML = `<i class="bi bi-check-circle"></i> ${remainingPhotos} photo(s) enregistrée(s)`;
-                            }
+                if (!data.success) {
+                    throw new Error(data.error || 'Erreur inconnue');
+                }
+                // Check for redirect (session expired)
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                    return;
+                }
+                
+                // Get the parent container
+                const photoContainer = button.closest('.position-relative');
+                const photosWrapper = photoContainer.parentElement;
+                
+                // Remove the photo element
+                photoContainer.remove();
+                
+                // Update count or remove alert if no photos left
+                const alertElement = photosWrapper.previousElementSibling;
+                if (alertElement && alertElement.classList.contains('alert-success')) {
+                    const remainingPhotos = photosWrapper.querySelectorAll('.position-relative').length;
+                    if (remainingPhotos === 0) {
+                        // Remove both alert and photos wrapper
+                        alertElement.parentElement.remove();
+                    } else {
+                        // Update count
+                        const countSpan = alertElement.querySelector('span');
+                        if (countSpan) {
+                            countSpan.innerHTML = `<i class="bi bi-check-circle"></i> ${remainingPhotos} photo(s) enregistrée(s)`;
                         }
                     }
-                    
-                    // Show success message
-                    const alert = document.createElement('div');
-                    alert.className = 'alert alert-success alert-dismissible fade show';
-                    alert.innerHTML = '<i class="bi bi-check-circle"></i> Photo supprimée avec succès <button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
-                    document.querySelector('.main-content').insertBefore(alert, document.querySelector('.form-card'));
-                    
-                    // Auto-dismiss after 3 seconds
-                    setTimeout(() => alert.remove(), 3000);
-                } else {
-                    alert('Erreur lors de la suppression: ' + (data.error || 'Erreur inconnue'));
                 }
+                
+                // Show success message
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-success alert-dismissible fade show';
+                alert.innerHTML = '<i class="bi bi-check-circle"></i> Photo supprimée avec succès <button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+                document.querySelector('.main-content').insertBefore(alert, document.querySelector('.form-card'));
+                
+                // Auto-dismiss after 3 seconds
+                setTimeout(() => alert.remove(), 3000);
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Erreur lors de la suppression de la photo');
+                alert('Erreur lors de la suppression de la photo: ' + error.message);
             });
         }
         
+        // ========================================
+        // End Photo Upload Functions
+        // ========================================
+        
+        // Calculate total keys
+        function calculateTotalKeys() {
+            const appart = parseInt(document.querySelector('[name="cles_appartement"]').value) || 0;
+            const boite = parseInt(document.querySelector('[name="cles_boite_lettres"]').value) || 0;
+            const autre = parseInt(document.querySelector('[name="cles_autre"]').value) || 0;
+            document.getElementById('cles_total').value = appart + boite + autre;
+        }
+        
+        // Toggle degradations details
+        function toggleDegradationsDetails() {
+            const checkbox = document.getElementById('degradations_constatees');
+            const container = document.getElementById('degradations_details_container');
+            container.style.display = checkbox.checked ? 'block' : 'none';
+        }
+        
+        // Toggle deposit guarantee details
+        function toggleDepotDetails() {
+            const select = document.getElementById('depot_garantie_status');
+            const container = document.getElementById('depot_details_container');
+            const selectedValue = select.value;
+            
+            // Show details only if restitution_partielle or retenue_totale
+            container.style.display = (selectedValue === 'restitution_partielle' || selectedValue === 'retenue_totale') ? 'block' : 'none';
+        }
         
         function initTenantSignature(id) {
             const canvas = document.getElementById(`tenantCanvas_${id}`);
