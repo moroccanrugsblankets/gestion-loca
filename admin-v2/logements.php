@@ -171,7 +171,7 @@ $statut_filter = isset($_GET['statut']) ? $_GET['statut'] : '';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
 // Map UI status values to database values
-$statutUItoDBMap = [
+$statut_ui_to_db_map = [
     'Disponible' => 'disponible',
     'Réservé' => 'en_location',
     'Loué' => 'en_location',
@@ -187,8 +187,8 @@ if (!isset($_GET['statut']) && !isset($_GET['search'])) {
 
 // Convert UI status to database status for query
 $statut_db = '';
-if ($statut_filter) {
-    $statut_db = $statutUItoDBMap[$statut_filter] ?? strtolower($statut_filter);
+if ($statut_filter && isset($statut_ui_to_db_map[$statut_filter])) {
+    $statut_db = $statut_ui_to_db_map[$statut_filter];
 }
 
 // Build query - explicitly select columns we need
