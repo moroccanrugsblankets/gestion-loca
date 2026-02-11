@@ -62,12 +62,31 @@ if (!$contrat || !isContractValid($contrat)) {
 }
 
 $error = '';
+$signatureSaved = false;
 
 // Traitement du formulaire
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($_POST['csrf_token']) || !verifyCsrfToken($_POST['csrf_token'])) {
         $error = 'Token CSRF invalide.';
     } else {
+        // Check if this is the second tenant question submission
+        if (isset($_POST['second_locataire'])) {
+            $secondLocataire = $_POST['second_locataire'];
+            
+            if ($secondLocataire === 'oui') {
+                // Redirect to step1 for second tenant
+                unset($_SESSION['current_locataire_id']);
+                unset($_SESSION['current_locataire_numero']);
+                header('Location: step1-info.php');
+                exit;
+            } else {
+                // No second tenant, go to documents
+                header('Location: step3-documents.php');
+                exit;
+            }
+        }
+        
+        // Otherwise, process the signature
         $signatureData = $_POST['signature_data'] ?? '';
         $certifieExact = isset($_POST['certifie_exact']) ? 1 : 0;
         
@@ -102,9 +121,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 error_log("Step2-Signature: ✓ Signature enregistrée avec succès");
                 logAction($contratId, 'signature_locataire', "Locataire $numeroLocataire a signé");
                 
-                // Rediriger vers l'étape 3 (paiement)
-                header('Location: step3-documents.php');
-                exit;
+                // Check if we need to ask about second tenant
+                // Only ask if this is locataire 1 and contract allows multiple tenants
+                if ($numeroLocataire === 1 && $contrat['nb_locataires'] > 1) {
+                    // Show the second tenant question
+                    $signatureSaved = true;
+                } else {
+                    // Locataire 2 or single tenant contract - go directly to documents
+                    header('Location: step3-documents.php');
+                    exit;
+                }
             } else {
                 error_log("Step2-Signature: ✗ ERREUR lors de l'enregistrement de la signature");
                 $error = 'Erreur lors de l\'enregistrement de la signature.';
@@ -153,52 +179,89 @@ $csrfToken = generateCsrfToken();
                             <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
                         <?php endif; ?>
 
-                        <form method="POST" action="" id="signatureForm">
-                            <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
-                            <input type="hidden" name="signature_data" id="signature_data">
-                            
-                            <div class="mb-4">
-                                <label class="form-label">Veuillez signer dans le cadre ci-dessous :</label>
-                                <div class="signature-container" style="max-width: 300px;">
-                                    <canvas id="signatureCanvas" width="300" height="150" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
+                        <?php if ($signatureSaved): ?>
+                            <!-- Second tenant question after signature is saved -->
+                            <div class="alert alert-success mb-4">
+                                <i class="bi bi-check-circle"></i> Votre signature a été enregistrée avec succès !
+                            </div>
+
+                            <form method="POST" action="">
+                                <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
+                                
+                                <div class="mb-4">
+                                    <label class="form-label"><strong>Y a-t-il un second locataire ?</strong> *</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="second_locataire" 
+                                               id="second_oui" value="oui" required>
+                                        <label class="form-check-label" for="second_oui">
+                                            Oui, il y a un second locataire
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="second_locataire" 
+                                               id="second_non" value="non">
+                                        <label class="form-check-label" for="second_non">
+                                            Non, je suis le seul locataire
+                                        </label>
+                                    </div>
                                 </div>
-                                <div class="mt-2">
-                                    <button type="button" class="btn btn-warning" onclick="clearSignature()">
-                                        Effacer
+
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        Continuer →
                                     </button>
                                 </div>
-                            </div>
-                            
-                            <div class="mb-4">
-                                <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" id="certifie_exact" 
-                                           name="certifie_exact" value="1" required>
-                                    <label class="form-check-label" for="certifie_exact">
-                                        <strong>Certifié exact</strong> *
-                                    </label>
+                            </form>
+                        <?php else: ?>
+                            <!-- Signature form -->
+                            <form method="POST" action="" id="signatureForm">
+                                <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
+                                <input type="hidden" name="signature_data" id="signature_data">
+                                
+                                <div class="mb-4">
+                                    <label class="form-label">Veuillez signer dans le cadre ci-dessous :</label>
+                                    <div class="signature-container" style="max-width: 300px;">
+                                        <canvas id="signatureCanvas" width="300" height="150" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
+                                    </div>
+                                    <div class="mt-2">
+                                        <button type="button" class="btn btn-warning" onclick="clearSignature()">
+                                            Effacer
+                                        </button>
+                                    </div>
                                 </div>
-                                <small class="form-text text-muted">Cette case est obligatoire pour valider votre signature</small>
-                            </div>
+                                
+                                <div class="mb-4">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="certifie_exact" 
+                                               name="certifie_exact" value="1" required>
+                                        <label class="form-check-label" for="certifie_exact">
+                                            <strong>Certifié exact</strong> *
+                                        </label>
+                                    </div>
+                                    <small class="form-text text-muted">Cette case est obligatoire pour valider votre signature</small>
+                                </div>
 
-                            <div class="alert alert-info">
-                                <small>
-                                    <strong>Information :</strong> Votre signature sera horodatée et votre adresse IP enregistrée 
-                                    pour des raisons de sécurité et de conformité légale.
-                                </small>
-                            </div>
+                                <div class="alert alert-info">
+                                    <small>
+                                        <strong>Information :</strong> Votre signature sera horodatée et votre adresse IP enregistrée 
+                                        pour des raisons de sécurité et de conformité légale.
+                                    </small>
+                                </div>
 
-                            <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-primary btn-lg">
-                                    Valider la signature →
-                                </button>
-                            </div>
-                        </form>
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        Valider la signature →
+                                    </button>
+                                </div>
+                            </form>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <?php if (!$signatureSaved): ?>
     <script src="../assets/js/signature.js"></script>
     <script>
         // Initialiser le canvas de signature au chargement
@@ -226,5 +289,6 @@ $csrfToken = generateCsrfToken();
             document.getElementById('signature_data').value = signatureData;
         });
     </script>
+    <?php endif; ?>
 </body>
 </html>

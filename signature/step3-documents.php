@@ -71,8 +71,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($_POST['csrf_token']) || !verifyCsrfToken($_POST['csrf_token'])) {
         $error = 'Token CSRF invalide.';
     } else {
-        $secondLocataire = $_POST['second_locataire'] ?? '';
-        
         // Vérifier les fichiers uploadés
         $rectoFile = $_FILES['piece_recto'] ?? null;
         $versoFile = $_FILES['piece_verso'] ?? null;
@@ -112,12 +110,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if (updateTenantDocuments($locataireId, $rectoValidation['filename'], $versoFilename)) {
                             logAction($contratId, 'upload_documents', "Locataire $numeroLocataire a uploadé ses documents");
                             
-                            // Vérifier s'il y a un second locataire (maximum 2 locataires)
-                            if ($secondLocataire === 'oui' && $numeroLocataire < $contrat['nb_locataires'] && $numeroLocataire < 2) {
-                                // Retour au step1 pour le second locataire
-                                unset($_SESSION['current_locataire_id']);
-                                unset($_SESSION['current_locataire_numero']);
-                                header('Location: step1-info.php');
+                            // Check if there are more tenants who need to upload documents
+                            $locatairesExistants = getTenantsByContract($contratId);
+                            $hasMoreTenants = false;
+                            
+                            foreach ($locatairesExistants as $locataire) {
+                                // Check if there's a tenant who has signed but hasn't uploaded documents yet
+                                if (!empty($locataire['signature_timestamp']) && empty($locataire['piece_identite_recto']) && $locataire['id'] != $locataireId) {
+                                    $hasMoreTenants = true;
+                                    // Set session for next tenant
+                                    $_SESSION['current_locataire_id'] = $locataire['id'];
+                                    $_SESSION['current_locataire_numero'] = $locataire['ordre'];
+                                    break;
+                                }
+                            }
+                            
+                            if ($hasMoreTenants) {
+                                // Reload this page for the next tenant
+                                header('Location: step3-documents.php');
                                 exit;
                             } else {
                                 // Finaliser le contrat
@@ -273,28 +283,6 @@ $csrfToken = generateCsrfToken();
                                     Formats acceptés : JPG, PNG, PDF - Taille max : 5 Mo (optionnel pour les passeports)
                                 </small>
                             </div>
-
-                            <?php if ($numeroLocataire === 1 && $contrat['nb_locataires'] > 1): ?>
-                                <div class="mb-4">
-                                    <label class="form-label">Y a-t-il un second locataire ? *</label>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="second_locataire" 
-                                               id="second_oui" value="oui" required>
-                                        <label class="form-check-label" for="second_oui">
-                                            Oui
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="second_locataire" 
-                                               id="second_non" value="non">
-                                        <label class="form-check-label" for="second_non">
-                                            Non
-                                        </label>
-                                    </div>
-                                </div>
-                            <?php else: ?>
-                                <input type="hidden" name="second_locataire" value="non">
-                            <?php endif; ?>
 
                             <div class="d-grid gap-2">
                                 <button type="submit" class="btn btn-primary btn-lg">
