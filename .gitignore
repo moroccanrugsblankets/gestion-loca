@@ -84,3 +84,5 @@ assets/images/logo-my-invest-immobilier-carre.jpg
 step2-signature.php
 test-template-*.html
 test-sortie-output.html
+# Test files for justificatif display feature
+test-justificatif-display.php
