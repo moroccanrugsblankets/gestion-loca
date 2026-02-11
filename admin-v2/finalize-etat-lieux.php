@@ -326,7 +326,6 @@ try {
                 <strong>Le PDF sera envoyé automatiquement à:</strong>
                 <ul class="mb-0 mt-2">
                     <li>Locataire: <?php echo htmlspecialchars($etat['locataire_email']); ?></li>
-                    <li>Copie: <?php echo htmlspecialchars(getAdminEmail()); ?></li>
                 </ul>
             </div>
             
