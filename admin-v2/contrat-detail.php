@@ -745,6 +745,128 @@ if ($contrat['validated_by']) {
             <?php endif; ?>
         </div>
 
+        <!-- Inventaire Section -->
+        <?php if ($contrat['statut'] === 'valide'): ?>
+        <div class="detail-card mt-4">
+            <h5><i class="bi bi-clipboard-check"></i> Inventaire et État des lieux</h5>
+            <?php
+            // Fetch inventaires for this contract
+            $stmt = $pdo->prepare("
+                SELECT * FROM inventaires 
+                WHERE contrat_id = ? 
+                ORDER BY type, date_inventaire DESC
+            ");
+            $stmt->execute([$contrat['id']]);
+            $inventaires = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            $inventaire_entree = null;
+            $inventaire_sortie = null;
+            foreach ($inventaires as $inv) {
+                if ($inv['type'] === 'entree') {
+                    $inventaire_entree = $inv;
+                } elseif ($inv['type'] === 'sortie') {
+                    $inventaire_sortie = $inv;
+                }
+            }
+            ?>
+            
+            <div class="row mt-3">
+                <!-- Entry Inventory -->
+                <div class="col-md-6 mb-3">
+                    <div class="card <?php echo $inventaire_entree ? 'border-success' : 'border-secondary'; ?>">
+                        <div class="card-header <?php echo $inventaire_entree ? 'bg-success text-white' : 'bg-secondary text-white'; ?>">
+                            <h6 class="mb-0"><i class="bi bi-box-arrow-in-right"></i> Inventaire d'Entrée</h6>
+                        </div>
+                        <div class="card-body">
+                            <?php if ($inventaire_entree): ?>
+                                <p class="mb-2">
+                                    <strong>Référence:</strong> <?php echo htmlspecialchars($inventaire_entree['reference_unique']); ?><br>
+                                    <strong>Date:</strong> <?php echo date('d/m/Y', strtotime($inventaire_entree['date_inventaire'])); ?><br>
+                                    <strong>Statut:</strong> 
+                                    <span class="badge bg-<?php echo $inventaire_entree['statut'] === 'finalise' ? 'success' : 'warning'; ?>">
+                                        <?php echo ucfirst($inventaire_entree['statut']); ?>
+                                    </span>
+                                </p>
+                                <div class="btn-group w-100" role="group">
+                                    <a href="edit-inventaire.php?id=<?php echo $inventaire_entree['id']; ?>" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-pencil"></i> Modifier
+                                    </a>
+                                    <a href="download-inventaire.php?id=<?php echo $inventaire_entree['id']; ?>" class="btn btn-sm btn-info" target="_blank">
+                                        <i class="bi bi-file-pdf"></i> PDF
+                                    </a>
+                                </div>
+                            <?php else: ?>
+                                <p class="text-muted mb-3">Aucun inventaire d'entrée créé.</p>
+                                <form method="POST" action="create-inventaire.php" class="d-inline">
+                                    <input type="hidden" name="logement_id" value="<?php echo $contrat['logement_id']; ?>">
+                                    <input type="hidden" name="type" value="entree">
+                                    <input type="hidden" name="date_inventaire" value="<?php echo date('Y-m-d'); ?>">
+                                    <button type="submit" class="btn btn-sm btn-success w-100">
+                                        <i class="bi bi-plus-circle"></i> Créer l'inventaire d'entrée
+                                    </button>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Exit Inventory -->
+                <div class="col-md-6 mb-3">
+                    <div class="card <?php echo $inventaire_sortie ? 'border-danger' : 'border-secondary'; ?>">
+                        <div class="card-header <?php echo $inventaire_sortie ? 'bg-danger text-white' : 'bg-secondary text-white'; ?>">
+                            <h6 class="mb-0"><i class="bi bi-box-arrow-right"></i> Inventaire de Sortie</h6>
+                        </div>
+                        <div class="card-body">
+                            <?php if ($inventaire_sortie): ?>
+                                <p class="mb-2">
+                                    <strong>Référence:</strong> <?php echo htmlspecialchars($inventaire_sortie['reference_unique']); ?><br>
+                                    <strong>Date:</strong> <?php echo date('d/m/Y', strtotime($inventaire_sortie['date_inventaire'])); ?><br>
+                                    <strong>Statut:</strong> 
+                                    <span class="badge bg-<?php echo $inventaire_sortie['statut'] === 'finalise' ? 'success' : 'warning'; ?>">
+                                        <?php echo ucfirst($inventaire_sortie['statut']); ?>
+                                    </span>
+                                </p>
+                                <div class="btn-group w-100" role="group">
+                                    <a href="edit-inventaire.php?id=<?php echo $inventaire_sortie['id']; ?>" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-pencil"></i> Modifier
+                                    </a>
+                                    <a href="download-inventaire.php?id=<?php echo $inventaire_sortie['id']; ?>" class="btn btn-sm btn-info" target="_blank">
+                                        <i class="bi bi-file-pdf"></i> PDF
+                                    </a>
+                                    <?php if ($inventaire_entree): ?>
+                                    <a href="compare-inventaire.php?entree=<?php echo $inventaire_entree['id']; ?>&sortie=<?php echo $inventaire_sortie['id']; ?>" class="btn btn-sm btn-warning">
+                                        <i class="bi bi-arrow-left-right"></i> Comparer
+                                    </a>
+                                    <?php endif; ?>
+                                </div>
+                            <?php else: ?>
+                                <p class="text-muted mb-3">Aucun inventaire de sortie créé.</p>
+                                <?php if ($inventaire_entree): ?>
+                                <form method="POST" action="create-inventaire.php" class="d-inline">
+                                    <input type="hidden" name="logement_id" value="<?php echo $contrat['logement_id']; ?>">
+                                    <input type="hidden" name="type" value="sortie">
+                                    <input type="hidden" name="date_inventaire" value="<?php echo date('Y-m-d'); ?>">
+                                    <button type="submit" class="btn btn-sm btn-danger w-100">
+                                        <i class="bi bi-plus-circle"></i> Créer l'inventaire de sortie
+                                    </button>
+                                </form>
+                                <?php else: ?>
+                                <p class="text-muted small">Créez d'abord l'inventaire d'entrée</p>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alert alert-info mt-3">
+                <i class="bi bi-info-circle"></i> 
+                <strong>Information:</strong> L'inventaire utilise désormais un formulaire standardisé conforme au cahier des charges. 
+                Tous les logements utilisent le même modèle d'inventaire.
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- Action Section for signed contracts -->
         <?php if ($contrat['statut'] === 'signe'): ?>
         <div class="action-section">

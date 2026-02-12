@@ -1,12 +1,13 @@
 <?php
 /**
- * Edit Inventaire - Simplified version
- * Allows editing equipment status and observations
+ * Edit Inventaire - New standardized version using inventaire-standard-items.php
+ * Enhanced interface with Entry/Exit grid and subcategory organization
  */
 require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
 require_once '../includes/functions.php';
+require_once '../includes/inventaire-standard-items.php';
 
 $inventaire_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
@@ -39,35 +40,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $pdo->beginTransaction();
         
-        // Update equipment data with enhanced grid format (Entry/Exit columns)
+        // Process standardized inventory items
         $equipements_data = [];
-        if (isset($_POST['equipement'])) {
-            foreach ($_POST['equipement'] as $eq_id => $eq_data) {
+        if (isset($_POST['items']) && is_array($_POST['items'])) {
+            foreach ($_POST['items'] as $itemData) {
                 $equipements_data[] = [
-                    'equipement_id' => $eq_id,
-                    'nom' => $eq_data['nom'] ?? '',
-                    'categorie' => $eq_data['categorie'] ?? '',
-                    'description' => $eq_data['description'] ?? '',
-                    'quantite_attendue' => (int)($eq_data['quantite_attendue'] ?? 0),
-                    // Enhanced Entry/Exit format
+                    'id' => (int)$itemData['id'],
+                    'categorie' => $itemData['categorie'] ?? '',
+                    'sous_categorie' => $itemData['sous_categorie'] ?? null,
+                    'nom' => $itemData['nom'] ?? '',
+                    'type' => $itemData['type'] ?? 'item',
                     'entree' => [
-                        'nombre' => isset($eq_data['entree_nombre']) && $eq_data['entree_nombre'] !== '' ? (int)$eq_data['entree_nombre'] : null,
-                        'bon' => isset($eq_data['entree_bon']),
-                        'usage' => isset($eq_data['entree_usage']),
-                        'mauvais' => isset($eq_data['entree_mauvais']),
+                        'nombre' => isset($itemData['entree_nombre']) && $itemData['entree_nombre'] !== '' ? (int)$itemData['entree_nombre'] : null,
+                        'bon' => isset($itemData['entree_bon']),
+                        'usage' => isset($itemData['entree_usage']),
+                        'mauvais' => isset($itemData['entree_mauvais']),
                     ],
                     'sortie' => [
-                        'nombre' => isset($eq_data['sortie_nombre']) && $eq_data['sortie_nombre'] !== '' ? (int)$eq_data['sortie_nombre'] : null,
-                        'bon' => isset($eq_data['sortie_bon']),
-                        'usage' => isset($eq_data['sortie_usage']),
-                        'mauvais' => isset($eq_data['sortie_mauvais']),
+                        'nombre' => isset($itemData['sortie_nombre']) && $itemData['sortie_nombre'] !== '' ? (int)$itemData['sortie_nombre'] : null,
+                        'bon' => isset($itemData['sortie_bon']),
+                        'usage' => isset($itemData['sortie_usage']),
+                        'mauvais' => isset($itemData['sortie_mauvais']),
                     ],
-                    'commentaires' => $eq_data['commentaires'] ?? '',
-                    // Keep legacy fields for backward compatibility
-                    'quantite_presente' => isset($eq_data['quantite_presente']) ? (int)$eq_data['quantite_presente'] : null,
-                    'etat' => $eq_data['etat'] ?? null,
-                    'observations' => $eq_data['observations'] ?? null,
-                    'photos' => []
+                    'commentaires' => $itemData['commentaires'] ?? ''
                 ];
             }
         }
@@ -128,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
         
-        header("Location: edit-inventaire.php?id=$inventaire_id");
+        header("Location: edit-inventaire-new.php?id=$inventaire_id");
         exit;
         
     } catch (Exception $e) {
@@ -144,15 +139,21 @@ if (!is_array($equipements_data)) {
     $equipements_data = [];
 }
 
-// Group by category
-$equipements_by_category = [];
-foreach ($equipements_data as $eq) {
-    $cat = $eq['categorie'] ?? 'Autre';
-    if (!isset($equipements_by_category[$cat])) {
-        $equipements_by_category[$cat] = [];
-    }
-    $equipements_by_category[$cat][] = $eq;
+// If no data exists, generate from standard items
+if (empty($equipements_data)) {
+    $equipements_data = generateStandardInventoryData();
 }
+
+// Index existing data by ID for quick lookup
+$existing_data_by_id = [];
+foreach ($equipements_data as $item) {
+    if (isset($item['id'])) {
+        $existing_data_by_id[$item['id']] = $item;
+    }
+}
+
+// Get standard items structure and merge with saved data
+$standardItems = getStandardInventaireItems();
 
 // Get existing tenants for this inventaire
 $stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? ORDER BY id ASC");
@@ -192,6 +193,8 @@ foreach ($existing_tenants as &$tenant) {
     $tenant['signature_data'] = $tenant['signature'] ?? '';
     $tenant['signature_timestamp'] = $tenant['date_signature'] ?? '';
 }
+
+$isEntreeInventory = ($inventaire['type'] === 'entree');
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -219,29 +222,52 @@ foreach ($existing_tenants as &$tenant) {
         }
         .category-section {
             margin-bottom: 30px;
-            border-left: 4px solid #0d6efd;
-            padding-left: 15px;
         }
-        .equipment-row {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 10px;
-        }
-        .section-title {
-            font-size: 1.2rem;
+        .category-header {
+            font-size: 1.3rem;
             font-weight: 600;
             color: #212529;
             margin-bottom: 1.5rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 2px solid #e9ecef;
+            padding: 12px 15px;
+            background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%);
+            color: white;
+            border-radius: 6px;
+            border-left: 5px solid #004085;
         }
-        .section-subtitle {
-            font-size: 1rem;
+        .subcategory-header {
+            font-size: 1.1rem;
             font-weight: 600;
             color: #495057;
             margin-top: 1.5rem;
             margin-bottom: 1rem;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+        }
+        .table-responsive {
+            overflow-x: auto;
+        }
+        .inventory-table {
+            font-size: 0.9rem;
+        }
+        .inventory-table thead th {
+            font-weight: 600;
+            text-align: center;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+        .inventory-table td {
+            vertical-align: middle;
+        }
+        .inventory-table input[type="number"] {
+            min-width: 60px;
+        }
+        .inventory-table input[type="text"] {
+            min-width: 150px;
+        }
+        .readonly-column {
+            background-color: #f8f9fa !important;
         }
         .signature-container {
             border: 2px solid #000000;
@@ -253,6 +279,14 @@ foreach ($existing_tenants as &$tenant) {
         .signature-container canvas {
             display: block;
             cursor: crosshair;
+        }
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #e9ecef;
         }
     </style>
 </head>
@@ -301,129 +335,251 @@ foreach ($existing_tenants as &$tenant) {
         <?php endif; ?>
 
         <form method="POST" id="inventaireForm">
-            <?php foreach ($equipements_by_category as $categorie => $equipements): ?>
+            <?php 
+            $itemIndex = 0;
+            foreach ($standardItems as $categoryName => $categoryContent): 
+            ?>
                 <div class="form-card">
                     <div class="category-section">
-                        <h5><i class="bi bi-box-seam"></i> <?php echo htmlspecialchars($categorie); ?></h5>
-                        
-                        <!-- Enhanced Grid Format: Entry/Exit Columns -->
-                        <div class="table-responsive">
-                            <table class="table table-sm table-bordered">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th rowspan="2" style="vertical-align: middle; width: 25%;">Élément</th>
-                                        <th colspan="4" class="text-center bg-primary text-white">Entrée</th>
-                                        <th colspan="4" class="text-center bg-success text-white">Sortie</th>
-                                        <th rowspan="2" style="vertical-align: middle; width: 15%;">Commentaires</th>
-                                    </tr>
-                                    <tr>
-                                        <th class="text-center" style="width: 5%;">Nombre</th>
-                                        <th class="text-center" style="width: 5%;">Bon</th>
-                                        <th class="text-center" style="width: 5%;">D'usage</th>
-                                        <th class="text-center" style="width: 5%;">Mauvais</th>
-                                        <th class="text-center" style="width: 5%;">Nombre</th>
-                                        <th class="text-center" style="width: 5%;">Bon</th>
-                                        <th class="text-center" style="width: 5%;">D'usage</th>
-                                        <th class="text-center" style="width: 5%;">Mauvais</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($equipements as $eq): 
-                                        $eq_id = $eq['equipement_id'];
-                                        // Get entry/exit data if exists
-                                        $entree = $eq['entree'] ?? [];
-                                        $sortie = $eq['sortie'] ?? [];
-                                        $isEntreeInventory = ($inventaire['type'] === 'entree');
-                                    ?>
-                                    <tr>
-                                        <td>
-                                            <strong><?php echo htmlspecialchars($eq['nom']); ?></strong>
-                                            <?php if (!empty($eq['description'])): ?>
-                                                <br><small class="text-muted"><?php echo htmlspecialchars($eq['description']); ?></small>
-                                            <?php endif; ?>
-                                            <input type="hidden" name="equipement[<?php echo $eq_id; ?>][nom]" value="<?php echo htmlspecialchars($eq['nom']); ?>">
-                                            <input type="hidden" name="equipement[<?php echo $eq_id; ?>][categorie]" value="<?php echo htmlspecialchars($categorie); ?>">
-                                            <input type="hidden" name="equipement[<?php echo $eq_id; ?>][description]" value="<?php echo htmlspecialchars($eq['description'] ?? ''); ?>">
-                                            <input type="hidden" name="equipement[<?php echo $eq_id; ?>][quantite_attendue]" value="<?php echo $eq['quantite_attendue'] ?? 0; ?>">
-                                        </td>
-                                        
-                                        <!-- Entry columns -->
-                                        <td class="text-center">
-                                            <input type="number" 
-                                                   name="equipement[<?php echo $eq_id; ?>][entree_nombre]" 
-                                                   class="form-control form-control-sm text-center" 
-                                                   value="<?php echo htmlspecialchars($entree['nombre'] ?? ''); ?>" 
-                                                   min="0" 
-                                                   style="width: 60px;"
-                                                   <?php echo !$isEntreeInventory ? 'readonly' : ''; ?>>
-                                        </td>
-                                        <td class="text-center">
-                                            <input type="checkbox" 
-                                                   name="equipement[<?php echo $eq_id; ?>][entree_bon]" 
-                                                   class="form-check-input"
-                                                   <?php echo (!empty($entree['bon'])) ? 'checked' : ''; ?>
-                                                   <?php echo !$isEntreeInventory ? 'disabled' : ''; ?>>
-                                        </td>
-                                        <td class="text-center">
-                                            <input type="checkbox" 
-                                                   name="equipement[<?php echo $eq_id; ?>][entree_usage]" 
-                                                   class="form-check-input"
-                                                   <?php echo (!empty($entree['usage'])) ? 'checked' : ''; ?>
-                                                   <?php echo !$isEntreeInventory ? 'disabled' : ''; ?>>
-                                        </td>
-                                        <td class="text-center">
-                                            <input type="checkbox" 
-                                                   name="equipement[<?php echo $eq_id; ?>][entree_mauvais]" 
-                                                   class="form-check-input"
-                                                   <?php echo (!empty($entree['mauvais'])) ? 'checked' : ''; ?>
-                                                   <?php echo !$isEntreeInventory ? 'disabled' : ''; ?>>
-                                        </td>
-                                        
-                                        <!-- Exit columns -->
-                                        <td class="text-center">
-                                            <input type="number" 
-                                                   name="equipement[<?php echo $eq_id; ?>][sortie_nombre]" 
-                                                   class="form-control form-control-sm text-center" 
-                                                   value="<?php echo htmlspecialchars($sortie['nombre'] ?? ''); ?>" 
-                                                   min="0" 
-                                                   style="width: 60px;"
-                                                   <?php echo $isEntreeInventory ? 'readonly' : ''; ?>>
-                                        </td>
-                                        <td class="text-center">
-                                            <input type="checkbox" 
-                                                   name="equipement[<?php echo $eq_id; ?>][sortie_bon]" 
-                                                   class="form-check-input"
-                                                   <?php echo (!empty($sortie['bon'])) ? 'checked' : ''; ?>
-                                                   <?php echo $isEntreeInventory ? 'disabled' : ''; ?>>
-                                        </td>
-                                        <td class="text-center">
-                                            <input type="checkbox" 
-                                                   name="equipement[<?php echo $eq_id; ?>][sortie_usage]" 
-                                                   class="form-check-input"
-                                                   <?php echo (!empty($sortie['usage'])) ? 'checked' : ''; ?>
-                                                   <?php echo $isEntreeInventory ? 'disabled' : ''; ?>>
-                                        </td>
-                                        <td class="text-center">
-                                            <input type="checkbox" 
-                                                   name="equipement[<?php echo $eq_id; ?>][sortie_mauvais]" 
-                                                   class="form-check-input"
-                                                   <?php echo (!empty($sortie['mauvais'])) ? 'checked' : ''; ?>
-                                                   <?php echo $isEntreeInventory ? 'disabled' : ''; ?>>
-                                        </td>
-                                        
-                                        <!-- Comments -->
-                                        <td>
-                                            <input type="text" 
-                                                   name="equipement[<?php echo $eq_id; ?>][commentaires]" 
-                                                   class="form-control form-control-sm" 
-                                                   value="<?php echo htmlspecialchars($eq['commentaires'] ?? $eq['observations'] ?? ''); ?>" 
-                                                   placeholder="Commentaires...">
-                                        </td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
+                        <div class="category-header">
+                            <i class="bi bi-box-seam"></i> <?php echo htmlspecialchars($categoryName); ?>
                         </div>
+                        
+                        <?php if ($categoryName === 'État des pièces'): ?>
+                            <!-- État des pièces has subcategories -->
+                            <?php foreach ($categoryContent as $subcategoryName => $subcategoryItems): ?>
+                                <div class="subcategory-header">
+                                    <?php echo htmlspecialchars($subcategoryName); ?>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered inventory-table">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th rowspan="2" style="vertical-align: middle; width: 25%;">Élément</th>
+                                                <th colspan="4" class="text-center bg-primary text-white">Entrée</th>
+                                                <th colspan="4" class="text-center bg-success text-white">Sortie</th>
+                                                <th rowspan="2" style="vertical-align: middle; width: 15%;">Commentaires</th>
+                                            </tr>
+                                            <tr>
+                                                <th class="text-center" style="width: 5%;">Nombre</th>
+                                                <th class="text-center" style="width: 5%;">Bon</th>
+                                                <th class="text-center" style="width: 5%;">D'usage</th>
+                                                <th class="text-center" style="width: 5%;">Mauvais</th>
+                                                <th class="text-center" style="width: 5%;">Nombre</th>
+                                                <th class="text-center" style="width: 5%;">Bon</th>
+                                                <th class="text-center" style="width: 5%;">D'usage</th>
+                                                <th class="text-center" style="width: 5%;">Mauvais</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($subcategoryItems as $item): 
+                                                $itemIndex++;
+                                                $existingData = $existing_data_by_id[$itemIndex] ?? null;
+                                                $entree = $existingData['entree'] ?? [];
+                                                $sortie = $existingData['sortie'] ?? [];
+                                            ?>
+                                            <tr>
+                                                <td>
+                                                    <strong><?php echo htmlspecialchars($item['nom']); ?></strong>
+                                                    <input type="hidden" name="items[<?php echo $itemIndex; ?>][id]" value="<?php echo $itemIndex; ?>">
+                                                    <input type="hidden" name="items[<?php echo $itemIndex; ?>][categorie]" value="<?php echo htmlspecialchars($categoryName); ?>">
+                                                    <input type="hidden" name="items[<?php echo $itemIndex; ?>][sous_categorie]" value="<?php echo htmlspecialchars($subcategoryName); ?>">
+                                                    <input type="hidden" name="items[<?php echo $itemIndex; ?>][nom]" value="<?php echo htmlspecialchars($item['nom']); ?>">
+                                                    <input type="hidden" name="items[<?php echo $itemIndex; ?>][type]" value="<?php echo htmlspecialchars($item['type']); ?>">
+                                                </td>
+                                                
+                                                <!-- Entry columns -->
+                                                <td class="text-center <?php echo !$isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                                    <input type="number" 
+                                                           name="items[<?php echo $itemIndex; ?>][entree_nombre]" 
+                                                           class="form-control form-control-sm text-center" 
+                                                           value="<?php echo htmlspecialchars($entree['nombre'] ?? ''); ?>" 
+                                                           min="0" 
+                                                           <?php echo !$isEntreeInventory ? 'readonly' : ''; ?>>
+                                                </td>
+                                                <td class="text-center <?php echo !$isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                                    <input type="checkbox" 
+                                                           name="items[<?php echo $itemIndex; ?>][entree_bon]" 
+                                                           class="form-check-input"
+                                                           <?php echo (!empty($entree['bon'])) ? 'checked' : ''; ?>
+                                                           <?php echo !$isEntreeInventory ? 'disabled' : ''; ?>>
+                                                </td>
+                                                <td class="text-center <?php echo !$isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                                    <input type="checkbox" 
+                                                           name="items[<?php echo $itemIndex; ?>][entree_usage]" 
+                                                           class="form-check-input"
+                                                           <?php echo (!empty($entree['usage'])) ? 'checked' : ''; ?>
+                                                           <?php echo !$isEntreeInventory ? 'disabled' : ''; ?>>
+                                                </td>
+                                                <td class="text-center <?php echo !$isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                                    <input type="checkbox" 
+                                                           name="items[<?php echo $itemIndex; ?>][entree_mauvais]" 
+                                                           class="form-check-input"
+                                                           <?php echo (!empty($entree['mauvais'])) ? 'checked' : ''; ?>
+                                                           <?php echo !$isEntreeInventory ? 'disabled' : ''; ?>>
+                                                </td>
+                                                
+                                                <!-- Exit columns -->
+                                                <td class="text-center <?php echo $isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                                    <input type="number" 
+                                                           name="items[<?php echo $itemIndex; ?>][sortie_nombre]" 
+                                                           class="form-control form-control-sm text-center" 
+                                                           value="<?php echo htmlspecialchars($sortie['nombre'] ?? ''); ?>" 
+                                                           min="0" 
+                                                           <?php echo $isEntreeInventory ? 'readonly' : ''; ?>>
+                                                </td>
+                                                <td class="text-center <?php echo $isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                                    <input type="checkbox" 
+                                                           name="items[<?php echo $itemIndex; ?>][sortie_bon]" 
+                                                           class="form-check-input"
+                                                           <?php echo (!empty($sortie['bon'])) ? 'checked' : ''; ?>
+                                                           <?php echo $isEntreeInventory ? 'disabled' : ''; ?>>
+                                                </td>
+                                                <td class="text-center <?php echo $isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                                    <input type="checkbox" 
+                                                           name="items[<?php echo $itemIndex; ?>][sortie_usage]" 
+                                                           class="form-check-input"
+                                                           <?php echo (!empty($sortie['usage'])) ? 'checked' : ''; ?>
+                                                           <?php echo $isEntreeInventory ? 'disabled' : ''; ?>>
+                                                </td>
+                                                <td class="text-center <?php echo $isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                                    <input type="checkbox" 
+                                                           name="items[<?php echo $itemIndex; ?>][sortie_mauvais]" 
+                                                           class="form-check-input"
+                                                           <?php echo (!empty($sortie['mauvais'])) ? 'checked' : ''; ?>
+                                                           <?php echo $isEntreeInventory ? 'disabled' : ''; ?>>
+                                                </td>
+                                                
+                                                <!-- Comments -->
+                                                <td>
+                                                    <input type="text" 
+                                                           name="items[<?php echo $itemIndex; ?>][commentaires]" 
+                                                           class="form-control form-control-sm" 
+                                                           value="<?php echo htmlspecialchars($existingData['commentaires'] ?? ''); ?>" 
+                                                           placeholder="Commentaires...">
+                                                </td>
+                                            </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <!-- Simple category (no subcategories) -->
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered inventory-table">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th rowspan="2" style="vertical-align: middle; width: 25%;">Élément</th>
+                                            <th colspan="4" class="text-center bg-primary text-white">Entrée</th>
+                                            <th colspan="4" class="text-center bg-success text-white">Sortie</th>
+                                            <th rowspan="2" style="vertical-align: middle; width: 15%;">Commentaires</th>
+                                        </tr>
+                                        <tr>
+                                            <th class="text-center" style="width: 5%;">Nombre</th>
+                                            <th class="text-center" style="width: 5%;">Bon</th>
+                                            <th class="text-center" style="width: 5%;">D'usage</th>
+                                            <th class="text-center" style="width: 5%;">Mauvais</th>
+                                            <th class="text-center" style="width: 5%;">Nombre</th>
+                                            <th class="text-center" style="width: 5%;">Bon</th>
+                                            <th class="text-center" style="width: 5%;">D'usage</th>
+                                            <th class="text-center" style="width: 5%;">Mauvais</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($categoryContent as $item): 
+                                            $itemIndex++;
+                                            $existingData = $existing_data_by_id[$itemIndex] ?? null;
+                                            $entree = $existingData['entree'] ?? [];
+                                            $sortie = $existingData['sortie'] ?? [];
+                                        ?>
+                                        <tr>
+                                            <td>
+                                                <strong><?php echo htmlspecialchars($item['nom']); ?></strong>
+                                                <input type="hidden" name="items[<?php echo $itemIndex; ?>][id]" value="<?php echo $itemIndex; ?>">
+                                                <input type="hidden" name="items[<?php echo $itemIndex; ?>][categorie]" value="<?php echo htmlspecialchars($categoryName); ?>">
+                                                <input type="hidden" name="items[<?php echo $itemIndex; ?>][sous_categorie]" value="">
+                                                <input type="hidden" name="items[<?php echo $itemIndex; ?>][nom]" value="<?php echo htmlspecialchars($item['nom']); ?>">
+                                                <input type="hidden" name="items[<?php echo $itemIndex; ?>][type]" value="<?php echo htmlspecialchars($item['type']); ?>">
+                                            </td>
+                                            
+                                            <!-- Entry columns -->
+                                            <td class="text-center <?php echo !$isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                                <input type="number" 
+                                                       name="items[<?php echo $itemIndex; ?>][entree_nombre]" 
+                                                       class="form-control form-control-sm text-center" 
+                                                       value="<?php echo htmlspecialchars($entree['nombre'] ?? ''); ?>" 
+                                                       min="0" 
+                                                       <?php echo !$isEntreeInventory ? 'readonly' : ''; ?>>
+                                            </td>
+                                            <td class="text-center <?php echo !$isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                                <input type="checkbox" 
+                                                       name="items[<?php echo $itemIndex; ?>][entree_bon]" 
+                                                       class="form-check-input"
+                                                       <?php echo (!empty($entree['bon'])) ? 'checked' : ''; ?>
+                                                       <?php echo !$isEntreeInventory ? 'disabled' : ''; ?>>
+                                            </td>
+                                            <td class="text-center <?php echo !$isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                                <input type="checkbox" 
+                                                       name="items[<?php echo $itemIndex; ?>][entree_usage]" 
+                                                       class="form-check-input"
+                                                       <?php echo (!empty($entree['usage'])) ? 'checked' : ''; ?>
+                                                       <?php echo !$isEntreeInventory ? 'disabled' : ''; ?>>
+                                            </td>
+                                            <td class="text-center <?php echo !$isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                                <input type="checkbox" 
+                                                       name="items[<?php echo $itemIndex; ?>][entree_mauvais]" 
+                                                       class="form-check-input"
+                                                       <?php echo (!empty($entree['mauvais'])) ? 'checked' : ''; ?>
+                                                       <?php echo !$isEntreeInventory ? 'disabled' : ''; ?>>
+                                            </td>
+                                            
+                                            <!-- Exit columns -->
+                                            <td class="text-center <?php echo $isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                                <input type="number" 
+                                                       name="items[<?php echo $itemIndex; ?>][sortie_nombre]" 
+                                                       class="form-control form-control-sm text-center" 
+                                                       value="<?php echo htmlspecialchars($sortie['nombre'] ?? ''); ?>" 
+                                                       min="0" 
+                                                       <?php echo $isEntreeInventory ? 'readonly' : ''; ?>>
+                                            </td>
+                                            <td class="text-center <?php echo $isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                                <input type="checkbox" 
+                                                       name="items[<?php echo $itemIndex; ?>][sortie_bon]" 
+                                                       class="form-check-input"
+                                                       <?php echo (!empty($sortie['bon'])) ? 'checked' : ''; ?>
+                                                       <?php echo $isEntreeInventory ? 'disabled' : ''; ?>>
+                                            </td>
+                                            <td class="text-center <?php echo $isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                                <input type="checkbox" 
+                                                       name="items[<?php echo $itemIndex; ?>][sortie_usage]" 
+                                                       class="form-check-input"
+                                                       <?php echo (!empty($sortie['usage'])) ? 'checked' : ''; ?>
+                                                       <?php echo $isEntreeInventory ? 'disabled' : ''; ?>>
+                                            </td>
+                                            <td class="text-center <?php echo $isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                                <input type="checkbox" 
+                                                       name="items[<?php echo $itemIndex; ?>][sortie_mauvais]" 
+                                                       class="form-check-input"
+                                                       <?php echo (!empty($sortie['mauvais'])) ? 'checked' : ''; ?>
+                                                       <?php echo $isEntreeInventory ? 'disabled' : ''; ?>>
+                                            </td>
+                                            
+                                            <!-- Comments -->
+                                            <td>
+                                                <input type="text" 
+                                                       name="items[<?php echo $itemIndex; ?>][commentaires]" 
+                                                       class="form-control form-control-sm" 
+                                                       value="<?php echo htmlspecialchars($existingData['commentaires'] ?? ''); ?>" 
+                                                       placeholder="Commentaires...">
+                                            </td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php endforeach; ?>
@@ -459,75 +615,77 @@ foreach ($existing_tenants as &$tenant) {
                 
                 <!-- Tenant Signatures -->
                 <?php foreach ($existing_tenants as $index => $tenant): ?>
-                <div class="section-subtitle">
-                    Signature locataire <?php echo $index + 1; ?> - <?php echo htmlspecialchars($tenant['prenom'] . ' ' . $tenant['nom']); ?>
-                </div>
-                <div class="row mb-4">
-                    <div class="col-md-12">
-                        <?php if (!empty($tenant['signature_data'])): ?>
-                            <div class="alert alert-success mb-2">
-                                <i class="bi bi-check-circle"></i> 
-                                Signé le <?php echo !empty($tenant['signature_timestamp']) ? date('d/m/Y à H:i', strtotime($tenant['signature_timestamp'])) : 'Date inconnue'; ?>
-                            </div>
-                            <div class="mb-2">
-                                <?php
-                                // Handle signature path - prepend ../ for relative paths since we're in admin-v2 directory
-                                $signatureSrc = $tenant['signature_data'];
-                                
-                                // Validate data URL format with length check (max 2MB)
-                                if (preg_match('/^data:image\/(jpeg|jpg|png);base64,(?:[A-Za-z0-9+\/=]+)$/', $signatureSrc)) {
-                                    // Data URL - validate size
-                                    if (strlen($signatureSrc) <= 2 * 1024 * 1024) {
-                                        $displaySrc = $signatureSrc;
+                <div class="mb-4 pb-4 border-bottom">
+                    <h6 class="mb-3">
+                        Signature locataire <?php echo $index + 1; ?> - <?php echo htmlspecialchars($tenant['prenom'] . ' ' . $tenant['nom']); ?>
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <?php if (!empty($tenant['signature_data'])): ?>
+                                <div class="alert alert-success mb-2">
+                                    <i class="bi bi-check-circle"></i> 
+                                    Signé le <?php echo !empty($tenant['signature_timestamp']) ? date('d/m/Y à H:i', strtotime($tenant['signature_timestamp'])) : 'Date inconnue'; ?>
+                                </div>
+                                <div class="mb-2">
+                                    <?php
+                                    // Handle signature path - prepend ../ for relative paths since we're in admin-v2 directory
+                                    $signatureSrc = $tenant['signature_data'];
+                                    
+                                    // Validate data URL format with length check (max 2MB)
+                                    if (preg_match('/^data:image\/(jpeg|jpg|png);base64,(?:[A-Za-z0-9+\/=]+)$/', $signatureSrc)) {
+                                        // Data URL - validate size
+                                        if (strlen($signatureSrc) <= 2 * 1024 * 1024) {
+                                            $displaySrc = $signatureSrc;
+                                        } else {
+                                            error_log("Oversized signature data URL for tenant ID: " . (int)$tenant['id']);
+                                            $displaySrc = '';
+                                        }
+                                    } elseif (preg_match('/^uploads\/signatures\/[a-zA-Z0-9_\-]+\.(jpg|jpeg|png)$/', $signatureSrc)) {
+                                        // Relative path - validate it's within expected directory and prepend ../
+                                        $displaySrc = '../' . $signatureSrc;
                                     } else {
-                                        error_log("Oversized signature data URL for tenant ID: " . (int)$tenant['id']);
+                                        // Invalid or unexpected format - don't display to prevent security issues
+                                        error_log("Invalid signature path format detected for tenant ID: " . (int)$tenant['id']);
                                         $displaySrc = '';
                                     }
-                                } elseif (preg_match('/^uploads\/signatures\/[a-zA-Z0-9_\-]+\.(jpg|jpeg|png)$/', $signatureSrc)) {
-                                    // Relative path - validate it's within expected directory and prepend ../
-                                    $displaySrc = '../' . $signatureSrc;
-                                } else {
-                                    // Invalid or unexpected format - don't display to prevent security issues
-                                    error_log("Invalid signature path format detected for tenant ID: " . (int)$tenant['id']);
-                                    $displaySrc = '';
-                                }
-                                ?>
-                                <?php if (!empty($displaySrc)): ?>
-                                <img src="<?php echo htmlspecialchars($displaySrc); ?>" 
-                                     alt="Signature" style="max-width: 200px; max-height: 80px; border: 1px solid #dee2e6; padding: 5px;">
-                                <?php endif; ?>
+                                    ?>
+                                    <?php if (!empty($displaySrc)): ?>
+                                    <img src="<?php echo htmlspecialchars($displaySrc); ?>" 
+                                         alt="Signature" style="max-width: 200px; max-height: 80px; border: 1px solid #dee2e6; padding: 5px;">
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
+                            <label class="form-label">Veuillez signer dans le cadre ci-dessous :</label>
+                            <div class="signature-container" style="max-width: 300px;">
+                                <canvas id="tenantCanvas_<?php echo $tenant['id']; ?>" width="300" height="150" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
                             </div>
-                        <?php endif; ?>
-                        <label class="form-label">Veuillez signer dans le cadre ci-dessous :</label>
-                        <div class="signature-container" style="max-width: 300px;">
-                            <canvas id="tenantCanvas_<?php echo $tenant['id']; ?>" width="300" height="150" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
-                        </div>
-                        <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][signature]" 
-                               id="tenantSignature_<?php echo $tenant['id']; ?>" 
-                               value="<?php echo htmlspecialchars($tenant['signature_data'] ?? ''); ?>">
-                        <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][locataire_id]" 
-                               value="<?php echo $tenant['locataire_id'] ?? ''; ?>">
-                        <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][nom]" 
-                               value="<?php echo htmlspecialchars($tenant['nom']); ?>">
-                        <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][prenom]" 
-                               value="<?php echo htmlspecialchars($tenant['prenom']); ?>">
-                        <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][email]" 
-                               value="<?php echo htmlspecialchars($tenant['email'] ?? ''); ?>">
-                        <div class="mt-2">
-                            <button type="button" class="btn btn-warning btn-sm" onclick="clearTenantSignature(<?php echo $tenant['id']; ?>)">
-                                <i class="bi bi-eraser"></i> Effacer
-                            </button>
-                        </div>
-                        <div class="mt-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" 
-                                       name="tenants[<?php echo $tenant['id']; ?>][certifie_exact]" 
-                                       id="certifie_exact_<?php echo $tenant['id']; ?>" 
-                                       value="1"
-                                       <?php echo !empty($tenant['certifie_exact']) ? 'checked' : ''; ?>>
-                                <label class="form-check-label" for="certifie_exact_<?php echo $tenant['id']; ?>">
-                                    <strong>Certifié exact</strong>
-                                </label>
+                            <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][signature]" 
+                                   id="tenantSignature_<?php echo $tenant['id']; ?>" 
+                                   value="<?php echo htmlspecialchars($tenant['signature_data'] ?? ''); ?>">
+                            <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][locataire_id]" 
+                                   value="<?php echo $tenant['locataire_id'] ?? ''; ?>">
+                            <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][nom]" 
+                                   value="<?php echo htmlspecialchars($tenant['nom']); ?>">
+                            <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][prenom]" 
+                                   value="<?php echo htmlspecialchars($tenant['prenom']); ?>">
+                            <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][email]" 
+                                   value="<?php echo htmlspecialchars($tenant['email'] ?? ''); ?>">
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-warning btn-sm" onclick="clearTenantSignature(<?php echo $tenant['id']; ?>)">
+                                    <i class="bi bi-eraser"></i> Effacer
+                                </button>
+                            </div>
+                            <div class="mt-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="tenants[<?php echo $tenant['id']; ?>][certifie_exact]" 
+                                           id="certifie_exact_<?php echo $tenant['id']; ?>" 
+                                           value="1"
+                                           <?php echo !empty($tenant['certifie_exact']) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="certifie_exact_<?php echo $tenant['id']; ?>">
+                                        <strong>Certifié exact</strong>
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -732,7 +890,7 @@ foreach ($existing_tenants as &$tenant) {
             document.getElementById(`tenantSignature_${id}`).value = '';
         }
         
-        // Handle form submission - validate signatures and certifie_exact
+        // Handle form submission with validation
         document.getElementById('inventaireForm').addEventListener('submit', function(e) {
             // Save all tenant signatures before submission
             <?php foreach ($existing_tenants as $tenant): ?>
@@ -801,7 +959,7 @@ foreach ($existing_tenants as &$tenant) {
             if (!allValid) {
                 e.preventDefault();
                 
-                // Show errors using Bootstrap alert instead of native alert
+                // Show errors using Bootstrap alert
                 const alertDiv = document.createElement('div');
                 alertDiv.className = 'alert alert-danger alert-dismissible fade show';
                 alertDiv.innerHTML = `
