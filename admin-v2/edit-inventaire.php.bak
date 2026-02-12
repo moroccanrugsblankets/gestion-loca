@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $pdo->beginTransaction();
         
-        // Update equipment data with enhanced grid format (Entry/Exit columns)
+        // Update equipment data
         $equipements_data = [];
         if (isset($_POST['equipement'])) {
             foreach ($_POST['equipement'] as $eq_id => $eq_data) {
@@ -49,21 +49,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'categorie' => $eq_data['categorie'] ?? '',
                     'description' => $eq_data['description'] ?? '',
                     'quantite_attendue' => (int)($eq_data['quantite_attendue'] ?? 0),
-                    // Enhanced Entry/Exit format
-                    'entree' => [
-                        'nombre' => isset($eq_data['entree_nombre']) ? (int)$eq_data['entree_nombre'] : null,
-                        'bon' => isset($eq_data['entree_bon']),
-                        'usage' => isset($eq_data['entree_usage']),
-                        'mauvais' => isset($eq_data['entree_mauvais']),
-                    ],
-                    'sortie' => [
-                        'nombre' => isset($eq_data['sortie_nombre']) ? (int)$eq_data['sortie_nombre'] : null,
-                        'bon' => isset($eq_data['sortie_bon']),
-                        'usage' => isset($eq_data['sortie_usage']),
-                        'mauvais' => isset($eq_data['sortie_mauvais']),
-                    ],
-                    'commentaires' => $eq_data['commentaires'] ?? '',
-                    // Keep legacy fields for backward compatibility
                     'quantite_presente' => isset($eq_data['quantite_presente']) ? (int)$eq_data['quantite_presente'] : null,
                     'etat' => $eq_data['etat'] ?? null,
                     'observations' => $eq_data['observations'] ?? null,
@@ -271,11 +256,6 @@ foreach ($existing_tenants as &$tenant) {
                     </p>
                 </div>
                 <div>
-                    <?php if ($inventaire['type'] === 'sortie'): ?>
-                    <button type="button" class="btn btn-warning" onclick="duplicateEntryToExit()" title="Copie les données d'entrée vers la sortie">
-                        <i class="bi bi-copy"></i> Dupliquer Entrée → Sortie
-                    </button>
-                    <?php endif; ?>
                     <a href="download-inventaire.php?id=<?php echo $inventaire_id; ?>" class="btn btn-info" target="_blank">
                         <i class="bi bi-file-pdf"></i> Voir le PDF
                     </a>
@@ -306,124 +286,51 @@ foreach ($existing_tenants as &$tenant) {
                     <div class="category-section">
                         <h5><i class="bi bi-box-seam"></i> <?php echo htmlspecialchars($categorie); ?></h5>
                         
-                        <!-- Enhanced Grid Format: Entry/Exit Columns -->
-                        <div class="table-responsive">
-                            <table class="table table-sm table-bordered">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th rowspan="2" style="vertical-align: middle; width: 25%;">Élément</th>
-                                        <th colspan="4" class="text-center bg-primary text-white">Entrée</th>
-                                        <th colspan="4" class="text-center bg-success text-white">Sortie</th>
-                                        <th rowspan="2" style="vertical-align: middle; width: 15%;">Commentaires</th>
-                                    </tr>
-                                    <tr>
-                                        <th class="text-center" style="width: 5%;">Nombre</th>
-                                        <th class="text-center" style="width: 5%;">Bon</th>
-                                        <th class="text-center" style="width: 5%;">D'usage</th>
-                                        <th class="text-center" style="width: 5%;">Mauvais</th>
-                                        <th class="text-center" style="width: 5%;">Nombre</th>
-                                        <th class="text-center" style="width: 5%;">Bon</th>
-                                        <th class="text-center" style="width: 5%;">D'usage</th>
-                                        <th class="text-center" style="width: 5%;">Mauvais</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($equipements as $eq): 
-                                        $eq_id = $eq['equipement_id'];
-                                        // Get entry/exit data if exists
-                                        $entree = $eq['entree'] ?? [];
-                                        $sortie = $eq['sortie'] ?? [];
-                                        $isEntreeInventory = ($inventaire['type'] === 'entree');
-                                    ?>
-                                    <tr>
-                                        <td>
-                                            <strong><?php echo htmlspecialchars($eq['nom']); ?></strong>
-                                            <?php if (!empty($eq['description'])): ?>
-                                                <br><small class="text-muted"><?php echo htmlspecialchars($eq['description']); ?></small>
-                                            <?php endif; ?>
-                                            <input type="hidden" name="equipement[<?php echo $eq_id; ?>][nom]" value="<?php echo htmlspecialchars($eq['nom']); ?>">
-                                            <input type="hidden" name="equipement[<?php echo $eq_id; ?>][categorie]" value="<?php echo htmlspecialchars($categorie); ?>">
-                                            <input type="hidden" name="equipement[<?php echo $eq_id; ?>][description]" value="<?php echo htmlspecialchars($eq['description'] ?? ''); ?>">
-                                            <input type="hidden" name="equipement[<?php echo $eq_id; ?>][quantite_attendue]" value="<?php echo $eq['quantite_attendue'] ?? 0; ?>">
-                                        </td>
-                                        
-                                        <!-- Entry columns -->
-                                        <td class="text-center">
-                                            <input type="number" 
-                                                   name="equipement[<?php echo $eq_id; ?>][entree_nombre]" 
-                                                   class="form-control form-control-sm text-center" 
-                                                   value="<?php echo htmlspecialchars($entree['nombre'] ?? ''); ?>" 
-                                                   min="0" 
-                                                   style="width: 60px;"
-                                                   <?php echo !$isEntreeInventory ? 'readonly' : ''; ?>>
-                                        </td>
-                                        <td class="text-center">
-                                            <input type="checkbox" 
-                                                   name="equipement[<?php echo $eq_id; ?>][entree_bon]" 
-                                                   class="form-check-input"
-                                                   <?php echo (!empty($entree['bon'])) ? 'checked' : ''; ?>
-                                                   <?php echo !$isEntreeInventory ? 'disabled' : ''; ?>>
-                                        </td>
-                                        <td class="text-center">
-                                            <input type="checkbox" 
-                                                   name="equipement[<?php echo $eq_id; ?>][entree_usage]" 
-                                                   class="form-check-input"
-                                                   <?php echo (!empty($entree['usage'])) ? 'checked' : ''; ?>
-                                                   <?php echo !$isEntreeInventory ? 'disabled' : ''; ?>>
-                                        </td>
-                                        <td class="text-center">
-                                            <input type="checkbox" 
-                                                   name="equipement[<?php echo $eq_id; ?>][entree_mauvais]" 
-                                                   class="form-check-input"
-                                                   <?php echo (!empty($entree['mauvais'])) ? 'checked' : ''; ?>
-                                                   <?php echo !$isEntreeInventory ? 'disabled' : ''; ?>>
-                                        </td>
-                                        
-                                        <!-- Exit columns -->
-                                        <td class="text-center">
-                                            <input type="number" 
-                                                   name="equipement[<?php echo $eq_id; ?>][sortie_nombre]" 
-                                                   class="form-control form-control-sm text-center" 
-                                                   value="<?php echo htmlspecialchars($sortie['nombre'] ?? ''); ?>" 
-                                                   min="0" 
-                                                   style="width: 60px;"
-                                                   <?php echo $isEntreeInventory ? 'readonly' : ''; ?>>
-                                        </td>
-                                        <td class="text-center">
-                                            <input type="checkbox" 
-                                                   name="equipement[<?php echo $eq_id; ?>][sortie_bon]" 
-                                                   class="form-check-input"
-                                                   <?php echo (!empty($sortie['bon'])) ? 'checked' : ''; ?>
-                                                   <?php echo $isEntreeInventory ? 'disabled' : ''; ?>>
-                                        </td>
-                                        <td class="text-center">
-                                            <input type="checkbox" 
-                                                   name="equipement[<?php echo $eq_id; ?>][sortie_usage]" 
-                                                   class="form-check-input"
-                                                   <?php echo (!empty($sortie['usage'])) ? 'checked' : ''; ?>
-                                                   <?php echo $isEntreeInventory ? 'disabled' : ''; ?>>
-                                        </td>
-                                        <td class="text-center">
-                                            <input type="checkbox" 
-                                                   name="equipement[<?php echo $eq_id; ?>][sortie_mauvais]" 
-                                                   class="form-check-input"
-                                                   <?php echo (!empty($sortie['mauvais'])) ? 'checked' : ''; ?>
-                                                   <?php echo $isEntreeInventory ? 'disabled' : ''; ?>>
-                                        </td>
-                                        
-                                        <!-- Comments -->
-                                        <td>
-                                            <input type="text" 
-                                                   name="equipement[<?php echo $eq_id; ?>][commentaires]" 
-                                                   class="form-control form-control-sm" 
-                                                   value="<?php echo htmlspecialchars($eq['commentaires'] ?? $eq['observations'] ?? ''); ?>" 
-                                                   placeholder="Commentaires...">
-                                        </td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
+                        <?php foreach ($equipements as $eq): 
+                            $eq_id = $eq['equipement_id'];
+                        ?>
+                            <div class="equipment-row">
+                                <div class="row align-items-center">
+                                    <div class="col-md-4">
+                                        <strong><?php echo htmlspecialchars($eq['nom']); ?></strong>
+                                        <?php if (!empty($eq['description'])): ?>
+                                            <br><small class="text-muted"><?php echo htmlspecialchars($eq['description']); ?></small>
+                                        <?php endif; ?>
+                                        <input type="hidden" name="equipement[<?php echo $eq_id; ?>][nom]" value="<?php echo htmlspecialchars($eq['nom']); ?>">
+                                        <input type="hidden" name="equipement[<?php echo $eq_id; ?>][categorie]" value="<?php echo htmlspecialchars($categorie); ?>">
+                                        <input type="hidden" name="equipement[<?php echo $eq_id; ?>][description]" value="<?php echo htmlspecialchars($eq['description']); ?>">
+                                        <input type="hidden" name="equipement[<?php echo $eq_id; ?>][quantite_attendue]" value="<?php echo $eq['quantite_attendue']; ?>">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label small">Qté attendue</label>
+                                        <input type="number" class="form-control form-control-sm" value="<?php echo $eq['quantite_attendue']; ?>" disabled>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label small">Qté présente</label>
+                                        <input type="number" name="equipement[<?php echo $eq_id; ?>][quantite_presente]" 
+                                               class="form-control form-control-sm" 
+                                               value="<?php echo $eq['quantite_presente'] ?? ''; ?>" min="0">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label small">État</label>
+                                        <select name="equipement[<?php echo $eq_id; ?>][etat]" class="form-select form-select-sm">
+                                            <option value="">-</option>
+                                            <option value="Bon" <?php echo ($eq['etat'] ?? '') === 'Bon' ? 'selected' : ''; ?>>Bon</option>
+                                            <option value="Moyen" <?php echo ($eq['etat'] ?? '') === 'Moyen' ? 'selected' : ''; ?>>Moyen</option>
+                                            <option value="Mauvais" <?php echo ($eq['etat'] ?? '') === 'Mauvais' ? 'selected' : ''; ?>>Mauvais</option>
+                                            <option value="Manquant" <?php echo ($eq['etat'] ?? '') === 'Manquant' ? 'selected' : ''; ?>>Manquant</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label small">Observations</label>
+                                        <input type="text" name="equipement[<?php echo $eq_id; ?>][observations]" 
+                                               class="form-control form-control-sm" 
+                                               value="<?php echo htmlspecialchars($eq['observations'] ?? ''); ?>" 
+                                               placeholder="Notes...">
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
                     </div>
                 </div>
             <?php endforeach; ?>
@@ -564,52 +471,6 @@ foreach ($existing_tenants as &$tenant) {
             <?php endforeach; ?>
         });
         
-        // Function to duplicate Entry data to Exit
-        function duplicateEntryToExit() {
-            if (!confirm('Voulez-vous copier toutes les données d\'entrée vers la sortie ? Cette action remplacera les données de sortie existantes.')) {
-                return;
-            }
-            
-            const rows = document.querySelectorAll('tbody tr');
-            let copiedCount = 0;
-            
-            rows.forEach(row => {
-                // Get Entry inputs
-                const entreeNombre = row.querySelector('input[name*="[entree_nombre]"]');
-                const entreeBon = row.querySelector('input[name*="[entree_bon]"]');
-                const entreeUsage = row.querySelector('input[name*="[entree_usage]"]');
-                const entreeMauvais = row.querySelector('input[name*="[entree_mauvais]"]');
-                
-                // Get Exit inputs
-                const sortieNombre = row.querySelector('input[name*="[sortie_nombre]"]');
-                const sortieBon = row.querySelector('input[name*="[sortie_bon]"]');
-                const sortieUsage = row.querySelector('input[name*="[sortie_usage]"]');
-                const sortieMauvais = row.querySelector('input[name*="[sortie_mauvais]"]');
-                
-                // Copy values if Entry inputs exist and are not empty
-                if (entreeNombre && sortieNombre && !sortieNombre.hasAttribute('readonly')) {
-                    if (entreeNombre.value) {
-                        sortieNombre.value = entreeNombre.value;
-                        copiedCount++;
-                    }
-                }
-                
-                if (entreeBon && sortieBon && !sortieBon.hasAttribute('disabled')) {
-                    sortieBon.checked = entreeBon.checked;
-                }
-                
-                if (entreeUsage && sortieUsage && !sortieUsage.hasAttribute('disabled')) {
-                    sortieUsage.checked = entreeUsage.checked;
-                }
-                
-                if (entreeMauvais && sortieMauvais && !sortieMauvais.hasAttribute('disabled')) {
-                    sortieMauvais.checked = entreeMauvais.checked;
-                }
-            });
-            
-            alert('Données copiées avec succès ! ' + copiedCount + ' éléments ont été dupliqués.');
-        }
-        
         function initTenantSignature(id) {
             const canvas = document.getElementById(`tenantCanvas_${id}`);
             if (!canvas) return;
@@ -729,45 +590,6 @@ foreach ($existing_tenants as &$tenant) {
             // Validate that all tenants have signed and checked "Certifié exact"
             let allValid = true;
             let errors = [];
-            
-            // Validate equipment: if state checkbox is checked, number must be provided
-            const equipmentRows = document.querySelectorAll('tbody tr');
-            equipmentRows.forEach((row, index) => {
-                // Get all inputs in this row
-                const entreeNombre = row.querySelector('input[name*="[entree_nombre]"]');
-                const entreeBon = row.querySelector('input[name*="[entree_bon]"]');
-                const entreeUsage = row.querySelector('input[name*="[entree_usage]"]');
-                const entreeMauvais = row.querySelector('input[name*="[entree_mauvais]"]');
-                
-                const sortieNombre = row.querySelector('input[name*="[sortie_nombre]"]');
-                const sortieBon = row.querySelector('input[name*="[sortie_bon]"]');
-                const sortieUsage = row.querySelector('input[name*="[sortie_usage]"]');
-                const sortieMauvais = row.querySelector('input[name*="[sortie_mauvais]"]');
-                
-                const itemName = row.querySelector('strong')?.textContent || 'Élément ' + (index + 1);
-                
-                // Check Entry: if any checkbox is checked, number is required
-                if (!entreeNombre?.hasAttribute('readonly')) {
-                    const entreeChecked = (entreeBon?.checked || entreeUsage?.checked || entreeMauvais?.checked);
-                    const entreeNombreValue = entreeNombre?.value ? parseInt(entreeNombre.value) : 0;
-                    
-                    if (entreeChecked && entreeNombreValue <= 0) {
-                        errors.push('Entrée - ' + itemName + ': Un nombre doit être renseigné si un état est coché');
-                        allValid = false;
-                    }
-                }
-                
-                // Check Exit: if any checkbox is checked, number is required
-                if (!sortieNombre?.hasAttribute('readonly')) {
-                    const sortieChecked = (sortieBon?.checked || sortieUsage?.checked || sortieMauvais?.checked);
-                    const sortieNombreValue = sortieNombre?.value ? parseInt(sortieNombre.value) : 0;
-                    
-                    if (sortieChecked && sortieNombreValue <= 0) {
-                        errors.push('Sortie - ' + itemName + ': Un nombre doit être renseigné si un état est coché');
-                        allValid = false;
-                    }
-                }
-            });
             
             <?php foreach ($existing_tenants as $tenant): ?>
                 const signature_<?php echo $tenant['id']; ?> = document.getElementById('tenantSignature_<?php echo $tenant['id']; ?>').value;
