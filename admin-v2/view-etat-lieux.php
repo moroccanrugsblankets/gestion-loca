@@ -15,6 +15,7 @@ if ($id < 1) {
 // Get état des lieux details
 $stmt = $pdo->prepare("
     SELECT edl.*, 
+           c.id as contrat_id,
            c.reference_unique as contrat_ref,
            c.date_prise_effet as date_debut, 
            c.date_fin_prevue as date_fin,
@@ -106,7 +107,7 @@ if (!$etat) {
                         <i class="bi bi-arrow-left"></i> Retour
                     </a>
                     <?php if ($etat['type'] === 'sortie'): ?>
-                    <a href="edit-bilan-logement.php?id=<?php echo $id; ?>" class="btn btn-info">
+                    <a href="edit-bilan-logement.php?contrat_id=<?php echo $etat['contrat_id']; ?>" class="btn btn-info">
                         <i class="bi bi-clipboard-check"></i> Bilan du logement
                     </a>
                     <?php endif; ?>

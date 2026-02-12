@@ -1317,7 +1317,7 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                     <i class="bi bi-info-circle"></i> 
                     <strong>Bilan du logement :</strong> 
                     Le bilan détaillé des dégradations et frais est maintenant accessible via le bouton 
-                    <a href="edit-bilan-logement.php?id=<?php echo $id; ?>" class="btn btn-sm btn-info">
+                    <a href="edit-bilan-logement.php?contrat_id=<?php echo $etat['contrat_id']; ?>" class="btn btn-sm btn-info">
                         <i class="bi bi-clipboard-check"></i> Bilan du logement
                     </a> 
                     dans les actions de visualisation.

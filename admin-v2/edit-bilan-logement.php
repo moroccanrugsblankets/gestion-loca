@@ -9,12 +9,12 @@ require_once 'auth.php';
 require_once '../includes/db.php';
 require_once '../includes/functions.php';
 
-// Get état des lieux ID
-$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+// Get contract ID
+$contratId = isset($_GET['contrat_id']) ? (int)$_GET['contrat_id'] : 0;
 
-if ($id < 1) {
-    $_SESSION['error'] = "ID de l'état des lieux invalide";
-    header('Location: etats-lieux.php');
+if ($contratId < 1) {
+    $_SESSION['error'] = "ID de contrat invalide";
+    header('Location: contrats.php');
     exit;
 }
 
@@ -29,24 +29,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $bilanData = json_encode($_POST['bilan_rows']);
         }
         
-        // Update état des lieux bilan data
+        // Get the exit etat_lieux ID for this contract
         $stmt = $pdo->prepare("
-            UPDATE etats_lieux SET
-                bilan_logement_data = ?,
-                bilan_logement_commentaire = ?,
-                updated_at = NOW()
-            WHERE id = ?
+            SELECT id FROM etats_lieux 
+            WHERE contrat_id = ? AND type = 'sortie' 
+            ORDER BY created_at DESC LIMIT 1
         ");
+        $stmt->execute([$contratId]);
+        $etatLieuxId = $stmt->fetchColumn();
         
-        $stmt->execute([
-            $bilanData,
-            $_POST['bilan_logement_commentaire'] ?? '',
-            $id
-        ]);
+        if (!$etatLieuxId) {
+            // Create a new état des lieux de sortie if it doesn't exist
+            $stmt = $pdo->prepare("
+                INSERT INTO etats_lieux (
+                    contrat_id, type, date_etat, locataire_present, 
+                    bilan_logement_data, bilan_logement_commentaire,
+                    created_at, updated_at
+                ) VALUES (?, 'sortie', CURDATE(), TRUE, ?, ?, NOW(), NOW())
+            ");
+            $stmt->execute([
+                $contratId,
+                $bilanData,
+                $_POST['bilan_logement_commentaire'] ?? ''
+            ]);
+            $etatLieuxId = $pdo->lastInsertId();
+        } else {
+            // Update existing état des lieux bilan data
+            $stmt = $pdo->prepare("
+                UPDATE etats_lieux SET
+                    bilan_logement_data = ?,
+                    bilan_logement_commentaire = ?,
+                    updated_at = NOW()
+                WHERE id = ?
+            ");
+            
+            $stmt->execute([
+                $bilanData,
+                $_POST['bilan_logement_commentaire'] ?? '',
+                $etatLieuxId
+            ]);
+        }
         
         $pdo->commit();
         $_SESSION['success'] = "Bilan du logement mis à jour avec succès";
-        header('Location: view-etat-lieux.php?id=' . $id);
+        header('Location: edit-bilan-logement.php?contrat_id=' . $contratId);
         exit;
         
     } catch (Exception $e) {
@@ -57,37 +83,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// Get état des lieux details
+// Get contract details
 $stmt = $pdo->prepare("
-    SELECT edl.*, 
+    SELECT c.*, 
            c.id as contrat_id,
            c.reference_unique as contrat_ref,
+           l.id as logement_id,
            l.adresse as logement_adresse
-    FROM etats_lieux edl
-    LEFT JOIN contrats c ON edl.contrat_id = c.id
+    FROM contrats c
     LEFT JOIN logements l ON c.logement_id = l.id
-    WHERE edl.id = ?
+    WHERE c.id = ?
 ");
-$stmt->execute([$id]);
+$stmt->execute([$contratId]);
+$contrat = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$contrat) {
+    $_SESSION['error'] = "Contrat non trouvé";
+    header('Location: contrats.php');
+    exit;
+}
+
+// Get état des lieux de sortie for this contract
+$stmt = $pdo->prepare("
+    SELECT edl.* 
+    FROM etats_lieux edl
+    WHERE edl.contrat_id = ? AND edl.type = 'sortie'
+    ORDER BY edl.created_at DESC
+    LIMIT 1
+");
+$stmt->execute([$contratId]);
 $etat = $stmt->fetch(PDO::FETCH_ASSOC);
 
-if (!$etat) {
-    $_SESSION['error'] = "État des lieux non trouvé";
-    header('Location: etats-lieux.php');
-    exit;
-}
+// Get inventaires de sortie for this contract
+$stmt = $pdo->prepare("
+    SELECT * FROM inventaires
+    WHERE contrat_id = ? AND type = 'sortie'
+    ORDER BY created_at DESC
+    LIMIT 1
+");
+$stmt->execute([$contratId]);
+$inventaire = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Only allow for sortie type
-if ($etat['type'] !== 'sortie') {
-    $_SESSION['error'] = "Le bilan du logement n'est disponible que pour les états de sortie";
-    header('Location: view-etat-lieux.php?id=' . $id);
-    exit;
-}
-
-// Prepare bilan rows
+// Prepare bilan rows from état des lieux if available
 $bilanRows = [];
-if (!empty($etat['bilan_logement_data'])) {
+if ($etat && !empty($etat['bilan_logement_data'])) {
     $bilanRows = json_decode($etat['bilan_logement_data'], true) ?: [];
+}
+
+// If no rows from état des lieux, try to get data from inventaire
+if (empty($bilanRows) && $inventaire) {
+    // Prepare rows from inventaire data
+    if (!empty($inventaire['equipements_manquants'])) {
+        $manquants = json_decode($inventaire['equipements_manquants'], true) ?: [];
+        foreach ($manquants as $item) {
+            $bilanRows[] = [
+                'poste' => $item['nom'] ?? $item['equipement'] ?? '',
+                'commentaires' => 'Équipement manquant - ' . ($item['observations'] ?? ''),
+                'valeur' => $item['valeur'] ?? '',
+                'montant_du' => $item['valeur'] ?? ''
+            ];
+        }
+    }
+    
+    if (!empty($inventaire['equipements_endommages'])) {
+        $endommages = json_decode($inventaire['equipements_endommages'], true) ?: [];
+        foreach ($endommages as $item) {
+            $bilanRows[] = [
+                'poste' => $item['nom'] ?? $item['equipement'] ?? '',
+                'commentaires' => 'Équipement endommagé - ' . ($item['observations'] ?? ''),
+                'valeur' => $item['valeur'] ?? '',
+                'montant_du' => $item['valeur'] ?? ''
+            ];
+        }
+    }
 }
 
 if (empty($bilanRows)) {
@@ -95,15 +163,15 @@ if (empty($bilanRows)) {
     $bilanRows = [['poste' => '', 'commentaires' => '', 'valeur' => '', 'montant_du' => '']];
 }
 
-// Get bilan_sections_data for import functionality
+// Get bilan_sections_data for import functionality from état des lieux
 $bilanSectionsData = [];
-if (!empty($etat['bilan_sections_data'])) {
+if ($etat && !empty($etat['bilan_sections_data'])) {
     $bilanSectionsData = json_decode($etat['bilan_sections_data'], true) ?: [];
 }
 
-// Get justificatifs
+// Get justificatifs from état des lieux
 $justificatifs = [];
-if (!empty($etat['bilan_logement_justificatifs'])) {
+if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
     $justificatifs = json_decode($etat['bilan_logement_justificatifs'], true) ?: [];
 }
 ?>
@@ -112,7 +180,7 @@ if (!empty($etat['bilan_logement_justificatifs'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bilan du logement - <?php echo htmlspecialchars($etat['reference_unique']); ?></title>
+    <title>Bilan du logement - <?php echo htmlspecialchars($contrat['contrat_ref']); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <?php require_once __DIR__ . '/includes/sidebar-styles.php'; ?>
@@ -172,10 +240,10 @@ if (!empty($etat['bilan_logement_justificatifs'])) {
                         <i class="bi bi-clipboard-check"></i> Bilan du logement
                     </h4>
                     <p class="text-muted mb-0">
-                        État de sortie - <?php echo htmlspecialchars($etat['reference_unique']); ?>
+                        Contrat - <?php echo htmlspecialchars($contrat['contrat_ref']); ?>
                     </p>
                 </div>
-                <a href="view-etat-lieux.php?id=<?php echo $id; ?>" class="btn btn-outline-secondary">
+                <a href="contrat-detail.php?id=<?php echo $contratId; ?>" class="btn btn-outline-secondary">
                     <i class="bi bi-arrow-left"></i> Retour
                 </a>
             </div>
@@ -367,7 +435,7 @@ if (!empty($etat['bilan_logement_justificatifs'])) {
                     <label class="form-label">Commentaire général</label>
                     <textarea name="bilan_logement_commentaire" class="form-control" rows="4" 
                               placeholder="Observations générales concernant le bilan du logement"><?php 
-                        if (!empty($etat['bilan_logement_commentaire'])) {
+                        if ($etat && !empty($etat['bilan_logement_commentaire'])) {
                             echo htmlspecialchars($etat['bilan_logement_commentaire']);
                         } else {
                             echo 'Les dégradations listées ci-dessus ont été constatées lors de l\'état de sortie. Les montants indiqués correspondent aux frais de remise en état.';
@@ -377,7 +445,7 @@ if (!empty($etat['bilan_logement_justificatifs'])) {
             </div>
 
             <div class="d-flex justify-content-between mb-5">
-                <a href="view-etat-lieux.php?id=<?php echo $id; ?>" class="btn btn-secondary">
+                <a href="contrat-detail.php?id=<?php echo $contratId; ?>" class="btn btn-secondary">
                     <i class="bi bi-arrow-left"></i> Annuler
                 </a>
                 <button type="submit" class="btn btn-primary btn-lg">
@@ -389,7 +457,8 @@ if (!empty($etat['bilan_logement_justificatifs'])) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const ETAT_LIEUX_ID = <?php echo $id; ?>;
+        const CONTRAT_ID = <?php echo $contratId; ?>;
+        const ETAT_LIEUX_ID = <?php echo $etat ? $etat['id'] : 0; ?>;
         let bilanRowCounter = <?php echo count($bilanRows); ?>;
         const MAX_BILAN_ROWS = 20;
         const BILAN_MAX_FILE_SIZE = <?php echo $config['BILAN_MAX_FILE_SIZE']; ?>;
@@ -652,6 +721,13 @@ if (!empty($etat['bilan_logement_justificatifs'])) {
         function uploadBilanJustificatif(input) {
             const file = input.files[0];
             if (!file) return;
+            
+            // Check if etat_lieux exists
+            if (ETAT_LIEUX_ID === 0) {
+                alert('Veuillez d\'abord enregistrer le bilan avant de télécharger des fichiers.');
+                input.value = '';
+                return;
+            }
             
             // Validate file size
             if (file.size > BILAN_MAX_FILE_SIZE) {
