@@ -38,6 +38,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 error_log("Starting transaction...");
                 $pdo->beginTransaction();
                 
+                // Fetch all tenants associated with this etat des lieux
+                $stmt = $pdo->prepare("SELECT * FROM etat_lieux_locataires WHERE etat_lieux_id = ? ORDER BY ordre ASC");
+                $stmt->execute([$id]);
+                $tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                if (empty($tenants)) {
+                    error_log("ERROR: No tenants found for etat des lieux ID: $id");
+                    throw new Exception("Aucun locataire trouvé pour cet état des lieux");
+                }
+                
                 // Generate PDF
                 error_log("Generating PDF for contrat_id: " . $etat['contrat_id'] . ", type: " . $etat['type']);
                 $pdfPath = generateEtatDesLieuxPDF($etat['contrat_id'], $etat['type']);
@@ -54,25 +64,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $typeLabel = $etat['type'] === 'entree' ? "d'entrée" : "de sortie";
                 $templateId = $etat['type'] === 'entree' ? 'etat_lieux_entree_envoye' : 'etat_lieux_sortie_envoye';
                 
-                $emailVariables = [
-                    'locataire_nom' => $etat['locataire_nom_complet'],
-                    'adresse' => $etat['adresse'],
-                    'date_etat' => date('d/m/Y', strtotime($etat['date_etat'])),
-                    'reference' => $etat['reference_unique'] ?? 'N/A',
-                    'type' => $typeLabel
-                ];
+                // Send email to each tenant with admin in BCC
+                $emailsSent = [];
+                $emailsFailed = [];
                 
-                error_log("Sending email with template: $templateId");
-                
-                // Send email to tenant using template with admin in Cc
-                $emailSent = sendTemplatedEmail($templateId, $etat['locataire_email'], $emailVariables, $pdfPath, true);
-                
-                if (!$emailSent) {
-                    error_log("ERROR: Failed to send email to tenant using template");
-                    throw new Exception("Erreur lors de l'envoi de l'email au locataire");
+                foreach ($tenants as $tenant) {
+                    if (empty($tenant['email'])) {
+                        error_log("WARNING: Tenant ID " . $tenant['id'] . " has no email address");
+                        continue;
+                    }
+                    
+                    $emailVariables = [
+                        'locataire_nom' => $tenant['prenom'] . ' ' . $tenant['nom'],
+                        'adresse' => $etat['adresse'],
+                        'date_etat' => date('d/m/Y', strtotime($etat['date_etat'])),
+                        'reference' => $etat['reference_unique'] ?? 'N/A',
+                        'type' => $typeLabel
+                    ];
+                    
+                    error_log("Sending email to tenant: " . $tenant['email'] . " with template: $templateId");
+                    
+                    // Send email to tenant using template with admin in BCC (copy)
+                    $emailSent = sendTemplatedEmail($templateId, $tenant['email'], $emailVariables, $pdfPath, false, true);
+                    
+                    if ($emailSent) {
+                        $emailsSent[] = $tenant['email'];
+                        error_log("Email sent successfully to tenant: " . $tenant['email']);
+                    } else {
+                        $emailsFailed[] = $tenant['email'];
+                        error_log("ERROR: Failed to send email to tenant: " . $tenant['email']);
+                    }
                 }
                 
-                error_log("Email sent successfully to tenant with admin in Cc!");
+                if (empty($emailsSent)) {
+                    error_log("ERROR: Failed to send emails to any tenants");
+                    throw new Exception("Erreur lors de l'envoi des emails aux locataires");
+                }
+                
+                if (!empty($emailsFailed)) {
+                    error_log("WARNING: Some emails failed to send: " . implode(', ', $emailsFailed));
+                }
+                
+                error_log("Emails sent successfully to: " . implode(', ', $emailsSent) . " with admin in BCC!");
                 
                 // Update status
                 error_log("Updating database status...");
@@ -96,7 +129,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 }
                 
                 error_log("=== FINALIZE ETAT LIEUX - SUCCESS ===");
-                $_SESSION['success'] = "État des lieux finalisé et envoyé avec succès à " . htmlspecialchars($etat['locataire_email']);
+                $successMsg = "État des lieux finalisé et envoyé avec succès à " . implode(', ', $emailsSent);
+                if (!empty($emailsFailed)) {
+                    $successMsg .= " (Échec pour : " . implode(', ', $emailsFailed) . ")";
+                }
+                $_SESSION['success'] = $successMsg;
                 header('Location: etats-lieux.php');
                 exit;
             }

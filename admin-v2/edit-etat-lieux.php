@@ -2188,6 +2188,33 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                     saveTenantSignature(<?php echo $tenant['id']; ?>);
                 <?php endforeach; ?>
             <?php endif; ?>
+            
+            // Validate that all tenants have signed and checked "Certifié exact"
+            <?php if (!empty($existing_tenants)): ?>
+                let allValid = true;
+                let errors = [];
+                
+                <?php foreach ($existing_tenants as $tenant): ?>
+                    const signature_<?php echo $tenant['id']; ?> = document.getElementById('tenantSignature_<?php echo $tenant['id']; ?>').value;
+                    const certifie_<?php echo $tenant['id']; ?> = document.getElementById('certifie_exact_<?php echo $tenant['id']; ?>').checked;
+                    
+                    if (!signature_<?php echo $tenant['id']; ?> || signature_<?php echo $tenant['id']; ?>.trim() === '') {
+                        errors.push('La signature de <?php echo htmlspecialchars($tenant['prenom'] . ' ' . $tenant['nom']); ?> est obligatoire');
+                        allValid = false;
+                    }
+                    
+                    if (!certifie_<?php echo $tenant['id']; ?>) {
+                        errors.push('La case "Certifié exact" doit être cochée pour <?php echo htmlspecialchars($tenant['prenom'] . ' ' . $tenant['nom']); ?>');
+                        allValid = false;
+                    }
+                <?php endforeach; ?>
+                
+                if (!allValid) {
+                    e.preventDefault();
+                    alert('Erreurs de validation:\n\n' + errors.join('\n'));
+                    return false;
+                }
+            <?php endif; ?>
         });
     </script>
 </body>
