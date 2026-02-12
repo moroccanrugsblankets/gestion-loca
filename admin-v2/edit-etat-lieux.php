@@ -1291,7 +1291,8 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                                 <input class="form-check-input" type="checkbox" 
                                        name="tenants[<?php echo $tenant['id']; ?>][certifie_exact]" 
                                        id="certifie_exact_<?php echo $tenant['id']; ?>" 
-                                       value="1">
+                                       value="1"
+                                       <?php echo !empty($tenant['certifie_exact']) ? 'checked' : ''; ?>>
                                 <label class="form-check-label" for="certifie_exact_<?php echo $tenant['id']; ?>">
                                     <strong>Certifié exact</strong>
                                 </label>

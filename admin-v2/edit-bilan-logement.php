@@ -479,9 +479,16 @@ if (!empty($etat['bilan_logement_justificatifs'])) {
                     }
                 });
                 
-                // If row has any value, all fields must be filled
+                // If row has any value, only Poste and Commentaires fields are required
+                // Valeur and Montant dû fields are optional (empty values are treated as 0 in calculations)
                 if (rowHasValue) {
                     fields.forEach(field => {
+                        // Skip validation for valeur and montant_du fields (they are optional)
+                        if (field.classList.contains('bilan-valeur') || field.classList.contains('bilan-montant-du')) {
+                            field.classList.remove('is-invalid', 'is-valid');
+                            return;
+                        }
+                        
                         if (field.value.trim() === '') {
                             field.classList.add('is-invalid');
                             field.classList.remove('is-valid');
