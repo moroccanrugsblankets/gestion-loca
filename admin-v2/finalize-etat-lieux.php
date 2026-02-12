@@ -271,20 +271,16 @@ try {
         // Fallback to old single tenant data from etats_lieux table
         $fullName = trim($etat['locataire_nom_complet'] ?? '');
         $nameParts = explode(' ', $fullName, 2);
-        // Handle single name case (e.g., 'Madonna')
-        if (count($nameParts) === 1) {
-            $tenants = [[
-                'prenom' => $fullName,
-                'nom' => '',
-                'email' => $etat['locataire_email']
-            ]];
-        } else {
-            $tenants = [[
-                'prenom' => $nameParts[0],
-                'nom' => $nameParts[1],
-                'email' => $etat['locataire_email']
-            ]];
-        }
+        
+        // Handle single name case (e.g., 'Madonna') or standard first+last name
+        $prenom = $nameParts[0] ?? '';
+        $nom = $nameParts[1] ?? '';
+        
+        $tenants = [[
+            'prenom' => $prenom,
+            'nom' => $nom,
+            'email' => $etat['locataire_email']
+        ]];
     }
     
 } catch (PDOException $e) {
@@ -402,7 +398,11 @@ try {
                 <strong>Le PDF sera envoyé automatiquement à:</strong>
                 <ul class="mb-0 mt-2">
                     <?php foreach ($tenants as $tenant): ?>
-                    <li>Locataire: <?php echo htmlspecialchars(trim($tenant['prenom'] . ' ' . $tenant['nom'])); ?> - <?php echo htmlspecialchars($tenant['email']); ?></li>
+                    <?php 
+                        // Build tenant name, handling empty nom field (e.g., single-name case)
+                        $tenantName = trim($tenant['prenom'] . (!empty($tenant['nom']) ? ' ' . $tenant['nom'] : ''));
+                    ?>
+                    <li>Locataire: <?php echo htmlspecialchars($tenantName); ?> - <?php echo htmlspecialchars($tenant['email']); ?></li>
                     <?php endforeach; ?>
                 </ul>
             </div>
