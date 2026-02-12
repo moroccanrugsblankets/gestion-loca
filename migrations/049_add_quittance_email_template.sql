@@ -60,7 +60,7 @@ INSERT INTO email_templates (
         <p>Veuillez trouver ci-joint votre quittance de loyer au format PDF.</p>
         
         <p style="color: #6c757d; font-size: 14px; margin-top: 30px;">
-            Pour toute question concernant votre quittance, n''hésite pas à nous contacter.
+            Pour toute question concernant votre quittance, n''hésitez pas à nous contacter.
         </p>
         
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;">

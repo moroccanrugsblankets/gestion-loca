@@ -238,10 +238,14 @@ foreach ($existingQuittances as $q) {
                 <div class="row">
                     <?php
                     // Generate options for the last 24 months and next 3 months
+                    // Constants for month range
+                    define('MONTHS_LOOKBACK', 24);
+                    define('MONTHS_LOOKAHEAD', -3);
+                    
                     $currentYear = date('Y');
                     $currentMonth = date('n');
                     
-                    for ($i = 24; $i >= -3; $i--) {
+                    for ($i = MONTHS_LOOKBACK; $i >= MONTHS_LOOKAHEAD; $i--) {
                         $timestamp = strtotime("-$i months");
                         $year = date('Y', $timestamp);
                         $month = date('n', $timestamp);
@@ -313,7 +317,7 @@ foreach ($existingQuittances as $q) {
                     <a href="contrat-detail.php?id=<?php echo $contractId; ?>" class="btn btn-secondary">
                         <i class="bi bi-x-circle"></i> Annuler
                     </a>
-                    <button type="submit" class="btn btn-primary btn-lg" onclick="return confirm('Êtes-vous sûr de vouloir générer et envoyer les quittances pour les mois sélectionnés ?');">
+                    <button type="submit" class="btn btn-primary btn-lg" id="submitQuittancesBtn">
                         <i class="bi bi-send"></i> Générer et Envoyer les Quittances
                     </button>
                 </div>
@@ -372,6 +376,14 @@ foreach ($existingQuittances as $q) {
         function deselectAll() {
             document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
         }
+        
+        // Handle form submission confirmation
+        document.getElementById('submitQuittancesBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            if(confirm('Êtes-vous sûr de vouloir générer et envoyer les quittances pour les mois sélectionnés ?')) {
+                this.form.submit();
+            }
+        });
     </script>
 </body>
 </html>

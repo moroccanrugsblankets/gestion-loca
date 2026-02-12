@@ -211,7 +211,7 @@ if (empty($currentTemplate)) {
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-save"></i> Enregistrer le Template
                     </button>
-                    <button type="button" class="btn btn-warning" onclick="if(confirm('Êtes-vous sûr de vouloir réinitialiser le template au modèle par défaut ?')) { document.getElementById('resetForm').submit(); }">
+                    <button type="button" class="btn btn-warning" id="resetTemplateBtn">
                         <i class="bi bi-arrow-counterclockwise"></i> Réinitialiser au modèle par défaut
                     </button>
                 </div>
@@ -295,5 +295,13 @@ if (empty($currentTemplate)) {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Handle reset template button
+        document.getElementById('resetTemplateBtn').addEventListener('click', function() {
+            if(confirm('Êtes-vous sûr de vouloir réinitialiser le template au modèle par défaut ?')) {
+                document.getElementById('resetForm').submit();
+            }
+        });
+    </script>
 </body>
 </html>

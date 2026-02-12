@@ -25,7 +25,12 @@ function generateQuittancePDF($contratId, $mois, $annee) {
     $mois = (int)$mois;
     $annee = (int)$annee;
     
-    if ($contratId <= 0 || $mois < 1 || $mois > 12 || $annee < 2000) {
+    // Constants for validation
+    define('MIN_VALID_YEAR', 2000);
+    define('MAX_VALID_MONTH', 12);
+    define('MIN_VALID_MONTH', 1);
+    
+    if ($contratId <= 0 || $mois < MIN_VALID_MONTH || $mois > MAX_VALID_MONTH || $annee < MIN_VALID_YEAR) {
         error_log("Erreur: Paramètres invalides - Contrat: $contratId, Mois: $mois, Année: $annee");
         return false;
     }
