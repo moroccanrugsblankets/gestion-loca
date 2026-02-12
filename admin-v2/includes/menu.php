@@ -32,6 +32,9 @@ $page_to_menu_map = [
     'envoyer-signature.php' => 'contrats.php',
     'supprimer-contrat.php' => 'contrats.php',
     'contrat-configuration.php' => 'contrats.php',
+    'contrat-detail.php' => 'contrats.php',
+    'generer-quittances.php' => 'contrats.php',
+    'quittance-configuration.php' => 'contrats.php',
     'create-etat-lieux.php' => 'etats-lieux.php',
     'etat-lieux-configuration.php' => 'etats-lieux.php',
     'edit-etat-lieux.php' => 'etats-lieux.php',
@@ -95,7 +98,12 @@ $active_menu = $page_to_menu_map[$current_page] ?? $current_page;
             <ul class="nav flex-column ms-3">
                 <li class="nav-item">
                     <a class="nav-link <?php echo $current_page === 'contrat-configuration.php' ? 'active' : ''; ?>" href="contrat-configuration.php" style="padding: 8px 20px; font-size: 0.9rem;">
-                        <i class="bi bi-gear"></i> Configuration
+                        <i class="bi bi-gear"></i> Configuration Contrats
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?php echo $current_page === 'quittance-configuration.php' ? 'active' : ''; ?>" href="quittance-configuration.php" style="padding: 8px 20px; font-size: 0.9rem;">
+                        <i class="bi bi-receipt"></i> Configuration Quittances
                     </a>
                 </li>
             </ul>

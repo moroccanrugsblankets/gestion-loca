@@ -348,6 +348,11 @@ if ($contrat['validated_by']) {
                             <i class="bi bi-download"></i> Télécharger PDF
                         </a>
                     <?php endif; ?>
+                    <?php if ($contrat['statut'] === 'valide'): ?>
+                        <a href="generer-quittances.php?id=<?php echo $contrat['id']; ?>" class="btn btn-primary">
+                            <i class="bi bi-receipt"></i> Générer une quittance
+                        </a>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
