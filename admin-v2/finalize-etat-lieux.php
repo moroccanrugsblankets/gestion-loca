@@ -103,11 +103,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     throw new Exception("Erreur lors de l'envoi des emails aux locataires");
                 }
                 
+                // Sanitize email arrays for logging to prevent log injection
+                $sanitizedEmailsSent = array_map(function($email) {
+                    return str_replace(["\r", "\n"], '', $email);
+                }, $emailsSent);
+                
                 if (!empty($emailsFailed)) {
-                    error_log("WARNING: Some emails failed to send: " . implode(', ', $emailsFailed));
+                    $sanitizedEmailsFailed = array_map(function($email) {
+                        return str_replace(["\r", "\n"], '', $email);
+                    }, $emailsFailed);
+                    error_log("WARNING: Some emails failed to send: " . implode(', ', $sanitizedEmailsFailed));
                 }
                 
-                error_log("Emails sent successfully to: " . implode(', ', $emailsSent) . " with admin in BCC!");
+                error_log("Emails sent successfully to: " . implode(', ', $sanitizedEmailsSent) . " with admin in BCC!");
                 
                 // Update status
                 error_log("Updating database status...");
