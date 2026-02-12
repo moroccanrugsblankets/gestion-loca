@@ -864,6 +864,23 @@ if ($contrat['validated_by']) {
                 <strong>Information:</strong> L'inventaire utilise désormais un formulaire standardisé conforme au cahier des charges. 
                 Tous les logements utilisent le même modèle d'inventaire.
             </div>
+            
+            <!-- Bilan du Logement Section -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0"><i class="bi bi-clipboard-check"></i> Bilan du Logement</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-3">Le bilan du logement centralise les dégradations constatées lors de la sortie et les données des inventaires.</p>
+                            <a href="edit-bilan-logement.php?contrat_id=<?php echo $contractId; ?>" class="btn btn-warning w-100">
+                                <i class="bi bi-clipboard-check"></i> Accéder au Bilan du Logement
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <?php endif; ?>
 
