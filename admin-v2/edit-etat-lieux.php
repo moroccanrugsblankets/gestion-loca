@@ -43,9 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 salle_eau_wc = ?,
                 etat_general = ?,
                 observations = ?,
-                etat_general_conforme = ?,
-                degradations_constatees = ?,
-                degradations_details = ?,
                 lieu_signature = ?,
                 statut = ?,
                 updated_at = NOW()
@@ -69,9 +66,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $_POST['salle_eau_wc'] ?? '',
             $_POST['etat_general'] ?? '',
             $_POST['observations'] ?? '',
-            $_POST['etat_general_conforme'] ?? 'non_applicable',
-            isset($_POST['degradations_constatees']) ? 1 : 0,
-            $_POST['degradations_details'] ?? '',
             $_POST['lieu_signature'] ?? '',
             $_POST['statut'] ?? 'brouillon',
             $id
@@ -1080,74 +1074,6 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                         <div id="preview_salle_eau" class="mt-2"></div>
                     </div>
                 </div>
-                
-                <!-- État général -->
-                <div class="section-subtitle">État général du logement</div>
-                <div class="row">
-                    <div class="col-md-12 mb-3">
-                        <?php if ($isSortie && $etat_entree && !empty($etat_entree['etat_general'])): ?>
-                            <!-- Entry state reference -->
-                            <div class="entry-reference mb-2">
-                                <span class="icon-green">🟢</span>
-                                <span class="entry-reference-label">État d'entrée :</span>
-                                <div class="entry-reference-value mt-1" style="white-space: pre-line; font-size: 0.9rem;">
-                                    <?php echo htmlspecialchars($etat_entree['etat_general']); ?>
-                                </div>
-                            </div>
-                        <?php endif; ?>
-                        
-                        <label class="form-label required-field <?php echo $isSortie ? 'exit-input-label' : ''; ?>">
-                            <?php if ($isSortie): ?><span class="icon-red">🔴</span><?php endif; ?>
-                            Observations<?php echo $isSortie ? ' de sortie' : ''; ?>
-                        </label>
-                        <textarea name="etat_general" class="form-control" rows="3" required><?php 
-                            echo htmlspecialchars($etat['etat_general'] ?? ($isEntree 
-                                ? "Le logement a fait l'objet d'une remise en état générale avant l'entrée dans les lieux.\nIl est propre, entretenu et ne présente aucune dégradation apparente au jour de l'état des lieux.\nAucune anomalie constatée."
-                                : "")); // Empty for exit state - user must fill
-                        ?></textarea>
-                    </div>
-                    
-                    <?php if ($isSortie): ?>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label required-field">Conformité à l'état d'entrée</label>
-                        <select name="etat_general_conforme" class="form-select" required>
-                            <option value="">-- Sélectionner --</option>
-                            <option value="non_applicable" <?php echo ($etat['etat_general_conforme'] ?? '') === 'non_applicable' ? 'selected' : ''; ?>>Non applicable</option>
-                            <option value="conforme" <?php echo ($etat['etat_general_conforme'] ?? '') === 'conforme' ? 'selected' : ''; ?>>Conforme à l'état des lieux d'entrée</option>
-                            <option value="non_conforme" <?php echo ($etat['etat_general_conforme'] ?? '') === 'non_conforme' ? 'selected' : ''; ?>>Non conforme à l'état des lieux d'entrée</option>
-                        </select>
-                    </div>
-                    
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Dégradations imputables au(x) locataire(s)</label>
-                        <div class="form-check mt-2">
-                            <input class="form-check-input" type="checkbox" name="degradations_constatees" 
-                                   id="degradations_constatees" value="1" 
-                                   <?php echo !empty($etat['degradations_constatees']) ? 'checked' : ''; ?>
-                                   onchange="toggleDegradationsDetails()">
-                            <label class="form-check-label" for="degradations_constatees">
-                                Dégradations constatées, pouvant donner lieu à retenue sur le dépôt de garantie
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-12 mb-3" id="degradations_details_container" style="display: <?php echo !empty($etat['degradations_constatees']) ? 'block' : 'none'; ?>;">
-                        <label class="form-label">Détails des dégradations</label>
-                        <textarea name="degradations_details" class="form-control" rows="3"><?php echo htmlspecialchars($etat['degradations_details'] ?? ''); ?></textarea>
-                    </div>
-                    <?php endif; ?>
-                    
-                    <div class="col-md-12 mb-3">
-                        <label class="form-label">Photos de l'état général <em>(optionnel)</em></label>
-                        <div class="photo-upload-zone" onclick="document.getElementById('photo_etat_general').click()">
-                            <i class="bi bi-camera" style="font-size: 2rem; color: #6c757d;"></i>
-                            <p class="mb-0 mt-2">Cliquer pour ajouter des photos</p>
-                            <input type="file" id="photo_etat_general" name="photo_etat_general[]" 
-                                   accept="image/*" multiple style="display: none;" onchange="previewPhoto(this, 'preview_general')">
-                        </div>
-                        <div id="preview_general" class="mt-2"></div>
-                    </div>
-                </div>
             </div>
 
             <?php
@@ -1379,8 +1305,7 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                 'photo_cles': 'cles',
                 'photo_piece_principale': 'piece_principale',
                 'photo_cuisine': 'cuisine',
-                'photo_salle_eau': 'salle_eau',
-                'photo_etat_general': 'autre'
+                'photo_salle_eau': 'salle_eau'
             };
             
             const category = categoryMap[input.id];
@@ -1597,13 +1522,6 @@ if ($isSortie && !empty($etat['contrat_id'])) {
             const boite = parseInt(document.querySelector('[name="cles_boite_lettres"]').value) || 0;
             const autre = parseInt(document.querySelector('[name="cles_autre"]').value) || 0;
             document.getElementById('cles_total').value = appart + boite + autre;
-        }
-        
-        // Toggle degradations details
-        function toggleDegradationsDetails() {
-            const checkbox = document.getElementById('degradations_constatees');
-            const container = document.getElementById('degradations_details_container');
-            container.style.display = checkbox.checked ? 'block' : 'none';
         }
         
         function initTenantSignature(id) {
