@@ -23,13 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     try {
         $pdo->beginTransaction();
         
-        // Prepare bilan_logement_data if provided
-        $bilanData = null;
-        if (isset($_POST['bilan_rows']) && is_array($_POST['bilan_rows'])) {
-            $bilanData = json_encode($_POST['bilan_rows']);
-        }
-        
         // Update état des lieux (no more manual signature fields for bailleur/locataire)
+        // Note: bilan_logement_data and bilan_logement_commentaire are now managed in edit-bilan-logement.php
         $stmt = $pdo->prepare("
             UPDATE etats_lieux SET
                 date_etat = ?,
@@ -51,8 +46,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 etat_general_conforme = ?,
                 degradations_constatees = ?,
                 degradations_details = ?,
-                bilan_logement_data = ?,
-                bilan_logement_commentaire = ?,
                 lieu_signature = ?,
                 statut = ?,
                 updated_at = NOW()
@@ -79,8 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $_POST['etat_general_conforme'] ?? 'non_applicable',
             isset($_POST['degradations_constatees']) ? 1 : 0,
             $_POST['degradations_details'] ?? '',
-            $bilanData,
-            $_POST['bilan_logement_commentaire'] ?? '',
             $_POST['lieu_signature'] ?? '',
             $_POST['statut'] ?? 'brouillon',
             $id
@@ -1139,197 +1130,20 @@ if ($isSortie && !empty($etat['contrat_id'])) {
             ?>
 
             <?php if ($isSortie): ?>
-            <!-- Bilan du logement (Sortie uniquement) -->
+            <!-- Bilan du logement externalisé - accessible via bouton "Bilan du logement" -->
             <div class="form-card">
-                <div class="section-title">
-                    <i class="bi bi-clipboard-check"></i> Bilan du logement
-                </div>
-                
                 <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i> Cette section permet de détailler les dégradations constatées, les frais associés et les justificatifs.
-                </div>
-                
-                <!-- Dynamic Table for Degradations -->
-                <div class="mb-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="mb-0">Tableau des dégradations</h6>
-                        <button type="button" class="btn btn-sm btn-primary" onclick="addBilanRow()" id="addBilanRowBtn">
-                            <i class="bi bi-plus-circle"></i> Ajouter une ligne
-                        </button>
-                    </div>
-                    
-                    <div class="table-responsive">
-                        <table class="table table-bordered" id="bilanTable">
-                            <thead class="table-light">
-                                <tr>
-                                    <th width="25%">Poste / Équipement</th>
-                                    <th width="35%">Commentaires</th>
-                                    <th width="15%">Valeur (€)</th>
-                                    <th width="15%">Montant dû (€)</th>
-                                    <th width="10%">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="bilanTableBody">
-                                <?php
-                                // Populate $bilanRows for sortie type
-                                if (!empty($etat['bilan_logement_data'])) {
-                                    $bilanRows = json_decode($etat['bilan_logement_data'], true) ?: [];
-                                }
-                                
-                                if (empty($bilanRows)) {
-                                    // Add one empty row by default
-                                    $bilanRows = [['poste' => '', 'commentaires' => '', 'valeur' => '', 'montant_du' => '']];
-                                }
-                                
-                                foreach ($bilanRows as $index => $row):
-                                ?>
-                                <tr class="bilan-row">
-                                    <td>
-                                        <input type="text" name="bilan_rows[<?php echo $index; ?>][poste]" 
-                                               class="form-control bilan-field" 
-                                               value="<?php echo htmlspecialchars($row['poste'] ?? ''); ?>" 
-                                               placeholder="Ex: Peinture salon">
-                                    </td>
-                                    <td>
-                                        <input type="text" name="bilan_rows[<?php echo $index; ?>][commentaires]" 
-                                               class="form-control bilan-field" 
-                                               value="<?php echo htmlspecialchars($row['commentaires'] ?? ''); ?>" 
-                                               placeholder="Description détaillée">
-                                    </td>
-                                    <td>
-                                        <input type="number" name="bilan_rows[<?php echo $index; ?>][valeur]" 
-                                               class="form-control bilan-field bilan-valeur" 
-                                               value="<?php echo htmlspecialchars($row['valeur'] ?? ''); ?>" 
-                                               step="0.01" min="0" 
-                                               placeholder="0.00"
-                                               onchange="calculateBilanTotals()">
-                                    </td>
-                                    <td>
-                                        <input type="number" name="bilan_rows[<?php echo $index; ?>][montant_du]" 
-                                               class="form-control bilan-field bilan-montant-du" 
-                                               value="<?php echo htmlspecialchars($row['montant_du'] ?? ''); ?>" 
-                                               step="0.01" min="0" 
-                                               placeholder="0.00"
-                                               onchange="calculateBilanTotals()">
-                                    </td>
-                                    <td class="text-center">
-                                        <button type="button" class="btn btn-sm btn-danger" onclick="removeBilanRow(this)" title="Supprimer la ligne">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                            <tfoot class="table-light">
-                                <tr>
-                                    <td colspan="2" class="text-end"><strong>Total des frais constatés:</strong></td>
-                                    <td><strong id="totalValeur">0.00 €</strong></td>
-                                    <td><strong id="totalMontantDu">0.00 €</strong></td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                    
-                    <div class="alert alert-warning mt-2">
-                        <i class="bi bi-exclamation-triangle"></i> Maximum 20 lignes. Les champs vides sont validés avec une bordure rouge.
-                    </div>
-                </div>
-                
-                <!-- Justificatifs Upload -->
-                <div class="mb-4">
-                    <h6 class="mb-3">Justificatifs (Factures, devis, photos)</h6>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Télécharger des fichiers (PDF, JPG, PNG - max 20 MB par fichier)</label>
-                        <input type="file" class="form-control" id="bilanJustificatifInput" 
-                               accept=".pdf,.jpg,.jpeg,.png" 
-                               onchange="uploadBilanJustificatif(this)">
-                        <small class="text-muted">Formats acceptés: PDF, JPG, PNG. Taille maximale: 20 MB par fichier.</small>
-                    </div>
-                    
-                    <div id="bilanJustificatifsContainer">
-                        <?php
-                        $justificatifs = [];
-                        if (!empty($etat['bilan_logement_justificatifs'])) {
-                            $justificatifs = json_decode($etat['bilan_logement_justificatifs'], true) ?: [];
-                        }
-                        
-                        if (!empty($justificatifs)):
-                        ?>
-                        <div class="alert alert-success">
-                            <i class="bi bi-file-earmark-check"></i> <strong><?php echo count($justificatifs); ?> fichier(s) téléchargé(s)</strong>
-                        </div>
-                        
-                        <div class="row" id="justificatifsFilesList">
-                            <?php foreach ($justificatifs as $file): ?>
-                            <div class="col-md-4 mb-3" id="justificatif_<?php echo htmlspecialchars($file['id']); ?>">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-start">
-                                            <div class="flex-grow-1">
-                                                <h6 class="card-title mb-1">
-                                                    <?php if ($file['type'] === 'application/pdf'): ?>
-                                                    <i class="bi bi-file-pdf text-danger"></i>
-                                                    <?php else: ?>
-                                                    <i class="bi bi-file-image text-primary"></i>
-                                                    <?php endif; ?>
-                                                    <?php echo htmlspecialchars($file['original_name']); ?>
-                                                </h6>
-                                                <p class="card-text small text-muted mb-1">
-                                                    <?php echo number_format($file['size'] / 1024, 2); ?> KB
-                                                </p>
-                                                <p class="card-text small text-muted">
-                                                    <?php echo htmlspecialchars($file['uploaded_at']); ?>
-                                                </p>
-                                            </div>
-                                            <button type="button" class="btn btn-sm btn-danger ms-2" 
-                                                    onclick="deleteBilanJustificatif('<?php echo htmlspecialchars($file['id']); ?>')" 
-                                                    title="Supprimer">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </div>
-                                        <?php if ($file['type'] !== 'application/pdf'): ?>
-                                        <a href="/<?php echo htmlspecialchars($file['path']); ?>" target="_blank">
-                                            <img src="/<?php echo htmlspecialchars($file['path']); ?>" 
-                                                 class="img-thumbnail mt-2" 
-                                                 style="max-height: 150px; width: auto;">
-                                        </a>
-                                        <?php else: ?>
-                                        <a href="/<?php echo htmlspecialchars($file['path']); ?>" 
-                                           target="_blank" 
-                                           class="btn btn-sm btn-outline-primary mt-2">
-                                            <i class="bi bi-eye"></i> Voir le PDF
-                                        </a>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            </div>
-                            <?php endforeach; ?>
-                        </div>
-                        <?php else: ?>
-                        <div class="alert alert-secondary" id="noJustificatifsMessage">
-                            <i class="bi bi-info-circle"></i> Aucun justificatif téléchargé pour le moment.
-                        </div>
-                        <div class="row" id="justificatifsFilesList" style="display: none;"></div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                
-                <!-- General Comment -->
-                <div class="mb-3">
-                    <label class="form-label">Commentaire général</label>
-                    <textarea name="bilan_logement_commentaire" class="form-control" rows="4" 
-                              placeholder="Observations générales concernant le bilan du logement"><?php 
-                        if (!empty($etat['bilan_logement_commentaire'])) {
-                            echo htmlspecialchars($etat['bilan_logement_commentaire']);
-                        } else {
-                            echo 'Les dégradations listées ci-dessus ont été constatées lors de l\'état de sortie. Les montants indiqués correspondent aux frais de remise en état.';
-                        }
-                    ?></textarea>
+                    <i class="bi bi-info-circle"></i> 
+                    <strong>Bilan du logement :</strong> 
+                    Le bilan détaillé des dégradations et frais est maintenant accessible via le bouton 
+                    <a href="edit-bilan-logement.php?id=<?php echo $id; ?>" class="btn btn-sm btn-info">
+                        <i class="bi bi-clipboard-check"></i> Bilan du logement
+                    </a> 
+                    dans les actions de visualisation.
                 </div>
             </div>
             <?php endif; ?>
+
 
             <!-- <?php echo $isSortie ? '7' : '5'; ?>. Signatures -->
             <div class="form-card">
