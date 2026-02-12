@@ -312,6 +312,9 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                                         <a href="download-etat-lieux.php?id=<?php echo $etat['id']; ?>" class="btn btn-sm btn-outline-info" title="Voir PDF" target="_blank">
                                             <i class="bi bi-eye"></i>
                                         </a>
+                                        <a href="edit-bilan-logement.php?id=<?php echo $etat['id']; ?>" class="btn btn-sm btn-outline-success" title="Bilan du logement">
+                                            <i class="bi bi-clipboard-check"></i>
+                                        </a>
                                         <?php if (isset($comparable_contracts[$etat['contrat_id']])): ?>
                                         <a href="compare-etat-lieux.php?contrat_id=<?php echo $etat['contrat_id']; ?>" class="btn btn-sm btn-outline-warning" title="Comparer entrée/sortie">
                                             <i class="bi bi-arrows-angle-contract"></i>

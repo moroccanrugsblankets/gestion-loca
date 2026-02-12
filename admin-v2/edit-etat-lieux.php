@@ -103,8 +103,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $pdo->commit();
         $_SESSION['success'] = "État des lieux enregistré avec succès";
         
-        // If finalizing, redirect to view page
+        // If finalizing, validate signatures before proceeding
         if (isset($_POST['finalize']) && $_POST['finalize'] === '1') {
+            $validationErrors = [];
+            
+            // Check all tenants have signatures and certifié_exact
+            if (isset($_POST['tenants']) && is_array($_POST['tenants'])) {
+                foreach ($_POST['tenants'] as $tenantId => $tenantInfo) {
+                    $tenantName = htmlspecialchars(($tenantInfo['prenom'] ?? '') . ' ' . ($tenantInfo['nom'] ?? ''));
+                    
+                    // Check signature is not empty
+                    if (empty($tenantInfo['signature'])) {
+                        $validationErrors[] = "Signature manquante pour " . trim($tenantName);
+                    }
+                    
+                    // Check certifié_exact is checked
+                    if (!isset($tenantInfo['certifie_exact'])) {
+                        $validationErrors[] = "La case \"Certifié exact\" doit être cochée pour " . trim($tenantName);
+                    }
+                }
+            }
+            
+            // Block finalization if errors found
+            if (!empty($validationErrors)) {
+                $_SESSION['error'] = "Impossible de finaliser l'état des lieux :\n" . implode("\n", $validationErrors);
+                // Redirect back to edit form instead of finalizing
+                header("Location: edit-etat-lieux.php?id=$id");
+                exit;
+            }
+            
             header("Location: finalize-etat-lieux.php?id=$id");
             exit;
         }
