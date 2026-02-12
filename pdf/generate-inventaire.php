@@ -463,100 +463,133 @@ function buildEquipementsHtml($inventaire, $type) {
         return '<p><em>Aucun équipement enregistré.</em></p>';
     }
     
-    // Group by category
+    // Group by category and subcategory
     $equipements_by_category = [];
     foreach ($equipements_data as $eq) {
         $cat = $eq['categorie'] ?? 'Autre';
+        $subcat = $eq['sous_categorie'] ?? null;
+        
         if (!isset($equipements_by_category[$cat])) {
-            $equipements_by_category[$cat] = [];
+            $equipements_by_category[$cat] = [
+                '_items' => [],
+                '_subcategories' => []
+            ];
         }
-        $equipements_by_category[$cat][] = $eq;
+        
+        if ($subcat) {
+            // Has subcategory (like État des pièces)
+            if (!isset($equipements_by_category[$cat]['_subcategories'][$subcat])) {
+                $equipements_by_category[$cat]['_subcategories'][$subcat] = [];
+            }
+            $equipements_by_category[$cat]['_subcategories'][$subcat][] = $eq;
+        } else {
+            // Direct category items
+            $equipements_by_category[$cat]['_items'][] = $eq;
+        }
     }
     
     $html = '';
     
-    foreach ($equipements_by_category as $categorie => $equipements) {
-        $html .= '<h3>' . htmlspecialchars($categorie) . '</h3>';
+    foreach ($equipements_by_category as $categorie => $categoryData) {
+        $html .= '<h3 style="margin-top: 20px; margin-bottom: 10px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px;">' . htmlspecialchars($categorie) . '</h3>';
         
-        // Enhanced Entry/Exit format table
-        $html .= '<table cellspacing="0" cellpadding="4" style="width: 100%; border-collapse: collapse;">';
-        $html .= '<thead><tr style="background-color: #3498db; color: white;">';
-        $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 8px; width: 25%;">Élément</th>';
-        $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #2196F3;">Entrée</th>';
-        $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #4CAF50;">Sortie</th>';
-        $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 8px; width: 20%;">Commentaires</th>';
-        $html .= '</tr>';
-        $html .= '<tr style="background-color: #ecf0f1;">';
-        $html .= '<th style="border: 1px solid #ddd; padding: 4px; text-align: center; width: 5%;">Nombre</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 4px; text-align: center; width: 5%;">Bon</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 4px; text-align: center; width: 5%;">D\'usage</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 4px; text-align: center; width: 5%;">Mauvais</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 4px; text-align: center; width: 5%;">Nombre</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 4px; text-align: center; width: 5%;">Bon</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 4px; text-align: center; width: 5%;">D\'usage</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 4px; text-align: center; width: 5%;">Mauvais</th>';
-        $html .= '</tr></thead><tbody>';
-        
-        foreach ($equipements as $eq) {
-            $nom = htmlspecialchars($eq['nom'] ?? '');
-            
-            // Get Entry data
-            $entree = $eq['entree'] ?? [];
-            $entreeNombre = getQuantityValue($entree['nombre'] ?? null);
-            $entreeBon = getCheckboxSymbol($entree['bon'] ?? false);
-            $entreeUsage = getCheckboxSymbol($entree['usage'] ?? false);
-            $entreeMauvais = getCheckboxSymbol($entree['mauvais'] ?? false);
-            
-            // Get Exit data
-            $sortie = $eq['sortie'] ?? [];
-            $sortieNombre = getQuantityValue($sortie['nombre'] ?? null);
-            $sortieBon = getCheckboxSymbol($sortie['bon'] ?? false);
-            $sortieUsage = getCheckboxSymbol($sortie['usage'] ?? false);
-            $sortieMauvais = getCheckboxSymbol($sortie['mauvais'] ?? false);
-            
-            // Comments
-            $commentaires = htmlspecialchars($eq['commentaires'] ?? $eq['observations'] ?? '-');
-            
-            // Fallback to legacy format if new format not present
-            if (empty($entree) && empty($sortie)) {
-                // Legacy format
-                $quantite = isset($eq['quantite_presente']) ? (int)$eq['quantite_presente'] : (int)($eq['quantite_attendue'] ?? 0);
-                $etat = $eq['etat'] ?? '';
-                
-                // Map old state to new checkbox format
-                if ($type === 'entree') {
-                    $entreeNombre = $quantite;
-                    if ($etat === 'Bon') $entreeBon = getCheckboxSymbol(true);
-                    elseif ($etat === 'Moyen') $entreeUsage = getCheckboxSymbol(true);
-                    elseif ($etat === 'Mauvais') $entreeMauvais = getCheckboxSymbol(true);
-                } else {
-                    $sortieNombre = $quantite;
-                    if ($etat === 'Bon') $sortieBon = getCheckboxSymbol(true);
-                    elseif ($etat === 'Moyen') $sortieUsage = getCheckboxSymbol(true);
-                    elseif ($etat === 'Mauvais') $sortieMauvais = getCheckboxSymbol(true);
-                }
+        // Render subcategories first (if any)
+        if (!empty($categoryData['_subcategories'])) {
+            foreach ($categoryData['_subcategories'] as $subcategorie => $equipements) {
+                $html .= '<h4 style="margin-top: 15px; margin-bottom: 8px; color: #34495e; font-size: 14px; font-weight: 600;">' . htmlspecialchars($subcategorie) . '</h4>';
+                $html .= renderEquipementsTable($equipements, $type);
             }
-            
-            $html .= '<tr>';
-            $html .= '<td style="border: 1px solid #ddd; padding: 6px;">' . $nom . '</td>';
-            // Entry columns
-            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center;">' . $entreeNombre . '</td>';
-            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 16px;">' . $entreeBon . '</td>';
-            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 16px;">' . $entreeUsage . '</td>';
-            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 16px;">' . $entreeMauvais . '</td>';
-            // Exit columns
-            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center;">' . $sortieNombre . '</td>';
-            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 16px;">' . $sortieBon . '</td>';
-            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 16px;">' . $sortieUsage . '</td>';
-            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 16px;">' . $sortieMauvais . '</td>';
-            // Comments
-            $html .= '<td style="border: 1px solid #ddd; padding: 6px;">' . $commentaires . '</td>';
-            $html .= '</tr>';
         }
         
-        $html .= '</tbody></table>';
+        // Render direct items (if any)
+        if (!empty($categoryData['_items'])) {
+            $html .= renderEquipementsTable($categoryData['_items'], $type);
+        }
     }
     
+    return $html;
+}
+
+/**
+ * Render equipment table for PDF
+ */
+function renderEquipementsTable($equipements, $type) {
+    $html = '<table cellspacing="0" cellpadding="4" style="width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px;">';
+    $html .= '<thead><tr style="background-color: #3498db; color: white;">';
+    $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 6px; width: 25%; font-size: 9px;">Élément</th>';
+    $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 6px; text-align: center; background-color: #2196F3; font-size: 9px;">Entrée</th>';
+    $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 6px; text-align: center; background-color: #4CAF50; font-size: 9px;">Sortie</th>';
+    $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 6px; width: 20%; font-size: 9px;">Commentaires</th>';
+    $html .= '</tr>';
+    $html .= '<tr style="background-color: #ecf0f1;">';
+    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Nombre</th>';
+    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Bon</th>';
+    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">D\'usage</th>';
+    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Mauvais</th>';
+    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Nombre</th>';
+    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Bon</th>';
+    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">D\'usage</th>';
+    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Mauvais</th>';
+    $html .= '</tr></thead><tbody>';
+    
+    foreach ($equipements as $eq) {
+        $nom = htmlspecialchars($eq['nom'] ?? '');
+        
+        // Get Entry data
+        $entree = $eq['entree'] ?? [];
+        $entreeNombre = getQuantityValue($entree['nombre'] ?? null);
+        $entreeBon = getCheckboxSymbol($entree['bon'] ?? false);
+        $entreeUsage = getCheckboxSymbol($entree['usage'] ?? false);
+        $entreeMauvais = getCheckboxSymbol($entree['mauvais'] ?? false);
+        
+        // Get Exit data
+        $sortie = $eq['sortie'] ?? [];
+        $sortieNombre = getQuantityValue($sortie['nombre'] ?? null);
+        $sortieBon = getCheckboxSymbol($sortie['bon'] ?? false);
+        $sortieUsage = getCheckboxSymbol($sortie['usage'] ?? false);
+        $sortieMauvais = getCheckboxSymbol($sortie['mauvais'] ?? false);
+        
+        // Comments
+        $commentaires = htmlspecialchars($eq['commentaires'] ?? $eq['observations'] ?? '-');
+        
+        // Fallback to legacy format if new format not present
+        if (empty($entree) && empty($sortie)) {
+            // Legacy format
+            $quantite = isset($eq['quantite_presente']) ? (int)$eq['quantite_presente'] : (int)($eq['quantite_attendue'] ?? 0);
+            $etat = $eq['etat'] ?? '';
+            
+            // Map old state to new checkbox format
+            if ($type === 'entree') {
+                $entreeNombre = $quantite;
+                if ($etat === 'Bon') $entreeBon = getCheckboxSymbol(true);
+                elseif ($etat === 'Moyen') $entreeUsage = getCheckboxSymbol(true);
+                elseif ($etat === 'Mauvais') $entreeMauvais = getCheckboxSymbol(true);
+            } else {
+                $sortieNombre = $quantite;
+                if ($etat === 'Bon') $sortieBon = getCheckboxSymbol(true);
+                elseif ($etat === 'Moyen') $sortieUsage = getCheckboxSymbol(true);
+                elseif ($etat === 'Mauvais') $sortieMauvais = getCheckboxSymbol(true);
+            }
+        }
+        
+        $html .= '<tr>';
+        $html .= '<td style="border: 1px solid #ddd; padding: 4px; font-size: 9px;">' . $nom . '</td>';
+        // Entry columns
+        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 9px;">' . $entreeNombre . '</td>';
+        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px;">' . $entreeBon . '</td>';
+        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px;">' . $entreeUsage . '</td>';
+        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px;">' . $entreeMauvais . '</td>';
+        // Exit columns
+        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 9px;">' . $sortieNombre . '</td>';
+        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px;">' . $sortieBon . '</td>';
+        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px;">' . $sortieUsage . '</td>';
+        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px;">' . $sortieMauvais . '</td>';
+        // Comments
+        $html .= '<td style="border: 1px solid #ddd; padding: 4px; font-size: 9px;">' . $commentaires . '</td>';
+        $html .= '</tr>';
+    }
+    
+    $html .= '</tbody></table>';
     return $html;
 }
 
