@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $reference = 'INV-' . strtoupper($type[0]) . '-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
     
     // Use standardized inventory items (not logement-specific equipment)
-    $equipements_data = generateStandardInventoryData($type);
+    $equipements_data = generateStandardInventoryData();
     
     // Insert new inventaire
     try {
