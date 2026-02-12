@@ -439,6 +439,17 @@ function getCheckboxSymbol($checked) {
 }
 
 /**
+ * Get quantity value for PDF display
+ * Ensures empty values stay empty instead of showing 0
+ * 
+ * @param mixed $value The quantity value from data
+ * @return string|int Empty string if not set, integer if set
+ */
+function getQuantityValue($value) {
+    return isset($value) && $value !== '' ? (int)$value : '';
+}
+
+/**
  * Construire le HTML pour la liste des équipements avec format Entry/Exit
  * 
  * @param array $inventaire Données de l'inventaire
@@ -491,14 +502,14 @@ function buildEquipementsHtml($inventaire, $type) {
             
             // Get Entry data
             $entree = $eq['entree'] ?? [];
-            $entreeNombre = isset($entree['nombre']) && $entree['nombre'] !== '' ? (int)$entree['nombre'] : '';
+            $entreeNombre = getQuantityValue($entree['nombre'] ?? null);
             $entreeBon = getCheckboxSymbol($entree['bon'] ?? false);
             $entreeUsage = getCheckboxSymbol($entree['usage'] ?? false);
             $entreeMauvais = getCheckboxSymbol($entree['mauvais'] ?? false);
             
             // Get Exit data
             $sortie = $eq['sortie'] ?? [];
-            $sortieNombre = isset($sortie['nombre']) && $sortie['nombre'] !== '' ? (int)$sortie['nombre'] : '';
+            $sortieNombre = getQuantityValue($sortie['nombre'] ?? null);
             $sortieBon = getCheckboxSymbol($sortie['bon'] ?? false);
             $sortieUsage = getCheckboxSymbol($sortie['usage'] ?? false);
             $sortieMauvais = getCheckboxSymbol($sortie['mauvais'] ?? false);

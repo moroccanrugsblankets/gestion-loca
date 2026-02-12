@@ -51,13 +51,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'quantite_attendue' => (int)($eq_data['quantite_attendue'] ?? 0),
                     // Enhanced Entry/Exit format
                     'entree' => [
-                        'nombre' => isset($eq_data['entree_nombre']) ? (int)$eq_data['entree_nombre'] : null,
+                        'nombre' => isset($eq_data['entree_nombre']) && $eq_data['entree_nombre'] !== '' ? (int)$eq_data['entree_nombre'] : null,
                         'bon' => isset($eq_data['entree_bon']),
                         'usage' => isset($eq_data['entree_usage']),
                         'mauvais' => isset($eq_data['entree_mauvais']),
                     ],
                     'sortie' => [
-                        'nombre' => isset($eq_data['sortie_nombre']) ? (int)$eq_data['sortie_nombre'] : null,
+                        'nombre' => isset($eq_data['sortie_nombre']) && $eq_data['sortie_nombre'] !== '' ? (int)$eq_data['sortie_nombre'] : null,
                         'bon' => isset($eq_data['sortie_bon']),
                         'usage' => isset($eq_data['sortie_usage']),
                         'mauvais' => isset($eq_data['sortie_mauvais']),
