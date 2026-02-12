@@ -98,16 +98,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if ($etat['type'] === 'sortie' && isset($_POST['bilan']) && is_array($_POST['bilan'])) {
             $bilanSections = [];
             foreach ($_POST['bilan'] as $section => $rows) {
-                $bilanSections[$section] = [];
+                $sectionData = [];
                 // Handle the rowId level - $rows is an associative array with rowId as keys
                 foreach ($rows as $rowId => $rowData) {
                     // $rowData should contain 'equipement' and 'commentaire' keys
                     if (is_array($rowData) && (!empty($rowData['equipement']) || !empty($rowData['commentaire']))) {
-                        $bilanSections[$section][] = [
+                        $sectionData[] = [
                             'equipement' => trim($rowData['equipement'] ?? ''),
                             'commentaire' => trim($rowData['commentaire'] ?? '')
                         ];
                     }
+                }
+                // Only add section if it has at least one row with data
+                if (!empty($sectionData)) {
+                    $bilanSections[$section] = $sectionData;
                 }
             }
             $bilanSectionsData = json_encode($bilanSections);
