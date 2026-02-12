@@ -105,6 +105,11 @@ if (!$etat) {
                     <a href="etats-lieux.php" class="btn btn-outline-secondary">
                         <i class="bi bi-arrow-left"></i> Retour
                     </a>
+                    <?php if ($etat['type'] === 'sortie'): ?>
+                    <a href="edit-bilan-logement.php?id=<?php echo $id; ?>" class="btn btn-info">
+                        <i class="bi bi-clipboard-check"></i> Bilan du logement
+                    </a>
+                    <?php endif; ?>
                     <a href="edit-etat-lieux.php?id=<?php echo $id; ?>" class="btn btn-warning">
                         <i class="bi bi-pencil"></i> Modifier
                     </a>
