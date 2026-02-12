@@ -87,6 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     error_log("Sending email to tenant: " . $safeEmail . " with template: $templateId");
                     
                     // Send email to tenant using template with admin in BCC (copy)
+                    // Parameters: templateId, toEmail, variables, attachment, isAdminEmail=false, addAdminBcc=true
                     $emailSent = sendTemplatedEmail($templateId, $tenant['email'], $emailVariables, $pdfPath, false, true);
                     
                     if ($emailSent) {
