@@ -25,6 +25,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         
         // Update état des lieux (no more manual signature fields for bailleur/locataire)
         // Note: bilan_logement_data and bilan_logement_commentaire are now managed in edit-bilan-logement.php
+        // Prepare bilan sections data if sortie and bilan data is submitted
+        $bilanSectionsData = null;
+        if ($etat['type'] === 'sortie' && isset($_POST['bilan']) && is_array($_POST['bilan'])) {
+            $bilanSections = [];
+            foreach ($_POST['bilan'] as $section => $rows) {
+                $bilanSections[$section] = [];
+                foreach ($rows as $rowData) {
+                    if (!empty($rowData['equipement']) || !empty($rowData['commentaire'])) {
+                        $bilanSections[$section][] = [
+                            'equipement' => trim($rowData['equipement'] ?? ''),
+                            'commentaire' => trim($rowData['commentaire'] ?? '')
+                        ];
+                    }
+                }
+            }
+            $bilanSectionsData = json_encode($bilanSections);
+        }
+        
         $stmt = $pdo->prepare("
             UPDATE etats_lieux SET
                 date_etat = ?,
@@ -43,6 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 salle_eau_wc = ?,
                 etat_general = ?,
                 observations = ?,
+                bilan_sections_data = ?,
                 lieu_signature = ?,
                 statut = ?,
                 updated_at = NOW()
@@ -66,6 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $_POST['salle_eau_wc'] ?? '',
             $_POST['etat_general'] ?? '',
             $_POST['observations'] ?? '',
+            $bilanSectionsData,
             $_POST['lieu_signature'] ?? '',
             $_POST['statut'] ?? 'brouillon',
             $id
@@ -441,6 +461,83 @@ if ($isSortie && !empty($etat['contrat_id'])) {
         .bilan-row:hover {
             background-color: #f8f9fa;
         }
+        
+        /* Section-specific bilan styles */
+        .bilan-section {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        .bilan-section-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+        }
+        .bilan-section-title i {
+            margin-right: 8px;
+            color: #6c757d;
+        }
+        .bilan-table {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .bilan-table th {
+            background-color: #e9ecef;
+            padding: 8px 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #495057;
+            border: 1px solid #dee2e6;
+        }
+        .bilan-table td {
+            padding: 5px 8px;
+            border: 1px solid #dee2e6;
+        }
+        .bilan-table input,
+        .bilan-table textarea {
+            width: 100%;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 0.9rem;
+        }
+        .bilan-table textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        .btn-add-bilan-row {
+            background-color: #198754;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-add-bilan-row:hover {
+            background-color: #157347;
+        }
+        .btn-remove-bilan-row {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+        .btn-remove-bilan-row:hover {
+            background-color: #bb2d3b;
+        }
     </style>
 </head>
 <body>
@@ -717,6 +814,31 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                 </div>
             </div>
 
+            <?php if ($isSortie): ?>
+            <!-- Bilan du logement - Section Compteurs -->
+            <div class="bilan-section">
+                <div class="bilan-section-title">
+                    <i class="bi bi-clipboard-check"></i>
+                    Bilan du logement - Relevé des compteurs
+                </div>
+                <table class="bilan-table" id="bilan_compteurs">
+                    <thead>
+                        <tr>
+                            <th style="width: 35%;">Équipement</th>
+                            <th style="width: 55%;">Commentaire</th>
+                            <th style="width: 10%;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="bilan_compteurs_body">
+                        <!-- Rows will be added dynamically -->
+                    </tbody>
+                </table>
+                <button type="button" class="btn-add-bilan-row" onclick="addBilanRow('compteurs')">
+                    <i class="bi bi-plus-circle"></i> Ajouter une ligne
+                </button>
+            </div>
+            <?php endif; ?>
+
             <!-- 3. Remise/Restitution des clés -->
             <div class="form-card">
                 <div class="section-title">
@@ -832,6 +954,31 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                 </div>
             </div>
 
+            <?php if ($isSortie): ?>
+            <!-- Bilan du logement - Section Clés -->
+            <div class="bilan-section">
+                <div class="bilan-section-title">
+                    <i class="bi bi-clipboard-check"></i>
+                    Bilan du logement - Restitution des clés
+                </div>
+                <table class="bilan-table" id="bilan_cles">
+                    <thead>
+                        <tr>
+                            <th style="width: 35%;">Équipement</th>
+                            <th style="width: 55%;">Commentaire</th>
+                            <th style="width: 10%;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="bilan_cles_body">
+                        <!-- Rows will be added dynamically -->
+                    </tbody>
+                </table>
+                <button type="button" class="btn-add-bilan-row" onclick="addBilanRow('cles')">
+                    <i class="bi bi-plus-circle"></i> Ajouter une ligne
+                </button>
+            </div>
+            <?php endif; ?>
+
             <!-- 4. Description du logement -->
             <div class="form-card">
                 <div class="section-title">
@@ -917,6 +1064,31 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                     </div>
                 </div>
                 
+                <?php if ($isSortie): ?>
+                <!-- Bilan du logement - Pièce principale -->
+                <div class="bilan-section">
+                    <div class="bilan-section-title">
+                        <i class="bi bi-clipboard-check"></i>
+                        Bilan du logement - Pièce principale
+                    </div>
+                    <table class="bilan-table" id="bilan_piece_principale">
+                        <thead>
+                            <tr>
+                                <th style="width: 35%;">Équipement</th>
+                                <th style="width: 55%;">Commentaire</th>
+                                <th style="width: 10%;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="bilan_piece_principale_body">
+                            <!-- Rows will be added dynamically -->
+                        </tbody>
+                    </table>
+                    <button type="button" class="btn-add-bilan-row" onclick="addBilanRow('piece_principale')">
+                        <i class="bi bi-plus-circle"></i> Ajouter une ligne
+                    </button>
+                </div>
+                <?php endif; ?>
+                
                 <!-- Coin cuisine -->
                 <div class="section-subtitle">Coin cuisine</div>
                 <div class="row">
@@ -995,6 +1167,31 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                         <div id="preview_cuisine" class="mt-2"></div>
                     </div>
                 </div>
+                
+                <?php if ($isSortie): ?>
+                <!-- Bilan du logement - Coin cuisine -->
+                <div class="bilan-section">
+                    <div class="bilan-section-title">
+                        <i class="bi bi-clipboard-check"></i>
+                        Bilan du logement - Coin cuisine
+                    </div>
+                    <table class="bilan-table" id="bilan_cuisine">
+                        <thead>
+                            <tr>
+                                <th style="width: 35%;">Équipement</th>
+                                <th style="width: 55%;">Commentaire</th>
+                                <th style="width: 10%;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="bilan_cuisine_body">
+                            <!-- Rows will be added dynamically -->
+                        </tbody>
+                    </table>
+                    <button type="button" class="btn-add-bilan-row" onclick="addBilanRow('cuisine')">
+                        <i class="bi bi-plus-circle"></i> Ajouter une ligne
+                    </button>
+                </div>
+                <?php endif; ?>
                 
                 <!-- Salle d'eau et WC -->
                 <div class="section-subtitle">Salle d'eau et WC</div>
@@ -1075,6 +1272,31 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                     </div>
                 </div>
             </div>
+
+            <?php if ($isSortie): ?>
+            <!-- Bilan du logement - Salle d'eau et WC -->
+            <div class="bilan-section">
+                <div class="bilan-section-title">
+                    <i class="bi bi-clipboard-check"></i>
+                    Bilan du logement - Salle d'eau et WC
+                </div>
+                <table class="bilan-table" id="bilan_salle_eau">
+                    <thead>
+                        <tr>
+                            <th style="width: 35%;">Équipement</th>
+                            <th style="width: 55%;">Commentaire</th>
+                            <th style="width: 10%;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="bilan_salle_eau_body">
+                        <!-- Rows will be added dynamically -->
+                    </tbody>
+                </table>
+                <button type="button" class="btn-add-bilan-row" onclick="addBilanRow('salle_eau')">
+                    <i class="bi bi-plus-circle"></i> Ajouter une ligne
+                </button>
+            </div>
+            <?php endif; ?>
 
             <?php
             // Initialize $bilanRows for use in JavaScript (line 1927)
@@ -1524,6 +1746,102 @@ if ($isSortie && !empty($etat['contrat_id'])) {
             document.getElementById('cles_total').value = appart + boite + autre;
         }
         
+        // ========================================
+        // Bilan du logement Functions
+        // ========================================
+        
+        // Counter for unique row IDs
+        let bilanRowCounter = 0;
+        
+        // Initialize bilan data storage
+        const bilanData = {
+            compteurs: [],
+            cles: [],
+            piece_principale: [],
+            cuisine: [],
+            salle_eau: []
+        };
+        
+        // Add a new row to a bilan section
+        function addBilanRow(section) {
+            const tbody = document.getElementById(`bilan_${section}_body`);
+            const rowId = `${section}_${bilanRowCounter++}`;
+            
+            const row = document.createElement('tr');
+            row.id = `row_${rowId}`;
+            row.innerHTML = `
+                <td>
+                    <input type="text" 
+                           name="bilan[${section}][${rowId}][equipement]" 
+                           class="form-control form-control-sm"
+                           placeholder="Ex: Robinetterie, peinture murale..."
+                           data-section="${section}"
+                           data-row-id="${rowId}"
+                           data-field="equipement">
+                </td>
+                <td>
+                    <textarea name="bilan[${section}][${rowId}][commentaire]" 
+                              class="form-control form-control-sm"
+                              rows="2"
+                              placeholder="Décrivez l'état ou le problème constaté..."
+                              data-section="${section}"
+                              data-row-id="${rowId}"
+                              data-field="commentaire"></textarea>
+                </td>
+                <td style="text-align: center; vertical-align: middle;">
+                    <button type="button" class="btn-remove-bilan-row" onclick="removeBilanRow('${rowId}', '${section}')">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            `;
+            
+            tbody.appendChild(row);
+        }
+        
+        // Remove a row from a bilan section
+        function removeBilanRow(rowId, section) {
+            const row = document.getElementById(`row_${rowId}`);
+            if (row) {
+                row.remove();
+            }
+        }
+        
+        // Load existing bilan data (if editing)
+        function loadBilanData() {
+            <?php if ($isSortie && !empty($etat['bilan_sections_data'])): ?>
+                try {
+                    const savedData = <?php echo json_encode(json_decode($etat['bilan_sections_data'], true) ?? []); ?>;
+                    
+                    // Load data for each section
+                    Object.keys(savedData).forEach(section => {
+                        if (Array.isArray(savedData[section])) {
+                            savedData[section].forEach(item => {
+                                addBilanRow(section);
+                                const rowId = `${section}_${bilanRowCounter - 1}`;
+                                
+                                // Set values
+                                const equipInput = document.querySelector(`[name="bilan[${section}][${rowId}][equipement]"]`);
+                                const commentInput = document.querySelector(`[name="bilan[${section}][${rowId}][commentaire]"]`);
+                                
+                                if (equipInput && item.equipement) {
+                                    equipInput.value = item.equipement;
+                                }
+                                if (commentInput && item.commentaire) {
+                                    commentInput.value = item.commentaire;
+                                }
+                            });
+                        }
+                    });
+                } catch (e) {
+                    console.error('Error loading bilan data:', e);
+                }
+            <?php endif; ?>
+        }
+        
+        // ========================================
+        // End Bilan du logement Functions
+        // ========================================
+        
         function initTenantSignature(id) {
             const canvas = document.getElementById(`tenantCanvas_${id}`);
             if (!canvas) return;
@@ -1636,6 +1954,11 @@ if ($isSortie && !empty($etat['contrat_id'])) {
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             calculateTotalKeys();
+            
+            // Load bilan data if editing
+            <?php if ($isSortie): ?>
+                loadBilanData();
+            <?php endif; ?>
             
             // Initialize tenant signatures based on actual IDs in the page
             <?php if (!empty($existing_tenants)): ?>
