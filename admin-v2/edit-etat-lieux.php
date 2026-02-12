@@ -110,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             // Check all tenants have signatures and certifié_exact
             if (isset($_POST['tenants']) && is_array($_POST['tenants'])) {
                 foreach ($_POST['tenants'] as $tenantId => $tenantInfo) {
-                    $tenantName = trim(htmlspecialchars(($tenantInfo['prenom'] ?? '') . ' ' . ($tenantInfo['nom'] ?? '')));
+                    $tenantName = htmlspecialchars(trim(($tenantInfo['prenom'] ?? '') . ' ' . ($tenantInfo['nom'] ?? '')), ENT_QUOTES, 'UTF-8');
                     
                     // Check signature is not empty
                     if (empty($tenantInfo['signature'])) {
