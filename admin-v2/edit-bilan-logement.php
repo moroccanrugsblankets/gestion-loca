@@ -95,6 +95,12 @@ if (empty($bilanRows)) {
     $bilanRows = [['poste' => '', 'commentaires' => '', 'valeur' => '', 'montant_du' => '']];
 }
 
+// Get bilan_sections_data for import functionality
+$bilanSectionsData = [];
+if (!empty($etat['bilan_sections_data'])) {
+    $bilanSectionsData = json_decode($etat['bilan_sections_data'], true) ?: [];
+}
+
 // Get justificatifs
 $justificatifs = [];
 if (!empty($etat['bilan_logement_justificatifs'])) {
@@ -205,9 +211,16 @@ if (!empty($etat['bilan_logement_justificatifs'])) {
                 <div class="mb-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="mb-0">Tableau des dégradations</h6>
-                        <button type="button" class="btn btn-sm btn-primary" onclick="addBilanRow()" id="addBilanRowBtn">
-                            <i class="bi bi-plus-circle"></i> Ajouter une ligne
-                        </button>
+                        <div>
+                            <?php if (!empty($bilanSectionsData)): ?>
+                            <button type="button" class="btn btn-sm btn-success me-2" onclick="importFromExitInventory()" id="importBilanBtn">
+                                <i class="bi bi-download"></i> Importer depuis l'état de sortie
+                            </button>
+                            <?php endif; ?>
+                            <button type="button" class="btn btn-sm btn-primary" onclick="addBilanRow()" id="addBilanRowBtn">
+                                <i class="bi bi-plus-circle"></i> Ajouter une ligne
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="table-responsive">
@@ -381,6 +394,118 @@ if (!empty($etat['bilan_logement_justificatifs'])) {
         const MAX_BILAN_ROWS = 20;
         const BILAN_MAX_FILE_SIZE = <?php echo $config['BILAN_MAX_FILE_SIZE']; ?>;
         const BILAN_ALLOWED_TYPES = <?php echo json_encode($config['BILAN_ALLOWED_TYPES']); ?>;
+        const BILAN_SECTIONS_DATA = <?php echo json_encode($bilanSectionsData); ?>;
+        
+        // Import data from exit inventory (état de sortie)
+        function importFromExitInventory() {
+            if (!BILAN_SECTIONS_DATA || Object.keys(BILAN_SECTIONS_DATA).length === 0) {
+                alert('Aucune donnée à importer depuis l\'état de sortie');
+                return;
+            }
+            
+            // Confirm before importing
+            if (!confirm('Voulez-vous importer les équipements et commentaires depuis l\'état de sortie?\n\nCela ajoutera de nouvelles lignes au tableau.')) {
+                return;
+            }
+            
+            let importedCount = 0;
+            
+            // Loop through each section (compteurs, cles, piece_principale, cuisine, salle_eau)
+            Object.keys(BILAN_SECTIONS_DATA).forEach(sectionName => {
+                const sectionData = BILAN_SECTIONS_DATA[sectionName];
+                
+                if (Array.isArray(sectionData)) {
+                    sectionData.forEach(item => {
+                        // Only import if equipment or comment has data
+                        if (item.equipement || item.commentaire) {
+                            // Check if we haven't reached the max rows
+                            if (document.querySelectorAll('.bilan-row').length < MAX_BILAN_ROWS) {
+                                addBilanRowWithData(item.equipement, item.commentaire);
+                                importedCount++;
+                            }
+                        }
+                    });
+                }
+            });
+            
+            if (importedCount > 0) {
+                alert(`${importedCount} ligne(s) importée(s) avec succès`);
+                // Disable the import button after use
+                const importBtn = document.getElementById('importBilanBtn');
+                if (importBtn) {
+                    importBtn.disabled = true;
+                    importBtn.innerHTML = '<i class="bi bi-check-circle"></i> Données importées';
+                }
+            } else {
+                alert('Aucune donnée valide à importer');
+            }
+        }
+        
+        // Add a new row with data
+        function addBilanRowWithData(equipement, commentaire) {
+            if (document.querySelectorAll('.bilan-row').length >= MAX_BILAN_ROWS) {
+                return;
+            }
+            
+            const tbody = document.getElementById('bilanTableBody');
+            const newRow = document.createElement('tr');
+            newRow.className = 'bilan-row';
+            newRow.innerHTML = `
+                <td>
+                    <input type="text" name="bilan_rows[${bilanRowCounter}][poste]" 
+                           class="form-control bilan-field" 
+                           value="${escapeHtml(equipement || '')}"
+                           placeholder="Ex: Peinture salon">
+                </td>
+                <td>
+                    <input type="text" name="bilan_rows[${bilanRowCounter}][commentaires]" 
+                           class="form-control bilan-field" 
+                           value="${escapeHtml(commentaire || '')}"
+                           placeholder="Description détaillée">
+                </td>
+                <td>
+                    <input type="number" name="bilan_rows[${bilanRowCounter}][valeur]" 
+                           class="form-control bilan-field bilan-valeur" 
+                           step="0.01" min="0" 
+                           placeholder="0.00"
+                           onchange="calculateBilanTotals()">
+                </td>
+                <td>
+                    <input type="number" name="bilan_rows[${bilanRowCounter}][montant_du]" 
+                           class="form-control bilan-field bilan-montant-du" 
+                           step="0.01" min="0" 
+                           placeholder="0.00"
+                           onchange="calculateBilanTotals()">
+                </td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removeBilanRow(this)" title="Supprimer la ligne">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(newRow);
+            bilanRowCounter++;
+            
+            // Add input listeners for validation
+            newRow.querySelectorAll('.bilan-field').forEach(field => {
+                field.addEventListener('input', validateBilanFields);
+            });
+            
+            updateBilanRowButton();
+            validateBilanFields();
+        }
+        
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
         
         // Add a new row to the bilan table
         function addBilanRow() {
