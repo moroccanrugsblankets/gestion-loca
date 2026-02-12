@@ -491,14 +491,14 @@ function buildEquipementsHtml($inventaire, $type) {
             
             // Get Entry data
             $entree = $eq['entree'] ?? [];
-            $entreeNombre = isset($entree['nombre']) ? (int)$entree['nombre'] : '';
+            $entreeNombre = isset($entree['nombre']) && $entree['nombre'] !== '' ? (int)$entree['nombre'] : '';
             $entreeBon = getCheckboxSymbol($entree['bon'] ?? false);
             $entreeUsage = getCheckboxSymbol($entree['usage'] ?? false);
             $entreeMauvais = getCheckboxSymbol($entree['mauvais'] ?? false);
             
             // Get Exit data
             $sortie = $eq['sortie'] ?? [];
-            $sortieNombre = isset($sortie['nombre']) ? (int)$sortie['nombre'] : '';
+            $sortieNombre = isset($sortie['nombre']) && $sortie['nombre'] !== '' ? (int)$sortie['nombre'] : '';
             $sortieBon = getCheckboxSymbol($sortie['bon'] ?? false);
             $sortieUsage = getCheckboxSymbol($sortie['usage'] ?? false);
             $sortieMauvais = getCheckboxSymbol($sortie['mauvais'] ?? false);
