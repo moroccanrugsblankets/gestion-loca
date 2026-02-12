@@ -261,6 +261,21 @@ try {
         error_log("WARNING: Missing required fields: " . implode(', ', $missingFields));
     }
     
+    // Fetch all tenants for this état des lieux
+    $stmt = $pdo->prepare("SELECT * FROM etat_lieux_locataires WHERE etat_lieux_id = ? ORDER BY ordre ASC");
+    $stmt->execute([$id]);
+    $tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    if (empty($tenants)) {
+        error_log("WARNING: No tenants found in etat_lieux_locataires for etat_lieux ID: $id");
+        // Fallback to old single tenant data from etats_lieux table
+        $tenants = [[
+            'nom' => explode(' ', $etat['locataire_nom_complet'])[1] ?? '',
+            'prenom' => explode(' ', $etat['locataire_nom_complet'])[0] ?? '',
+            'email' => $etat['locataire_email']
+        ]];
+    }
+    
 } catch (PDOException $e) {
     error_log("DATABASE ERROR while fetching etat des lieux: " . $e->getMessage());
     error_log("Stack trace: " . $e->getTraceAsString());
@@ -375,7 +390,9 @@ try {
                 <i class="bi bi-info-circle"></i>
                 <strong>Le PDF sera envoyé automatiquement à:</strong>
                 <ul class="mb-0 mt-2">
-                    <li>Locataire: <?php echo htmlspecialchars($etat['locataire_email']); ?></li>
+                    <?php foreach ($tenants as $tenant): ?>
+                    <li>Locataire: <?php echo htmlspecialchars(trim($tenant['prenom'] . ' ' . $tenant['nom'])); ?> - <?php echo htmlspecialchars($tenant['email']); ?></li>
+                    <?php endforeach; ?>
                 </ul>
             </div>
             

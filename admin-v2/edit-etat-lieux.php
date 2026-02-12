@@ -1381,9 +1381,10 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                 <div class="row mb-4">
                     <div class="col-md-12">
                         <?php if (!empty($tenant['signature_data'])): ?>
-                            <div class="alert alert-success mb-2">
-                                <i class="bi bi-check-circle"></i> 
-                                Signé le <?php echo date('d/m/Y à H:i', strtotime($tenant['signature_timestamp'])); ?>
+                            <div class="alert alert-warning mb-2">
+                                <i class="bi bi-exclamation-triangle"></i> 
+                                Signé le <?php echo date('d/m/Y à H:i', strtotime($tenant['signature_timestamp'])); ?> - 
+                                <strong>Veuillez signer à nouveau pour que la signature apparaisse correctement dans le PDF</strong>
                             </div>
                             <div class="mb-2">
                                 <?php
@@ -1410,18 +1411,21 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                                 }
                                 ?>
                                 <?php if (!empty($displaySrc)): ?>
-                                <img src="<?php echo htmlspecialchars($displaySrc); ?>" 
-                                     alt="Signature" style="max-width: 200px; max-height: 80px; border: 1px solid #dee2e6; padding: 5px;">
+                                <div style="opacity: 0.5;">
+                                    <img src="<?php echo htmlspecialchars($displaySrc); ?>" 
+                                         alt="Ancienne signature" style="max-width: 200px; max-height: 80px; border: 1px solid #dee2e6; padding: 5px;">
+                                    <p class="text-muted small">Ancienne signature (pour référence)</p>
+                                </div>
                                 <?php endif; ?>
                             </div>
                         <?php endif; ?>
-                        <label class="form-label">Veuillez signer dans le cadre ci-dessous :</label>
+                        <label class="form-label required-field">Veuillez signer dans le cadre ci-dessous :</label>
                         <div class="signature-container" style="max-width: 300px;">
                             <canvas id="tenantCanvas_<?php echo $tenant['id']; ?>" width="300" height="150" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
                         </div>
                         <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][signature]" 
                                id="tenantSignature_<?php echo $tenant['id']; ?>" 
-                               value="<?php echo htmlspecialchars($tenant['signature_data'] ?? ''); ?>">
+                               value="">
                         <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][locataire_id]" 
                                value="<?php echo $tenant['locataire_id']; ?>">
                         <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][ordre]" 
@@ -1442,8 +1446,7 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                                 <input class="form-check-input" type="checkbox" 
                                        name="tenants[<?php echo $tenant['id']; ?>][certifie_exact]" 
                                        id="certifie_exact_<?php echo $tenant['id']; ?>" 
-                                       value="1"
-                                       <?php echo !empty($tenant['certifie_exact']) ? 'checked' : ''; ?>>
+                                       value="1">
                                 <label class="form-check-label" for="certifie_exact_<?php echo $tenant['id']; ?>">
                                     <strong>Certifié exact</strong>
                                 </label>
