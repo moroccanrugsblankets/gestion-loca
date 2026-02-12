@@ -136,9 +136,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 }
                 
                 error_log("=== FINALIZE INVENTAIRE - SUCCESS ===");
-                $successMsg = "Inventaire finalisé et envoyé avec succès à " . implode(', ', $emailsSent);
+                $sanitizedEmails = array_map('htmlspecialchars', $emailsSent);
+                $successMsg = "Inventaire finalisé et envoyé avec succès à " . implode(', ', $sanitizedEmails);
                 if (!empty($emailsFailed)) {
-                    $successMsg .= " (Échec pour : " . implode(', ', $emailsFailed) . ")";
+                    $sanitizedFailedEmails = array_map('htmlspecialchars', $emailsFailed);
+                    $successMsg .= " (Échec pour : " . implode(', ', $sanitizedFailedEmails) . ")";
                 }
                 $_SESSION['success'] = $successMsg;
                 header('Location: inventaires.php');
