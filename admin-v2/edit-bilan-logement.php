@@ -537,6 +537,7 @@ if (!empty($etat['bilan_logement_justificatifs'])) {
             }
             
             const formData = new FormData();
+            // IMPORTANT: Field name must be 'justificatif' to match backend (upload-bilan-justificatif.php line 45)
             formData.append('justificatif', file);
             formData.append('etat_lieux_id', ETAT_LIEUX_ID);
             

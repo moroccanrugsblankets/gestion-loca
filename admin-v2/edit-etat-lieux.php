@@ -1238,6 +1238,9 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                         <div class="signature-container" style="max-width: 300px;">
                             <canvas id="tenantCanvas_<?php echo $tenant['id']; ?>" width="300" height="150" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
                         </div>
+                        <!-- IMPORTANT: Signature field is intentionally empty (even if previously signed)
+                             This is by design - requirement states that editing must force re-signing
+                             to ensure signatures appear correctly in the PDF and for audit purposes -->
                         <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][signature]" 
                                id="tenantSignature_<?php echo $tenant['id']; ?>" 
                                value="">
