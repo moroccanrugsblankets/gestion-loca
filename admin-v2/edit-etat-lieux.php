@@ -18,6 +18,74 @@ if ($id < 1) {
     exit;
 }
 
+// Get état des lieux details - MUST BE BEFORE POST HANDLER
+$stmt = $pdo->prepare("
+    SELECT edl.*, 
+           c.reference_unique as contrat_ref,
+           l.adresse as logement_adresse
+    FROM etats_lieux edl
+    LEFT JOIN contrats c ON edl.contrat_id = c.id
+    LEFT JOIN logements l ON c.logement_id = l.id
+    WHERE edl.id = ?
+");
+$stmt->execute([$id]);
+$etat = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$etat) {
+    $_SESSION['error'] = "État des lieux non trouvé";
+    header('Location: etats-lieux.php');
+    exit;
+}
+
+// Fix missing address from logement if available
+$needsUpdate = false;
+$fieldsToUpdate = [];
+
+if (empty($etat['adresse']) && !empty($etat['logement_adresse'])) {
+    $etat['adresse'] = $etat['logement_adresse'];
+    $fieldsToUpdate['adresse'] = $etat['adresse'];
+    $needsUpdate = true;
+}
+
+// Update database with all missing fields in a single query
+if ($needsUpdate) {
+    // Whitelist of allowed fields to prevent SQL injection
+    $allowedFields = ['adresse'];
+    
+    $setParts = [];
+    $params = [];
+    foreach ($fieldsToUpdate as $field => $value) {
+        // Only allow whitelisted fields
+        if (in_array($field, $allowedFields, true)) {
+            $setParts[] = "`$field` = ?";
+            $params[] = $value;
+        }
+    }
+    
+    if (!empty($setParts)) {
+        $params[] = $id;
+        $sql = "UPDATE etats_lieux SET " . implode(', ', $setParts) . " WHERE id = ?";
+        $updateStmt = $pdo->prepare($sql);
+        $updateStmt->execute($params);
+    }
+}
+
+// Generate reference_unique if missing
+if (empty($etat['reference_unique'])) {
+    $type = $etat['type'] ?? 'entree';  // Default to 'entree' if type is missing
+    $typePrefix = strtoupper($type[0]);  // Safe to access since $type is guaranteed to have a value
+    try {
+        $randomPart = random_int(1, 9999);
+    } catch (Exception $e) {
+        // Fallback to time-based random if random_int fails
+        $randomPart = (int)(microtime(true) * 1000) % 10000;
+    }
+    $reference = 'EDL-' . $typePrefix . '-' . date('Ymd') . '-' . str_pad($randomPart, 4, '0', STR_PAD_LEFT);
+    $stmt = $pdo->prepare("UPDATE etats_lieux SET reference_unique = ? WHERE id = ?");
+    $stmt->execute([$reference, $id]);
+    $etat['reference_unique'] = $reference;
+}
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save') {
     try {
@@ -157,74 +225,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         error_log("Error updating état des lieux: " . $e->getMessage());
         $_SESSION['error'] = "Erreur lors de l'enregistrement: " . $e->getMessage();
     }
-}
-
-// Get état des lieux details
-$stmt = $pdo->prepare("
-    SELECT edl.*, 
-           c.reference_unique as contrat_ref,
-           l.adresse as logement_adresse
-    FROM etats_lieux edl
-    LEFT JOIN contrats c ON edl.contrat_id = c.id
-    LEFT JOIN logements l ON c.logement_id = l.id
-    WHERE edl.id = ?
-");
-$stmt->execute([$id]);
-$etat = $stmt->fetch(PDO::FETCH_ASSOC);
-
-if (!$etat) {
-    $_SESSION['error'] = "État des lieux non trouvé";
-    header('Location: etats-lieux.php');
-    exit;
-}
-
-// Fix missing address from logement if available
-$needsUpdate = false;
-$fieldsToUpdate = [];
-
-if (empty($etat['adresse']) && !empty($etat['logement_adresse'])) {
-    $etat['adresse'] = $etat['logement_adresse'];
-    $fieldsToUpdate['adresse'] = $etat['adresse'];
-    $needsUpdate = true;
-}
-
-// Update database with all missing fields in a single query
-if ($needsUpdate) {
-    // Whitelist of allowed fields to prevent SQL injection
-    $allowedFields = ['adresse'];
-    
-    $setParts = [];
-    $params = [];
-    foreach ($fieldsToUpdate as $field => $value) {
-        // Only allow whitelisted fields
-        if (in_array($field, $allowedFields, true)) {
-            $setParts[] = "`$field` = ?";
-            $params[] = $value;
-        }
-    }
-    
-    if (!empty($setParts)) {
-        $params[] = $id;
-        $sql = "UPDATE etats_lieux SET " . implode(', ', $setParts) . " WHERE id = ?";
-        $updateStmt = $pdo->prepare($sql);
-        $updateStmt->execute($params);
-    }
-}
-
-// Generate reference_unique if missing
-if (empty($etat['reference_unique'])) {
-    $type = $etat['type'] ?? 'entree';  // Default to 'entree' if type is missing
-    $typePrefix = strtoupper($type[0]);  // Safe to access since $type is guaranteed to have a value
-    try {
-        $randomPart = random_int(1, 9999);
-    } catch (Exception $e) {
-        // Fallback to time-based random if random_int fails
-        $randomPart = (int)(microtime(true) * 1000) % 10000;
-    }
-    $reference = 'EDL-' . $typePrefix . '-' . date('Ymd') . '-' . str_pad($randomPart, 4, '0', STR_PAD_LEFT);
-    $stmt = $pdo->prepare("UPDATE etats_lieux SET reference_unique = ? WHERE id = ?");
-    $stmt->execute([$reference, $id]);
-    $etat['reference_unique'] = $reference;
 }
 
 // Get existing tenants for this état des lieux
