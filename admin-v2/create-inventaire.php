@@ -2,6 +2,7 @@
 require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
+require_once '../includes/inventaire-standard-items.php';
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -35,8 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Get logement info
     $stmt = $pdo->prepare("
-        SELECT l.*, 
-               (SELECT COUNT(*) FROM inventaire_equipements WHERE logement_id = l.id) as equipements_count
+        SELECT l.*
         FROM logements l
         WHERE l.id = ?
     ");
@@ -45,13 +45,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if (!$logement) {
         $_SESSION['error'] = "Logement introuvable";
-        header('Location: inventaires.php');
-        exit;
-    }
-    
-    // Check if logement has equipment defined
-    if ($logement['equipements_count'] == 0) {
-        $_SESSION['error'] = "Ce logement n'a pas d'équipements définis. Veuillez d'abord définir l'inventaire standard depuis la fiche logement.";
         header('Location: inventaires.php');
         exit;
     }
@@ -105,30 +98,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Generate unique reference
     $reference = 'INV-' . strtoupper($type[0]) . '-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
     
-    // Get equipment list for this logement
-    $stmt = $pdo->prepare("
-        SELECT * FROM inventaire_equipements 
-        WHERE logement_id = ? 
-        ORDER BY categorie, ordre, nom
-    ");
-    $stmt->execute([$logement_id]);
-    $equipements = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Build initial equipment data JSON
-    $equipements_data = [];
-    foreach ($equipements as $eq) {
-        $equipements_data[] = [
-            'equipement_id' => $eq['id'],
-            'nom' => $eq['nom'],
-            'categorie' => $eq['categorie'],
-            'description' => $eq['description'],
-            'quantite_attendue' => $eq['quantite'],
-            'quantite_presente' => $type === 'entree' ? $eq['quantite'] : null, // Pre-fill for entry
-            'etat' => $type === 'entree' ? 'Bon' : null, // Pre-fill for entry
-            'observations' => null,
-            'photos' => []
-        ];
-    }
+    // Use standardized inventory items (not logement-specific equipment)
+    $equipements_data = generateStandardInventoryData($type);
     
     // Insert new inventaire
     try {
