@@ -33,9 +33,9 @@ if (strpos($bilanContent, "// Skip validation for valeur and montant_du fields (
     $errors[] = "✗ edit-bilan-logement.php: Validation logic not updated to skip Valeur and Montant dû";
 }
 
-// Check that the old validation logic (requiring all fields) is replaced
+// Verify the old validation logic is NOT present
 if (strpos($bilanContent, "// If row has any value, all fields must be filled") !== false) {
-    $warnings[] = "⚠ edit-bilan-logement.php: Old comment still present, but may be OK if logic is updated";
+    $errors[] = "✗ edit-bilan-logement.php: Old validation comment still present - code may not be properly updated";
 }
 
 // Check 2: edit-inventaire.php - Certifié exact should preserve state

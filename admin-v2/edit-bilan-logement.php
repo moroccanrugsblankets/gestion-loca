@@ -479,8 +479,8 @@ if (!empty($etat['bilan_logement_justificatifs'])) {
                     }
                 });
                 
-                // If row has any value, only poste and commentaires are required
-                // Valeur and Montant dû are optional (empty values are treated as 0 in calculations)
+                // If row has any value, only Poste and Commentaires fields are required
+                // Valeur and Montant dû fields are optional (empty values are treated as 0 in calculations)
                 if (rowHasValue) {
                     fields.forEach(field => {
                         // Skip validation for valeur and montant_du fields (they are optional)
