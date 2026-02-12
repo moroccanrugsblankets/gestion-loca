@@ -132,29 +132,29 @@ if ($etat && !empty($etat['bilan_logement_data'])) {
 
 // If no rows from état des lieux, try to get data from inventaire
 if (empty($bilanRows) && $inventaire) {
-    // Prepare rows from inventaire data
-    if (!empty($inventaire['equipements_manquants'])) {
-        $manquants = json_decode($inventaire['equipements_manquants'], true) ?: [];
-        foreach ($manquants as $item) {
-            $bilanRows[] = [
+    // Helper function to convert inventaire items to bilan rows
+    $convertInventaireItems = function($items, $prefix) {
+        $rows = [];
+        foreach ($items as $item) {
+            $rows[] = [
                 'poste' => $item['nom'] ?? $item['equipement'] ?? '',
-                'commentaires' => 'Équipement manquant - ' . ($item['observations'] ?? ''),
+                'commentaires' => $prefix . ' - ' . ($item['observations'] ?? ''),
                 'valeur' => $item['valeur'] ?? '',
                 'montant_du' => $item['valeur'] ?? ''
             ];
         }
+        return $rows;
+    };
+    
+    // Prepare rows from inventaire data
+    if (!empty($inventaire['equipements_manquants'])) {
+        $manquants = json_decode($inventaire['equipements_manquants'], true) ?: [];
+        $bilanRows = array_merge($bilanRows, $convertInventaireItems($manquants, 'Équipement manquant'));
     }
     
     if (!empty($inventaire['equipements_endommages'])) {
         $endommages = json_decode($inventaire['equipements_endommages'], true) ?: [];
-        foreach ($endommages as $item) {
-            $bilanRows[] = [
-                'poste' => $item['nom'] ?? $item['equipement'] ?? '',
-                'commentaires' => 'Équipement endommagé - ' . ($item['observations'] ?? ''),
-                'valeur' => $item['valeur'] ?? '',
-                'montant_du' => $item['valeur'] ?? ''
-            ];
-        }
+        $bilanRows = array_merge($bilanRows, $convertInventaireItems($endommages, 'Équipement endommagé'));
     }
 }
 
