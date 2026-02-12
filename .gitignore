@@ -11,6 +11,7 @@ pdf/*
 !pdf/generate-contrat-pdf.php
 !pdf/generate-etat-lieux.php
 !pdf/generate-inventaire.php
+!pdf/generate-quittance.php
 !pdf/download.php
 
 # Configuration locale (peut contenir des credentials)
