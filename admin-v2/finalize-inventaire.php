@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 
                 foreach ($tenants as $tenant) {
                     if (empty($tenant['email'])) {
-                        error_log("WARNING: Tenant ID " . $tenant['id'] . " has no email address");
+                        error_log("WARNING: Tenant ID " . (int)$tenant['id'] . " has no email address");
                         continue;
                     }
                     
@@ -89,17 +89,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         'type' => $typeLabel
                     ];
                     
-                    error_log("Sending email to tenant: " . $tenant['email'] . " with template: $templateId");
+                    // Sanitize email for logging to prevent log injection
+                    $safeEmail = str_replace(["\r", "\n"], '', $tenant['email']);
+                    error_log("Sending email to tenant: " . $safeEmail . " with template: $templateId");
                     
                     // Send email to tenant using template with admin in BCC (copy)
                     $emailSent = sendTemplatedEmail($templateId, $tenant['email'], $emailVariables, $pdfPath, false, true);
                     
                     if ($emailSent) {
                         $emailsSent[] = $tenant['email'];
-                        error_log("Email sent successfully to tenant: " . $tenant['email']);
+                        error_log("Email sent successfully to tenant: " . $safeEmail);
                     } else {
                         $emailsFailed[] = $tenant['email'];
-                        error_log("ERROR: Failed to send email to tenant: " . $tenant['email']);
+                        error_log("ERROR: Failed to send email to tenant: " . $safeEmail);
                     }
                 }
                 

@@ -2197,14 +2197,15 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                 <?php foreach ($existing_tenants as $tenant): ?>
                     const signature_<?php echo $tenant['id']; ?> = document.getElementById('tenantSignature_<?php echo $tenant['id']; ?>').value;
                     const certifie_<?php echo $tenant['id']; ?> = document.getElementById('certifie_exact_<?php echo $tenant['id']; ?>').checked;
+                    const tenantName_<?php echo $tenant['id']; ?> = <?php echo json_encode($tenant['prenom'] . ' ' . $tenant['nom']); ?>;
                     
                     if (!signature_<?php echo $tenant['id']; ?> || signature_<?php echo $tenant['id']; ?>.trim() === '') {
-                        errors.push('La signature de <?php echo htmlspecialchars($tenant['prenom'] . ' ' . $tenant['nom']); ?> est obligatoire');
+                        errors.push('La signature de ' + tenantName_<?php echo $tenant['id']; ?> + ' est obligatoire');
                         allValid = false;
                     }
                     
                     if (!certifie_<?php echo $tenant['id']; ?>) {
-                        errors.push('La case "Certifié exact" doit être cochée pour <?php echo htmlspecialchars($tenant['prenom'] . ' ' . $tenant['nom']); ?>');
+                        errors.push('La case "Certifié exact" doit être cochée pour ' + tenantName_<?php echo $tenant['id']; ?>);
                         allValid = false;
                     }
                 <?php endforeach; ?>
