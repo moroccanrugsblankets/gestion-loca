@@ -429,7 +429,28 @@ function replaceInventaireTemplateVariables($template, $inventaire, $locataires)
 }
 
 /**
- * Construire le HTML pour la liste des équipements
+ * Get checkbox symbol for PDF display
+ * 
+ * @param bool $checked Whether the checkbox is checked
+ * @return string Checkbox symbol (☑ or ☐)
+ */
+function getCheckboxSymbol($checked) {
+    return !empty($checked) ? '☑' : '☐';
+}
+
+/**
+ * Get quantity value for PDF display
+ * Ensures empty values stay empty instead of showing 0
+ * 
+ * @param mixed $value The quantity value from data
+ * @return string|int Empty string if not set, integer if set
+ */
+function getQuantityValue($value) {
+    return isset($value) && $value !== '' ? (int)$value : '';
+}
+
+/**
+ * Construire le HTML pour la liste des équipements avec format Entry/Exit
  * 
  * @param array $inventaire Données de l'inventaire
  * @param string $type Type d'inventaire (entree/sortie)
@@ -456,44 +477,80 @@ function buildEquipementsHtml($inventaire, $type) {
     
     foreach ($equipements_by_category as $categorie => $equipements) {
         $html .= '<h3>' . htmlspecialchars($categorie) . '</h3>';
-        $html .= '<table cellspacing="0" cellpadding="8">';
-        $html .= '<thead><tr>';
-        $html .= '<th width="30%">Équipement</th>';
-        $html .= '<th width="15%">Quantité</th>';
-        $html .= '<th width="15%">État</th>';
-        $html .= '<th width="40%">Observations</th>';
+        
+        // Enhanced Entry/Exit format table
+        $html .= '<table cellspacing="0" cellpadding="4" style="width: 100%; border-collapse: collapse;">';
+        $html .= '<thead><tr style="background-color: #3498db; color: white;">';
+        $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 8px; width: 25%;">Élément</th>';
+        $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #2196F3;">Entrée</th>';
+        $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #4CAF50;">Sortie</th>';
+        $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 8px; width: 20%;">Commentaires</th>';
+        $html .= '</tr>';
+        $html .= '<tr style="background-color: #ecf0f1;">';
+        $html .= '<th style="border: 1px solid #ddd; padding: 4px; text-align: center; width: 5%;">Nombre</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 4px; text-align: center; width: 5%;">Bon</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 4px; text-align: center; width: 5%;">D\'usage</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 4px; text-align: center; width: 5%;">Mauvais</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 4px; text-align: center; width: 5%;">Nombre</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 4px; text-align: center; width: 5%;">Bon</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 4px; text-align: center; width: 5%;">D\'usage</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 4px; text-align: center; width: 5%;">Mauvais</th>';
         $html .= '</tr></thead><tbody>';
         
         foreach ($equipements as $eq) {
             $nom = htmlspecialchars($eq['nom'] ?? '');
-            // Use quantite_presente if available, otherwise fall back to quantite_attendue (for initial inventory)
-            $quantite = isset($eq['quantite_presente']) ? (int)$eq['quantite_presente'] : (int)($eq['quantite_attendue'] ?? 0);
-            $etat = htmlspecialchars($eq['etat'] ?? '-');
-            $observations = htmlspecialchars($eq['observations'] ?? '-');
             
-            // Translate état to French if needed
-            switch (strtolower($etat)) {
-                case 'bon':
-                    $etatLabel = 'Bon';
-                    break;
-                case 'moyen':
-                    $etatLabel = 'Moyen';
-                    break;
-                case 'mauvais':
-                    $etatLabel = 'Mauvais';
-                    break;
-                case 'neuf':
-                    $etatLabel = 'Neuf';
-                    break;
-                default:
-                    $etatLabel = $etat;
+            // Get Entry data
+            $entree = $eq['entree'] ?? [];
+            $entreeNombre = getQuantityValue($entree['nombre'] ?? null);
+            $entreeBon = getCheckboxSymbol($entree['bon'] ?? false);
+            $entreeUsage = getCheckboxSymbol($entree['usage'] ?? false);
+            $entreeMauvais = getCheckboxSymbol($entree['mauvais'] ?? false);
+            
+            // Get Exit data
+            $sortie = $eq['sortie'] ?? [];
+            $sortieNombre = getQuantityValue($sortie['nombre'] ?? null);
+            $sortieBon = getCheckboxSymbol($sortie['bon'] ?? false);
+            $sortieUsage = getCheckboxSymbol($sortie['usage'] ?? false);
+            $sortieMauvais = getCheckboxSymbol($sortie['mauvais'] ?? false);
+            
+            // Comments
+            $commentaires = htmlspecialchars($eq['commentaires'] ?? $eq['observations'] ?? '-');
+            
+            // Fallback to legacy format if new format not present
+            if (empty($entree) && empty($sortie)) {
+                // Legacy format
+                $quantite = isset($eq['quantite_presente']) ? (int)$eq['quantite_presente'] : (int)($eq['quantite_attendue'] ?? 0);
+                $etat = $eq['etat'] ?? '';
+                
+                // Map old state to new checkbox format
+                if ($type === 'entree') {
+                    $entreeNombre = $quantite;
+                    if ($etat === 'Bon') $entreeBon = getCheckboxSymbol(true);
+                    elseif ($etat === 'Moyen') $entreeUsage = getCheckboxSymbol(true);
+                    elseif ($etat === 'Mauvais') $entreeMauvais = getCheckboxSymbol(true);
+                } else {
+                    $sortieNombre = $quantite;
+                    if ($etat === 'Bon') $sortieBon = getCheckboxSymbol(true);
+                    elseif ($etat === 'Moyen') $sortieUsage = getCheckboxSymbol(true);
+                    elseif ($etat === 'Mauvais') $sortieMauvais = getCheckboxSymbol(true);
+                }
             }
             
             $html .= '<tr>';
-            $html .= '<td>' . $nom . '</td>';
-            $html .= '<td style="text-align: center;">' . $quantite . '</td>';
-            $html .= '<td style="text-align: center;">' . $etatLabel . '</td>';
-            $html .= '<td>' . $observations . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 6px;">' . $nom . '</td>';
+            // Entry columns
+            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center;">' . $entreeNombre . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 16px;">' . $entreeBon . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 16px;">' . $entreeUsage . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 16px;">' . $entreeMauvais . '</td>';
+            // Exit columns
+            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center;">' . $sortieNombre . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 16px;">' . $sortieBon . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 16px;">' . $sortieUsage . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 16px;">' . $sortieMauvais . '</td>';
+            // Comments
+            $html .= '<td style="border: 1px solid #ddd; padding: 6px;">' . $commentaires . '</td>';
             $html .= '</tr>';
         }
         
