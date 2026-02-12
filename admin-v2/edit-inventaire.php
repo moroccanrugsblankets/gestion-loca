@@ -280,7 +280,7 @@ foreach ($existing_tenants as &$tenant) {
             </div>
         <?php endif; ?>
 
-        <form method="POST">
+        <form method="POST" id="inventaireForm">
             <?php foreach ($equipements_by_category as $categorie => $equipements): ?>
                 <div class="form-card">
                     <div class="category-section">
@@ -579,6 +579,40 @@ foreach ($existing_tenants as &$tenant) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             document.getElementById(`tenantSignature_${id}`).value = '';
         }
+        
+        // Handle form submission - validate signatures and certifie_exact
+        document.getElementById('inventaireForm').addEventListener('submit', function(e) {
+            // Save all tenant signatures before submission
+            <?php foreach ($existing_tenants as $tenant): ?>
+                saveTenantSignature(<?php echo $tenant['id']; ?>);
+            <?php endforeach; ?>
+            
+            // Validate that all tenants have signed and checked "Certifié exact"
+            let allValid = true;
+            let errors = [];
+            
+            <?php foreach ($existing_tenants as $tenant): ?>
+                const signature_<?php echo $tenant['id']; ?> = document.getElementById('tenantSignature_<?php echo $tenant['id']; ?>').value;
+                const certifie_<?php echo $tenant['id']; ?> = document.getElementById('certifie_exact_<?php echo $tenant['id']; ?>').checked;
+                const tenantName_<?php echo $tenant['id']; ?> = <?php echo json_encode($tenant['prenom'] . ' ' . $tenant['nom']); ?>;
+                
+                if (!signature_<?php echo $tenant['id']; ?> || signature_<?php echo $tenant['id']; ?>.trim() === '') {
+                    errors.push('La signature de ' + tenantName_<?php echo $tenant['id']; ?> + ' est obligatoire');
+                    allValid = false;
+                }
+                
+                if (!certifie_<?php echo $tenant['id']; ?>) {
+                    errors.push('La case "Certifié exact" doit être cochée pour ' + tenantName_<?php echo $tenant['id']; ?>);
+                    allValid = false;
+                }
+            <?php endforeach; ?>
+            
+            if (!allValid) {
+                e.preventDefault();
+                alert('Erreurs de validation:\n\n' + errors.join('\n'));
+                return false;
+            }
+        });
     </script>
 </body>
 </html>

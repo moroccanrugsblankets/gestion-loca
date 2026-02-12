@@ -51,9 +51,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 etat_general_conforme = ?,
                 degradations_constatees = ?,
                 degradations_details = ?,
-                depot_garantie_status = ?,
-                depot_garantie_montant_retenu = ?,
-                depot_garantie_motif_retenue = ?,
                 bilan_logement_data = ?,
                 bilan_logement_commentaire = ?,
                 lieu_signature = ?,
@@ -82,9 +79,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $_POST['etat_general_conforme'] ?? 'non_applicable',
             isset($_POST['degradations_constatees']) ? 1 : 0,
             $_POST['degradations_details'] ?? '',
-            $_POST['depot_garantie_status'] ?? 'non_applicable',
-            isset($_POST['depot_garantie_montant_retenu']) && !empty($_POST['depot_garantie_montant_retenu']) ? (float)$_POST['depot_garantie_montant_retenu'] : null,
-            $_POST['depot_garantie_motif_retenue'] ?? '',
             $bilanData,
             $_POST['bilan_logement_commentaire'] ?? '',
             $_POST['lieu_signature'] ?? '',
@@ -745,7 +739,7 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                     <div class="col-md-3 mb-3">
                         <label class="form-label required-field <?php echo $isSortie ? 'exit-input-label' : ''; ?>">
                             <?php if ($isSortie): ?><span class="icon-red">🔴</span><?php endif; ?>
-                            Clé(s) de la boîte aux lettres
+                            Clé(s) boîte aux lettres
                         </label>
                         <input type="number" name="cles_boite_lettres" class="form-control" 
                                value="<?php echo htmlspecialchars($etat['cles_boite_lettres'] ?? '1'); ?>" 
@@ -773,9 +767,10 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                 <?php if ($isSortie): ?>
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Conformité</label>
-                        <select name="cles_conformite" class="form-select">
-                            <option value="non_applicable">Non applicable</option>
+                        <label class="form-label required-field">Conformité</label>
+                        <select name="cles_conformite" class="form-select" required>
+                            <option value="">-- Sélectionner --</option>
+                            <option value="non_applicable" <?php echo ($etat['cles_conformite'] ?? '') === 'non_applicable' ? 'selected' : ''; ?>>Non applicable</option>
                             <option value="conforme" <?php echo ($etat['cles_conformite'] ?? '') === 'conforme' ? 'selected' : ''; ?>>Conforme à l'entrée</option>
                             <option value="non_conforme" <?php echo ($etat['cles_conformite'] ?? '') === 'non_conforme' ? 'selected' : ''; ?>>Non conforme</option>
                         </select>
@@ -1096,9 +1091,10 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                     
                     <?php if ($isSortie): ?>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Conformité à l'état d'entrée</label>
-                        <select name="etat_general_conforme" class="form-select">
-                            <option value="non_applicable">Non applicable</option>
+                        <label class="form-label required-field">Conformité à l'état d'entrée</label>
+                        <select name="etat_general_conforme" class="form-select" required>
+                            <option value="">-- Sélectionner --</option>
+                            <option value="non_applicable" <?php echo ($etat['etat_general_conforme'] ?? '') === 'non_applicable' ? 'selected' : ''; ?>>Non applicable</option>
                             <option value="conforme" <?php echo ($etat['etat_general_conforme'] ?? '') === 'conforme' ? 'selected' : ''; ?>>Conforme à l'état des lieux d'entrée</option>
                             <option value="non_conforme" <?php echo ($etat['etat_general_conforme'] ?? '') === 'non_conforme' ? 'selected' : ''; ?>>Non conforme à l'état des lieux d'entrée</option>
                         </select>
@@ -1135,52 +1131,6 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                     </div>
                 </div>
             </div>
-
-            <?php if ($isSortie): ?>
-            <!-- 5. Conclusion - Dépôt de garantie (Sortie uniquement) -->
-            <div class="form-card">
-                <div class="section-title">
-                    <i class="bi bi-cash-coin"></i> 5. Conclusion - Dépôt de garantie
-                </div>
-                
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i> Cette section permet de décider de la restitution du dépôt de garantie en fonction de l'état du logement.
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-12 mb-3">
-                        <label class="form-label required-field">Décision concernant le dépôt de garantie</label>
-                        <select name="depot_garantie_status" class="form-select" id="depot_garantie_status" onchange="toggleDepotDetails()" required>
-                            <option value="non_applicable" <?php echo ($etat['depot_garantie_status'] ?? 'non_applicable') === 'non_applicable' ? 'selected' : ''; ?>>-- Sélectionner --</option>
-                            <option value="restitution_totale" <?php echo ($etat['depot_garantie_status'] ?? '') === 'restitution_totale' ? 'selected' : ''; ?>>Restitution totale du dépôt de garantie (aucune dégradation imputable)</option>
-                            <option value="restitution_partielle" <?php echo ($etat['depot_garantie_status'] ?? '') === 'restitution_partielle' ? 'selected' : ''; ?>>Restitution partielle du dépôt de garantie (dégradations mineures)</option>
-                            <option value="retenue_totale" <?php echo ($etat['depot_garantie_status'] ?? '') === 'retenue_totale' ? 'selected' : ''; ?>>Retenue totale du dépôt de garantie (dégradations importantes)</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div id="depot_details_container" style="display: <?php echo (in_array($etat['depot_garantie_status'] ?? '', ['restitution_partielle', 'retenue_totale'])) ? 'block' : 'none'; ?>;">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Montant retenu (€)</label>
-                            <input type="number" name="depot_garantie_montant_retenu" class="form-control" 
-                                   value="<?php echo htmlspecialchars($etat['depot_garantie_montant_retenu'] ?? ''); ?>" 
-                                   step="0.01" min="0" placeholder="Ex: 150.00">
-                            <small class="text-muted">Montant en euros (sans le symbole €)</small>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-12 mb-3">
-                            <label class="form-label">Justificatif / Motif de la retenue</label>
-                            <textarea name="depot_garantie_motif_retenue" class="form-control" rows="4" 
-                                      placeholder="Détailler les dégradations constatées et le calcul du montant retenu"><?php echo htmlspecialchars($etat['depot_garantie_motif_retenue'] ?? ''); ?></textarea>
-                            <small class="text-muted">Exemple : Réparation de trous dans les murs (80€), remplacement de la peinture cuisine (120€), etc.</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <?php endif; ?>
 
             <?php
             // Initialize $bilanRows for use in JavaScript (line 1927)
@@ -1807,16 +1757,6 @@ if ($isSortie && !empty($etat['contrat_id'])) {
             container.style.display = checkbox.checked ? 'block' : 'none';
         }
         
-        // Toggle deposit guarantee details
-        function toggleDepotDetails() {
-            const select = document.getElementById('depot_garantie_status');
-            const container = document.getElementById('depot_details_container');
-            const selectedValue = select.value;
-            
-            // Show details only if restitution_partielle or retenue_totale
-            container.style.display = (selectedValue === 'restitution_partielle' || selectedValue === 'retenue_totale') ? 'block' : 'none';
-        }
-        
         function initTenantSignature(id) {
             const canvas = document.getElementById(`tenantCanvas_${id}`);
             if (!canvas) return;
@@ -2247,6 +2187,34 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                 <?php foreach ($existing_tenants as $tenant): ?>
                     saveTenantSignature(<?php echo $tenant['id']; ?>);
                 <?php endforeach; ?>
+            <?php endif; ?>
+            
+            // Validate that all tenants have signed and checked "Certifié exact"
+            <?php if (!empty($existing_tenants)): ?>
+                let allValid = true;
+                let errors = [];
+                
+                <?php foreach ($existing_tenants as $tenant): ?>
+                    const signature_<?php echo $tenant['id']; ?> = document.getElementById('tenantSignature_<?php echo $tenant['id']; ?>').value;
+                    const certifie_<?php echo $tenant['id']; ?> = document.getElementById('certifie_exact_<?php echo $tenant['id']; ?>').checked;
+                    const tenantName_<?php echo $tenant['id']; ?> = <?php echo json_encode($tenant['prenom'] . ' ' . $tenant['nom']); ?>;
+                    
+                    if (!signature_<?php echo $tenant['id']; ?> || signature_<?php echo $tenant['id']; ?>.trim() === '') {
+                        errors.push('La signature de ' + tenantName_<?php echo $tenant['id']; ?> + ' est obligatoire');
+                        allValid = false;
+                    }
+                    
+                    if (!certifie_<?php echo $tenant['id']; ?>) {
+                        errors.push('La case "Certifié exact" doit être cochée pour ' + tenantName_<?php echo $tenant['id']; ?>);
+                        allValid = false;
+                    }
+                <?php endforeach; ?>
+                
+                if (!allValid) {
+                    e.preventDefault();
+                    alert('Erreurs de validation:\n\n' + errors.join('\n'));
+                    return false;
+                }
             <?php endif; ?>
         });
     </script>

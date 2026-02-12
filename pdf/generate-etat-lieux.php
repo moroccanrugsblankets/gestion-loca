@@ -554,41 +554,6 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
         $degradationsConstatees = $degradationsConstateesVal ? 'Oui' : 'Non';
         $degradationsDetails = convertAndEscapeText($etatLieux['degradations_details'] ?? '');
         
-        // Depot de garantie section
-        $depotGarantieStatus = $etatLieux['depot_garantie_status'] ?? '';
-        $depotGarantieMontantRetenu = $etatLieux['depot_garantie_montant_retenu'] ?? 0;
-        $depotGarantieMotifRetenue = convertAndEscapeText($etatLieux['depot_garantie_motif_retenue'] ?? '');
-        
-        if (!empty($depotGarantieStatus) && $depotGarantieStatus !== 'non_applicable') {
-            $depotGarantieSection = '<h2>7. Dépôt de garantie</h2>';
-            $depotGarantieSection .= '<table cellspacing="0" cellpadding="4">';
-            $depotGarantieSection .= '<tr><td class="info-label">Statut :</td><td>';
-            
-            switch ($depotGarantieStatus) {
-                case 'restitution_totale':
-                    $depotGarantieSection .= 'Restitution totale';
-                    break;
-                case 'restitution_partielle':
-                    $depotGarantieSection .= 'Restitution partielle';
-                    break;
-                case 'retenue_totale':
-                    $depotGarantieSection .= 'Retenue totale';
-                    break;
-            }
-            
-            $depotGarantieSection .= '</td></tr>';
-            
-            if ($depotGarantieMontantRetenu > 0) {
-                $depotGarantieSection .= '<tr><td class="info-label">Montant retenu :</td><td>' . number_format($depotGarantieMontantRetenu, 2, ',', ' ') . ' €</td></tr>';
-            }
-            
-            if (!empty($depotGarantieMotifRetenue)) {
-                $depotGarantieSection .= '<tr><td class="info-label">Motif de la retenue :</td><td>' . $depotGarantieMotifRetenue . '</td></tr>';
-            }
-            
-            $depotGarantieSection .= '</table>';
-        }
-        
         // Bilan du logement section
         $bilanData = [];
         if (!empty($etatLieux['bilan_logement_data'])) {
@@ -598,7 +563,7 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
         $bilanCommentaire = convertAndEscapeText($etatLieux['bilan_logement_commentaire'] ?? '');
         
         if (!empty($bilanData) || !empty($bilanCommentaire)) {
-            $sectionNum = !empty($depotGarantieSection) ? '8' : '7';
+            $sectionNum = '7';
             $bilanLogementSection = "<h2>$sectionNum. Bilan du logement</h2>";
             
             if (!empty($bilanData)) {
@@ -653,9 +618,7 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
         }
         
         // Calculate final signatures section number based on all included sections
-        if (!empty($bilanLogementSection) && !empty($depotGarantieSection)) {
-            $signaturesSectionNumber = '9';
-        } elseif (!empty($depotGarantieSection) || !empty($bilanLogementSection)) {
+        if (!empty($bilanLogementSection)) {
             $signaturesSectionNumber = '8';
         } else {
             $signaturesSectionNumber = '7';
