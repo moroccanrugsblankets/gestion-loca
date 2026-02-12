@@ -45,7 +45,7 @@ if (!empty($etat['bilan_sections_data'])) {
 
 **Added 3 new JavaScript functions:**
 
-1. **`importFromExitInventory()`** (Lines 400-448)
+1. **`importFromExitInventory()`** (Lines 400-442)
    - Validates that data exists
    - Shows confirmation dialog
    - Loops through all sections (compteurs, cles, piece_principale, cuisine, salle_eau)
@@ -53,13 +53,13 @@ if (!empty($etat['bilan_sections_data'])) {
    - Disables import button after use to prevent duplicates
    - Shows success message with count
 
-2. **`addBilanRowWithData(equipement, commentaire)`** (Lines 450-505)
+2. **`addBilanRowWithData(equipement, commentaire)`** (Lines 445-496)
    - Similar to existing `addBilanRow()` but accepts data
    - Pre-populates the equipment (poste) and comment fields
    - Leaves valeur and montant_du empty for manual entry
    - Maintains all validation and counter logic
 
-3. **`escapeHtml(text)`** (Lines 507-515)
+3. **`escapeHtml(text)`** (Lines 499-508)
    - Security function to prevent XSS attacks
    - Escapes HTML special characters in imported data
    - Used when inserting data into HTML
