@@ -141,7 +141,7 @@ if (!is_array($equipements_data)) {
 
 // If no data exists, generate from standard items
 if (empty($equipements_data)) {
-    $equipements_data = generateStandardInventoryData($inventaire['type']);
+    $equipements_data = generateStandardInventoryData();
 }
 
 // Index existing data by ID for quick lookup

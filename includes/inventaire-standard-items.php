@@ -258,10 +258,9 @@ function getStandardInventaireItems() {
 
 /**
  * Generate initial inventory data structure from standard items
- * @param string $type 'entree' or 'sortie'
- * @return array Formatted data for JSON storage
+ * @return array Formatted data for JSON storage with both entry and exit fields initialized
  */
-function generateStandardInventoryData($type = 'entree') {
+function generateStandardInventoryData() {
     $items = getStandardInventaireItems();
     $data = [];
     $itemIndex = 0;
