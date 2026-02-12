@@ -283,6 +283,7 @@ try {
     
 } catch (Exception $e) {
     echo "✗ Erreur lors de la migration: " . $e->getMessage() . "\n";
-    echo "Stack trace:\n" . $e->getTraceAsString() . "\n";
+    error_log("Migration 046 failed: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
     exit(1);
 }

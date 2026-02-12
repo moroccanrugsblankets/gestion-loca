@@ -429,6 +429,16 @@ function replaceInventaireTemplateVariables($template, $inventaire, $locataires)
 }
 
 /**
+ * Get checkbox symbol for PDF display
+ * 
+ * @param bool $checked Whether the checkbox is checked
+ * @return string Checkbox symbol (☑ or ☐)
+ */
+function getCheckboxSymbol($checked) {
+    return !empty($checked) ? '☑' : '☐';
+}
+
+/**
  * Construire le HTML pour la liste des équipements avec format Entry/Exit
  * 
  * @param array $inventaire Données de l'inventaire
@@ -482,16 +492,16 @@ function buildEquipementsHtml($inventaire, $type) {
             // Get Entry data
             $entree = $eq['entree'] ?? [];
             $entreeNombre = isset($entree['nombre']) ? (int)$entree['nombre'] : '';
-            $entreeBon = !empty($entree['bon']) ? '☑' : '☐';
-            $entreeUsage = !empty($entree['usage']) ? '☑' : '☐';
-            $entreeMauvais = !empty($entree['mauvais']) ? '☑' : '☐';
+            $entreeBon = getCheckboxSymbol($entree['bon'] ?? false);
+            $entreeUsage = getCheckboxSymbol($entree['usage'] ?? false);
+            $entreeMauvais = getCheckboxSymbol($entree['mauvais'] ?? false);
             
             // Get Exit data
             $sortie = $eq['sortie'] ?? [];
             $sortieNombre = isset($sortie['nombre']) ? (int)$sortie['nombre'] : '';
-            $sortieBon = !empty($sortie['bon']) ? '☑' : '☐';
-            $sortieUsage = !empty($sortie['usage']) ? '☑' : '☐';
-            $sortieMauvais = !empty($sortie['mauvais']) ? '☑' : '☐';
+            $sortieBon = getCheckboxSymbol($sortie['bon'] ?? false);
+            $sortieUsage = getCheckboxSymbol($sortie['usage'] ?? false);
+            $sortieMauvais = getCheckboxSymbol($sortie['mauvais'] ?? false);
             
             // Comments
             $commentaires = htmlspecialchars($eq['commentaires'] ?? $eq['observations'] ?? '-');
@@ -505,14 +515,14 @@ function buildEquipementsHtml($inventaire, $type) {
                 // Map old state to new checkbox format
                 if ($type === 'entree') {
                     $entreeNombre = $quantite;
-                    if ($etat === 'Bon') $entreeBon = '☑';
-                    elseif ($etat === 'Moyen') $entreeUsage = '☑';
-                    elseif ($etat === 'Mauvais') $entreeMauvais = '☑';
+                    if ($etat === 'Bon') $entreeBon = getCheckboxSymbol(true);
+                    elseif ($etat === 'Moyen') $entreeUsage = getCheckboxSymbol(true);
+                    elseif ($etat === 'Mauvais') $entreeMauvais = getCheckboxSymbol(true);
                 } else {
                     $sortieNombre = $quantite;
-                    if ($etat === 'Bon') $sortieBon = '☑';
-                    elseif ($etat === 'Moyen') $sortieUsage = '☑';
-                    elseif ($etat === 'Mauvais') $sortieMauvais = '☑';
+                    if ($etat === 'Bon') $sortieBon = getCheckboxSymbol(true);
+                    elseif ($etat === 'Moyen') $sortieUsage = getCheckboxSymbol(true);
+                    elseif ($etat === 'Mauvais') $sortieMauvais = getCheckboxSymbol(true);
                 }
             }
             

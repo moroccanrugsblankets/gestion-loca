@@ -63,7 +63,7 @@ if (!$templateJson) {
 
 $template = json_decode($templateJson, true);
 if (!is_array($template)) {
-    die("<p style='color: red;'>Error: Invalid template format.</p>");
+    die("<p style='color: red;'>Erreur : Format de template invalide.</p>");
 }
 
 echo "<h3>Populating Equipment Items...</h3>";

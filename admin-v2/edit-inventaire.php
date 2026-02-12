@@ -607,7 +607,20 @@ foreach ($existing_tenants as &$tenant) {
                 }
             });
             
-            alert('Données copiées avec succès ! ' + copiedCount + ' éléments ont été dupliqués.');
+            // Show success message using Bootstrap alert
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show';
+            alertDiv.innerHTML = `
+                <i class="bi bi-check-circle"></i> Données copiées avec succès ! ${copiedCount} éléments ont été dupliqués.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.querySelector('.main-content').insertBefore(alertDiv, document.querySelector('.header').nextSibling);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                alertDiv.classList.remove('show');
+                setTimeout(() => alertDiv.remove(), 150);
+            }, 5000);
         }
         
         function initTenantSignature(id) {
@@ -787,7 +800,22 @@ foreach ($existing_tenants as &$tenant) {
             
             if (!allValid) {
                 e.preventDefault();
-                alert('Erreurs de validation:\n\n' + errors.join('\n'));
+                
+                // Show errors using Bootstrap alert instead of native alert
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    <strong><i class="bi bi-exclamation-triangle"></i> Erreurs de validation :</strong>
+                    <ul class="mb-0 mt-2">
+                        ${errors.map(err => '<li>' + err + '</li>').join('')}
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('.main-content').insertBefore(alertDiv, document.querySelector('.header').nextSibling);
+                
+                // Scroll to top to show errors
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                
                 return false;
             }
         });
