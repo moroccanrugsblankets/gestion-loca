@@ -511,11 +511,11 @@ function buildEquipementsHtml($inventaire, $type) {
 }
 
 /**
- * Render equipment table for PDF
+ * Generate table header HTML for inventory equipment table
+ * @return string HTML for table header
  */
-function renderEquipementsTable($equipements, $type) {
-    $html = '<table cellspacing="0" cellpadding="4" style="width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px;">';
-    $html .= '<thead><tr style="background-color: #3498db; color: white;">';
+function getInventoryTableHeader() {
+    $html = '<thead><tr style="background-color: #3498db; color: white;">';
     $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 6px; width: 25%; font-size: 9px;">Élément</th>';
     $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 6px; text-align: center; background-color: #2196F3; font-size: 9px;">Entrée</th>';
     $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 6px; text-align: center; background-color: #4CAF50; font-size: 9px;">Sortie</th>';
@@ -530,7 +530,17 @@ function renderEquipementsTable($equipements, $type) {
     $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Bon</th>';
     $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">D\'usage</th>';
     $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Mauvais</th>';
-    $html .= '</tr></thead><tbody>';
+    $html .= '</tr></thead>';
+    return $html;
+}
+
+/**
+ * Render equipment table for PDF
+ */
+function renderEquipementsTable($equipements, $type) {
+    $html = '<table cellspacing="0" cellpadding="4" style="width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px;">';
+    $html .= getInventoryTableHeader();
+    $html .= '<tbody>';
     
     foreach ($equipements as $eq) {
         $nom = htmlspecialchars($eq['nom'] ?? '');

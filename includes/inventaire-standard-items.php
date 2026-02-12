@@ -17,7 +17,10 @@
  * Returns the complete structure of inventory items organized by category.
  * État des pièces category includes subcategories (rooms), other categories are flat lists.
  * 
- * @return array Multi-dimensional array of inventory items with categories and subcategories
+ * @return array Associative array with category names as keys. 
+ *               'État des pièces' category contains subcategories (nested arrays),
+ *               while other categories contain direct item arrays.
+ *               Each item is an array with 'nom' (string) and 'type' (string) keys.
  */
 function getStandardInventaireItems() {
     return [

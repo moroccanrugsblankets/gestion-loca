@@ -123,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
         
-        header("Location: edit-inventaire-new.php?id=$inventaire_id");
+        header("Location: edit-inventaire.php?id=$inventaire_id");
         exit;
         
     } catch (Exception $e) {
