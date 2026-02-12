@@ -254,7 +254,7 @@ try {
     
     // Store the template in parametres table
     $stmt = $pdo->prepare("
-        INSERT INTO parametres (nom, valeur, description, type)
+        INSERT INTO parametres (cle, valeur, description, type)
         VALUES ('inventaire_items_template', ?, 'Template des éléments d\'inventaire selon cahier des charges', 'json')
         ON DUPLICATE KEY UPDATE valeur = VALUES(valeur), description = VALUES(description)
     ");
