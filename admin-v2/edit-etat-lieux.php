@@ -1197,8 +1197,9 @@ if ($isSortie && !empty($etat['contrat_id'])) {
                         <?php if (!empty($tenant['signature_data'])): ?>
                             <div class="alert alert-warning mb-2">
                                 <i class="bi bi-exclamation-triangle"></i> 
-                                Signé le <?php echo date('d/m/Y à H:i', strtotime($tenant['signature_timestamp'])); ?> - 
-                                <strong>Veuillez signer à nouveau pour que la signature apparaisse correctement dans le PDF</strong>
+                                <strong>Signature précédente détectée</strong> (signée le <?php echo date('d/m/Y à H:i', strtotime($tenant['signature_timestamp'])); ?>)<br>
+                                Pour des raisons de sécurité et d'audit, toute modification du formulaire nécessite une nouvelle signature. 
+                                <strong>Veuillez signer à nouveau ci-dessous pour que la signature apparaisse correctement dans le PDF.</strong>
                             </div>
                             <div class="mb-2">
                                 <?php

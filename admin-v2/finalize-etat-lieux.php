@@ -269,9 +269,11 @@ try {
     if (empty($tenants)) {
         error_log("WARNING: No tenants found in etat_lieux_locataires for etat_lieux ID: $id");
         // Fallback to old single tenant data from etats_lieux table
+        $fullName = $etat['locataire_nom_complet'] ?? '';
+        $nameParts = explode(' ', trim($fullName), 2);
         $tenants = [[
-            'nom' => explode(' ', $etat['locataire_nom_complet'])[1] ?? '',
-            'prenom' => explode(' ', $etat['locataire_nom_complet'])[0] ?? '',
+            'prenom' => $nameParts[0] ?? '',
+            'nom' => $nameParts[1] ?? '',
             'email' => $etat['locataire_email']
         ]];
     }

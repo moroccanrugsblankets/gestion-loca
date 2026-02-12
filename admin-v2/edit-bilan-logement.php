@@ -537,7 +537,7 @@ if (!empty($etat['bilan_logement_justificatifs'])) {
             }
             
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('justificatif', file);
             formData.append('etat_lieux_id', ETAT_LIEUX_ID);
             
             // Show loading indicator
