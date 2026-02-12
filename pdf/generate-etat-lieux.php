@@ -560,12 +560,57 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
             $bilanData = json_decode($etatLieux['bilan_logement_data'], true) ?: [];
         }
         
+        // New section-based bilan data
+        $bilanSectionsData = [];
+        if (!empty($etatLieux['bilan_sections_data'])) {
+            $bilanSectionsData = json_decode($etatLieux['bilan_sections_data'], true) ?: [];
+        }
+        
         $bilanCommentaire = convertAndEscapeText($etatLieux['bilan_logement_commentaire'] ?? '');
         
-        if (!empty($bilanData) || !empty($bilanCommentaire)) {
+        // Display bilan section if there's any data
+        if (!empty($bilanData) || !empty($bilanSectionsData) || !empty($bilanCommentaire)) {
             $sectionNum = '7';
             $bilanLogementSection = "<h2>$sectionNum. Bilan du logement</h2>";
             
+            // Display section-based bilan data first (new format)
+            if (!empty($bilanSectionsData)) {
+                $sectionTitles = [
+                    'compteurs' => 'Relevé des compteurs',
+                    'cles' => 'Restitution des clés',
+                    'piece_principale' => 'Pièce principale',
+                    'cuisine' => 'Coin cuisine',
+                    'salle_eau' => 'Salle d\'eau et WC'
+                ];
+                
+                foreach ($bilanSectionsData as $section => $items) {
+                    if (!empty($items) && is_array($items)) {
+                        $sectionTitle = $sectionTitles[$section] ?? ucfirst(str_replace('_', ' ', $section));
+                        $bilanLogementSection .= "<h3>$sectionTitle</h3>";
+                        $bilanLogementSection .= '<table class="bilan-table" cellspacing="0" cellpadding="6">';
+                        $bilanLogementSection .= '<thead><tr>';
+                        $bilanLogementSection .= '<th width="35%">Équipement</th>';
+                        $bilanLogementSection .= '<th width="65%">Commentaire</th>';
+                        $bilanLogementSection .= '</tr></thead><tbody>';
+                        
+                        foreach ($items as $item) {
+                            if (!empty($item['equipement']) || !empty($item['commentaire'])) {
+                                $equipement = htmlspecialchars($item['equipement'] ?? '');
+                                $commentaire = htmlspecialchars($item['commentaire'] ?? '');
+                                
+                                $bilanLogementSection .= '<tr>';
+                                $bilanLogementSection .= '<td>' . $equipement . '</td>';
+                                $bilanLogementSection .= '<td>' . $commentaire . '</td>';
+                                $bilanLogementSection .= '</tr>';
+                            }
+                        }
+                        
+                        $bilanLogementSection .= '</tbody></table>';
+                    }
+                }
+            }
+            
+            // Display old bilan data format if exists (backward compatibility)
             if (!empty($bilanData)) {
                 // Filter out empty rows
                 $bilanData = array_filter($bilanData, function($row) {
@@ -575,6 +620,9 @@ function replaceEtatLieuxTemplateVariables($template, $contrat, $locataires, $et
                 });
                 
                 if (!empty($bilanData)) {
+                    if (!empty($bilanSectionsData)) {
+                        $bilanLogementSection .= '<h3>Bilan détaillé des frais</h3>';
+                    }
                     $bilanLogementSection .= '<table class="bilan-table" cellspacing="0" cellpadding="6">';
                     $bilanLogementSection .= '<thead><tr>';
                     $bilanLogementSection .= '<th width="25%">Poste / Équipement</th>';
