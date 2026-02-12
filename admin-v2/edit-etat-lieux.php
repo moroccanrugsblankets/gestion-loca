@@ -31,8 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $bilanSections = [];
             foreach ($_POST['bilan'] as $section => $rows) {
                 $bilanSections[$section] = [];
-                foreach ($rows as $rowData) {
-                    if (!empty($rowData['equipement']) || !empty($rowData['commentaire'])) {
+                // Handle the rowId level - $rows is an associative array with rowId as keys
+                foreach ($rows as $rowId => $rowData) {
+                    // $rowData should contain 'equipement' and 'commentaire' keys
+                    if (is_array($rowData) && (!empty($rowData['equipement']) || !empty($rowData['commentaire']))) {
                         $bilanSections[$section][] = [
                             'equipement' => trim($rowData['equipement'] ?? ''),
                             'commentaire' => trim($rowData['commentaire'] ?? '')
