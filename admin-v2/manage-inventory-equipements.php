@@ -149,6 +149,66 @@ $stmt = $pdo->prepare("
 $stmt->execute([$logement_id]);
 $equipements = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// AUTO-POPULATE: If equipment is empty, automatically populate with defaults
+// This implements the new requirement: no need to click "Reset with defaults" button
+if (empty($equipements)) {
+    try {
+        $pdo->beginTransaction();
+        
+        // Get logement reference for property-specific equipment
+        $stmt = $pdo->prepare("SELECT reference FROM logements WHERE id = ?");
+        $stmt->execute([$logement_id]);
+        $logement_reference = $stmt->fetchColumn() ?: '';
+        
+        // Get standardized equipment for this property
+        require_once '../includes/inventaire-standard-items.php';
+        $standardItems = getStandardInventaireItems($logement_reference);
+        
+        $insertStmt = $pdo->prepare("
+            INSERT INTO inventaire_equipements (logement_id, categorie, nom, quantite, ordre)
+            VALUES (?, ?, ?, ?, ?)
+        ");
+        
+        $ordre = 0;
+        foreach ($standardItems as $categoryName => $categoryItems) {
+            foreach ($categoryItems as $item) {
+                $ordre++;
+                $insertStmt->execute([
+                    $logement_id,
+                    $categoryName,
+                    $item['nom'],
+                    $item['quantite'] ?? 0,
+                    $ordre
+                ]);
+            }
+        }
+        
+        $pdo->commit();
+        
+        // Reload equipment after auto-population
+        $stmt = $pdo->prepare("
+            SELECT e.*, 
+                   c.id as categorie_id, 
+                   c.nom as categorie_nom, 
+                   c.icone as categorie_icone,
+                   sc.nom as sous_categorie_nom
+            FROM inventaire_equipements e
+            LEFT JOIN inventaire_categories c ON e.categorie_id = c.id
+            LEFT JOIN inventaire_sous_categories sc ON e.sous_categorie_id = sc.id
+            WHERE e.logement_id = ? 
+            ORDER BY c.ordre, e.ordre, e.nom
+        ");
+        $stmt->execute([$logement_id]);
+        $equipements = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $_SESSION['success'] = "Équipements automatiquement chargés pour ce logement";
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        error_log("Error auto-populating equipment: " . $e->getMessage());
+        $_SESSION['error'] = "Erreur lors du chargement automatique des équipements";
+    }
+}
+
 // Group by category ID
 $equipements_by_category = [];
 foreach ($equipements as $eq) {
@@ -237,15 +297,7 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                     <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addEquipementModal">
                         <i class="bi bi-plus-circle"></i> Ajouter un équipement
                     </button>
-                    <?php if (empty($equipements)): ?>
-                        <button class="btn btn-info" onclick="populateDefaults('populate')">
-                            <i class="bi bi-collection"></i> Charger les équipements par défaut
-                        </button>
-                    <?php else: ?>
-                        <button class="btn btn-warning" onclick="populateDefaults('reset')">
-                            <i class="bi bi-arrow-clockwise"></i> Réinitialiser avec les défauts
-                        </button>
-                    <?php endif; ?>
+                    <!-- No reset button needed - equipment is auto-loaded -->
                     <a href="logements.php" class="btn btn-secondary">
                         <i class="bi bi-arrow-left"></i> Retour aux logements
                     </a>
@@ -506,36 +558,6 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         const logementId = <?php echo $logement_id; ?>;
         
         // Populate with default equipment
-        function populateDefaults(action) {
-            const confirmMessage = action === 'reset' 
-                ? 'Cela supprimera tous les équipements existants et les remplacera par les équipements par défaut. Voulez-vous continuer ?'
-                : 'Charger les équipements par défaut pour ce logement ?';
-            
-            if (!confirm(confirmMessage)) {
-                return;
-            }
-            
-            fetch('populate-logement-defaults.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({
-                    logement_id: logementId,
-                    action: action
-                })
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    alert(data.message);
-                    location.reload();
-                } else {
-                    alert('Erreur: ' + data.message);
-                }
-            })
-            .catch(err => {
-                alert('Erreur de connexion: ' + err.message);
-            });
-        }
         
         // Update subcategories dropdown for Add form
         function updateSubcategoriesAdd() {

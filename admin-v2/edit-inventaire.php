@@ -189,7 +189,7 @@ if (!empty($logement_equipements)) {
     }
 } else {
     // Fallback to standard items if no equipment defined for this logement
-    $standardItems = getStandardInventaireItems();
+    $standardItems = getStandardInventaireItems($inventaire['logement_reference']);
 }
 
 // Generate initial inventory data structure from equipment
@@ -198,69 +198,29 @@ function generateInventoryDataFromEquipment($standardItems) {
     $data = [];
     $itemIndex = 0;
     
-    foreach ($standardItems as $categoryName => $categoryContent) {
-        // Check if category has subcategories (nested array with string keys)
-        $hasSubcategories = false;
-        if (is_array($categoryContent) && !empty($categoryContent)) {
-            $firstKey = array_key_first($categoryContent);
-            $firstValue = $categoryContent[$firstKey];
-            // If first value is an array and contains 'nom', it's a direct item
-            // If first value is an array but doesn't contain 'nom', it's a subcategory
-            if (is_array($firstValue) && !isset($firstValue['nom'])) {
-                $hasSubcategories = true;
-            }
-        }
-        
-        if ($hasSubcategories) {
-            // Category has subcategories
-            foreach ($categoryContent as $subcategoryName => $subcategoryItems) {
-                foreach ($subcategoryItems as $item) {
-                    $data[] = [
-                        'id' => ++$itemIndex,
-                        'categorie' => $categoryName,
-                        'sous_categorie' => $subcategoryName,
-                        'nom' => $item['nom'],
-                        'type' => $item['type'],
-                        'entree' => [
-                            'nombre' => null,
-                            'bon' => false,
-                            'usage' => false,
-                            'mauvais' => false,
-                        ],
-                        'sortie' => [
-                            'nombre' => null,
-                            'bon' => false,
-                            'usage' => false,
-                            'mauvais' => false,
-                        ],
-                        'commentaires' => ''
-                    ];
-                }
-            }
-        } else {
-            // Simple category (flat list of items)
-            foreach ($categoryContent as $item) {
-                $data[] = [
-                    'id' => ++$itemIndex,
-                    'categorie' => $categoryName,
-                    'sous_categorie' => null,
-                    'nom' => $item['nom'],
-                    'type' => $item['type'],
-                    'entree' => [
-                        'nombre' => null,
-                        'bon' => false,
-                        'usage' => false,
-                        'mauvais' => false,
-                    ],
-                    'sortie' => [
-                        'nombre' => null,
-                        'bon' => false,
-                        'usage' => false,
-                        'mauvais' => false,
-                    ],
-                    'commentaires' => ''
-                ];
-            }
+    // New simplified structure - no subcategories, flat list per category
+    foreach ($standardItems as $categoryName => $categoryItems) {
+        foreach ($categoryItems as $item) {
+            $data[] = [
+                'id' => ++$itemIndex,
+                'categorie' => $categoryName,
+                'sous_categorie' => null, // No subcategories in new structure
+                'nom' => $item['nom'],
+                'type' => $item['type'],
+                'entree' => [
+                    'nombre' => $item['quantite'] ?? 0,
+                    'bon' => isset($item['default_etat']) && $item['default_etat'] === 'bon',
+                    'usage' => false,
+                    'mauvais' => false,
+                ],
+                'sortie' => [
+                    'nombre' => null,
+                    'bon' => false,
+                    'usage' => false,
+                    'mauvais' => false,
+                ],
+                'commentaires' => ''
+            ];
         }
     }
     
@@ -278,6 +238,41 @@ if (empty($equipements_data)) {
     $equipements_data = generateInventoryDataFromEquipment($standardItems);
 }
 
+/**
+ * Deduplicate tenants array by ID
+ * Logs duplicate records to error_log for monitoring data quality issues
+ * @param array $tenants Array of tenant records
+ * @return array Deduplicated array with unique tenant IDs
+ */
+function deduplicateTenantsById($tenants) {
+    $unique_tenants = [];
+    $seen_ids = [];
+    $duplicate_count = 0;
+    
+    foreach ($tenants as $tenant) {
+        // Validate that tenant has an ID before processing
+        if (!isset($tenant['id'])) {
+            error_log("Tenant record missing ID field, skipping: " . json_encode($tenant));
+            continue;
+        }
+        
+        if (!isset($seen_ids[$tenant['id']])) {
+            $unique_tenants[] = $tenant;
+            $seen_ids[$tenant['id']] = true;
+        } else {
+            $duplicate_count++;
+            // Log duplicate tenant ID for debugging (only ID to protect privacy)
+            error_log("Duplicate tenant ID found in inventaire_locataires: ID={$tenant['id']}");
+        }
+    }
+    
+    if ($duplicate_count > 0) {
+        error_log("Total duplicate tenant records removed: $duplicate_count");
+    }
+    
+    return $unique_tenants;
+}
+
 // Index existing data by ID for quick lookup
 $existing_data_by_id = [];
 foreach ($equipements_data as $item) {
@@ -289,7 +284,11 @@ foreach ($equipements_data as $item) {
 // Get existing tenants for this inventaire
 $stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? ORDER BY id ASC");
 $stmt->execute([$inventaire_id]);
-$existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$all_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Deduplicate tenants by ID in PHP to prevent JavaScript errors from duplicate entries
+// This handles edge cases where duplicate records might exist due to data integrity issues
+$existing_tenants = deduplicateTenantsById($all_tenants);
 
 // If no tenants linked yet, auto-populate from contract (if inventaire is linked to a contract)
 if (empty($existing_tenants) && !empty($inventaire['contrat_id'])) {
@@ -297,26 +296,39 @@ if (empty($existing_tenants) && !empty($inventaire['contrat_id'])) {
     $stmt->execute([$inventaire['contrat_id']]);
     $contract_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Insert tenants into inventaire_locataires
+    // Get existing tenant-inventaire relationships to avoid duplicate inserts
+    $existingLinkStmt = $pdo->prepare("
+        SELECT locataire_id FROM inventaire_locataires 
+        WHERE inventaire_id = ?
+    ");
+    $existingLinkStmt->execute([$inventaire_id]);
+    $existing_tenant_ids = $existingLinkStmt->fetchAll(PDO::FETCH_COLUMN);
+    $existing_tenant_lookup = array_flip($existing_tenant_ids); // Convert to associative array for O(1) lookup
+    
+    // Insert tenants into inventaire_locataires with duplicate check
     $insertStmt = $pdo->prepare("
         INSERT INTO inventaire_locataires (inventaire_id, locataire_id, nom, prenom, email)
         VALUES (?, ?, ?, ?, ?)
     ");
     
     foreach ($contract_tenants as $tenant) {
-        $insertStmt->execute([
-            $inventaire_id,
-            $tenant['id'],
-            $tenant['nom'],
-            $tenant['prenom'],
-            $tenant['email']
-        ]);
+        // Check if this tenant is already linked to this inventaire using in-memory map
+        if (!isset($existing_tenant_lookup[$tenant['id']])) {
+            $insertStmt->execute([
+                $inventaire_id,
+                $tenant['id'],
+                $tenant['nom'],
+                $tenant['prenom'],
+                $tenant['email']
+            ]);
+        }
     }
     
-    // Reload tenants
+    // Reload tenants and deduplicate
     $stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? ORDER BY id ASC");
     $stmt->execute([$inventaire_id]);
-    $existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $all_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $existing_tenants = deduplicateTenantsById($all_tenants);
 }
 
 // Transform tenant signatures for display
@@ -1075,21 +1087,32 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                 }
             });
             
-            <?php foreach ($existing_tenants as $tenant): ?>
-                const signature_<?php echo $tenant['id']; ?> = document.getElementById('tenantSignature_<?php echo $tenant['id']; ?>').value;
-                const certifie_<?php echo $tenant['id']; ?> = document.getElementById('certifie_exact_<?php echo $tenant['id']; ?>').checked;
-                const tenantName_<?php echo $tenant['id']; ?> = <?php echo json_encode($tenant['prenom'] . ' ' . $tenant['nom']); ?>;
+            // Validate tenant signatures - using array to avoid duplicate identifier errors
+            const tenantValidations = [
+                <?php foreach ($existing_tenants as $index => $tenant): ?>
+                {
+                    id: <?php echo $tenant['id']; ?>,
+                    name: <?php echo json_encode($tenant['prenom'] . ' ' . $tenant['nom']); ?>,
+                    signatureId: 'tenantSignature_<?php echo $tenant['id']; ?>',
+                    certifieId: 'certifie_exact_<?php echo $tenant['id']; ?>'
+                }<?php echo ($index < count($existing_tenants) - 1) ? ',' : ''; ?>
+                <?php endforeach; ?>
+            ];
+            
+            tenantValidations.forEach(function(tenant) {
+                const signatureValue = document.getElementById(tenant.signatureId).value;
+                const certifieChecked = document.getElementById(tenant.certifieId).checked;
                 
-                if (!signature_<?php echo $tenant['id']; ?> || signature_<?php echo $tenant['id']; ?>.trim() === '') {
-                    errors.push('La signature de ' + tenantName_<?php echo $tenant['id']; ?> + ' est obligatoire');
+                if (!signatureValue || signatureValue.trim() === '') {
+                    errors.push('La signature de ' + tenant.name + ' est obligatoire');
                     allValid = false;
                 }
                 
-                if (!certifie_<?php echo $tenant['id']; ?>) {
-                    errors.push('La case "Certifié exact" doit être cochée pour ' + tenantName_<?php echo $tenant['id']; ?>);
+                if (!certifieChecked) {
+                    errors.push('La case "Certifié exact" doit être cochée pour ' + tenant.name);
                     allValid = false;
                 }
-            <?php endforeach; ?>
+            });
             
             if (!allValid) {
                 e.preventDefault();

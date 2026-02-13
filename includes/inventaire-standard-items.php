@@ -15,310 +15,112 @@
  * Get standardized inventory items template
  * 
  * Returns the complete structure of inventory items organized by category.
- * État des pièces category includes subcategories (rooms), other categories are flat lists.
+ * NEW SIMPLIFIED STRUCTURE (February 2026) - No subcategories, flat list per category.
+ * Equipment is property-specific based on reference codes.
  * 
+ * @param string $logement_reference Property reference code (e.g., 'RC-01', 'RF-03') for filtering
  * @return array Associative array with category names as keys. 
- *               'État des pièces' category contains subcategories (nested arrays),
- *               while other categories contain direct item arrays.
- *               Each item is an array with 'nom' (string) and 'type' (string) keys.
+ *               Each item is an array with 'nom' (string), 'type' (string), and 'quantite' (int) keys.
  */
-function getStandardInventaireItems() {
-    return [
-        // 3.1 État des pièces
-        'État des pièces' => [
-            'Entrée' => [
-                ['nom' => 'Porte', 'type' => 'item'],
-                ['nom' => 'Sonnette/interphone', 'type' => 'item'],
-                ['nom' => 'Mur', 'type' => 'item'],
-                ['nom' => 'Sol', 'type' => 'item'],
-                ['nom' => 'Vitrage et volets', 'type' => 'item'],
-                ['nom' => 'Plafond', 'type' => 'item'],
-                ['nom' => 'Éclairage et interrupteurs', 'type' => 'item'],
-                ['nom' => 'Prises électriques', 'type' => 'item'],
-            ],
-            'Séjour/salle à manger' => [
-                ['nom' => 'Mur', 'type' => 'item'],
-                ['nom' => 'Sol', 'type' => 'item'],
-                ['nom' => 'Vitrage', 'type' => 'item'],
-                ['nom' => 'Plafond', 'type' => 'item'],
-                ['nom' => 'Éclairage et interrupteurs', 'type' => 'item'],
-                ['nom' => 'Prises électriques', 'type' => 'item'],
-            ],
-            'Cuisine' => [
-                ['nom' => 'Mur', 'type' => 'item'],
-                ['nom' => 'Sol', 'type' => 'item'],
-                ['nom' => 'Vitrage et volets', 'type' => 'item'],
-                ['nom' => 'Plafond', 'type' => 'item'],
-                ['nom' => 'Éclairage et interrupteurs', 'type' => 'item'],
-                ['nom' => 'Prises électriques', 'type' => 'item'],
-                ['nom' => 'Placards et tiroirs', 'type' => 'item'],
-                ['nom' => 'Évier et robinetterie', 'type' => 'item'],
-                ['nom' => 'Plaques de cuisson et four', 'type' => 'item'],
-                ['nom' => 'Hotte', 'type' => 'item'],
-                ['nom' => 'Électroménager', 'type' => 'item'],
-            ],
-            'Chambre 1' => [
-                ['nom' => 'Mur', 'type' => 'item'],
-                ['nom' => 'Sol', 'type' => 'item'],
-                ['nom' => 'Vitrage et volets', 'type' => 'item'],
-                ['nom' => 'Plafond', 'type' => 'item'],
-                ['nom' => 'Éclairage et interrupteurs', 'type' => 'item'],
-                ['nom' => 'Prises électriques', 'type' => 'item'],
-            ],
-            'Chambre 2' => [
-                ['nom' => 'Mur', 'type' => 'item'],
-                ['nom' => 'Sol', 'type' => 'item'],
-                ['nom' => 'Vitrage et volets', 'type' => 'item'],
-                ['nom' => 'Plafond', 'type' => 'item'],
-                ['nom' => 'Éclairage et interrupteurs', 'type' => 'item'],
-                ['nom' => 'Prises électriques', 'type' => 'item'],
-            ],
-            'Chambre 3' => [
-                ['nom' => 'Mur', 'type' => 'item'],
-                ['nom' => 'Sol', 'type' => 'item'],
-                ['nom' => 'Vitrage et volets', 'type' => 'item'],
-                ['nom' => 'Plafond', 'type' => 'item'],
-                ['nom' => 'Éclairage et interrupteurs', 'type' => 'item'],
-                ['nom' => 'Prises électriques', 'type' => 'item'],
-            ],
-            'Salle de bain 1' => [
-                ['nom' => 'Mur', 'type' => 'item'],
-                ['nom' => 'Sol', 'type' => 'item'],
-                ['nom' => 'Vitrage et volets', 'type' => 'item'],
-                ['nom' => 'Plafond', 'type' => 'item'],
-                ['nom' => 'Éclairage et interrupteurs', 'type' => 'item'],
-                ['nom' => 'Prises électriques', 'type' => 'item'],
-                ['nom' => 'Lavabo et robinetterie', 'type' => 'item'],
-                ['nom' => 'Baignoire/douche', 'type' => 'item'],
-                ['nom' => 'WC', 'type' => 'item'],
-            ],
-            'Salle de bain 2' => [
-                ['nom' => 'Mur', 'type' => 'item'],
-                ['nom' => 'Sol', 'type' => 'item'],
-                ['nom' => 'Vitrage et volets', 'type' => 'item'],
-                ['nom' => 'Plafond', 'type' => 'item'],
-                ['nom' => 'Éclairage et interrupteurs', 'type' => 'item'],
-                ['nom' => 'Prises électriques', 'type' => 'item'],
-                ['nom' => 'Lavabo et robinetterie', 'type' => 'item'],
-                ['nom' => 'Baignoire/douche', 'type' => 'item'],
-                ['nom' => 'WC', 'type' => 'item'],
-            ],
-            'WC 1' => [
-                ['nom' => 'Mur', 'type' => 'item'],
-                ['nom' => 'Sol', 'type' => 'item'],
-                ['nom' => 'Vitrage et volets', 'type' => 'item'],
-                ['nom' => 'Plafond', 'type' => 'item'],
-                ['nom' => 'Éclairage et interrupteurs', 'type' => 'item'],
-                ['nom' => 'Prises électriques', 'type' => 'item'],
-                ['nom' => 'Lavabo et robinetterie', 'type' => 'item'],
-                ['nom' => 'WC', 'type' => 'item'],
-            ],
-            'WC 2' => [
-                ['nom' => 'Mur', 'type' => 'item'],
-                ['nom' => 'Sol', 'type' => 'item'],
-                ['nom' => 'Vitrage et volets', 'type' => 'item'],
-                ['nom' => 'Plafond', 'type' => 'item'],
-                ['nom' => 'Éclairage et interrupteurs', 'type' => 'item'],
-                ['nom' => 'Prises électriques', 'type' => 'item'],
-                ['nom' => 'Lavabo et robinetterie', 'type' => 'item'],
-                ['nom' => 'WC', 'type' => 'item'],
-            ],
-            'Autres pièces' => [
-                ['nom' => 'Mur', 'type' => 'item'],
-                ['nom' => 'Sol', 'type' => 'item'],
-                ['nom' => 'Vitrage et volets', 'type' => 'item'],
-                ['nom' => 'Plafond', 'type' => 'item'],
-                ['nom' => 'Éclairage et interrupteurs', 'type' => 'item'],
-                ['nom' => 'Prises électriques', 'type' => 'item'],
-            ],
-        ],
-        
-        // 3.2 Inventaire et état des meubles
+function getStandardInventaireItems($logement_reference = '') {
+    // Normalize reference for matching (extract prefix)
+    $ref_prefix = '';
+    if (preg_match('/^(RC|RF|RP)/', $logement_reference, $matches)) {
+        $ref_prefix = $matches[1];
+    }
+    
+    // Check if this is a specific logement that gets extra items
+    $is_rc01_02_rp07 = in_array($logement_reference, ['RC-01', 'RC-02', 'RP-07']);
+    $is_rc_or_rf = in_array($ref_prefix, ['RC', 'RF']);
+    
+    $items = [
+        // 🪑 MEUBLES (all set to Bon État / Good condition)
         'Meubles' => [
-            ['nom' => 'Chaises (séjour)', 'type' => 'countable'],
-            ['nom' => 'Chaises (chambres)', 'type' => 'countable'],
-            ['nom' => 'Chaises (cuisine)', 'type' => 'countable'],
-            ['nom' => 'Chaises (autres)', 'type' => 'countable'],
-            ['nom' => 'Tabourets', 'type' => 'countable'],
-            ['nom' => 'Canapés', 'type' => 'countable'],
-            ['nom' => 'Fauteuils', 'type' => 'countable'],
-            ['nom' => 'Tables (séjour)', 'type' => 'countable'],
-            ['nom' => 'Tables (chambres)', 'type' => 'countable'],
-            ['nom' => 'Tables (cuisine)', 'type' => 'countable'],
-            ['nom' => 'Tables de nuit', 'type' => 'countable'],
-            ['nom' => 'Tables (autres)', 'type' => 'countable'],
-            ['nom' => 'Bureaux', 'type' => 'countable'],
-            ['nom' => 'Commodes', 'type' => 'countable'],
-            ['nom' => 'Armoires', 'type' => 'countable'],
-            ['nom' => 'Buffets', 'type' => 'countable'],
-            ['nom' => 'Lits simples', 'type' => 'countable'],
-            ['nom' => 'Lits doubles', 'type' => 'countable'],
-            ['nom' => 'Placards', 'type' => 'countable'],
-            ['nom' => 'Lustres/plafonniers', 'type' => 'countable'],
-            ['nom' => 'Lampes/appliques', 'type' => 'countable'],
+            ['nom' => 'Chaises', 'type' => 'countable', 'quantite' => 2, 'default_etat' => 'bon'],
+            ['nom' => 'Canapé', 'type' => 'countable', 'quantite' => 1, 'default_etat' => 'bon'],
+            ['nom' => 'Table à manger', 'type' => 'countable', 'quantite' => 1, 'default_etat' => 'bon'],
+            ['nom' => 'Table basse', 'type' => 'countable', 'quantite' => 1, 'default_etat' => 'bon'],
+            ['nom' => 'Placards intégrées', 'type' => 'item', 'quantite' => 1, 'default_etat' => 'bon'],
         ],
         
-        // 3.3 Électroménager
+        // 🔌 ÉLECTROMÉNAGER
         'Électroménager' => [
-            ['nom' => 'Réfrigérateur', 'type' => 'countable'],
-            ['nom' => 'Congélateur', 'type' => 'countable'],
-            ['nom' => 'Cuisinière', 'type' => 'countable'],
-            ['nom' => 'Four', 'type' => 'countable'],
-            ['nom' => 'Four micro-ondes', 'type' => 'countable'],
-            ['nom' => 'Grille-pain', 'type' => 'countable'],
-            ['nom' => 'Bouilloire', 'type' => 'countable'],
-            ['nom' => 'Cafetière', 'type' => 'countable'],
-            ['nom' => 'Lave-vaisselle', 'type' => 'countable'],
-            ['nom' => 'Lave-linge', 'type' => 'countable'],
-            ['nom' => 'Sèche-linge', 'type' => 'countable'],
-            ['nom' => 'Télévision', 'type' => 'countable'],
-            ['nom' => 'Lecteur DVD', 'type' => 'countable'],
-            ['nom' => 'Vidéoprojecteur', 'type' => 'countable'],
-            ['nom' => 'Chaîne Hi-fi', 'type' => 'countable'],
-            ['nom' => 'Fer à repasser', 'type' => 'countable'],
-            ['nom' => 'Aspirateur', 'type' => 'countable'],
+            ['nom' => 'Réfrigérateur', 'type' => 'countable', 'quantite' => 1],
+            ['nom' => 'Machine à laver séchante', 'type' => 'countable', 'quantite' => 1],
+            ['nom' => 'Télévision', 'type' => 'countable', 'quantite' => 1],
+            ['nom' => 'Fire Stick', 'type' => 'countable', 'quantite' => 1],
+            ['nom' => 'Plaque de cuisson', 'type' => 'countable', 'quantite' => 1],
         ],
         
-        // 3.4 Équipements divers - Vaisselle
-        'Vaisselle' => [
-            ['nom' => 'Grandes assiettes', 'type' => 'countable'],
-            ['nom' => 'Assiettes à dessert', 'type' => 'countable'],
-            ['nom' => 'Assiettes creuses', 'type' => 'countable'],
-            ['nom' => 'Autres assiettes', 'type' => 'countable'],
-            ['nom' => 'Verres à pied', 'type' => 'countable'],
-            ['nom' => 'Autres verres', 'type' => 'countable'],
-            ['nom' => 'Bols', 'type' => 'countable'],
-            ['nom' => 'Tasses', 'type' => 'countable'],
-            ['nom' => 'Soucoupes', 'type' => 'countable'],
-            ['nom' => 'Saladiers', 'type' => 'countable'],
-            ['nom' => 'Plats', 'type' => 'countable'],
-            ['nom' => 'Carafes', 'type' => 'countable'],
-        ],
-        
-        // 3.4 Équipements divers - Couverts
-        'Couverts' => [
-            ['nom' => 'Fourchettes', 'type' => 'countable'],
-            ['nom' => 'Petites cuillères', 'type' => 'countable'],
-            ['nom' => 'Grandes cuillères', 'type' => 'countable'],
-            ['nom' => 'Couteaux de table', 'type' => 'countable'],
-            ['nom' => 'Couteaux de cuisine', 'type' => 'countable'],
-            ['nom' => 'Couteaux à pain', 'type' => 'countable'],
-            ['nom' => 'Couverts de service', 'type' => 'countable'],
-            ['nom' => 'Tire-bouchon', 'type' => 'countable'],
-            ['nom' => 'Décapsuleur', 'type' => 'countable'],
-            ['nom' => 'Ouvre-boîtes', 'type' => 'countable'],
-        ],
-        
-        // 3.4 Équipements divers - Ustensiles
-        'Ustensiles' => [
-            ['nom' => 'Pelles', 'type' => 'countable'],
-            ['nom' => 'Seaux', 'type' => 'countable'],
-            ['nom' => 'Torchons', 'type' => 'countable'],
-            ['nom' => 'Planches à découper', 'type' => 'countable'],
-            ['nom' => 'Passoires', 'type' => 'countable'],
-            ['nom' => 'Poêles', 'type' => 'countable'],
-            ['nom' => 'Casseroles', 'type' => 'countable'],
-            ['nom' => 'Égouttoir', 'type' => 'countable'],
-            ['nom' => 'Balais/balayettes', 'type' => 'countable'],
-        ],
-        
-        // 3.4 Équipements divers - Literie et linge
-        'Literie et linge' => [
-            ['nom' => 'Matelas', 'type' => 'countable'],
-            ['nom' => 'Traversins', 'type' => 'countable'],
-            ['nom' => 'Taies de traversin', 'type' => 'countable'],
-            ['nom' => 'Oreillers', 'type' => 'countable'],
-            ['nom' => "Taies d'oreiller", 'type' => 'countable'],
-            ['nom' => 'Draps du dessous', 'type' => 'countable'],
-            ['nom' => 'Draps', 'type' => 'countable'],
-            ['nom' => 'Couettes', 'type' => 'countable'],
-            ['nom' => 'Housses de couette', 'type' => 'countable'],
-            ['nom' => 'Couvertures', 'type' => 'countable'],
-            ['nom' => 'Alaises', 'type' => 'countable'],
-            ['nom' => 'Couvre-lits', 'type' => 'countable'],
-        ],
-        
-        // 3.4 Équipements divers - Salle de bain
-        'Linge de salle de bain' => [
-            ['nom' => 'Peignoirs de bain', 'type' => 'countable'],
-            ['nom' => 'Serviettes de bain', 'type' => 'countable'],
-            ['nom' => 'Serviettes de toilette', 'type' => 'countable'],
-            ['nom' => 'Gants de toilette', 'type' => 'countable'],
-        ],
-        
-        // 3.4 Équipements divers - Linge de maison
-        'Linge de maison' => [
-            ['nom' => 'Nappes', 'type' => 'countable'],
-            ['nom' => 'Serviettes de table', 'type' => 'countable'],
-        ],
-        
-        // 3.4 Équipements divers - Divers
-        'Divers' => [
-            ['nom' => 'Coussins', 'type' => 'countable'],
+        // 🍽 ÉQUIPEMENT 1 (Cuisine / Vaisselle)
+        'Équipement 1 (Cuisine / Vaisselle)' => [
+            ['nom' => 'Grandes assiettes', 'type' => 'countable', 'quantite' => 4],
+            ['nom' => 'Assiettes à dessert', 'type' => 'countable', 'quantite' => 4],
+            ['nom' => 'Assiettes creuses', 'type' => 'countable', 'quantite' => 4],
+            ['nom' => 'Fourchettes', 'type' => 'countable', 'quantite' => 4],
+            ['nom' => 'Petites cuillères', 'type' => 'countable', 'quantite' => 4],
+            ['nom' => 'Grandes cuillères', 'type' => 'countable', 'quantite' => 4],
+            ['nom' => 'Couteaux de table', 'type' => 'countable', 'quantite' => 4],
+            ['nom' => 'Verres', 'type' => 'countable', 'quantite' => 4],
+            ['nom' => 'Bols', 'type' => 'countable', 'quantite' => 4],
+            ['nom' => 'Tasses', 'type' => 'countable', 'quantite' => 4],
+            ['nom' => 'Saladier', 'type' => 'countable', 'quantite' => 1],
+            ['nom' => 'Poêle', 'type' => 'countable', 'quantite' => 1],
+            ['nom' => 'Casserole', 'type' => 'countable', 'quantite' => 1],
+            ['nom' => 'Planche à découper', 'type' => 'countable', 'quantite' => 1],
         ],
     ];
+    
+    // Add property-specific items for RC-01, RC-02, RP-07
+    if ($is_rc01_02_rp07) {
+        $items['Meubles'][] = ['nom' => 'Lit double', 'type' => 'countable', 'quantite' => 1, 'default_etat' => 'bon'];
+        $items['Meubles'][] = ['nom' => 'Tables de chevets', 'type' => 'countable', 'quantite' => 2, 'default_etat' => 'bon'];
+    }
+    
+    // Add property-specific items for RC and RF prefixes
+    if ($is_rc_or_rf) {
+        $items['Meubles'][] = ['nom' => 'Lustres / Plafonniers', 'type' => 'countable', 'quantite' => 1, 'default_etat' => 'bon'];
+        $items['Meubles'][] = ['nom' => 'Lampadaire', 'type' => 'countable', 'quantite' => 1, 'default_etat' => 'bon'];
+        $items['Électroménager'][] = ['nom' => 'Four grill / micro-ondes', 'type' => 'countable', 'quantite' => 1];
+        $items['Électroménager'][] = ['nom' => 'Aspirateur', 'type' => 'countable', 'quantite' => 1];
+    }
+    
+    return $items;
 }
 
 /**
  * Generate initial inventory data structure from standard items
+ * @param string $logement_reference Property reference for property-specific equipment
  * @return array Formatted data for JSON storage with both entry and exit fields initialized
  */
-function generateStandardInventoryData() {
-    $items = getStandardInventaireItems();
+function generateStandardInventoryData($logement_reference = '') {
+    $items = getStandardInventaireItems($logement_reference);
     $data = [];
     $itemIndex = 0;
     
-    foreach ($items as $categoryName => $categoryContent) {
-        // Check if category has subcategories (like État des pièces)
-        if ($categoryName === 'État des pièces') {
-            foreach ($categoryContent as $subcategoryName => $subcategoryItems) {
-                foreach ($subcategoryItems as $item) {
-                    $data[] = [
-                        'id' => ++$itemIndex,
-                        'categorie' => $categoryName,
-                        'sous_categorie' => $subcategoryName,
-                        'nom' => $item['nom'],
-                        'type' => $item['type'],
-                        'entree' => [
-                            'nombre' => null,
-                            'bon' => false,
-                            'usage' => false,
-                            'mauvais' => false,
-                        ],
-                        'sortie' => [
-                            'nombre' => null,
-                            'bon' => false,
-                            'usage' => false,
-                            'mauvais' => false,
-                        ],
-                        'commentaires' => ''
-                    ];
-                }
-            }
-        } else {
-            // Simple category (flat list of items)
-            foreach ($categoryContent as $item) {
-                $data[] = [
-                    'id' => ++$itemIndex,
-                    'categorie' => $categoryName,
-                    'sous_categorie' => null,
-                    'nom' => $item['nom'],
-                    'type' => $item['type'],
-                    'entree' => [
-                        'nombre' => null,
-                        'bon' => false,
-                        'usage' => false,
-                        'mauvais' => false,
-                    ],
-                    'sortie' => [
-                        'nombre' => null,
-                        'bon' => false,
-                        'usage' => false,
-                        'mauvais' => false,
-                    ],
-                    'commentaires' => ''
-                ];
-            }
+    foreach ($items as $categoryName => $categoryItems) {
+        // New simplified structure - no subcategories, flat list
+        foreach ($categoryItems as $item) {
+            $data[] = [
+                'id' => ++$itemIndex,
+                'categorie' => $categoryName,
+                'sous_categorie' => null, // No subcategories in new structure
+                'nom' => $item['nom'],
+                'type' => $item['type'],
+                'entree' => [
+                    'nombre' => $item['quantite'] ?? 0,
+                    'bon' => isset($item['default_etat']) && $item['default_etat'] === 'bon',
+                    'usage' => false,
+                    'mauvais' => false,
+                ],
+                'sortie' => [
+                    'nombre' => null,
+                    'bon' => false,
+                    'usage' => false,
+                    'mauvais' => false,
+                ],
+                'commentaires' => ''
+            ];
         }
     }
     
