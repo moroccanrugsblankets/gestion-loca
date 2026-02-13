@@ -302,6 +302,16 @@ foreach ($existing_tenants as $idx => $t) {
     error_log("  DeduplicatedTenant[$idx]: id={$t['id']}, locataire_id={$t['locataire_id']}, nom={$t['nom']}, prenom={$t['prenom']}");
 }
 
+// Safety check: Verify all IDs are unique (this should never fail if deduplication works)
+$tenant_ids = array_column($existing_tenants, 'id');
+$unique_ids = array_unique($tenant_ids);
+if (count($tenant_ids) !== count($unique_ids)) {
+    $error_msg = "CRITICAL DATA ERROR: Duplicate tenant IDs detected in inventaire $inventaire_id. IDs: " . implode(', ', $tenant_ids);
+    error_log($error_msg);
+    $_SESSION['error'] = "Erreur de données: Plusieurs locataires ont le même identifiant. Veuillez contacter l'administrateur.";
+    // Continue with the data as-is - the user needs to see the problem and the logs will help debug it
+}
+
 // If no tenants linked yet, auto-populate from contract (if inventaire is linked to a contract)
 if (empty($existing_tenants) && !empty($inventaire['contrat_id'])) {
     $stmt = $pdo->prepare("SELECT * FROM locataires WHERE contrat_id = ? ORDER BY ordre ASC");
@@ -873,6 +883,7 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
     <script>
         // Configuration
         const SIGNATURE_JPEG_QUALITY = 0.95;
+        const initializedCanvases = new Set(); // Track initialized canvases to detect duplicates
         
         // Initialize tenant signature canvases on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -944,6 +955,15 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
         }
         
         function initTenantSignature(id, tenantIndex) {
+            // Check for duplicate initialization
+            if (initializedCanvases.has(id)) {
+                console.error(`⚠️  DUPLICATE CANVAS ID DETECTED: Canvas ID ${id} was already initialized!`);
+                console.error(`This will cause Tenant ${tenantIndex} signature to not work properly.`);
+                console.error(`Root cause: Multiple tenant records have the same database ID.`);
+                return;
+            }
+            initializedCanvases.add(id);
+            
             const canvas = document.getElementById(`tenantCanvas_${id}`);
             if (!canvas) {
                 console.error(`Canvas not found for tenant ID: ${id} (Tenant ${tenantIndex})`);
