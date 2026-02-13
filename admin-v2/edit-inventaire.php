@@ -283,6 +283,38 @@ $stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id =
 $stmt->execute([$inventaire_id]);
 $existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// DEFENSIVE: Check for and remove duplicate tenant records (same inventaire_id + locataire_id)
+// This handles data corruption or race conditions
+$seen_locataire_ids = [];
+$duplicate_ids_to_remove = [];
+
+foreach ($existing_tenants as $tenant) {
+    $locataire_id = $tenant['locataire_id'];
+    
+    // If we've already seen this locataire_id for this inventory, mark it as a duplicate
+    if ($locataire_id && isset($seen_locataire_ids[$locataire_id])) {
+        $duplicate_ids_to_remove[] = $tenant['id'];
+        error_log("DUPLICATE TENANT DETECTED: inventaire_locataires id={$tenant['id']}, locataire_id=$locataire_id, inventaire_id=$inventaire_id");
+    } else if ($locataire_id) {
+        $seen_locataire_ids[$locataire_id] = true;
+    }
+}
+
+// Remove duplicates if any found
+if (!empty($duplicate_ids_to_remove)) {
+    error_log("Removing " . count($duplicate_ids_to_remove) . " duplicate tenant records for inventaire_id=$inventaire_id");
+    $placeholders = implode(',', array_fill(0, count($duplicate_ids_to_remove), '?'));
+    $deleteStmt = $pdo->prepare("DELETE FROM inventaire_locataires WHERE id IN ($placeholders) AND inventaire_id = ?");
+    $params = array_merge($duplicate_ids_to_remove, [$inventaire_id]);
+    $deleteStmt->execute($params);
+    
+    // Reload tenants after cleanup
+    $stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? ORDER BY id ASC");
+    $stmt->execute([$inventaire_id]);
+    $existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    error_log("After cleanup: " . count($existing_tenants) . " unique tenant(s) remain for inventaire_id=$inventaire_id");
+}
+
 // If no tenants linked yet, auto-populate from contract (if inventaire is linked to a contract)
 if (empty($existing_tenants) && !empty($inventaire['contrat_id'])) {
     $stmt = $pdo->prepare("SELECT * FROM locataires WHERE contrat_id = ? ORDER BY ordre ASC");
@@ -307,13 +339,28 @@ if (empty($existing_tenants) && !empty($inventaire['contrat_id'])) {
     foreach ($contract_tenants as $tenant) {
         // Check if this tenant is already linked to this inventaire using in-memory map
         if (!isset($existing_tenant_lookup[$tenant['id']])) {
-            $insertStmt->execute([
-                $inventaire_id,
-                $tenant['id'],
-                $tenant['nom'],
-                $tenant['prenom'],
-                $tenant['email']
-            ]);
+            try {
+                error_log("Inserting tenant into inventaire_locataires: inventaire_id=$inventaire_id, locataire_id={$tenant['id']}, name={$tenant['prenom']} {$tenant['nom']}");
+                $insertStmt->execute([
+                    $inventaire_id,
+                    $tenant['id'],
+                    $tenant['nom'],
+                    $tenant['prenom'],
+                    $tenant['email']
+                ]);
+                $insertedId = $pdo->lastInsertId();
+                error_log("Successfully inserted inventaire_locataires record with id=$insertedId");
+            } catch (PDOException $e) {
+                // Handle duplicate key error gracefully (error code 23000)
+                if ($e->getCode() == 23000) {
+                    error_log("Duplicate key prevented insertion: locataire_id={$tenant['id']} already exists for inventaire_id=$inventaire_id");
+                } else {
+                    // Re-throw other errors
+                    throw $e;
+                }
+            }
+        } else {
+            error_log("Skipping duplicate tenant insertion: locataire_id={$tenant['id']} already linked to inventaire_id=$inventaire_id");
         }
     }
     
