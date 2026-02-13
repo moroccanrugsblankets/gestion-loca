@@ -740,16 +740,16 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
             // Verify file exists before adding to PDF
             $fullPath = dirname(__DIR__) . '/' . $landlordSigPath;
             if (file_exists($fullPath)) {
-                // Use public URL for signature image
+                // Use public URL for signature image with no-border styling
                 $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($landlordSigPath, '/');
-                $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" width="120" border="0">';
+                $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" style="' . INVENTAIRE_SIGNATURE_IMG_STYLE . ' width: 120px;" border="0">';
             } else {
                 error_log("Landlord signature file not found: $fullPath");
             }
         } else {
             // Still base64 after conversion attempt - use as fallback but log warning
             error_log("WARNING: Using base64 signature for landlord (conversion may have failed)");
-            $html .= '<img src="' . htmlspecialchars($landlordSigPath) . '" alt="Signature Bailleur" width="120" border="0">';
+            $html .= '<img src="' . htmlspecialchars($landlordSigPath) . '" alt="Signature Bailleur" style="' . INVENTAIRE_SIGNATURE_IMG_STYLE . ' width: 120px;" border="0">';
         }
     }
     
@@ -796,16 +796,16 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
                 // File path format - verify file exists before using public URL
                 $fullPath = dirname(__DIR__) . '/' . $signatureData;
                 if (file_exists($fullPath)) {
-                    // Use public URL
+                    // Use public URL with no-border styling
                     $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($signatureData, '/');
-                    $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" width="150" border="0">';
+                    $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" style="' . INVENTAIRE_SIGNATURE_IMG_STYLE . ' width: 150px;" border="0">';
                 } else {
                     error_log("Tenant signature file not found: $fullPath");
                 }
             } else {
                 // Still base64 after conversion attempt - use as fallback but log warning
                 error_log("WARNING: Using base64 signature for tenant (conversion may have failed)");
-                $html .= '<img src="' . htmlspecialchars($signatureData) . '" alt="Signature Locataire" width="150" border="0">';
+                $html .= '<img src="' . htmlspecialchars($signatureData) . '" alt="Signature Locataire" style="' . INVENTAIRE_SIGNATURE_IMG_STYLE . ' width: 150px;" border="0">';
             }
             
             if (!empty($tenantInfo['date_signature'])) {

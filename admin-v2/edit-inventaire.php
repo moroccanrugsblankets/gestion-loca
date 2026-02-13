@@ -286,9 +286,21 @@ $stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id =
 $stmt->execute([$inventaire_id]);
 $all_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Debug logging for tenant loading
+error_log("=== Inventaire $inventaire_id: Loading tenants ===");
+error_log("Raw tenants count: " . count($all_tenants));
+foreach ($all_tenants as $idx => $t) {
+    error_log("  Tenant[$idx]: id={$t['id']}, locataire_id={$t['locataire_id']}, nom={$t['nom']}, prenom={$t['prenom']}");
+}
+
 // Deduplicate tenants by ID in PHP to prevent JavaScript errors from duplicate entries
 // This handles edge cases where duplicate records might exist due to data integrity issues
 $existing_tenants = deduplicateTenantsById($all_tenants);
+
+error_log("After deduplication: " . count($existing_tenants) . " tenants");
+foreach ($existing_tenants as $idx => $t) {
+    error_log("  DeduplicatedTenant[$idx]: id={$t['id']}, locataire_id={$t['locataire_id']}, nom={$t['nom']}, prenom={$t['prenom']}");
+}
 
 // If no tenants linked yet, auto-populate from contract (if inventaire is linked to a contract)
 if (empty($existing_tenants) && !empty($inventaire['contrat_id'])) {
@@ -864,7 +876,10 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
         
         // Initialize tenant signature canvases on page load
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('=== Initializing tenant signatures ===');
+            console.log('Total tenants: <?php echo count($existing_tenants); ?>');
             <?php foreach ($existing_tenants as $index => $tenant): ?>
+            console.log('Initializing tenant <?php echo $index + 1; ?>: ID=<?php echo $tenant['id']; ?>, locataire_id=<?php echo $tenant['locataire_id'] ?? 'null'; ?>, name=<?php echo addslashes($tenant['prenom'] . ' ' . $tenant['nom']); ?>');
             initTenantSignature(<?php echo $tenant['id']; ?>, <?php echo ($index + 1); ?>);
             <?php endforeach; ?>
         });
