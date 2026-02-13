@@ -804,7 +804,7 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                             <?php endif; ?>
                             <label class="form-label">Veuillez signer dans le cadre ci-dessous :</label>
                             <div class="signature-container" style="max-width: 300px;">
-                                <canvas id="tenantCanvas_<?php echo $tenant['id']; ?>" width="300" height="150" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
+                                <canvas id="tenantCanvas_<?php echo $tenant['id']; ?>" width="300" height="150" style="background: white; border: 1px solid #dee2e6; outline: none; padding: 0;"></canvas>
                             </div>
                             <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][signature]" 
                                    id="tenantSignature_<?php echo $tenant['id']; ?>" 
@@ -930,9 +930,16 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
         
         function initTenantSignature(id) {
             const canvas = document.getElementById(`tenantCanvas_${id}`);
-            if (!canvas) return;
+            if (!canvas) {
+                console.error(`Canvas not found for tenant ID: ${id}`);
+                return;
+            }
             
             const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                console.error(`Could not get 2d context for canvas of tenant ID: ${id}`);
+                return;
+            }
             
             // Set drawing style for black signature lines
             ctx.strokeStyle = '#000000';
@@ -1006,6 +1013,8 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                 const mouseEvent = new MouseEvent('mouseup');
                 canvas.dispatchEvent(mouseEvent);
             });
+            
+            console.log(`Signature canvas initialized successfully for tenant ID: ${id}`);
         }
         
         function saveTenantSignature(id) {

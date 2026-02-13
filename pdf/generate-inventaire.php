@@ -435,7 +435,8 @@ function replaceInventaireTemplateVariables($template, $inventaire, $locataires)
  * @return string Checkbox symbol (☑ or ☐)
  */
 function getCheckboxSymbol($checked) {
-    return !empty($checked) ? '☑' : '☐';
+    // Use HTML entities for better compatibility across different systems
+    return !empty($checked) ? '&#9745;' : '&#9744;';
 }
 
 /**
@@ -512,13 +513,19 @@ function buildEquipementsHtml($inventaire, $type) {
 
 /**
  * Generate table header HTML for inventory equipment table
+ * @param string $type Type of inventory ('entree' or 'sortie')
  * @return string HTML for table header
  */
-function getInventoryTableHeader() {
+function getInventoryTableHeader($type = 'sortie') {
     $html = '<thead><tr style="background-color: #3498db; color: white;">';
     $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 6px; width: 25%; font-size: 9px;">Élément</th>';
     $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 6px; text-align: center; background-color: #2196F3; font-size: 9px;">Entrée</th>';
-    $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 6px; text-align: center; background-color: #4CAF50; font-size: 9px;">Sortie</th>';
+    
+    // Only show Sortie columns for exit inventory
+    if ($type === 'sortie') {
+        $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 6px; text-align: center; background-color: #4CAF50; font-size: 9px;">Sortie</th>';
+    }
+    
     $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 6px; width: 20%; font-size: 9px;">Commentaires</th>';
     $html .= '</tr>';
     $html .= '<tr style="background-color: #ecf0f1;">';
@@ -526,10 +533,15 @@ function getInventoryTableHeader() {
     $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Bon</th>';
     $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">D\'usage</th>';
     $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Mauvais</th>';
-    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Nombre</th>';
-    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Bon</th>';
-    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">D\'usage</th>';
-    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Mauvais</th>';
+    
+    // Only show Sortie sub-columns for exit inventory
+    if ($type === 'sortie') {
+        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Nombre</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Bon</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">D\'usage</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Mauvais</th>';
+    }
+    
     $html .= '</tr></thead>';
     return $html;
 }
@@ -539,7 +551,7 @@ function getInventoryTableHeader() {
  */
 function renderEquipementsTable($equipements, $type) {
     $html = '<table cellspacing="0" cellpadding="4" style="width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px;">';
-    $html .= getInventoryTableHeader();
+    $html .= getInventoryTableHeader($type);
     $html .= '<tbody>';
     
     foreach ($equipements as $eq) {
@@ -589,11 +601,15 @@ function renderEquipementsTable($equipements, $type) {
         $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px;">' . $entreeBon . '</td>';
         $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px;">' . $entreeUsage . '</td>';
         $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px;">' . $entreeMauvais . '</td>';
-        // Exit columns
-        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 9px;">' . $sortieNombre . '</td>';
-        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px;">' . $sortieBon . '</td>';
-        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px;">' . $sortieUsage . '</td>';
-        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px;">' . $sortieMauvais . '</td>';
+        
+        // Exit columns - only show for sortie type
+        if ($type === 'sortie') {
+            $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 9px;">' . $sortieNombre . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px;">' . $sortieBon . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px;">' . $sortieUsage . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px;">' . $sortieMauvais . '</td>';
+        }
+        
         // Comments
         $html .= '<td style="border: 1px solid #ddd; padding: 4px; font-size: 9px;">' . $commentaires . '</td>';
         $html .= '</tr>';
