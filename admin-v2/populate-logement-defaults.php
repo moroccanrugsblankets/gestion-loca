@@ -41,6 +41,11 @@ try {
     // Convert standardized items to flat equipment list
     $defaultEquipment = [];
     
+    // Helper function to get default quantity based on item type
+    $getDefaultQuantity = function($itemType) {
+        return ($itemType === 'countable') ? 0 : 1;
+    };
+    
     foreach ($standardItems as $categoryName => $categoryContent) {
         $defaultEquipment[$categoryName] = [];
         
@@ -50,22 +55,18 @@ try {
                 $fullCategoryName = $categoryName . ' - ' . $subcategoryName;
                 $defaultEquipment[$fullCategoryName] = [];
                 foreach ($subcategoryItems as $item) {
-                    // For non-countable items, default to 1; for countable items, default to 0
-                    $quantite = ($item['type'] === 'countable') ? 0 : 1;
                     $defaultEquipment[$fullCategoryName][] = [
                         'nom' => $item['nom'],
-                        'quantite' => $quantite
+                        'quantite' => $getDefaultQuantity($item['type'])
                     ];
                 }
             }
         } else {
             // Other categories are flat
             foreach ($categoryContent as $item) {
-                // For non-countable items, default to 1; for countable items, default to 0
-                $quantite = ($item['type'] === 'countable') ? 0 : 1;
                 $defaultEquipment[$categoryName][] = [
                     'nom' => $item['nom'],
-                    'quantite' => $quantite
+                    'quantite' => $getDefaultQuantity($item['type'])
                 ];
             }
         }

@@ -557,10 +557,14 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
                                 
                                 // Only import if there's something to import
                                 if (equipement || commentaire) {
-                                    // Add a row with section prefix for clarity
-                                    const sectionLabel = section === 'manquants' ? 'Manquant' : 
-                                                        section === 'endommages' ? 'Endommagé' : 
+                                    // Map section names to readable labels
+                                    const sectionLabels = {
+                                        'manquants': 'Manquant',
+                                        'endommages': 'Endommagé'
+                                    };
+                                    const sectionLabel = sectionLabels[section] || 
                                                         section.charAt(0).toUpperCase() + section.slice(1);
+                                    
                                     const poste = equipement;
                                     const comment = `[${sectionLabel}] ${commentaire}`;
                                     
