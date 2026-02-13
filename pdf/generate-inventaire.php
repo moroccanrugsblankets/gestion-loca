@@ -517,32 +517,34 @@ function buildEquipementsHtml($inventaire, $type) {
  * @return string HTML for table header
  */
 function getInventoryTableHeader($type = 'sortie') {
-    $html = '<thead><tr style="background-color: #3498db; color: white;">';
-    $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 6px; width: 25%; font-size: 9px;">Élément</th>';
-    $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 6px; text-align: center; background-color: #2196F3; font-size: 9px;">Entrée</th>';
+    $html = '<thead>';
+    $html .= '<tr style="background-color: #3498db; color: #FFFFFF;">';
+    $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 6px; width: 25%; font-size: 9px; background-color: #3498db; color: #FFFFFF; text-align: left; vertical-align: middle;">Élément</th>';
+    $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 6px; text-align: center; background-color: #2196F3; color: #FFFFFF; font-size: 9px; vertical-align: middle;">Entrée</th>';
     
     // Only show Sortie columns for exit inventory
     if ($type === 'sortie') {
-        $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 6px; text-align: center; background-color: #4CAF50; font-size: 9px;">Sortie</th>';
+        $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 6px; text-align: center; background-color: #4CAF50; color: #FFFFFF; font-size: 9px; vertical-align: middle;">Sortie</th>';
     }
     
-    $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 6px; width: 20%; font-size: 9px;">Commentaires</th>';
+    $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 6px; width: 20%; font-size: 9px; background-color: #3498db; color: #FFFFFF; text-align: left; vertical-align: middle;">Commentaires</th>';
     $html .= '</tr>';
     $html .= '<tr style="background-color: #ecf0f1;">';
-    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Nombre</th>';
-    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Bon</th>';
-    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">D\'usage</th>';
-    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Mauvais</th>';
+    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Nombre</th>';
+    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Bon</th>';
+    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">D\'usage</th>';
+    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Mauvais</th>';
     
     // Only show Sortie sub-columns for exit inventory
     if ($type === 'sortie') {
-        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Nombre</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Bon</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">D\'usage</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px;">Mauvais</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Nombre</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Bon</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">D\'usage</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Mauvais</th>';
     }
     
-    $html .= '</tr></thead>';
+    $html .= '</tr>';
+    $html .= '</thead>';
     return $html;
 }
 
@@ -550,7 +552,7 @@ function getInventoryTableHeader($type = 'sortie') {
  * Render equipment table for PDF
  */
 function renderEquipementsTable($equipements, $type) {
-    $html = '<table cellspacing="0" cellpadding="4" style="width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px;">';
+    $html = '<table cellspacing="0" cellpadding="4" border="0" style="width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px;">';
     $html .= getInventoryTableHeader($type);
     $html .= '<tbody>';
     
@@ -594,28 +596,29 @@ function renderEquipementsTable($equipements, $type) {
             }
         }
         
-        $html .= '<tr>';
-        $html .= '<td style="border: 1px solid #ddd; padding: 4px; font-size: 9px;">' . $nom . '</td>';
+        $html .= '<tr style="background-color: #ffffff;">';
+        $html .= '<td style="border: 1px solid #ddd; padding: 4px; font-size: 9px; text-align: left; vertical-align: top;">' . $nom . '</td>';
         // Entry columns
-        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 9px;">' . $entreeNombre . '</td>';
-        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px;">' . $entreeBon . '</td>';
-        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px;">' . $entreeUsage . '</td>';
-        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px;">' . $entreeMauvais . '</td>';
+        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 9px; vertical-align: middle;">' . $entreeNombre . '</td>';
+        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px; vertical-align: middle;">' . $entreeBon . '</td>';
+        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px; vertical-align: middle;">' . $entreeUsage . '</td>';
+        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px; vertical-align: middle;">' . $entreeMauvais . '</td>';
         
         // Exit columns - only show for sortie type
         if ($type === 'sortie') {
-            $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 9px;">' . $sortieNombre . '</td>';
-            $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px;">' . $sortieBon . '</td>';
-            $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px;">' . $sortieUsage . '</td>';
-            $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px;">' . $sortieMauvais . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 9px; vertical-align: middle;">' . $sortieNombre . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px; vertical-align: middle;">' . $sortieBon . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px; vertical-align: middle;">' . $sortieUsage . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px; vertical-align: middle;">' . $sortieMauvais . '</td>';
         }
         
         // Comments
-        $html .= '<td style="border: 1px solid #ddd; padding: 4px; font-size: 9px;">' . $commentaires . '</td>';
+        $html .= '<td style="border: 1px solid #ddd; padding: 4px; font-size: 9px; text-align: left; vertical-align: top;">' . $commentaires . '</td>';
         $html .= '</tr>';
     }
     
-    $html .= '</tbody></table>';
+    $html .= '</tbody>';
+    $html .= '</table>';
     return $html;
 }
 
@@ -702,11 +705,11 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
     $nbCols = count($locataires) + 1; // +1 for landlord
     $colWidth = 100 / $nbCols;
 
-    $html = '<table border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%; border: none; margin-top: 20px; text-align:center;"><tr>';
+    $html = '<table cellspacing="0" cellpadding="0" border="0" style="width: 100%; max-width: 600px; border-collapse: collapse; border: none; margin-top: 20px; text-align: center;"><tbody><tr style="background-color: transparent; border: none;">
 
     // Landlord column
-    $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px; border: none;">';
-    $html .= '<p><strong>Le bailleur :</strong></p>';
+    $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align: center; padding: 10px; border: none; background-color: transparent;">';
+    $html .= '<p style="margin: 5px 0;"><strong>Le bailleur :</strong></p>';
     
     // Get landlord signature from parametres - fetch both in one query using COALESCE
     $stmt = $pdo->prepare("
@@ -754,22 +757,22 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
     }
     
     $placeSignature = !empty($inventaire['lieu_signature']) ? htmlspecialchars($inventaire['lieu_signature']) : htmlspecialchars($config['DEFAULT_SIGNATURE_LOCATION'] ?? 'Annemasse');
-    $html .= '<p style="font-size:8pt;"><br>&nbsp;<br>&nbsp;<br>Fait à ' . $placeSignature . '</p>';
+    $html .= '<p style="font-size: 8pt; margin: 5px 0;"><br>&nbsp;<br>&nbsp;<br>Fait à ' . $placeSignature . '</p>';
     
     if (!empty($inventaire['date_inventaire'])) {
         $signDate = date('d/m/Y', strtotime($inventaire['date_inventaire']));
-        $html .= '<p style="font-size:8pt;">Le ' . $signDate . '</p>';
+        $html .= '<p style="font-size: 8pt; margin: 5px 0;">Le ' . $signDate . '</p>';
     }
     
-    $html .= '<p style="font-size:9pt;">' . htmlspecialchars($inventaire['bailleur_nom'] ?? $config['COMPANY_NAME']) . '</p>';
+    $html .= '<p style="font-size: 9pt; margin: 5px 0;">' . htmlspecialchars($inventaire['bailleur_nom'] ?? $config['COMPANY_NAME']) . '</p>';
     $html .= '</td>';
 
     // Tenant columns
     foreach ($locataires as $idx => $tenantInfo) {
-        $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px; border: none;">';
+        $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align: center; padding: 10px; border: none; background-color: transparent;">
 
         $tenantLabel = ($nbCols === 2) ? 'Locataire :' : 'Locataire ' . ($idx + 1) . ' :';
-        $html .= '<p><strong>' . $tenantLabel . '</strong></p>';
+        $html .= '<p style="margin: 5px 0;"><strong>' . $tenantLabel . '</strong></p>';
 
         // Display tenant signature if available
         if (!empty($tenantInfo['signature'])) {
@@ -810,21 +813,21 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
             
             if (!empty($tenantInfo['date_signature'])) {
                 $signDate = date('d/m/Y à H:i', strtotime($tenantInfo['date_signature']));
-                $html .= '<p style="font-size:8pt;"><br>&nbsp;<br>&nbsp;<br>Signé le ' . $signDate . '</p>';
+                $html .= '<p style="font-size: 8pt; margin: 5px 0;"><br>&nbsp;<br>&nbsp;<br>Signé le ' . $signDate . '</p>';
             }
             
             // Display "Certifié exact" checkbox status
             if (!empty($tenantInfo['certifie_exact'])) {
-                $html .= '<p style="font-size:8pt; margin-top: 5px;">✓ Certifié exact</p>';
+                $html .= '<p style="font-size: 8pt; margin: 5px 0;">✓ Certifié exact</p>';
             }
         }
 
         $tenantName = htmlspecialchars(trim(($tenantInfo['prenom'] ?? '') . ' ' . ($tenantInfo['nom'] ?? '')));
-        $html .= '<p style="font-size:9pt;">' . $tenantName . '</p>';
+        $html .= '<p style="font-size: 9pt; margin: 5px 0;">' . $tenantName . '</p>';
         $html .= '</td>';
     }
 
-    $html .= '</tr></table>';
+    $html .= '</tr></tbody></table>';
     
     return $html;
 }
