@@ -210,7 +210,7 @@ function updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve 
     }
     
     // Validate that signature data is a valid data URL
-    if (!preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $signatureData, $matches)) {
+    if (!preg_match('/^data:image\/(png|jpeg|jpg);base64,([A-Za-z0-9+\/]+={0,2})$/', $signatureData, $matches)) {
         error_log("Invalid signature data format for locataire ID: $locataireId");
         return false;
     }
@@ -293,7 +293,7 @@ function updateEtatLieuxTenantSignature($etatLieuxLocataireId, $signatureData, $
     }
     
     // Validate that signature data is a valid data URL
-    if (!preg_match('/^data:image\/(png|jpeg|jpg);base64,(.+)$/', $signatureData, $matches)) {
+    if (!preg_match('/^data:image\/(png|jpeg|jpg);base64,([A-Za-z0-9+\/]+={0,2})$/', $signatureData, $matches)) {
         error_log("Invalid signature data format for etat_lieux_locataire ID: $etatLieuxLocataireId");
         return false;
     }
@@ -368,7 +368,7 @@ function updateInventaireTenantSignature($inventaireLocataireId, $signatureData,
     }
     
     // Validate that signature data is a valid data URL
-    if (!preg_match('/^data:image\/(png|jpeg|jpg);base64,([A-Za-z0-9+\/=]+)$/', $signatureData, $matches)) {
+    if (!preg_match('/^data:image\/(png|jpeg|jpg);base64,([A-Za-z0-9+\/]+={0,2})$/', $signatureData, $matches)) {
         error_log("Invalid signature data format for inventaire_locataire ID: $inventaireLocataireId");
         return false;
     }
