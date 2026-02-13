@@ -67,8 +67,7 @@ try {
         echo "Adding UNIQUE constraint on (inventaire_id, locataire_id)...\n";
         $sql = "
             ALTER TABLE inventaire_locataires
-            ADD CONSTRAINT unique_inventaire_locataire
-            UNIQUE KEY (inventaire_id, locataire_id)
+            ADD UNIQUE KEY unique_inventaire_locataire (inventaire_id, locataire_id)
         ";
         $pdo->exec($sql);
         echo "✓ UNIQUE constraint added\n";

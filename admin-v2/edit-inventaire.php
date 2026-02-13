@@ -285,6 +285,8 @@ $existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // DEFENSIVE: Check for and remove duplicate tenant records (same inventaire_id + locataire_id)
 // This handles data corruption or race conditions
+// NOTE: Tenants are fetched with ORDER BY id ASC, so we process them from oldest to newest
+// When a duplicate is found, we keep the first occurrence (oldest) and mark later ones for deletion
 $seen_locataire_ids = [];
 $duplicate_ids_to_remove = [];
 
@@ -292,11 +294,12 @@ foreach ($existing_tenants as $tenant) {
     $locataire_id = $tenant['locataire_id'];
     
     // If we've already seen this locataire_id for this inventory, mark it as a duplicate
+    // The first occurrence (smallest ID) was already added to $seen_locataire_ids, so this is a duplicate
     if ($locataire_id && isset($seen_locataire_ids[$locataire_id])) {
         $duplicate_ids_to_remove[] = $tenant['id'];
-        error_log("DUPLICATE TENANT DETECTED: inventaire_locataires id={$tenant['id']}, locataire_id=$locataire_id, inventaire_id=$inventaire_id");
+        error_log("DUPLICATE TENANT DETECTED: inventaire_locataires id={$tenant['id']}, locataire_id=$locataire_id, inventaire_id=$inventaire_id (will be removed, keeping oldest record)");
     } else if ($locataire_id) {
-        $seen_locataire_ids[$locataire_id] = true;
+        $seen_locataire_ids[$locataire_id] = $tenant['id']; // Track the ID we're keeping
     }
 }
 
