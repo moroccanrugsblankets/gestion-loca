@@ -19,7 +19,8 @@ define('INVENTAIRE_SIGNATURE_MAX_HEIGHT', '10mm');
 
 // Style CSS pour les images de signature (sans bordures)
 // Using explicit TCPDF-compatible CSS to ensure no borders are rendered
-define('INVENTAIRE_SIGNATURE_IMG_STYLE', 'max-width: 150px; max-height: 40px; border: 0; border-width: 0px; border-style: none; border-color: white; outline: 0; outline-width: 0px; padding: 0; margin: 0; background: transparent; background-color: transparent;');
+// Width and height set explicitly for consistent sizing
+define('INVENTAIRE_SIGNATURE_IMG_STYLE', 'width: 130px; height: auto; max-width: 150px; max-height: 40px; border: 0; border-width: 0px; border-style: none; border-color: white; outline: 0; outline-width: 0px; padding: 0; margin: 0; background: transparent; background-color: transparent;');
 
 /**
  * Convert relative image paths to absolute URLs for TCPDF
@@ -520,28 +521,42 @@ function buildEquipementsHtml($inventaire, $type) {
 function getInventoryTableHeader($type = 'sortie') {
     $html = '<thead>';
     $html .= '<tr style="background-color: #3498db; color: #FFFFFF;">';
-    $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 6px; width: 25%; font-size: 9px; background-color: #3498db; color: #FFFFFF; text-align: left; vertical-align: middle;">Élément</th>';
-    $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 6px; text-align: center; background-color: #2196F3; color: #FFFFFF; font-size: 9px; vertical-align: middle;">Entrée</th>';
     
-    // Only show Sortie columns for exit inventory
+    // Fixed widths that total to 100%
     if ($type === 'sortie') {
+        // Sortie: Element (30%) + Entrée (4×6% = 24%) + Sortie (4×6% = 24%) + Comments (22%) = 100%
+        $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 6px; width: 30%; font-size: 9px; background-color: #3498db; color: #FFFFFF; text-align: left; vertical-align: middle;">Élément</th>';
+        $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 6px; text-align: center; background-color: #2196F3; color: #FFFFFF; font-size: 9px; vertical-align: middle;">Entrée</th>';
         $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 6px; text-align: center; background-color: #4CAF50; color: #FFFFFF; font-size: 9px; vertical-align: middle;">Sortie</th>';
+        $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 6px; width: 22%; font-size: 9px; background-color: #3498db; color: #FFFFFF; text-align: left; vertical-align: middle;">Commentaires</th>';
+    } else {
+        // Entree: Element (35%) + Entrée (4×10% = 40%) + Comments (25%) = 100%
+        $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 6px; width: 35%; font-size: 9px; background-color: #3498db; color: #FFFFFF; text-align: left; vertical-align: middle;">Élément</th>';
+        $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 6px; text-align: center; background-color: #2196F3; color: #FFFFFF; font-size: 9px; vertical-align: middle;">Entrée</th>';
+        $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 6px; width: 25%; font-size: 9px; background-color: #3498db; color: #FFFFFF; text-align: left; vertical-align: middle;">Commentaires</th>';
     }
     
-    $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 6px; width: 20%; font-size: 9px; background-color: #3498db; color: #FFFFFF; text-align: left; vertical-align: middle;">Commentaires</th>';
     $html .= '</tr>';
     $html .= '<tr style="background-color: #ecf0f1;">';
-    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Nombre</th>';
-    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Bon</th>';
-    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">D\'usage</th>';
-    $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Mauvais</th>';
     
-    // Only show Sortie sub-columns for exit inventory
     if ($type === 'sortie') {
-        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Nombre</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Bon</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">D\'usage</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 5%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Mauvais</th>';
+        // Entrée sub-columns (4 × 6% = 24%)
+        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 6%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Nombre</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 6%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Bon</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 6%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">D\'usage</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 6%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Mauvais</th>';
+        
+        // Sortie sub-columns (4 × 6% = 24%)
+        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 6%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Nombre</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 6%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Bon</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 6%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">D\'usage</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 6%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Mauvais</th>';
+    } else {
+        // Entrée sub-columns (4 × 10% = 40%)
+        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 10%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Nombre</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 10%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Bon</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 10%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">D\'usage</th>';
+        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 10%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Mauvais</th>';
     }
     
     $html .= '</tr>';
@@ -704,13 +719,23 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
     global $pdo, $config;
     
     $nbCols = count($locataires) + 1; // +1 for landlord
-    $colWidth = 100 / $nbCols;
+    // Use fixed pixel widths for more consistent PDF rendering
+    $tableWidth = 600; // max-width in pixels
+    $colWidthPx = floor($tableWidth / $nbCols);
 
-    $html = '<table cellspacing="0" cellpadding="0" border="0" style="width: 100%; max-width: 600px; border-collapse: collapse; border: none; margin-top: 20px; text-align: center;"><tbody><tr style="background-color: transparent; border: none;">';
+    // Build signature table with explicit transparent backgrounds and no borders
+    $tableStyle = 'width: 100%; max-width: 600px; border-collapse: collapse; border: none; border-width: 0; ' 
+        . 'margin-top: 20px; text-align: center; background: transparent; background-color: transparent;';
+    $rowStyle = 'background: transparent; background-color: transparent; border: none; border-width: 0;';
+    
+    $html = '<table cellspacing="0" cellpadding="0" border="0" style="' . $tableStyle . '">'
+        . '<tbody><tr style="' . $rowStyle . '">';
 
     // Landlord column
-    $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align: center; padding: 10px; border: none; background-color: transparent;">';
-    $html .= '<p style="margin: 5px 0;"><strong>Le bailleur :</strong></p>';
+    $cellStyle = 'width:' . $colWidthPx . 'px; vertical-align: top; text-align: center; padding: 10px; ' 
+        . 'border: none; border-width: 0; background: transparent; background-color: transparent;';
+    $html .= '<td style="' . $cellStyle . '">';
+    $html .= '<p style="margin: 5px 0; background: transparent;"><strong>Le bailleur :</strong></p>';
     
     // Get landlord signature from parametres - fetch both in one query using COALESCE
     $stmt = $pdo->prepare("
@@ -746,34 +771,36 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
             if (file_exists($fullPath)) {
                 // Use public URL for signature image with no-border styling
                 $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($landlordSigPath, '/');
-                $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" border="0" style="' . INVENTAIRE_SIGNATURE_IMG_STYLE . ' width: 120px;">';
+                $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" border="0" style="' 
+                    . INVENTAIRE_SIGNATURE_IMG_STYLE . '">';
             } else {
                 error_log("Landlord signature file not found: $fullPath");
             }
         } else {
             // Still base64 after conversion attempt - use as fallback but log warning
             error_log("WARNING: Using base64 signature for landlord (conversion may have failed)");
-            $html .= '<img src="' . htmlspecialchars($landlordSigPath) . '" alt="Signature Bailleur" border="0" style="' . INVENTAIRE_SIGNATURE_IMG_STYLE . ' width: 120px;">';
+            $html .= '<img src="' . htmlspecialchars($landlordSigPath) . '" alt="Signature Bailleur" border="0" style="' 
+                . INVENTAIRE_SIGNATURE_IMG_STYLE . '">';
         }
     }
     
     $placeSignature = !empty($inventaire['lieu_signature']) ? htmlspecialchars($inventaire['lieu_signature']) : htmlspecialchars($config['DEFAULT_SIGNATURE_LOCATION'] ?? 'Annemasse');
-    $html .= '<p style="font-size: 8pt; margin: 5px 0;"><br>&nbsp;<br>&nbsp;<br>Fait à ' . $placeSignature . '</p>';
+    $html .= '<p style="font-size: 8pt; margin: 5px 0; background: transparent;"><br>&nbsp;<br>&nbsp;<br>Fait à ' . $placeSignature . '</p>';
     
     if (!empty($inventaire['date_inventaire'])) {
         $signDate = date('d/m/Y', strtotime($inventaire['date_inventaire']));
-        $html .= '<p style="font-size: 8pt; margin: 5px 0;">Le ' . $signDate . '</p>';
+        $html .= '<p style="font-size: 8pt; margin: 5px 0; background: transparent;">Le ' . $signDate . '</p>';
     }
     
-    $html .= '<p style="font-size: 9pt; margin: 5px 0;">' . htmlspecialchars($inventaire['bailleur_nom'] ?? $config['COMPANY_NAME']) . '</p>';
+    $html .= '<p style="font-size: 9pt; margin: 5px 0; background: transparent;">' . htmlspecialchars($inventaire['bailleur_nom'] ?? $config['COMPANY_NAME']) . '</p>';
     $html .= '</td>';
 
     // Tenant columns
     foreach ($locataires as $idx => $tenantInfo) {
-        $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align: center; padding: 10px; border: none; background-color: transparent;">';
+        $html .= '<td style="' . $cellStyle . '">';
 
         $tenantLabel = ($nbCols === 2) ? 'Locataire :' : 'Locataire ' . ($idx + 1) . ' :';
-        $html .= '<p style="margin: 5px 0;"><strong>' . $tenantLabel . '</strong></p>';
+        $html .= '<p style="margin: 5px 0; background: transparent;"><strong>' . $tenantLabel . '</strong></p>';
 
         // Display tenant signature if available
         if (!empty($tenantInfo['signature'])) {
@@ -802,29 +829,31 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
                 if (file_exists($fullPath)) {
                     // Use public URL with no-border styling
                     $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($signatureData, '/');
-                    $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" border="0" style="' . INVENTAIRE_SIGNATURE_IMG_STYLE . ' width: 150px;">';
+                    $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" border="0" style="' 
+                        . INVENTAIRE_SIGNATURE_IMG_STYLE . '">';
                 } else {
                     error_log("Tenant signature file not found: $fullPath");
                 }
             } else {
                 // Still base64 after conversion attempt - use as fallback but log warning
                 error_log("WARNING: Using base64 signature for tenant (conversion may have failed)");
-                $html .= '<img src="' . htmlspecialchars($signatureData) . '" alt="Signature Locataire" border="0" style="' . INVENTAIRE_SIGNATURE_IMG_STYLE . ' width: 150px;">';
+                $html .= '<img src="' . htmlspecialchars($signatureData) . '" alt="Signature Locataire" border="0" style="' 
+                    . INVENTAIRE_SIGNATURE_IMG_STYLE . '">';
             }
             
             if (!empty($tenantInfo['date_signature'])) {
                 $signDate = date('d/m/Y à H:i', strtotime($tenantInfo['date_signature']));
-                $html .= '<p style="font-size: 8pt; margin: 5px 0;"><br>&nbsp;<br>&nbsp;<br>Signé le ' . $signDate . '</p>';
+                $html .= '<p style="font-size: 8pt; margin: 5px 0; background: transparent;"><br>&nbsp;<br>&nbsp;<br>Signé le ' . $signDate . '</p>';
             }
             
             // Display "Certifié exact" checkbox status
             if (!empty($tenantInfo['certifie_exact'])) {
-                $html .= '<p style="font-size: 8pt; margin: 5px 0;">✓ Certifié exact</p>';
+                $html .= '<p style="font-size: 8pt; margin: 5px 0; background: transparent;">✓ Certifié exact</p>';
             }
         }
 
         $tenantName = htmlspecialchars(trim(($tenantInfo['prenom'] ?? '') . ' ' . ($tenantInfo['nom'] ?? '')));
-        $html .= '<p style="font-size: 9pt; margin: 5px 0;">' . $tenantName . '</p>';
+        $html .= '<p style="font-size: 9pt; margin: 5px 0; background: transparent;">' . $tenantName . '</p>';
         $html .= '</td>';
     }
 
