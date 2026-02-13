@@ -287,10 +287,20 @@ foreach ($equipements_data as $item) {
 }
 
 // Get existing tenants for this inventaire
-// Using DISTINCT on id to prevent duplicate tenant entries that could cause JavaScript errors
-$stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? GROUP BY id ORDER BY id ASC");
+$stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? ORDER BY id ASC");
 $stmt->execute([$inventaire_id]);
-$existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$all_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Deduplicate tenants by ID in PHP to prevent JavaScript errors from duplicate entries
+// This handles edge cases where duplicate records might exist due to data integrity issues
+$existing_tenants = [];
+$seen_ids = [];
+foreach ($all_tenants as $tenant) {
+    if (!in_array($tenant['id'], $seen_ids)) {
+        $existing_tenants[] = $tenant;
+        $seen_ids[] = $tenant['id'];
+    }
+}
 
 // If no tenants linked yet, auto-populate from contract (if inventaire is linked to a contract)
 if (empty($existing_tenants) && !empty($inventaire['contrat_id'])) {
@@ -298,26 +308,48 @@ if (empty($existing_tenants) && !empty($inventaire['contrat_id'])) {
     $stmt->execute([$inventaire['contrat_id']]);
     $contract_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Insert tenants into inventaire_locataires - using INSERT IGNORE to prevent duplicates
+    // Check if tenant already exists before inserting to prevent duplicates
+    $checkStmt = $pdo->prepare("
+        SELECT COUNT(*) FROM inventaire_locataires 
+        WHERE inventaire_id = ? AND locataire_id = ?
+    ");
+    
+    // Insert tenants into inventaire_locataires with duplicate check
     $insertStmt = $pdo->prepare("
-        INSERT IGNORE INTO inventaire_locataires (inventaire_id, locataire_id, nom, prenom, email)
+        INSERT INTO inventaire_locataires (inventaire_id, locataire_id, nom, prenom, email)
         VALUES (?, ?, ?, ?, ?)
     ");
     
     foreach ($contract_tenants as $tenant) {
-        $insertStmt->execute([
-            $inventaire_id,
-            $tenant['id'],
-            $tenant['nom'],
-            $tenant['prenom'],
-            $tenant['email']
-        ]);
+        // Check if this tenant is already linked to this inventaire
+        $checkStmt->execute([$inventaire_id, $tenant['id']]);
+        $exists = $checkStmt->fetchColumn();
+        
+        if (!$exists) {
+            $insertStmt->execute([
+                $inventaire_id,
+                $tenant['id'],
+                $tenant['nom'],
+                $tenant['prenom'],
+                $tenant['email']
+            ]);
+        }
     }
     
-    // Reload tenants with deduplication to prevent JavaScript errors
-    $stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? GROUP BY id ORDER BY id ASC");
+    // Reload tenants and deduplicate
+    $stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? ORDER BY id ASC");
     $stmt->execute([$inventaire_id]);
-    $existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $all_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Deduplicate by ID
+    $existing_tenants = [];
+    $seen_ids = [];
+    foreach ($all_tenants as $tenant) {
+        if (!in_array($tenant['id'], $seen_ids)) {
+            $existing_tenants[] = $tenant;
+            $seen_ids[] = $tenant['id'];
+        }
+    }
 }
 
 // Transform tenant signatures for display
