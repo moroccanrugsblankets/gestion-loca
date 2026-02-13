@@ -164,17 +164,26 @@ if (empty($equipements)) {
         require_once '../includes/inventaire-standard-items.php';
         $standardItems = getStandardInventaireItems($logement_reference);
         
+        // Build category name to ID mapping
+        $categoryIds = [];
+        $stmt = $pdo->query("SELECT id, nom FROM inventaire_categories");
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $categoryIds[$row['nom']] = $row['id'];
+        }
+        
         $insertStmt = $pdo->prepare("
-            INSERT INTO inventaire_equipements (logement_id, categorie, nom, quantite, ordre)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO inventaire_equipements (logement_id, categorie_id, categorie, nom, quantite, ordre)
+            VALUES (?, ?, ?, ?, ?, ?)
         ");
         
         $ordre = 0;
         foreach ($standardItems as $categoryName => $categoryItems) {
+            $categorie_id = $categoryIds[$categoryName] ?? null;
             foreach ($categoryItems as $item) {
                 $ordre++;
                 $insertStmt->execute([
                     $logement_id,
+                    $categorie_id,
                     $categoryName,
                     $item['nom'],
                     $item['quantite'] ?? 0,
@@ -213,6 +222,17 @@ if (empty($equipements)) {
 $equipements_by_category = [];
 foreach ($equipements as $eq) {
     $catId = $eq['categorie_id'];
+    
+    // If categorie_id is NULL, try to find it from category name for backward compatibility
+    if ($catId === null && !empty($eq['categorie'])) {
+        foreach ($categories_by_id as $id => $cat) {
+            if ($cat['nom'] === $eq['categorie']) {
+                $catId = $id;
+                break;
+            }
+        }
+    }
+    
     if (!isset($equipements_by_category[$catId])) {
         $equipements_by_category[$catId] = [];
     }
