@@ -18,7 +18,8 @@ define('INVENTAIRE_SIGNATURE_MAX_WIDTH', '20mm');
 define('INVENTAIRE_SIGNATURE_MAX_HEIGHT', '10mm');
 
 // Style CSS pour les images de signature (sans bordures)
-define('INVENTAIRE_SIGNATURE_IMG_STYLE', 'max-width: 150px; max-height: 40px; border: none; border-width: 0; border-style: none; border-color: transparent; outline-width: 0; padding: 0; background: transparent;');
+// Using explicit TCPDF-compatible CSS to ensure no borders are rendered
+define('INVENTAIRE_SIGNATURE_IMG_STYLE', 'max-width: 150px; max-height: 40px; border: 0; border-width: 0px; border-style: none; border-color: white; outline: 0; outline-width: 0px; padding: 0; margin: 0; background: transparent; background-color: transparent;');
 
 /**
  * Convert relative image paths to absolute URLs for TCPDF
@@ -745,14 +746,14 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
             if (file_exists($fullPath)) {
                 // Use public URL for signature image with no-border styling
                 $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($landlordSigPath, '/');
-                $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" style="' . INVENTAIRE_SIGNATURE_IMG_STYLE . ' width: 120px;">';
+                $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" border="0" style="' . INVENTAIRE_SIGNATURE_IMG_STYLE . ' width: 120px;">';
             } else {
                 error_log("Landlord signature file not found: $fullPath");
             }
         } else {
             // Still base64 after conversion attempt - use as fallback but log warning
             error_log("WARNING: Using base64 signature for landlord (conversion may have failed)");
-            $html .= '<img src="' . htmlspecialchars($landlordSigPath) . '" alt="Signature Bailleur" style="' . INVENTAIRE_SIGNATURE_IMG_STYLE . ' width: 120px;">';
+            $html .= '<img src="' . htmlspecialchars($landlordSigPath) . '" alt="Signature Bailleur" border="0" style="' . INVENTAIRE_SIGNATURE_IMG_STYLE . ' width: 120px;">';
         }
     }
     
@@ -801,14 +802,14 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
                 if (file_exists($fullPath)) {
                     // Use public URL with no-border styling
                     $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($signatureData, '/');
-                    $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" style="' . INVENTAIRE_SIGNATURE_IMG_STYLE . ' width: 150px;">';
+                    $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" border="0" style="' . INVENTAIRE_SIGNATURE_IMG_STYLE . ' width: 150px;">';
                 } else {
                     error_log("Tenant signature file not found: $fullPath");
                 }
             } else {
                 // Still base64 after conversion attempt - use as fallback but log warning
                 error_log("WARNING: Using base64 signature for tenant (conversion may have failed)");
-                $html .= '<img src="' . htmlspecialchars($signatureData) . '" alt="Signature Locataire" style="' . INVENTAIRE_SIGNATURE_IMG_STYLE . ' width: 150px;">';
+                $html .= '<img src="' . htmlspecialchars($signatureData) . '" alt="Signature Locataire" border="0" style="' . INVENTAIRE_SIGNATURE_IMG_STYLE . ' width: 150px;">';
             }
             
             if (!empty($tenantInfo['date_signature'])) {

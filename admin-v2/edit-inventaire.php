@@ -88,15 +88,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Update tenant signatures
         if (isset($_POST['tenants']) && is_array($_POST['tenants'])) {
             foreach ($_POST['tenants'] as $tenantId => $tenantInfo) {
-                // Update certifie_exact status
-                $certifieExact = isset($tenantInfo['certifie_exact']) ? 1 : 0;
+                // Only update certifie_exact if the checkbox was part of the submission
+                // For draft saves, we want to preserve the existing value if not checked
+                // For finalize, we always update it
+                $shouldUpdateCertifie = isset($_POST['finalize']) && $_POST['finalize'] === '1';
                 
-                $stmt = $pdo->prepare("
-                    UPDATE inventaire_locataires 
-                    SET certifie_exact = ?
-                    WHERE id = ? AND inventaire_id = ?
-                ");
-                $stmt->execute([$certifieExact, $tenantId, $inventaire_id]);
+                if ($shouldUpdateCertifie) {
+                    // Update certifie_exact status (only for finalize)
+                    $certifieExact = isset($tenantInfo['certifie_exact']) ? 1 : 0;
+                    
+                    $stmt = $pdo->prepare("
+                        UPDATE inventaire_locataires 
+                        SET certifie_exact = ?
+                        WHERE id = ? AND inventaire_id = ?
+                    ");
+                    $stmt->execute([$certifieExact, $tenantId, $inventaire_id]);
+                } else {
+                    // For draft saves, only update if explicitly checked (preserve existing value otherwise)
+                    if (isset($tenantInfo['certifie_exact'])) {
+                        $stmt = $pdo->prepare("
+                            UPDATE inventaire_locataires 
+                            SET certifie_exact = 1
+                            WHERE id = ? AND inventaire_id = ?
+                        ");
+                        $stmt->execute([$tenantId, $inventaire_id]);
+                    }
+                }
                 
                 // Update signature if provided
                 if (!empty($tenantInfo['signature'])) {
@@ -895,6 +912,10 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
             const canvas = document.getElementById(`tenantCanvas_${id}`);
             if (!canvas) return;
             
+            // Prevent duplicate initialization
+            if (canvas.dataset.initialized === 'true') return;
+            canvas.dataset.initialized = 'true';
+            
             const ctx = canvas.getContext('2d');
             
             // Set drawing style for black signature lines
@@ -907,67 +928,88 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
             let lastX = 0;
             let lastY = 0;
             
-            // Helper function to get mouse position
-            function getMousePos(e) {
+            // Helper function to get mouse/touch position
+            function getPos(e) {
                 const rect = canvas.getBoundingClientRect();
+                const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+                const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
                 return {
-                    x: e.clientX - rect.left,
-                    y: e.clientY - rect.top
+                    x: clientX - rect.left,
+                    y: clientY - rect.top
                 };
             }
             
+            // Mouse events
             canvas.addEventListener('mousedown', (e) => {
                 isDrawing = true;
-                const pos = getMousePos(e);
+                const pos = getPos(e);
                 lastX = pos.x;
                 lastY = pos.y;
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
             });
             
             canvas.addEventListener('mousemove', (e) => {
                 if (!isDrawing) return;
                 e.preventDefault();
                 
-                const pos = getMousePos(e);
+                const pos = getPos(e);
                 
-                ctx.beginPath();
-                ctx.moveTo(lastX, lastY);
                 ctx.lineTo(pos.x, pos.y);
                 ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
                 
                 lastX = pos.x;
                 lastY = pos.y;
             });
             
             canvas.addEventListener('mouseup', () => {
-                isDrawing = false;
-                saveTenantSignature(id);
+                if (isDrawing) {
+                    isDrawing = false;
+                    saveTenantSignature(id);
+                }
+            });
+            
+            canvas.addEventListener('mouseleave', () => {
+                if (isDrawing) {
+                    isDrawing = false;
+                    saveTenantSignature(id);
+                }
             });
             
             // Touch support
             canvas.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                const touch = e.touches[0];
-                const mouseEvent = new MouseEvent('mousedown', {
-                    clientX: touch.clientX,
-                    clientY: touch.clientY
-                });
-                canvas.dispatchEvent(mouseEvent);
+                isDrawing = true;
+                const pos = getPos(e);
+                lastX = pos.x;
+                lastY = pos.y;
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
             });
             
             canvas.addEventListener('touchmove', (e) => {
+                if (!isDrawing) return;
                 e.preventDefault();
-                const touch = e.touches[0];
-                const mouseEvent = new MouseEvent('mousemove', {
-                    clientX: touch.clientX,
-                    clientY: touch.clientY
-                });
-                canvas.dispatchEvent(mouseEvent);
+                
+                const pos = getPos(e);
+                
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+                
+                lastX = pos.x;
+                lastY = pos.y;
             });
             
             canvas.addEventListener('touchend', (e) => {
                 e.preventDefault();
-                const mouseEvent = new MouseEvent('mouseup');
-                canvas.dispatchEvent(mouseEvent);
+                if (isDrawing) {
+                    isDrawing = false;
+                    saveTenantSignature(id);
+                }
             });
         }
         
@@ -1007,7 +1049,15 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                 saveTenantSignature(<?php echo $tenant['id']; ?>);
             <?php endforeach; ?>
             
-            // Validate that all tenants have signed and checked "Certifié exact"
+            // Check if this is a draft save (no finalize parameter)
+            const isDraftSave = !e.submitter || e.submitter.name !== 'finalize';
+            
+            // Skip validation for draft saves
+            if (isDraftSave) {
+                return true;
+            }
+            
+            // Validate that all tenants have signed and checked "Certifié exact" (only for finalization)
             let allValid = true;
             let errors = [];
             
