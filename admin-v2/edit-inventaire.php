@@ -290,6 +290,12 @@ function deduplicateTenantsById($tenants) {
     $duplicate_count = 0;
     
     foreach ($tenants as $tenant) {
+        // Validate that tenant has an ID before processing
+        if (!isset($tenant['id'])) {
+            error_log("Tenant record missing ID field, skipping: " . json_encode($tenant));
+            continue;
+        }
+        
         if (!isset($seen_ids[$tenant['id']])) {
             $unique_tenants[] = $tenant;
             $seen_ids[$tenant['id']] = true;
@@ -337,7 +343,7 @@ if (empty($existing_tenants) && !empty($inventaire['contrat_id'])) {
     ");
     $existingLinkStmt->execute([$inventaire_id]);
     $existing_tenant_ids = $existingLinkStmt->fetchAll(PDO::FETCH_COLUMN);
-    $existing_tenant_ids_map = array_flip($existing_tenant_ids); // Convert to associative array for O(1) lookup
+    $existing_tenant_lookup = array_flip($existing_tenant_ids); // Convert to associative array for O(1) lookup
     
     // Insert tenants into inventaire_locataires with duplicate check
     $insertStmt = $pdo->prepare("
@@ -347,7 +353,7 @@ if (empty($existing_tenants) && !empty($inventaire['contrat_id'])) {
     
     foreach ($contract_tenants as $tenant) {
         // Check if this tenant is already linked to this inventaire using in-memory map
-        if (!isset($existing_tenant_ids_map[$tenant['id']])) {
+        if (!isset($existing_tenant_lookup[$tenant['id']])) {
             $insertStmt->execute([
                 $inventaire_id,
                 $tenant['id'],
