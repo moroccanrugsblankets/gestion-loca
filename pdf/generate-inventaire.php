@@ -19,7 +19,8 @@ define('INVENTAIRE_SIGNATURE_MAX_HEIGHT', '10mm');
 
 // Style CSS pour les images de signature (sans bordures)
 // Using explicit TCPDF-compatible CSS to ensure no borders are rendered
-define('INVENTAIRE_SIGNATURE_IMG_STYLE', 'max-width: 150px; max-height: 40px; border: 0; border-width: 0px; border-style: none; border-color: white; outline: 0; outline-width: 0px; padding: 0; margin: 0; background: transparent; background-color: transparent;');
+// Width and height set explicitly for consistent sizing
+define('INVENTAIRE_SIGNATURE_IMG_STYLE', 'width: 130px; height: auto; max-width: 150px; max-height: 40px; border: 0; border-width: 0px; border-style: none; border-color: white; outline: 0; outline-width: 0px; padding: 0; margin: 0; background: transparent; background-color: transparent;');
 
 /**
  * Convert relative image paths to absolute URLs for TCPDF
@@ -722,10 +723,18 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
     $tableWidth = 600; // max-width in pixels
     $colWidthPx = floor($tableWidth / $nbCols);
 
-    $html = '<table cellspacing="0" cellpadding="0" border="0" style="width: 100%; max-width: 600px; border-collapse: collapse; border: none; border-width: 0; margin-top: 20px; text-align: center; background: transparent; background-color: transparent;"><tbody><tr style="background: transparent; background-color: transparent; border: none; border-width: 0;">';
+    // Build signature table with explicit transparent backgrounds and no borders
+    $tableStyle = 'width: 100%; max-width: 600px; border-collapse: collapse; border: none; border-width: 0; ' 
+        . 'margin-top: 20px; text-align: center; background: transparent; background-color: transparent;';
+    $rowStyle = 'background: transparent; background-color: transparent; border: none; border-width: 0;';
+    
+    $html = '<table cellspacing="0" cellpadding="0" border="0" style="' . $tableStyle . '">'
+        . '<tbody><tr style="' . $rowStyle . '">';
 
     // Landlord column
-    $html .= '<td style="width:' . $colWidthPx . 'px; vertical-align: top; text-align: center; padding: 10px; border: none; border-width: 0; background: transparent; background-color: transparent;">';
+    $cellStyle = 'width:' . $colWidthPx . 'px; vertical-align: top; text-align: center; padding: 10px; ' 
+        . 'border: none; border-width: 0; background: transparent; background-color: transparent;';
+    $html .= '<td style="' . $cellStyle . '">';
     $html .= '<p style="margin: 5px 0; background: transparent;"><strong>Le bailleur :</strong></p>';
     
     // Get landlord signature from parametres - fetch both in one query using COALESCE
@@ -762,14 +771,16 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
             if (file_exists($fullPath)) {
                 // Use public URL for signature image with no-border styling
                 $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($landlordSigPath, '/');
-                $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" border="0" style="' . INVENTAIRE_SIGNATURE_IMG_STYLE . ' width: 130px; height: auto;">';
+                $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" border="0" style="' 
+                    . INVENTAIRE_SIGNATURE_IMG_STYLE . '">';
             } else {
                 error_log("Landlord signature file not found: $fullPath");
             }
         } else {
             // Still base64 after conversion attempt - use as fallback but log warning
             error_log("WARNING: Using base64 signature for landlord (conversion may have failed)");
-            $html .= '<img src="' . htmlspecialchars($landlordSigPath) . '" alt="Signature Bailleur" border="0" style="' . INVENTAIRE_SIGNATURE_IMG_STYLE . ' width: 130px; height: auto;">';
+            $html .= '<img src="' . htmlspecialchars($landlordSigPath) . '" alt="Signature Bailleur" border="0" style="' 
+                . INVENTAIRE_SIGNATURE_IMG_STYLE . '">';
         }
     }
     
@@ -786,7 +797,7 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
 
     // Tenant columns
     foreach ($locataires as $idx => $tenantInfo) {
-        $html .= '<td style="width:' . $colWidthPx . 'px; vertical-align: top; text-align: center; padding: 10px; border: none; border-width: 0; background: transparent; background-color: transparent;">';
+        $html .= '<td style="' . $cellStyle . '">';
 
         $tenantLabel = ($nbCols === 2) ? 'Locataire :' : 'Locataire ' . ($idx + 1) . ' :';
         $html .= '<p style="margin: 5px 0; background: transparent;"><strong>' . $tenantLabel . '</strong></p>';
@@ -818,14 +829,16 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
                 if (file_exists($fullPath)) {
                     // Use public URL with no-border styling
                     $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($signatureData, '/');
-                    $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" border="0" style="' . INVENTAIRE_SIGNATURE_IMG_STYLE . ' width: 130px; height: auto;">';
+                    $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" border="0" style="' 
+                        . INVENTAIRE_SIGNATURE_IMG_STYLE . '">';
                 } else {
                     error_log("Tenant signature file not found: $fullPath");
                 }
             } else {
                 // Still base64 after conversion attempt - use as fallback but log warning
                 error_log("WARNING: Using base64 signature for tenant (conversion may have failed)");
-                $html .= '<img src="' . htmlspecialchars($signatureData) . '" alt="Signature Locataire" border="0" style="' . INVENTAIRE_SIGNATURE_IMG_STYLE . ' width: 130px; height: auto;">';
+                $html .= '<img src="' . htmlspecialchars($signatureData) . '" alt="Signature Locataire" border="0" style="' 
+                    . INVENTAIRE_SIGNATURE_IMG_STYLE . '">';
             }
             
             if (!empty($tenantInfo['date_signature'])) {
