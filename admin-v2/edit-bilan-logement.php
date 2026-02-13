@@ -280,6 +280,11 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="mb-0">Tableau des dégradations</h6>
                         <div>
+                            <?php if (!empty($bilanSectionsData)): ?>
+                            <button type="button" class="btn btn-sm btn-warning me-2" onclick="importFromExitState()" id="importExitStateBtn">
+                                <i class="bi bi-download"></i> Importer depuis l'état de sortie
+                            </button>
+                            <?php endif; ?>
                             <?php if ($inventaire): ?>
                             <button type="button" class="btn btn-sm btn-success me-2" onclick="importFromExitInventory()" id="importBilanBtn">
                                 <i class="bi bi-download"></i> Importer depuis l'inventaire de sortie
@@ -522,6 +527,67 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
                 importBtn.disabled = false;
                 importBtn.innerHTML = originalContent;
             });
+        }
+        
+        // Import data from exit state (état de sortie bilan sections)
+        function importFromExitState() {
+            // Confirm before importing
+            if (!confirm('Importer les dégradations constatées depuis l\'état de sortie?\n\nCela ajoutera de nouvelles lignes au tableau avec les équipements manquants et endommagés.')) {
+                return;
+            }
+            
+            // Disable button and show loading state
+            const importBtn = document.getElementById('importExitStateBtn');
+            const originalContent = importBtn.innerHTML;
+            importBtn.disabled = true;
+            importBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Importation en cours...';
+            
+            try {
+                // BILAN_SECTIONS_DATA is already available as a JS constant
+                let importedCount = 0;
+                
+                // Import data from each section
+                Object.keys(BILAN_SECTIONS_DATA).forEach(section => {
+                    if (Array.isArray(BILAN_SECTIONS_DATA[section])) {
+                        BILAN_SECTIONS_DATA[section].forEach(item => {
+                            // Check if we haven't reached the max rows
+                            if (document.querySelectorAll('.bilan-row').length < MAX_BILAN_ROWS) {
+                                const equipement = item.equipement || '';
+                                const commentaire = item.commentaire || '';
+                                
+                                // Only import if there's something to import
+                                if (equipement || commentaire) {
+                                    // Add a row with section prefix for clarity
+                                    const sectionLabel = section === 'manquants' ? 'Manquant' : 
+                                                        section === 'endommages' ? 'Endommagé' : 
+                                                        section.charAt(0).toUpperCase() + section.slice(1);
+                                    const poste = equipement;
+                                    const comment = `[${sectionLabel}] ${commentaire}`;
+                                    
+                                    addBilanRowWithData(poste, comment, '', '');
+                                    importedCount++;
+                                }
+                            }
+                        });
+                    }
+                });
+                
+                if (importedCount > 0) {
+                    alert(`✓ ${importedCount} élément(s) importé(s) avec succès depuis l'état de sortie`);
+                    // Update button to show import is complete
+                    importBtn.innerHTML = '<i class="bi bi-check-circle"></i> Données importées';
+                    // Keep button disabled to prevent duplicate imports
+                } else {
+                    alert('Aucune donnée à importer ou nombre maximum de lignes atteint');
+                    importBtn.disabled = false;
+                    importBtn.innerHTML = originalContent;
+                }
+            } catch (error) {
+                console.error('Import error:', error);
+                alert('Erreur lors de l\'importation: ' + error.message);
+                importBtn.disabled = false;
+                importBtn.innerHTML = originalContent;
+            }
         }
         
         // Add a new row with data (updated to accept all 4 fields)
