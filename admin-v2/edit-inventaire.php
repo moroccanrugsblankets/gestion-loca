@@ -238,41 +238,6 @@ if (empty($equipements_data)) {
     $equipements_data = generateInventoryDataFromEquipment($standardItems);
 }
 
-/**
- * Deduplicate tenants array by ID
- * Logs duplicate records to error_log for monitoring data quality issues
- * @param array $tenants Array of tenant records
- * @return array Deduplicated array with unique tenant IDs
- */
-function deduplicateTenantsById($tenants) {
-    $unique_tenants = [];
-    $seen_ids = [];
-    $duplicate_count = 0;
-    
-    foreach ($tenants as $tenant) {
-        // Validate that tenant has an ID before processing
-        if (!isset($tenant['id'])) {
-            error_log("Tenant record missing ID field, skipping: " . json_encode($tenant));
-            continue;
-        }
-        
-        if (!isset($seen_ids[$tenant['id']])) {
-            $unique_tenants[] = $tenant;
-            $seen_ids[$tenant['id']] = true;
-        } else {
-            $duplicate_count++;
-            // Log duplicate tenant ID for debugging (only ID to protect privacy)
-            error_log("Duplicate tenant ID found in inventaire_locataires: ID={$tenant['id']}");
-        }
-    }
-    
-    if ($duplicate_count > 0) {
-        error_log("Total duplicate tenant records removed: $duplicate_count");
-    }
-    
-    return $unique_tenants;
-}
-
 // Index existing data by ID for quick lookup
 $existing_data_by_id = [];
 foreach ($equipements_data as $item) {
@@ -284,32 +249,7 @@ foreach ($equipements_data as $item) {
 // Get existing tenants for this inventaire
 $stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? ORDER BY id ASC");
 $stmt->execute([$inventaire_id]);
-$all_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Debug logging for tenant loading
-error_log("=== Inventaire $inventaire_id: Loading tenants ===");
-error_log("Raw tenants count: " . count($all_tenants));
-foreach ($all_tenants as $idx => $t) {
-    error_log("  Tenant[$idx]: id={$t['id']}, locataire_id={$t['locataire_id']}, nom={$t['nom']}, prenom={$t['prenom']}");
-}
-
-// Deduplicate tenants by ID in PHP to prevent JavaScript errors from duplicate entries
-// This handles edge cases where duplicate records might exist due to data integrity issues
-$existing_tenants = deduplicateTenantsById($all_tenants);
-
-error_log("After deduplication: " . count($existing_tenants) . " tenants");
-foreach ($existing_tenants as $idx => $t) {
-    error_log("  DeduplicatedTenant[$idx]: id={$t['id']}, locataire_id={$t['locataire_id']}, nom={$t['nom']}, prenom={$t['prenom']}");
-}
-
-// Safety check: Verify all IDs are unique (this should never fail if deduplication works)
-$tenant_ids = array_column($existing_tenants, 'id');
-$unique_ids = array_unique($tenant_ids);
-if (count($tenant_ids) !== count($unique_ids)) {
-    error_log("CRITICAL DATA ERROR: Duplicate tenant IDs detected in inventaire $inventaire_id. IDs: " . implode(', ', $tenant_ids));
-    $_SESSION['error'] = "Erreur de données: Plusieurs locataires ont le même identifiant. Veuillez contacter l'administrateur.";
-    // Continue with the data as-is - the user needs to see the problem and the logs will help debug it
-}
+$existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // If no tenants linked yet, auto-populate from contract (if inventaire is linked to a contract)
 if (empty($existing_tenants) && !empty($inventaire['contrat_id'])) {
@@ -345,11 +285,10 @@ if (empty($existing_tenants) && !empty($inventaire['contrat_id'])) {
         }
     }
     
-    // Reload tenants and deduplicate
+    // Reload tenants
     $stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? ORDER BY id ASC");
     $stmt->execute([$inventaire_id]);
-    $all_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    $existing_tenants = deduplicateTenantsById($all_tenants);
+    $existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 // Transform tenant signatures for display
@@ -882,16 +821,15 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
     <script>
         // Configuration
         const SIGNATURE_JPEG_QUALITY = 0.95;
-        const initializedCanvases = new Set(); // Track initialized canvases to detect duplicates
         
         // Initialize tenant signature canvases on page load
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('=== Initializing tenant signatures ===');
-            console.log('Total tenants: <?php echo count($existing_tenants); ?>');
-            <?php foreach ($existing_tenants as $index => $tenant): ?>
-            console.log('Initializing tenant <?php echo $index + 1; ?>: ID=<?php echo $tenant['id']; ?>, locataire_id=<?php echo $tenant['locataire_id'] ?? 'null'; ?>, name=<?php echo addslashes($tenant['prenom'] . ' ' . $tenant['nom']); ?>');
-            initTenantSignature(<?php echo $tenant['id']; ?>, <?php echo ($index + 1); ?>);
-            <?php endforeach; ?>
+            // Initialize tenant signatures based on actual IDs in the page
+            <?php if (!empty($existing_tenants)): ?>
+                <?php foreach ($existing_tenants as $tenant): ?>
+                    initTenantSignature(<?php echo $tenant['id']; ?>);
+                <?php endforeach; ?>
+            <?php endif; ?>
         });
         
         // Function to duplicate Entry data to Exit
@@ -953,39 +891,11 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
             }, 5000);
         }
         
-        function initTenantSignature(id, tenantIndex) {
-            // Check for duplicate initialization
-            if (initializedCanvases.has(id)) {
-                console.error(`⚠️  DUPLICATE CANVAS ID DETECTED: Canvas ID ${id} was already initialized!\n` +
-                             `This will cause Tenant ${tenantIndex} signature to not work properly.\n` +
-                             `Root cause: Multiple tenant records have the same database ID.`);
-                
-                // Show user-visible error
-                const alertDiv = document.createElement('div');
-                alertDiv.className = 'alert alert-danger alert-dismissible fade show';
-                alertDiv.innerHTML = `
-                    <strong><i class="bi bi-exclamation-triangle"></i> Erreur de signature :</strong>
-                    La signature du Locataire ${tenantIndex} ne peut pas être initialisée (ID en double: ${id}). 
-                    Veuillez contacter l'administrateur.
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-                document.querySelector('.main-content').insertBefore(alertDiv, document.querySelector('.header').nextSibling);
-                
-                return;
-            }
-            initializedCanvases.add(id);
-            
+        function initTenantSignature(id) {
             const canvas = document.getElementById(`tenantCanvas_${id}`);
-            if (!canvas) {
-                console.error(`Canvas not found for tenant ID: ${id} (Tenant ${tenantIndex})`);
-                return;
-            }
+            if (!canvas) return;
             
             const ctx = canvas.getContext('2d');
-            if (!ctx) {
-                console.error(`Could not get 2d context for canvas of tenant ID: ${id} (Tenant ${tenantIndex})`);
-                return;
-            }
             
             // Set drawing style for black signature lines
             ctx.strokeStyle = '#000000';
@@ -1059,8 +969,6 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                 const mouseEvent = new MouseEvent('mouseup');
                 canvas.dispatchEvent(mouseEvent);
             });
-            
-            console.log(`Signature canvas initialized successfully for tenant ID: ${id} (Tenant ${tenantIndex})`);
         }
         
         function saveTenantSignature(id) {
