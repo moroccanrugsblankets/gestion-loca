@@ -287,7 +287,8 @@ foreach ($equipements_data as $item) {
 }
 
 // Get existing tenants for this inventaire
-$stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? ORDER BY id ASC");
+// Using DISTINCT on id to prevent duplicate tenant entries that could cause JavaScript errors
+$stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? GROUP BY id ORDER BY id ASC");
 $stmt->execute([$inventaire_id]);
 $existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -297,9 +298,9 @@ if (empty($existing_tenants) && !empty($inventaire['contrat_id'])) {
     $stmt->execute([$inventaire['contrat_id']]);
     $contract_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Insert tenants into inventaire_locataires
+    // Insert tenants into inventaire_locataires - using INSERT IGNORE to prevent duplicates
     $insertStmt = $pdo->prepare("
-        INSERT INTO inventaire_locataires (inventaire_id, locataire_id, nom, prenom, email)
+        INSERT IGNORE INTO inventaire_locataires (inventaire_id, locataire_id, nom, prenom, email)
         VALUES (?, ?, ?, ?, ?)
     ");
     
@@ -313,8 +314,8 @@ if (empty($existing_tenants) && !empty($inventaire['contrat_id'])) {
         ]);
     }
     
-    // Reload tenants
-    $stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? ORDER BY id ASC");
+    // Reload tenants with deduplication to prevent JavaScript errors
+    $stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? GROUP BY id ORDER BY id ASC");
     $stmt->execute([$inventaire_id]);
     $existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -1075,21 +1076,32 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                 }
             });
             
-            <?php foreach ($existing_tenants as $tenant): ?>
-                const signature_<?php echo $tenant['id']; ?> = document.getElementById('tenantSignature_<?php echo $tenant['id']; ?>').value;
-                const certifie_<?php echo $tenant['id']; ?> = document.getElementById('certifie_exact_<?php echo $tenant['id']; ?>').checked;
-                const tenantName_<?php echo $tenant['id']; ?> = <?php echo json_encode($tenant['prenom'] . ' ' . $tenant['nom']); ?>;
+            // Validate tenant signatures - using array to avoid duplicate identifier errors
+            const tenantValidations = [
+                <?php foreach ($existing_tenants as $index => $tenant): ?>
+                {
+                    id: <?php echo $tenant['id']; ?>,
+                    name: <?php echo json_encode($tenant['prenom'] . ' ' . $tenant['nom']); ?>,
+                    signatureId: 'tenantSignature_<?php echo $tenant['id']; ?>',
+                    certifieId: 'certifie_exact_<?php echo $tenant['id']; ?>'
+                }<?php echo ($index < count($existing_tenants) - 1) ? ',' : ''; ?>
+                <?php endforeach; ?>
+            ];
+            
+            tenantValidations.forEach(function(tenant) {
+                const signatureValue = document.getElementById(tenant.signatureId).value;
+                const certifieChecked = document.getElementById(tenant.certifieId).checked;
                 
-                if (!signature_<?php echo $tenant['id']; ?> || signature_<?php echo $tenant['id']; ?>.trim() === '') {
-                    errors.push('La signature de ' + tenantName_<?php echo $tenant['id']; ?> + ' est obligatoire');
+                if (!signatureValue || signatureValue.trim() === '') {
+                    errors.push('La signature de ' + tenant.name + ' est obligatoire');
                     allValid = false;
                 }
                 
-                if (!certifie_<?php echo $tenant['id']; ?>) {
-                    errors.push('La case "Certifié exact" doit être cochée pour ' + tenantName_<?php echo $tenant['id']; ?>);
+                if (!certifieChecked) {
+                    errors.push('La case "Certifié exact" doit être cochée pour ' + tenant.name);
                     allValid = false;
                 }
-            <?php endforeach; ?>
+            });
             
             if (!allValid) {
                 e.preventDefault();
