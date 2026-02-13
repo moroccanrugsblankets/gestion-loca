@@ -235,8 +235,10 @@ function updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve 
         }
     }
     
-    // Generate unique filename
-    $filename = "tenant_locataire_{$locataireId}_" . time() . ".jpg";
+    // Generate unique filename using microtime for better uniqueness
+    // Use microtime(true) to get microsecond precision and avoid collisions
+    $timestamp = str_replace('.', '_', (string)microtime(true));
+    $filename = "tenant_locataire_{$locataireId}_{$timestamp}.jpg";
     $filepath = $uploadsDir . '/' . $filename;
     
     // Save physical file
@@ -247,7 +249,10 @@ function updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve 
     
     // Store relative path instead of base64
     $relativePath = 'uploads/signatures/' . $filename;
-    error_log("Signature saved as physical file: $relativePath for locataire ID: $locataireId");
+    error_log("=== SIGNATURE SAVE START ===");
+    error_log("Locataire ID being updated: $locataireId");
+    error_log("Signature file path: $relativePath");
+    error_log("Physical file saved at: $filepath");
     error_log("✓ Signature enregistrée physiquement et intégrée sans bordure - Locataire ID: $locataireId");
     
     // Build SQL based on whether mention_lu_approuve is provided
@@ -264,13 +269,17 @@ function updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve 
     }
     
     if ($stmt === false) {
-        error_log("Failed to update signature for locataire ID: $locataireId");
+        error_log("✗ FAILED to update signature in database for locataire ID: $locataireId");
+        error_log("SQL query failed, cleaning up physical file");
         // Clean up the file if database update failed
         if (file_exists($filepath)) {
             unlink($filepath);
         }
         return false;
     }
+    
+    error_log("✓ Database updated successfully for locataire ID: $locataireId");
+    error_log("=== SIGNATURE SAVE COMPLETE ===");
     
     return true;
 }

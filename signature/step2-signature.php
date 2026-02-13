@@ -39,6 +39,12 @@ if (!isset($_SESSION['current_locataire_id'])) {
 $locataireId = $_SESSION['current_locataire_id'];
 $numeroLocataire = $_SESSION['current_locataire_numero'];
 
+// Defensive logging to track tenant identity
+error_log("=== STEP2 PAGE LOAD ===");
+error_log("Session current_locataire_id: $locataireId");
+error_log("Session current_locataire_numero: $numeroLocataire");
+error_log("Contrat ID: $contratId");
+
 // Important: Select c.* first, then explicitly name logements columns to avoid column name collision
 // Both tables have 'statut' column, and we need contrats.statut, not logements.statut
 $contrat = fetchOne("
@@ -117,26 +123,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Enregistrer la signature
             error_log("Step2-Signature: Enregistrement de la signature en base de données...");
-            if (updateTenantSignature($locataireId, $signatureData, null, $certifieExact)) {
-                error_log("Step2-Signature: ✓ Signature enregistrée avec succès");
-                logAction($contratId, 'signature_locataire', "Locataire $numeroLocataire a signé");
-                
-                // Check if we need to ask about second tenant
-                // Only ask if this is locataire 1 and contract allows multiple tenants
-                if ($numeroLocataire === 1 && $contrat['nb_locataires'] > 1) {
-                    // Show the second tenant question
-                    $signatureSaved = true;
-                } else {
-                    // Locataire 2 or single tenant contract - go directly to documents
-                    // Clear session to let step3 defensive fallback find the first tenant without documents
-                    unset($_SESSION['current_locataire_id']);
-                    unset($_SESSION['current_locataire_numero']);
-                    header('Location: step3-documents.php');
-                    exit;
-                }
+            error_log("Step2-Signature: Saving signature for Locataire ID=$locataireId, Numero=$numeroLocataire");
+            
+            // Double-check that we're saving to the correct tenant
+            $tenantCheck = fetchOne("SELECT id, ordre, nom, prenom FROM locataires WHERE id = ?", [$locataireId]);
+            if (!$tenantCheck) {
+                error_log("Step2-Signature: ✗ ERREUR CRITIQUE - Locataire ID=$locataireId n'existe pas!");
+                $error = 'Erreur: locataire introuvable.';
+            } elseif ($tenantCheck['ordre'] != $numeroLocataire) {
+                error_log("Step2-Signature: ✗ ERREUR CRITIQUE - Mismatch! Session numero=$numeroLocataire but DB ordre=" . $tenantCheck['ordre']);
+                $error = 'Erreur: incohérence de session.';
             } else {
-                error_log("Step2-Signature: ✗ ERREUR lors de l'enregistrement de la signature");
-                $error = 'Erreur lors de l\'enregistrement de la signature.';
+                error_log("Step2-Signature: ✓ Verification OK - Tenant: {$tenantCheck['prenom']} {$tenantCheck['nom']}, Ordre: {$tenantCheck['ordre']}");
+                
+                if (updateTenantSignature($locataireId, $signatureData, null, $certifieExact)) {
+                    error_log("Step2-Signature: ✓ Signature enregistrée avec succès");
+                    logAction($contratId, 'signature_locataire', "Locataire $numeroLocataire a signé");
+                    
+                    // Check if we need to ask about second tenant
+                    // Only ask if this is locataire 1 and contract allows multiple tenants
+                    if ($numeroLocataire === 1 && $contrat['nb_locataires'] > 1) {
+                        // Show the second tenant question
+                        $signatureSaved = true;
+                    } else {
+                        // Locataire 2 or single tenant contract - go directly to documents
+                        // Clear session to let step3 defensive fallback find the first tenant without documents
+                        unset($_SESSION['current_locataire_id']);
+                        unset($_SESSION['current_locataire_numero']);
+                        header('Location: step3-documents.php');
+                        exit;
+                    }
+                } else {
+                    error_log("Step2-Signature: ✗ ERREUR lors de l'enregistrement de la signature");
+                    $error = 'Erreur lors de l\'enregistrement de la signature.';
+                }
             }
         }
     }
