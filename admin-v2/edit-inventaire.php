@@ -960,6 +960,18 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                 console.error(`⚠️  DUPLICATE CANVAS ID DETECTED: Canvas ID ${id} was already initialized!`);
                 console.error(`This will cause Tenant ${tenantIndex} signature to not work properly.`);
                 console.error(`Root cause: Multiple tenant records have the same database ID.`);
+                
+                // Show user-visible error
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    <strong><i class="bi bi-exclamation-triangle"></i> Erreur de signature :</strong>
+                    La signature du Locataire ${tenantIndex} ne peut pas être initialisée (ID en double: ${id}). 
+                    Veuillez contacter l'administrateur.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('.main-content').insertBefore(alertDiv, document.querySelector('.header').nextSibling);
+                
                 return;
             }
             initializedCanvases.add(id);
