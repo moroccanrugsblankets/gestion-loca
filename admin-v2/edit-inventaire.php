@@ -133,15 +133,144 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Load equipment from database for this logement
+// First, try to get equipment defined specifically for this logement
+$stmt = $pdo->prepare("
+    SELECT e.*, 
+           c.nom as categorie_nom, 
+           c.icone as categorie_icone,
+           sc.nom as sous_categorie_nom
+    FROM inventaire_equipements e
+    LEFT JOIN inventaire_categories c ON e.categorie_id = c.id
+    LEFT JOIN inventaire_sous_categories sc ON e.sous_categorie_id = sc.id
+    WHERE e.logement_id = ? 
+    ORDER BY c.ordre, e.ordre, e.nom
+");
+$stmt->execute([$inventaire['logement_id']]);
+$logement_equipements = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Transform database equipment into the structure expected by the view
+// The view expects: $standardItems[$categoryName][$subcategoryName][] = ['nom' => '...', 'type' => '...']
+// or $standardItems[$categoryName][] = ['nom' => '...', 'type' => '...'] for categories without subcategories
+$standardItems = [];
+
+if (!empty($logement_equipements)) {
+    // Use equipment from database
+    foreach ($logement_equipements as $eq) {
+        $categoryName = $eq['categorie_nom'] ?: $eq['categorie']; // Use category name from join or fallback to text field
+        $subcategoryName = $eq['sous_categorie_nom'];
+        
+        $item = [
+            'nom' => $eq['nom'],
+            'type' => 'countable' // Default type for database equipment
+        ];
+        
+        if ($subcategoryName) {
+            // Equipment has a subcategory
+            if (!isset($standardItems[$categoryName])) {
+                $standardItems[$categoryName] = [];
+            }
+            if (!isset($standardItems[$categoryName][$subcategoryName])) {
+                $standardItems[$categoryName][$subcategoryName] = [];
+            }
+            $standardItems[$categoryName][$subcategoryName][] = $item;
+        } else {
+            // Equipment without subcategory
+            if (!isset($standardItems[$categoryName])) {
+                $standardItems[$categoryName] = [];
+            }
+            $standardItems[$categoryName][] = $item;
+        }
+    }
+} else {
+    // Fallback to standard items if no equipment defined for this logement
+    $standardItems = getStandardInventaireItems();
+}
+
+// Generate initial inventory data structure from equipment
+// This will be used to initialize the form if no saved data exists
+function generateInventoryDataFromEquipment($standardItems) {
+    $data = [];
+    $itemIndex = 0;
+    
+    foreach ($standardItems as $categoryName => $categoryContent) {
+        // Check if category has subcategories (nested array with string keys)
+        $hasSubcategories = false;
+        if (is_array($categoryContent) && !empty($categoryContent)) {
+            $firstKey = array_key_first($categoryContent);
+            $firstValue = $categoryContent[$firstKey];
+            // If first value is an array and contains 'nom', it's a direct item
+            // If first value is an array but doesn't contain 'nom', it's a subcategory
+            if (is_array($firstValue) && !isset($firstValue['nom'])) {
+                $hasSubcategories = true;
+            }
+        }
+        
+        if ($hasSubcategories) {
+            // Category has subcategories
+            foreach ($categoryContent as $subcategoryName => $subcategoryItems) {
+                foreach ($subcategoryItems as $item) {
+                    $data[] = [
+                        'id' => ++$itemIndex,
+                        'categorie' => $categoryName,
+                        'sous_categorie' => $subcategoryName,
+                        'nom' => $item['nom'],
+                        'type' => $item['type'],
+                        'entree' => [
+                            'nombre' => null,
+                            'bon' => false,
+                            'usage' => false,
+                            'mauvais' => false,
+                        ],
+                        'sortie' => [
+                            'nombre' => null,
+                            'bon' => false,
+                            'usage' => false,
+                            'mauvais' => false,
+                        ],
+                        'commentaires' => ''
+                    ];
+                }
+            }
+        } else {
+            // Simple category (flat list of items)
+            foreach ($categoryContent as $item) {
+                $data[] = [
+                    'id' => ++$itemIndex,
+                    'categorie' => $categoryName,
+                    'sous_categorie' => null,
+                    'nom' => $item['nom'],
+                    'type' => $item['type'],
+                    'entree' => [
+                        'nombre' => null,
+                        'bon' => false,
+                        'usage' => false,
+                        'mauvais' => false,
+                    ],
+                    'sortie' => [
+                        'nombre' => null,
+                        'bon' => false,
+                        'usage' => false,
+                        'mauvais' => false,
+                    ],
+                    'commentaires' => ''
+                ];
+            }
+        }
+    }
+    
+    return $data;
+}
+
 // Decode equipment data
 $equipements_data = json_decode($inventaire['equipements_data'], true);
 if (!is_array($equipements_data)) {
     $equipements_data = [];
 }
 
-// If no data exists, generate from standard items
+// If no data exists, generate from equipment (database or standard items)
 if (empty($equipements_data)) {
-    $equipements_data = generateStandardInventoryData();
+    $equipements_data = generateInventoryDataFromEquipment($standardItems);
 }
 
 // Index existing data by ID for quick lookup
@@ -151,9 +280,6 @@ foreach ($equipements_data as $item) {
         $existing_data_by_id[$item['id']] = $item;
     }
 }
-
-// Get standard items structure and merge with saved data
-$standardItems = getStandardInventaireItems();
 
 // Get existing tenants for this inventaire
 $stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? ORDER BY id ASC");
