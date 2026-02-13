@@ -88,12 +88,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Update tenant signatures
         if (isset($_POST['tenants']) && is_array($_POST['tenants'])) {
             foreach ($_POST['tenants'] as $tenantId => $tenantInfo) {
-                // Only update certifie_exact if the checkbox was part of the submission
-                // For draft saves, we want to preserve the existing value if not checked
-                // For finalize, we always update it
-                $shouldUpdateCertifie = isset($_POST['finalize']) && $_POST['finalize'] === '1';
+                // Only update certifie_exact if finalizing (not for draft saves)
+                // For draft saves, we preserve the existing value unless explicitly checked
+                // For finalize, we always update it (validation ensures it's checked)
+                $isFinalizing = isset($_POST['finalize']) && $_POST['finalize'] === '1';
                 
-                if ($shouldUpdateCertifie) {
+                if ($isFinalizing) {
                     // Update certifie_exact status (only for finalize)
                     $certifieExact = isset($tenantInfo['certifie_exact']) ? 1 : 0;
                     
