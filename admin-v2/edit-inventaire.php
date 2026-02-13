@@ -373,15 +373,15 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
             background-color: #f8f9fa !important;
         }
         .signature-container {
-            border: 2px solid #000000;
-            border-radius: 4px;
+            border: 2px solid #dee2e6;
+            border-radius: 5px;
+            background-color: #ffffff;
             display: inline-block;
-            background: white;
+            cursor: crosshair;
             margin-bottom: 10px;
         }
         .signature-container canvas {
             display: block;
-            cursor: crosshair;
         }
         .section-title {
             font-size: 1.2rem;
@@ -764,7 +764,7 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                             <?php endif; ?>
                             <label class="form-label">Veuillez signer dans le cadre ci-dessous :</label>
                             <div class="signature-container" style="max-width: 300px;">
-                                <canvas id="tenantCanvas_<?php echo $tenant['id']; ?>" width="300" height="150" style="background: white; border: none; outline: none; padding: 0;"></canvas>
+                                <canvas id="tenantCanvas_<?php echo $tenant['id']; ?>" width="300" height="150" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
                             </div>
                             <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][signature]" 
                                    id="tenantSignature_<?php echo $tenant['id']; ?>" 
