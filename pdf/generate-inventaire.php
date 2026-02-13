@@ -705,7 +705,7 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
     $nbCols = count($locataires) + 1; // +1 for landlord
     $colWidth = 100 / $nbCols;
 
-    $html = '<table cellspacing="0" cellpadding="0" border="0" style="width: 100%; max-width: 600px; border-collapse: collapse; border: none; margin-top: 20px; text-align: center;"><tbody><tr style="background-color: transparent; border: none;">
+    $html = '<table cellspacing="0" cellpadding="0" border="0" style="width: 100%; max-width: 600px; border-collapse: collapse; border: none; margin-top: 20px; text-align: center;"><tbody><tr style="background-color: transparent; border: none;">';
 
     // Landlord column
     $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align: center; padding: 10px; border: none; background-color: transparent;">';
@@ -769,7 +769,7 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
 
     // Tenant columns
     foreach ($locataires as $idx => $tenantInfo) {
-        $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align: center; padding: 10px; border: none; background-color: transparent;">
+        $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align: center; padding: 10px; border: none; background-color: transparent;">';
 
         $tenantLabel = ($nbCols === 2) ? 'Locataire :' : 'Locataire ' . ($idx + 1) . ' :';
         $html .= '<p style="margin: 5px 0;"><strong>' . $tenantLabel . '</strong></p>';
