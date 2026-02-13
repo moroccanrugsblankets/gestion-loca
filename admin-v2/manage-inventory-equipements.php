@@ -237,6 +237,15 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                     <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addEquipementModal">
                         <i class="bi bi-plus-circle"></i> Ajouter un équipement
                     </button>
+                    <?php if (empty($equipements)): ?>
+                        <button class="btn btn-info" onclick="populateDefaults('populate')">
+                            <i class="bi bi-collection"></i> Charger les équipements par défaut
+                        </button>
+                    <?php else: ?>
+                        <button class="btn btn-warning" onclick="populateDefaults('reset')">
+                            <i class="bi bi-arrow-clockwise"></i> Réinitialiser avec les défauts
+                        </button>
+                    <?php endif; ?>
                     <a href="logements.php" class="btn btn-secondary">
                         <i class="bi bi-arrow-left"></i> Retour aux logements
                     </a>
@@ -494,6 +503,39 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     <script>
         // Subcategories data from PHP
         const subcategoriesData = <?php echo json_encode($subcategories, JSON_UNESCAPED_UNICODE); ?>;
+        const logementId = <?php echo $logement_id; ?>;
+        
+        // Populate with default equipment
+        function populateDefaults(action) {
+            const confirmMessage = action === 'reset' 
+                ? 'Cela supprimera tous les équipements existants et les remplacera par les équipements par défaut. Voulez-vous continuer ?'
+                : 'Charger les équipements par défaut pour ce logement ?';
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            fetch('populate-logement-defaults.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    logement_id: logementId,
+                    action: action
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Erreur: ' + data.message);
+                }
+            })
+            .catch(err => {
+                alert('Erreur de connexion: ' + err.message);
+            });
+        }
         
         // Update subcategories dropdown for Add form
         function updateSubcategoriesAdd() {

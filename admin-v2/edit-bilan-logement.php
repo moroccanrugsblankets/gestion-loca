@@ -280,9 +280,9 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="mb-0">Tableau des dégradations</h6>
                         <div>
-                            <?php if (!empty($bilanSectionsData)): ?>
+                            <?php if ($inventaire): ?>
                             <button type="button" class="btn btn-sm btn-success me-2" onclick="importFromExitInventory()" id="importBilanBtn">
-                                <i class="bi bi-download"></i> Importer depuis l'état de sortie
+                                <i class="bi bi-download"></i> Importer depuis l'inventaire de sortie
                             </button>
                             <?php endif; ?>
                             <button type="button" class="btn btn-sm btn-primary" onclick="addBilanRow()" id="addBilanRowBtn">
@@ -467,51 +467,65 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
         
         // Import data from exit inventory (état de sortie)
         function importFromExitInventory() {
-            if (!BILAN_SECTIONS_DATA || Object.keys(BILAN_SECTIONS_DATA).length === 0) {
-                alert('Aucune donnée à importer depuis l\'état de sortie');
-                return;
-            }
-            
             // Confirm before importing
-            if (!confirm('Voulez-vous importer les équipements et commentaires depuis l\'état de sortie?\n\nCela ajoutera de nouvelles lignes au tableau.')) {
+            if (!confirm('Importer les équipements avec commentaires depuis l\'inventaire de sortie?\n\nSeuls les équipements ayant des commentaires seront importés.\nCela ajoutera de nouvelles lignes au tableau.')) {
                 return;
             }
             
-            let importedCount = 0;
+            // Disable button and show loading state
+            const importBtn = document.getElementById('importBilanBtn');
+            const originalContent = importBtn.innerHTML;
+            importBtn.disabled = true;
+            importBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Importation en cours...';
             
-            // Loop through each section (compteurs, cles, piece_principale, cuisine, salle_eau)
-            Object.keys(BILAN_SECTIONS_DATA).forEach(sectionName => {
-                const sectionData = BILAN_SECTIONS_DATA[sectionName];
-                
-                if (Array.isArray(sectionData)) {
-                    sectionData.forEach(item => {
-                        // Only import if equipment or comment has data
-                        if (item.equipement || item.commentaire) {
-                            // Check if we haven't reached the max rows
-                            if (document.querySelectorAll('.bilan-row').length < MAX_BILAN_ROWS) {
-                                addBilanRowWithData(item.equipement, item.commentaire);
-                                importedCount++;
-                            }
+            // Call the new import API
+            fetch('import-inventaire-to-bilan.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    contrat_id: CONTRAT_ID
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.rows && data.rows.length > 0) {
+                    let importedCount = 0;
+                    
+                    // Import each row
+                    data.rows.forEach(row => {
+                        // Check if we haven't reached the max rows
+                        if (document.querySelectorAll('.bilan-row').length < MAX_BILAN_ROWS) {
+                            addBilanRowWithData(row.poste, row.commentaires, row.valeur, row.montant_du);
+                            importedCount++;
                         }
                     });
+                    
+                    if (importedCount > 0) {
+                        alert(`✓ ${importedCount} équipement(s) avec commentaires importé(s) avec succès`);
+                        // Update button to show import is complete
+                        importBtn.innerHTML = '<i class="bi bi-check-circle"></i> Données importées';
+                        // Keep button disabled to prevent duplicate imports
+                    } else {
+                        alert('Le nombre maximum de lignes est atteint');
+                        importBtn.disabled = false;
+                        importBtn.innerHTML = originalContent;
+                    }
+                } else {
+                    alert(data.message || 'Aucune donnée à importer');
+                    importBtn.disabled = false;
+                    importBtn.innerHTML = originalContent;
                 }
+            })
+            .catch(error => {
+                console.error('Import error:', error);
+                alert('Erreur lors de l\'importation: ' + error.message);
+                importBtn.disabled = false;
+                importBtn.innerHTML = originalContent;
             });
-            
-            if (importedCount > 0) {
-                alert(`${importedCount} ligne(s) importée(s) avec succès`);
-                // Disable the import button after use
-                const importBtn = document.getElementById('importBilanBtn');
-                if (importBtn) {
-                    importBtn.disabled = true;
-                    importBtn.innerHTML = '<i class="bi bi-check-circle"></i> Données importées';
-                }
-            } else {
-                alert('Aucune donnée valide à importer');
-            }
         }
         
-        // Add a new row with data
-        function addBilanRowWithData(equipement, commentaire) {
+        // Add a new row with data (updated to accept all 4 fields)
+        function addBilanRowWithData(poste, commentaires, valeur = '', montant_du = '') {
             if (document.querySelectorAll('.bilan-row').length >= MAX_BILAN_ROWS) {
                 return;
             }
@@ -523,13 +537,13 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
                 <td>
                     <input type="text" name="bilan_rows[${bilanRowCounter}][poste]" 
                            class="form-control bilan-field" 
-                           value="${escapeHtml(equipement || '')}"
+                           value="${escapeHtml(poste || '')}"
                            placeholder="Ex: Peinture salon">
                 </td>
                 <td>
                     <input type="text" name="bilan_rows[${bilanRowCounter}][commentaires]" 
                            class="form-control bilan-field" 
-                           value="${escapeHtml(commentaire || '')}"
+                           value="${escapeHtml(commentaires || '')}"
                            placeholder="Description détaillée">
                 </td>
                 <td>
@@ -537,6 +551,7 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
                            class="form-control bilan-field bilan-valeur" 
                            step="0.01" min="0" 
                            placeholder="0.00"
+                           value="${valeur}"
                            onchange="calculateBilanTotals()">
                 </td>
                 <td>
@@ -544,6 +559,7 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
                            class="form-control bilan-field bilan-montant-du" 
                            step="0.01" min="0" 
                            placeholder="0.00"
+                           value="${montant_du}"
                            onchange="calculateBilanTotals()">
                 </td>
                 <td class="text-center">
@@ -562,6 +578,7 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
             
             updateBilanRowButton();
             validateBilanFields();
+            calculateBilanTotals();
         }
         
         // Escape HTML to prevent XSS
