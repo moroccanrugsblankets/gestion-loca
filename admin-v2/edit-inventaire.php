@@ -280,6 +280,7 @@ if (empty($equipements_data)) {
 
 /**
  * Deduplicate tenants array by ID
+ * Logs duplicate records to error_log for monitoring data quality issues
  * @param array $tenants Array of tenant records
  * @return array Deduplicated array with unique tenant IDs
  */
@@ -335,7 +336,7 @@ if (empty($existing_tenants) && !empty($inventaire['contrat_id'])) {
     ");
     $existingLinkStmt->execute([$inventaire_id]);
     $existing_tenant_ids = $existingLinkStmt->fetchAll(PDO::FETCH_COLUMN);
-    $existing_tenant_ids_set = array_flip($existing_tenant_ids); // Convert to associative array for O(1) lookup
+    $existing_tenant_ids_map = array_flip($existing_tenant_ids); // Convert to associative array for O(1) lookup
     
     // Insert tenants into inventaire_locataires with duplicate check
     $insertStmt = $pdo->prepare("
@@ -344,8 +345,8 @@ if (empty($existing_tenants) && !empty($inventaire['contrat_id'])) {
     ");
     
     foreach ($contract_tenants as $tenant) {
-        // Check if this tenant is already linked to this inventaire using in-memory set
-        if (!isset($existing_tenant_ids_set[$tenant['id']])) {
+        // Check if this tenant is already linked to this inventaire using in-memory map
+        if (!isset($existing_tenant_ids_map[$tenant['id']])) {
             $insertStmt->execute([
                 $inventaire_id,
                 $tenant['id'],
