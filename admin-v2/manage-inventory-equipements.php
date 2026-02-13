@@ -29,16 +29,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'add':
                 try {
                     $stmt = $pdo->prepare("
-                        INSERT INTO inventaire_equipements (logement_id, categorie, nom, description, quantite, valeur_estimee, ordre)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        INSERT INTO inventaire_equipements (logement_id, categorie_id, sous_categorie_id, categorie, nom, description, quantite, valeur_estimee, ordre)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ");
                     $ordre = (int)($_POST['ordre'] ?? 0);
                     $quantite = (int)($_POST['quantite'] ?? 1);
                     $valeur = !empty($_POST['valeur_estimee']) ? (float)$_POST['valeur_estimee'] : null;
+                    $categorie_id = (int)$_POST['categorie_id'];
+                    $sous_categorie_id = !empty($_POST['sous_categorie_id']) ? (int)$_POST['sous_categorie_id'] : null;
+                    
+                    // Get category name for backward compatibility
+                    $stmt_cat = $pdo->prepare("SELECT nom FROM inventaire_categories WHERE id = ?");
+                    $stmt_cat->execute([$categorie_id]);
+                    $categorie_nom = $stmt_cat->fetchColumn();
                     
                     $stmt->execute([
                         $logement_id,
-                        $_POST['categorie'],
+                        $categorie_id,
+                        $sous_categorie_id,
+                        $categorie_nom,
                         $_POST['nom'],
                         $_POST['description'],
                         $quantite,
@@ -56,15 +65,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 try {
                     $stmt = $pdo->prepare("
                         UPDATE inventaire_equipements SET 
-                            categorie = ?, nom = ?, description = ?, quantite = ?, valeur_estimee = ?, ordre = ?
+                            categorie_id = ?, sous_categorie_id = ?, categorie = ?, nom = ?, description = ?, quantite = ?, valeur_estimee = ?, ordre = ?
                         WHERE id = ? AND logement_id = ?
                     ");
                     $ordre = (int)($_POST['ordre'] ?? 0);
                     $quantite = (int)($_POST['quantite'] ?? 1);
                     $valeur = !empty($_POST['valeur_estimee']) ? (float)$_POST['valeur_estimee'] : null;
+                    $categorie_id = (int)$_POST['categorie_id'];
+                    $sous_categorie_id = !empty($_POST['sous_categorie_id']) ? (int)$_POST['sous_categorie_id'] : null;
+                    
+                    // Get category name for backward compatibility
+                    $stmt_cat = $pdo->prepare("SELECT nom FROM inventaire_categories WHERE id = ?");
+                    $stmt_cat->execute([$categorie_id]);
+                    $categorie_nom = $stmt_cat->fetchColumn();
                     
                     $stmt->execute([
-                        $_POST['categorie'],
+                        $categorie_id,
+                        $sous_categorie_id,
+                        $categorie_nom,
                         $_POST['nom'],
                         $_POST['description'],
                         $quantite,
@@ -82,6 +100,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
             case 'delete':
                 try {
+                    // Confirmation is handled on frontend, but double-check here
+                    if (!isset($_POST['confirmed']) || $_POST['confirmed'] !== '1') {
+                        $_SESSION['error'] = "Suppression non confirmée";
+                        break;
+                    }
+                    
                     $stmt = $pdo->prepare("DELETE FROM inventaire_equipements WHERE id = ? AND logement_id = ?");
                     $stmt->execute([$_POST['equipement_id'], $logement_id]);
                     $_SESSION['success'] = "Équipement supprimé";
@@ -97,35 +121,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Get equipements for this logement
+// Get all active categories from database
+$stmt = $pdo->query("
+    SELECT id, nom, icone 
+    FROM inventaire_categories 
+    WHERE actif = TRUE
+    ORDER BY ordre, nom
+");
+$categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$categories_by_id = [];
+foreach ($categories as $cat) {
+    $categories_by_id[$cat['id']] = $cat;
+}
+
+// Get equipements for this logement with category info
 $stmt = $pdo->prepare("
-    SELECT * FROM inventaire_equipements 
-    WHERE logement_id = ? 
-    ORDER BY categorie, ordre, nom
+    SELECT e.*, 
+           c.nom as categorie_nom, 
+           c.icone as categorie_icone,
+           sc.nom as sous_categorie_nom
+    FROM inventaire_equipements e
+    LEFT JOIN inventaire_categories c ON e.categorie_id = c.id
+    LEFT JOIN inventaire_sous_categories sc ON e.sous_categorie_id = sc.id
+    WHERE e.logement_id = ? 
+    ORDER BY c.ordre, e.ordre, e.nom
 ");
 $stmt->execute([$logement_id]);
 $equipements = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Group by category
+// Group by category ID
 $equipements_by_category = [];
 foreach ($equipements as $eq) {
-    $cat = $eq['categorie'];
-    if (!isset($equipements_by_category[$cat])) {
-        $equipements_by_category[$cat] = [];
+    $catId = $eq['categorie_id'];
+    if (!isset($equipements_by_category[$catId])) {
+        $equipements_by_category[$catId] = [];
     }
-    $equipements_by_category[$cat][] = $eq;
+    $equipements_by_category[$catId][] = $eq;
 }
 
-// Available categories
-$categories = [
-    'Électroménager' => 'appliance',
-    'Mobilier' => 'furniture-bed',
-    'Cuisine' => 'cup-hot',
-    'Salle de bain' => 'droplet',
-    'Linge de maison' => 'basket',
-    'Électronique' => 'tv',
-    'Autre' => 'box'
-];
+// Get subcategories for dropdown
+$stmt = $pdo->query("
+    SELECT sc.*, c.nom as categorie_nom
+    FROM inventaire_sous_categories sc
+    JOIN inventaire_categories c ON sc.categorie_id = c.id
+    WHERE sc.actif = TRUE
+    ORDER BY c.ordre, sc.ordre, sc.nom
+");
+$subcategories = [];
+while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    $subcategories[$row['categorie_id']][] = $row;
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -223,19 +268,22 @@ $categories = [
                 </button>
             </div>
         <?php else: ?>
-            <?php foreach ($categories as $cat_name => $cat_icon): ?>
-                <?php if (isset($equipements_by_category[$cat_name])): ?>
+            <?php foreach ($categories as $cat): ?>
+                <?php if (isset($equipements_by_category[$cat['id']])): ?>
                     <div class="category-card">
                         <div class="category-header">
-                            <i class="bi bi-<?php echo $cat_icon; ?>"></i> <?php echo $cat_name; ?>
-                            (<?php echo count($equipements_by_category[$cat_name]); ?> équipements)
+                            <i class="<?php echo $cat['icone']; ?>"></i> <?php echo htmlspecialchars($cat['nom']); ?>
+                            (<?php echo count($equipements_by_category[$cat['id']]); ?> équipements)
                         </div>
                         
-                        <?php foreach ($equipements_by_category[$cat_name] as $eq): ?>
+                        <?php foreach ($equipements_by_category[$cat['id']] as $eq): ?>
                             <div class="equipment-item">
                                 <div class="row align-items-center">
                                     <div class="col-md-5">
                                         <strong><?php echo htmlspecialchars($eq['nom']); ?></strong>
+                                        <?php if ($eq['sous_categorie_nom']): ?>
+                                            <br><small class="text-muted"><i class="bi bi-arrow-return-right"></i> <?php echo htmlspecialchars($eq['sous_categorie_nom']); ?></small>
+                                        <?php endif; ?>
                                         <?php if ($eq['description']): ?>
                                             <br><small class="text-muted"><?php echo htmlspecialchars($eq['description']); ?></small>
                                         <?php endif; ?>
@@ -254,7 +302,8 @@ $categories = [
                                         <div class="btn-group btn-group-sm">
                                             <button class="btn btn-outline-primary edit-equipement-btn"
                                                     data-id="<?php echo $eq['id']; ?>"
-                                                    data-categorie="<?php echo htmlspecialchars($eq['categorie']); ?>"
+                                                    data-categorie-id="<?php echo $eq['categorie_id']; ?>"
+                                                    data-sous-categorie-id="<?php echo $eq['sous_categorie_id'] ?? ''; ?>"
                                                     data-nom="<?php echo htmlspecialchars($eq['nom']); ?>"
                                                     data-description="<?php echo htmlspecialchars($eq['description']); ?>"
                                                     data-quantite="<?php echo $eq['quantite']; ?>"
@@ -266,9 +315,7 @@ $categories = [
                                             </button>
                                             <button class="btn btn-outline-danger delete-equipement-btn"
                                                     data-id="<?php echo $eq['id']; ?>"
-                                                    data-nom="<?php echo htmlspecialchars($eq['nom']); ?>"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#deleteEquipementModal">
+                                                    data-nom="<?php echo htmlspecialchars($eq['nom']); ?>">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </div>
@@ -295,11 +342,17 @@ $categories = [
                     <div class="modal-body">
                         <div class="mb-3">
                             <label class="form-label">Catégorie <span class="text-danger">*</span></label>
-                            <select name="categorie" class="form-select" required>
+                            <select name="categorie_id" id="add_categorie_id" class="form-select" required onchange="updateSubcategoriesAdd()">
                                 <option value="">Sélectionner...</option>
-                                <?php foreach (array_keys($categories) as $cat): ?>
-                                    <option value="<?php echo htmlspecialchars($cat); ?>"><?php echo htmlspecialchars($cat); ?></option>
+                                <?php foreach ($categories as $cat): ?>
+                                    <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['nom']); ?></option>
                                 <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="add_subcategory_container" style="display:none;">
+                            <label class="form-label">Sous-catégorie</label>
+                            <select name="sous_categorie_id" id="add_sous_categorie_id" class="form-select">
+                                <option value="">Aucune</option>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -357,11 +410,17 @@ $categories = [
                     <div class="modal-body">
                         <div class="mb-3">
                             <label class="form-label">Catégorie <span class="text-danger">*</span></label>
-                            <select name="categorie" id="edit_categorie" class="form-select" required>
+                            <select name="categorie_id" id="edit_categorie_id" class="form-select" required onchange="updateSubcategoriesEdit()">
                                 <option value="">Sélectionner...</option>
-                                <?php foreach (array_keys($categories) as $cat): ?>
-                                    <option value="<?php echo htmlspecialchars($cat); ?>"><?php echo htmlspecialchars($cat); ?></option>
+                                <?php foreach ($categories as $cat): ?>
+                                    <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['nom']); ?></option>
                                 <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="edit_subcategory_container" style="display:none;">
+                            <label class="form-label">Sous-catégorie</label>
+                            <select name="sous_categorie_id" id="edit_sous_categorie_id" class="form-select">
+                                <option value="">Aucune</option>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -407,19 +466,24 @@ $categories = [
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title">Confirmer la suppression</h5>
+                    <h5 class="modal-title">
+                        <i class="bi bi-exclamation-triangle"></i> Confirmer la suppression
+                    </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <p>Êtes-vous sûr de vouloir supprimer l'équipement <strong id="delete_equipement_nom"></strong> ?</p>
-                    <p class="text-danger">Cette action est irréversible.</p>
+                    <p class="text-danger"><i class="bi bi-exclamation-circle"></i> Cette action est irréversible.</p>
                 </div>
                 <div class="modal-footer">
                     <form method="POST">
                         <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="confirmed" value="1">
                         <input type="hidden" name="equipement_id" id="delete_equipement_id">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                        <button type="submit" class="btn btn-danger">Supprimer</button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash"></i> Confirmer la suppression
+                        </button>
                     </form>
                 </div>
             </div>
@@ -428,24 +492,71 @@ $categories = [
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Subcategories data from PHP
+        const subcategoriesData = <?php echo json_encode($subcategories, JSON_UNESCAPED_UNICODE); ?>;
+        
+        // Update subcategories dropdown for Add form
+        function updateSubcategoriesAdd() {
+            const categorieId = document.getElementById('add_categorie_id').value;
+            const container = document.getElementById('add_subcategory_container');
+            const select = document.getElementById('add_sous_categorie_id');
+            
+            if (categorieId && subcategoriesData[categorieId]) {
+                select.innerHTML = '<option value="">Aucune</option>';
+                subcategoriesData[categorieId].forEach(subcat => {
+                    select.innerHTML += `<option value="${subcat.id}">${subcat.nom}</option>`;
+                });
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+                select.innerHTML = '<option value="">Aucune</option>';
+            }
+        }
+        
+        // Update subcategories dropdown for Edit form
+        function updateSubcategoriesEdit() {
+            const categorieId = document.getElementById('edit_categorie_id').value;
+            const container = document.getElementById('edit_subcategory_container');
+            const select = document.getElementById('edit_sous_categorie_id');
+            
+            if (categorieId && subcategoriesData[categorieId]) {
+                select.innerHTML = '<option value="">Aucune</option>';
+                subcategoriesData[categorieId].forEach(subcat => {
+                    select.innerHTML += `<option value="${subcat.id}">${subcat.nom}</option>`;
+                });
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+                select.innerHTML = '<option value="">Aucune</option>';
+            }
+        }
+        
         // Edit equipment modal
         document.querySelectorAll('.edit-equipement-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.getElementById('edit_equipement_id').value = this.dataset.id;
-                document.getElementById('edit_categorie').value = this.dataset.categorie;
+                document.getElementById('edit_categorie_id').value = this.dataset.categorieId;
                 document.getElementById('edit_nom').value = this.dataset.nom;
                 document.getElementById('edit_description').value = this.dataset.description;
                 document.getElementById('edit_quantite').value = this.dataset.quantite;
                 document.getElementById('edit_valeur').value = this.dataset.valeur;
                 document.getElementById('edit_ordre').value = this.dataset.ordre;
+                
+                // Update subcategories and select current one
+                updateSubcategoriesEdit();
+                if (this.dataset.sousCategorieId) {
+                    document.getElementById('edit_sous_categorie_id').value = this.dataset.sousCategorieId;
+                }
             });
         });
 
-        // Delete equipment modal
+        // Delete equipment - show modal with confirmation
         document.querySelectorAll('.delete-equipement-btn').forEach(btn => {
             btn.addEventListener('click', function() {
+                const modal = new bootstrap.Modal(document.getElementById('deleteEquipementModal'));
                 document.getElementById('delete_equipement_id').value = this.dataset.id;
                 document.getElementById('delete_equipement_nom').textContent = this.dataset.nom;
+                modal.show();
             });
         });
     </script>
