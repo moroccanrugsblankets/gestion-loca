@@ -284,7 +284,7 @@ if (empty($equipements_data)) {
  * @param array $tenants Array of tenant records
  * @return array Deduplicated array with unique tenant IDs
  */
-function deduplicateTenantsByID($tenants) {
+function deduplicateTenantsById($tenants) {
     $unique_tenants = [];
     $seen_ids = [];
     $duplicate_count = 0;
@@ -295,7 +295,8 @@ function deduplicateTenantsByID($tenants) {
             $seen_ids[$tenant['id']] = true;
         } else {
             $duplicate_count++;
-            error_log("Duplicate tenant ID found in inventaire_locataires: ID={$tenant['id']}, Name={$tenant['prenom']} {$tenant['nom']}");
+            // Log duplicate tenant ID for debugging (only ID to protect privacy)
+            error_log("Duplicate tenant ID found in inventaire_locataires: ID={$tenant['id']}");
         }
     }
     
@@ -321,7 +322,7 @@ $all_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Deduplicate tenants by ID in PHP to prevent JavaScript errors from duplicate entries
 // This handles edge cases where duplicate records might exist due to data integrity issues
-$existing_tenants = deduplicateTenantsByID($all_tenants);
+$existing_tenants = deduplicateTenantsById($all_tenants);
 
 // If no tenants linked yet, auto-populate from contract (if inventaire is linked to a contract)
 if (empty($existing_tenants) && !empty($inventaire['contrat_id'])) {
@@ -361,7 +362,7 @@ if (empty($existing_tenants) && !empty($inventaire['contrat_id'])) {
     $stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? ORDER BY id ASC");
     $stmt->execute([$inventaire_id]);
     $all_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    $existing_tenants = deduplicateTenantsByID($all_tenants);
+    $existing_tenants = deduplicateTenantsById($all_tenants);
 }
 
 // Transform tenant signatures for display
