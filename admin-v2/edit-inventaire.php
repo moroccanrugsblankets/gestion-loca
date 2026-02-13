@@ -1,6 +1,8 @@
 <?php
 /**
- * Edit Inventaire - New standardized version using inventaire-standard-items.php
+ * Edit Inventaire - Dynamic equipment loading from database
+ * Equipment is loaded from inventaire_equipements table based on logement_id
+ * Falls back to standard items if no equipment is defined for the logement
  * Enhanced interface with Entry/Exit grid and subcategory organization
  */
 require_once '../includes/config.php';
