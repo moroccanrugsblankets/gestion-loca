@@ -720,6 +720,8 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
     
     $nbCols = count($locataires) + 1; // +1 for landlord
     // Calculate column width percentage for consistent sizing
+    // Note: Using floor() may result in columns not summing to exactly 100% (e.g., 3 cols = 33% each = 99%)
+    // This is acceptable as TCPDF will distribute remaining space proportionally
     $colWidthPercent = floor(100 / $nbCols);
 
     // Build signature table with proper structure and consistent styling
@@ -859,7 +861,9 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
                 $html .= '<p style="font-size: 8pt; margin: 5px 0; background-color: transparent;">✓ Certifié exact</p>';
             }
         } else {
-            error_log("PDF: Tenant $idx (DB ID: " . ($tenantDbId ?? 'NULL') . ") has NO signature");
+            // No signature for this tenant
+            $tenantDbId = $tenantInfo['id'] ?? 'NULL';
+            error_log("PDF: Tenant $idx (DB ID: " . $tenantDbId . ") has NO signature");
         }
 
         $tenantName = htmlspecialchars(trim(($tenantInfo['prenom'] ?? '') . ' ' . ($tenantInfo['nom'] ?? '')));

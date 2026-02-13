@@ -132,9 +132,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Update signature if provided
                 if (!empty($tenantInfo['signature'])) {
-                    // Validate signature format
+                    // Validate signature format (expected: data:image/(jpeg|jpg|png);base64,<base64_data>)
                     if (!preg_match('/^data:image\/(jpeg|jpg|png);base64,[A-Za-z0-9+\/=]+$/', $tenantInfo['signature'])) {
-                        error_log("Invalid signature format for tenant ID: $tenantId (index: $tenantIndex)");
+                        error_log("Invalid signature format for tenant ID: $tenantId (index: $tenantIndex) - Expected: data:image/jpeg;base64,...");
                         continue;
                     }
                     
