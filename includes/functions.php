@@ -378,16 +378,18 @@ function updateEtatLieuxTenantSignature($etatLieuxLocataireId, $signatureData, $
 function updateInventaireTenantSignature($inventaireLocataireId, $signatureData, $inventaireId) {
     global $pdo;
     
+    error_log("updateInventaireTenantSignature: START - inventaire_locataire ID: $inventaireLocataireId, inventaire ID: $inventaireId");
+    
     // Validate signature data size
     $maxSize = 2 * 1024 * 1024; // 2MB limit
     if (strlen($signatureData) > $maxSize) {
-        error_log("Signature data too large: " . strlen($signatureData) . " bytes for inventaire_locataire ID: $inventaireLocataireId");
+        error_log("updateInventaireTenantSignature: Signature data too large: " . strlen($signatureData) . " bytes for inventaire_locataire ID: $inventaireLocataireId");
         return false;
     }
     
     // Validate that signature data is a valid data URL
     if (!preg_match('/^data:image\/(png|jpeg|jpg);base64,([A-Za-z0-9+\/]+={0,2})$/', $signatureData, $matches)) {
-        error_log("Invalid signature data format for inventaire_locataire ID: $inventaireLocataireId");
+        error_log("updateInventaireTenantSignature: Invalid signature data format for inventaire_locataire ID: $inventaireLocataireId");
         return false;
     }
     
@@ -397,7 +399,7 @@ function updateInventaireTenantSignature($inventaireLocataireId, $signatureData,
     // Decode base64 to image data
     $imageData = base64_decode($base64Data);
     if ($imageData === false) {
-        error_log("Failed to decode base64 signature for inventaire_locataire ID: $inventaireLocataireId");
+        error_log("updateInventaireTenantSignature: Failed to decode base64 signature for inventaire_locataire ID: $inventaireLocataireId");
         return false;
     }
     
@@ -406,39 +408,47 @@ function updateInventaireTenantSignature($inventaireLocataireId, $signatureData,
     $uploadsDir = $baseDir . '/uploads/signatures';
     if (!is_dir($uploadsDir)) {
         if (!mkdir($uploadsDir, 0755, true)) {
-            error_log("Failed to create signatures directory for inventaire_locataire ID: $inventaireLocataireId");
+            error_log("updateInventaireTenantSignature: Failed to create signatures directory for inventaire_locataire ID: $inventaireLocataireId");
             return false;
         }
     }
     
-    // Generate unique filename
+    // Generate unique filename with timestamp and tenant ID for uniqueness
     $filename = "inventaire_tenant_{$inventaireId}_{$inventaireLocataireId}_" . time() . ".jpg";
     $filepath = $uploadsDir . '/' . $filename;
     
+    error_log("updateInventaireTenantSignature: Saving signature to file: $filename");
+    
     // Save physical file
     if (file_put_contents($filepath, $imageData) === false) {
-        error_log("Failed to save signature file for inventaire_locataire ID: $inventaireLocataireId");
+        error_log("updateInventaireTenantSignature: Failed to save signature file for inventaire_locataire ID: $inventaireLocataireId");
         return false;
     }
     
     // Store relative path instead of base64
     $relativePath = 'uploads/signatures/' . $filename;
-    error_log("Inventaire signature saved as physical file: $relativePath for inventaire_locataire ID: $inventaireLocataireId");
+    error_log("updateInventaireTenantSignature: ✓ Signature saved as physical file: $relativePath");
     
+    // Update the database with the specific tenant's signature
+    // CRITICAL: Use both id AND inventaire_id to ensure we update the correct tenant record
     $sql = "UPDATE inventaire_locataires 
             SET signature = ?, date_signature = NOW()
             WHERE id = ? AND inventaire_id = ?";
     
+    error_log("updateInventaireTenantSignature: Executing UPDATE for inventaire_locataire ID: $inventaireLocataireId");
+    
     $stmt = executeQuery($sql, [$relativePath, $inventaireLocataireId, $inventaireId]);
     
     if ($stmt === false) {
-        error_log("Failed to update signature for inventaire_locataire ID: $inventaireLocataireId");
+        error_log("updateInventaireTenantSignature: ❌ Failed to update signature for inventaire_locataire ID: $inventaireLocataireId");
         // Clean up the file if database update failed
         if (file_exists($filepath)) {
             unlink($filepath);
         }
         return false;
     }
+    
+    error_log("updateInventaireTenantSignature: ✓ SUCCESS - Updated signature for inventaire_locataire ID: $inventaireLocataireId");
     
     return true;
 }

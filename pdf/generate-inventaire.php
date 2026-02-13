@@ -719,23 +719,26 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
     global $pdo, $config;
     
     $nbCols = count($locataires) + 1; // +1 for landlord
-    // Use fixed pixel widths for more consistent PDF rendering
-    $tableWidth = 600; // max-width in pixels
-    $colWidthPx = floor($tableWidth / $nbCols);
+    // Calculate column width percentage for consistent sizing
+    // Note: Using floor() may result in columns not summing to exactly 100% (e.g., 3 cols = 33% each = 99%)
+    // This is acceptable as TCPDF will distribute remaining space proportionally
+    $colWidthPercent = floor(100 / $nbCols);
 
-    // Build signature table with explicit transparent backgrounds and no borders
-    $tableStyle = 'width: 100%; max-width: 600px; border-collapse: collapse; border: none; border-width: 0; ' 
-        . 'margin-top: 20px; text-align: center; background: transparent; background-color: transparent;';
-    $rowStyle = 'background: transparent; background-color: transparent; border: none; border-width: 0;';
+    // Build signature table with proper structure and consistent styling
+    // Using explicit width percentages for TCPDF compatibility
+    $tableStyle = 'width: 100%; border-collapse: collapse; margin-top: 20px; text-align: center; ' 
+        . 'background-color: transparent; border: 0;';
+    $rowStyle = 'background-color: transparent; border: 0;';
+    // Ensure cells have consistent width, transparent background, and no borders
+    $cellStyle = 'width: ' . $colWidthPercent . '%; vertical-align: top; text-align: center; ' 
+        . 'padding: 10px; background-color: transparent; border: 0;';
     
-    $html = '<table cellspacing="0" cellpadding="0" border="0" style="' . $tableStyle . '">'
+    $html = '<table cellspacing="0" cellpadding="10" border="0" style="' . $tableStyle . '">'
         . '<tbody><tr style="' . $rowStyle . '">';
 
     // Landlord column
-    $cellStyle = 'width:' . $colWidthPx . 'px; vertical-align: top; text-align: center; padding: 10px; ' 
-        . 'border: none; border-width: 0; background: transparent; background-color: transparent;';
     $html .= '<td style="' . $cellStyle . '">';
-    $html .= '<p style="margin: 5px 0; background: transparent;"><strong>Le bailleur :</strong></p>';
+    $html .= '<p style="margin: 5px 0; font-weight: bold; background-color: transparent;"><strong>Le bailleur :</strong></p>';
     
     // Get landlord signature from parametres - fetch both in one query using COALESCE
     $stmt = $pdo->prepare("
@@ -785,22 +788,25 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
     }
     
     $placeSignature = !empty($inventaire['lieu_signature']) ? htmlspecialchars($inventaire['lieu_signature']) : htmlspecialchars($config['DEFAULT_SIGNATURE_LOCATION'] ?? 'Annemasse');
-    $html .= '<p style="font-size: 8pt; margin: 5px 0; background: transparent;"><br>&nbsp;<br>&nbsp;<br>Fait à ' . $placeSignature . '</p>';
+    $html .= '<p style="font-size: 8pt; margin: 5px 0; background-color: transparent;"><br>&nbsp;<br>&nbsp;<br>Fait à ' . $placeSignature . '</p>';
     
     if (!empty($inventaire['date_inventaire'])) {
         $signDate = date('d/m/Y', strtotime($inventaire['date_inventaire']));
-        $html .= '<p style="font-size: 8pt; margin: 5px 0; background: transparent;">Le ' . $signDate . '</p>';
+        $html .= '<p style="font-size: 8pt; margin: 5px 0; background-color: transparent;">Le ' . $signDate . '</p>';
     }
     
-    $html .= '<p style="font-size: 9pt; margin: 5px 0; background: transparent;">' . htmlspecialchars($inventaire['bailleur_nom'] ?? $config['COMPANY_NAME']) . '</p>';
+    $html .= '<p style="font-size: 9pt; margin: 5px 0; background-color: transparent;">' . htmlspecialchars($inventaire['bailleur_nom'] ?? $config['COMPANY_NAME']) . '</p>';
     $html .= '</td>';
 
-    // Tenant columns
+    // Tenant columns - iterate through each tenant with unique signature
     foreach ($locataires as $idx => $tenantInfo) {
+        // Log tenant being processed for debugging signature issues
+        error_log("PDF: Processing tenant $idx - ID: " . ($tenantInfo['id'] ?? 'NULL') . ", Name: " . ($tenantInfo['prenom'] ?? '') . ' ' . ($tenantInfo['nom'] ?? ''));
+        
         $html .= '<td style="' . $cellStyle . '">';
 
         $tenantLabel = ($nbCols === 2) ? 'Locataire :' : 'Locataire ' . ($idx + 1) . ' :';
-        $html .= '<p style="margin: 5px 0; background: transparent;"><strong>' . $tenantLabel . '</strong></p>';
+        $html .= '<p style="margin: 5px 0; font-weight: bold; background-color: transparent;"><strong>' . $tenantLabel . '</strong></p>';
 
         // Display tenant signature if available
         if (!empty($tenantInfo['signature'])) {
@@ -808,6 +814,9 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
             $signatureData = $originalSignature;
             $tenantDbId = $tenantInfo['id'] ?? null;
             $inventaireId = $inventaire['id'] ?? 0;
+            
+            // Log signature processing for this specific tenant
+            error_log("PDF: Tenant $idx (DB ID: $tenantDbId) has signature: " . substr($originalSignature, 0, 50) . "...");
             
             // Convert base64 to physical file if needed
             $signatureData = convertInventaireSignatureToPhysicalFile($signatureData, 'tenant', $inventaireId, $tenantDbId);
@@ -819,7 +828,7 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
                 $updateStmt = $pdo->prepare("UPDATE inventaire_locataires SET signature = ? WHERE id = ? AND signature = ?");
                 $updateStmt->execute([$signatureData, $tenantDbId, $originalSignature]);
                 if ($updateStmt->rowCount() > 0) {
-                    error_log("✓ Updated tenant signature in database to physical file");
+                    error_log("✓ PDF: Updated tenant $idx (DB ID: $tenantDbId) signature in database to physical file");
                 }
             }
             
@@ -829,31 +838,36 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
                 if (file_exists($fullPath)) {
                     // Use public URL with no-border styling
                     $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($signatureData, '/');
-                    $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" border="0" style="' 
+                    $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire ' . ($idx + 1) . '" border="0" style="' 
                         . INVENTAIRE_SIGNATURE_IMG_STYLE . '">';
+                    error_log("PDF: Displaying signature image for tenant $idx from: $signatureData");
                 } else {
-                    error_log("Tenant signature file not found: $fullPath");
+                    error_log("PDF: Tenant $idx signature file not found: $fullPath");
                 }
             } else {
                 // Still base64 after conversion attempt - use as fallback but log warning
-                error_log("WARNING: Using base64 signature for tenant (conversion may have failed)");
-                $html .= '<img src="' . htmlspecialchars($signatureData) . '" alt="Signature Locataire" border="0" style="' 
+                error_log("WARNING: PDF: Using base64 signature for tenant $idx (conversion may have failed)");
+                $html .= '<img src="' . htmlspecialchars($signatureData) . '" alt="Signature Locataire ' . ($idx + 1) . '" border="0" style="' 
                     . INVENTAIRE_SIGNATURE_IMG_STYLE . '">';
             }
             
             if (!empty($tenantInfo['date_signature'])) {
                 $signDate = date('d/m/Y à H:i', strtotime($tenantInfo['date_signature']));
-                $html .= '<p style="font-size: 8pt; margin: 5px 0; background: transparent;"><br>&nbsp;<br>&nbsp;<br>Signé le ' . $signDate . '</p>';
+                $html .= '<p style="font-size: 8pt; margin: 5px 0; background-color: transparent;"><br>&nbsp;<br>&nbsp;<br>Signé le ' . $signDate . '</p>';
             }
             
             // Display "Certifié exact" checkbox status
             if (!empty($tenantInfo['certifie_exact'])) {
-                $html .= '<p style="font-size: 8pt; margin: 5px 0; background: transparent;">✓ Certifié exact</p>';
+                $html .= '<p style="font-size: 8pt; margin: 5px 0; background-color: transparent;">✓ Certifié exact</p>';
             }
+        } else {
+            // No signature for this tenant
+            $tenantDbId = $tenantInfo['id'] ?? 'NULL';
+            error_log("PDF: Tenant $idx (DB ID: " . $tenantDbId . ") has NO signature");
         }
 
         $tenantName = htmlspecialchars(trim(($tenantInfo['prenom'] ?? '') . ' ' . ($tenantInfo['nom'] ?? '')));
-        $html .= '<p style="font-size: 9pt; margin: 5px 0; background: transparent;">' . $tenantName . '</p>';
+        $html .= '<p style="font-size: 9pt; margin: 5px 0; background-color: transparent;">' . $tenantName . '</p>';
         $html .= '</td>';
     }
 

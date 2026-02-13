@@ -132,17 +132,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Update signature if provided
                 if (!empty($tenantInfo['signature'])) {
-                    // Validate signature format
+                    // Validate signature format (expected: data:image/(jpeg|jpg|png);base64,<base64_data>)
                     if (!preg_match('/^data:image\/(jpeg|jpg|png);base64,[A-Za-z0-9+\/=]+$/', $tenantInfo['signature'])) {
-                        error_log("Invalid signature format for tenant ID: $tenantId");
+                        error_log("Invalid signature format for tenant ID: $tenantId (index: $tenantIndex) - Expected: data:image/jpeg;base64,...");
                         continue;
                     }
+                    
+                    // Log signature save attempt for debugging
+                    error_log("SAVE: Attempting to save signature for tenant index: $tenantIndex, DB ID: $tenantId, inventaire: $inventaire_id");
+                    error_log("SAVE: Signature data length: " . strlen($tenantInfo['signature']) . " bytes");
                     
                     // Use the helper function from functions.php
                     $result = updateInventaireTenantSignature($tenantId, $tenantInfo['signature'], $inventaire_id);
                     
                     if (!$result) {
-                        error_log("Failed to save signature for tenant ID: $tenantId");
+                        error_log("SAVE: ❌ Failed to save signature for tenant ID: $tenantId (index: $tenantIndex)");
+                    } else {
+                        error_log("SAVE: ✓ Successfully saved signature for tenant ID: $tenantId (index: $tenantIndex)");
                     }
                 }
             }
@@ -804,6 +810,13 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                 
                 <!-- Tenant Signatures -->
                 <?php foreach ($existing_tenants as $index => $tenant): ?>
+                <!-- 
+                    IMPORTANT: Each tenant has unique identifiers to prevent signature duplication:
+                    - Canvas ID: tenantCanvas_<?php echo $index; ?> (unique per tenant)
+                    - Hidden field ID: tenantSignature_<?php echo $index; ?> (unique per tenant)
+                    - Database ID: <?php echo $tenant['id']; ?> (stored in db_id hidden field)
+                    The $index is the array position (0, 1, 2...) and $tenant['id'] is the database primary key
+                -->
                 <div class="mb-4 pb-4 border-bottom">
                     <h6 class="mb-3">
                         Signature locataire <?php echo $index + 1; ?> - <?php echo htmlspecialchars($tenant['prenom'] . ' ' . $tenant['nom']); ?>
@@ -1082,6 +1095,10 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
         
         function saveTenantSignature(id) {
             const canvas = document.getElementById(`tenantCanvas_${id}`);
+            if (!canvas) {
+                console.error(`Canvas not found for tenant ID: ${id}`);
+                return;
+            }
             
             // Create a temporary canvas to add white background before JPEG conversion
             // JPEG doesn't support transparency, so we need to fill with white
@@ -1099,7 +1116,17 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
             
             // Convert to JPEG with white background
             const signatureData = tempCanvas.toDataURL('image/jpeg', SIGNATURE_JPEG_QUALITY);
-            document.getElementById(`tenantSignature_${id}`).value = signatureData;
+            
+            // Get the hidden field and verify it's the correct one for this tenant
+            const hiddenField = document.getElementById(`tenantSignature_${id}`);
+            if (!hiddenField) {
+                console.error(`Hidden field not found for tenant ID: ${id}`);
+                return;
+            }
+            
+            // Set the value - this is tenant-specific due to the unique ID
+            hiddenField.value = signatureData;
+            console.log(`Signature saved for tenant ${id}, length: ${signatureData.length} bytes`);
         }
         
         function clearTenantSignature(id) {
