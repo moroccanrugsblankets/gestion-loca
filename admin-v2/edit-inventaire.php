@@ -146,7 +146,7 @@ $stmt = $pdo->prepare("
     LEFT JOIN inventaire_categories c ON e.categorie_id = c.id
     LEFT JOIN inventaire_sous_categories sc ON e.sous_categorie_id = sc.id
     WHERE e.logement_id = ? 
-    ORDER BY c.ordre, e.ordre, e.nom
+    ORDER BY COALESCE(c.ordre, 999), e.ordre, e.nom
 ");
 $stmt->execute([$inventaire['logement_id']]);
 $logement_equipements = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -164,7 +164,10 @@ if (!empty($logement_equipements)) {
         
         $item = [
             'nom' => $eq['nom'],
-            'type' => 'countable' // Default type for database equipment
+            // Note: Database equipment defaults to 'countable' type.
+            // The type field is used by the view to determine rendering behavior.
+            // All equipment from the database is treated as countable.
+            'type' => 'countable'
         ];
         
         if ($subcategoryName) {
