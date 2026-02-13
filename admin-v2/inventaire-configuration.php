@@ -109,6 +109,20 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             padding: 20px;
             background: white;
         }
+        .preview-section table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .preview-section th,
+        .preview-section td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .preview-section th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
         .copy-tooltip {
             position: fixed;
             top: 50%;
@@ -272,8 +286,10 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             height: 500,
             plugins: 'code preview searchreplace autolink directionality visualblocks visualchars fullscreen link table charmap hr pagebreak nonbreaking anchor insertdatetime advlist lists wordcount help charmap',
             toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | code preview | help',
-            content_style: 'body { font-family: Arial, sans-serif; font-size: 10pt; }',
-            menubar: false
+            content_style: 'body { font-family: Arial, sans-serif; font-size: 10pt; } table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #ddd; padding: 8px; text-align: left; } th { background-color: #f2f2f2; font-weight: bold; }',
+            menubar: false,
+            entity_encoding: 'raw',
+            encoding: 'UTF-8'
         });
 
         // Initialize TinyMCE for exit template
@@ -282,8 +298,10 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             height: 500,
             plugins: 'code preview searchreplace autolink directionality visualblocks visualchars fullscreen link table charmap hr pagebreak nonbreaking anchor insertdatetime advlist lists wordcount help charmap',
             toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | code preview | help',
-            content_style: 'body { font-family: Arial, sans-serif; font-size: 10pt; }',
-            menubar: false
+            content_style: 'body { font-family: Arial, sans-serif; font-size: 10pt; } table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #ddd; padding: 8px; text-align: left; } th { background-color: #f2f2f2; font-weight: bold; }',
+            menubar: false,
+            entity_encoding: 'raw',
+            encoding: 'UTF-8'
         });
 
         function copyVariable(variable) {

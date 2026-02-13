@@ -804,7 +804,7 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                             <?php endif; ?>
                             <label class="form-label">Veuillez signer dans le cadre ci-dessous :</label>
                             <div class="signature-container" style="max-width: 300px;">
-                                <canvas id="tenantCanvas_<?php echo $tenant['id']; ?>" width="300" height="150" style="background: white; border: 1px solid #dee2e6; outline: none; padding: 0;"></canvas>
+                                <canvas id="tenantCanvas_<?php echo $tenant['id']; ?>" width="300" height="150" style="background: white; border: none; outline: none; padding: 0;"></canvas>
                             </div>
                             <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][signature]" 
                                    id="tenantSignature_<?php echo $tenant['id']; ?>" 
@@ -864,8 +864,8 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
         
         // Initialize tenant signature canvases on page load
         document.addEventListener('DOMContentLoaded', function() {
-            <?php foreach ($existing_tenants as $tenant): ?>
-            initTenantSignature(<?php echo $tenant['id']; ?>);
+            <?php foreach ($existing_tenants as $index => $tenant): ?>
+            initTenantSignature(<?php echo $tenant['id']; ?>, <?php echo ($index + 1); ?>);
             <?php endforeach; ?>
         });
         
@@ -928,16 +928,16 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
             }, 5000);
         }
         
-        function initTenantSignature(id) {
+        function initTenantSignature(id, tenantIndex) {
             const canvas = document.getElementById(`tenantCanvas_${id}`);
             if (!canvas) {
-                console.error(`Canvas not found for tenant ID: ${id}`);
+                console.error(`Canvas not found for tenant ID: ${id} (Tenant ${tenantIndex})`);
                 return;
             }
             
             const ctx = canvas.getContext('2d');
             if (!ctx) {
-                console.error(`Could not get 2d context for canvas of tenant ID: ${id}`);
+                console.error(`Could not get 2d context for canvas of tenant ID: ${id} (Tenant ${tenantIndex})`);
                 return;
             }
             
@@ -1014,7 +1014,7 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                 canvas.dispatchEvent(mouseEvent);
             });
             
-            console.log(`Signature canvas initialized successfully for tenant ID: ${id}`);
+            console.log(`Signature canvas initialized successfully for tenant ID: ${id} (Tenant ${tenantIndex})`);
         }
         
         function saveTenantSignature(id) {
