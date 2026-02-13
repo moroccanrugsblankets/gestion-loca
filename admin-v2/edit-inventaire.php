@@ -87,7 +87,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Update tenant signatures
         if (isset($_POST['tenants']) && is_array($_POST['tenants'])) {
-            foreach ($_POST['tenants'] as $tenantId => $tenantInfo) {
+            // First, validate that all tenants have db_id
+            $missingDbIds = [];
+            foreach ($_POST['tenants'] as $tenantIndex => $tenantInfo) {
+                if (!isset($tenantInfo['db_id']) || empty($tenantInfo['db_id'])) {
+                    $missingDbIds[] = $tenantIndex;
+                }
+            }
+            
+            if (!empty($missingDbIds)) {
+                throw new Exception("Données de locataire incomplètes. Veuillez réessayer.");
+            }
+            
+            foreach ($_POST['tenants'] as $tenantIndex => $tenantInfo) {
+                // Get the database ID from the hidden field
+                $tenantId = (int)$tenantInfo['db_id'];
+                
                 // Only update certifie_exact if finalizing (not for draft saves)
                 // For draft saves, we preserve the existing value unless explicitly checked
                 // For finalize, we always update it (validation ensures it's checked)
@@ -781,32 +796,34 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                             <?php endif; ?>
                             <label class="form-label">Veuillez signer dans le cadre ci-dessous :</label>
                             <div class="signature-container" style="max-width: 300px;">
-                                <canvas id="tenantCanvas_<?php echo $tenant['id']; ?>" width="300" height="150" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
+                                <canvas id="tenantCanvas_<?php echo $index; ?>" width="300" height="150" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
                             </div>
-                            <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][signature]" 
-                                   id="tenantSignature_<?php echo $tenant['id']; ?>" 
+                            <input type="hidden" name="tenants[<?php echo $index; ?>][signature]" 
+                                   id="tenantSignature_<?php echo $index; ?>" 
                                    value="<?php echo htmlspecialchars($tenant['signature_data'] ?? ''); ?>">
-                            <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][locataire_id]" 
+                            <input type="hidden" name="tenants[<?php echo $index; ?>][db_id]" 
+                                   value="<?php echo $tenant['id']; ?>">
+                            <input type="hidden" name="tenants[<?php echo $index; ?>][locataire_id]" 
                                    value="<?php echo $tenant['locataire_id'] ?? ''; ?>">
-                            <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][nom]" 
+                            <input type="hidden" name="tenants[<?php echo $index; ?>][nom]" 
                                    value="<?php echo htmlspecialchars($tenant['nom']); ?>">
-                            <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][prenom]" 
+                            <input type="hidden" name="tenants[<?php echo $index; ?>][prenom]" 
                                    value="<?php echo htmlspecialchars($tenant['prenom']); ?>">
-                            <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][email]" 
+                            <input type="hidden" name="tenants[<?php echo $index; ?>][email]" 
                                    value="<?php echo htmlspecialchars($tenant['email'] ?? ''); ?>">
                             <div class="mt-2">
-                                <button type="button" class="btn btn-warning btn-sm" onclick="clearTenantSignature(<?php echo $tenant['id']; ?>)">
+                                <button type="button" class="btn btn-warning btn-sm" onclick="clearTenantSignature(<?php echo $index; ?>)">
                                     <i class="bi bi-eraser"></i> Effacer
                                 </button>
                             </div>
                             <div class="mt-3">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" 
-                                           name="tenants[<?php echo $tenant['id']; ?>][certifie_exact]" 
-                                           id="certifie_exact_<?php echo $tenant['id']; ?>" 
+                                           name="tenants[<?php echo $index; ?>][certifie_exact]" 
+                                           id="certifie_exact_<?php echo $index; ?>" 
                                            value="1"
                                            <?php echo !empty($tenant['certifie_exact']) ? 'checked' : ''; ?>>
-                                    <label class="form-check-label" for="certifie_exact_<?php echo $tenant['id']; ?>">
+                                    <label class="form-check-label" for="certifie_exact_<?php echo $index; ?>">
                                         <strong>Certifié exact</strong>
                                     </label>
                                 </div>
@@ -841,10 +858,10 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
         
         // Initialize tenant signature canvases on page load
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize tenant signatures based on actual IDs in the page
+            // Initialize tenant signatures using array index to avoid duplicate canvas IDs
             <?php if (!empty($existing_tenants)): ?>
-                <?php foreach ($existing_tenants as $tenant): ?>
-                    initTenantSignature(<?php echo $tenant['id']; ?>);
+                <?php foreach ($existing_tenants as $index => $tenant): ?>
+                    initTenantSignature(<?php echo $index; ?>);
                 <?php endforeach; ?>
             <?php endif; ?>
         });
@@ -1044,9 +1061,9 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
         
         // Handle form submission with validation
         document.getElementById('inventaireForm').addEventListener('submit', function(e) {
-            // Save all tenant signatures before submission
-            <?php foreach ($existing_tenants as $tenant): ?>
-                saveTenantSignature(<?php echo $tenant['id']; ?>);
+            // Save all tenant signatures before submission using index
+            <?php foreach ($existing_tenants as $index => $tenant): ?>
+                saveTenantSignature(<?php echo $index; ?>);
             <?php endforeach; ?>
             
             // Check if this is a draft save (no finalize parameter)
@@ -1100,14 +1117,14 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                 }
             });
             
-            // Validate tenant signatures - using array to avoid duplicate identifier errors
+            // Validate tenant signatures - using array with index to avoid duplicate identifier errors
             const tenantValidations = [
                 <?php foreach ($existing_tenants as $index => $tenant): ?>
                 {
-                    id: <?php echo $tenant['id']; ?>,
+                    tenantIndex: <?php echo $index; ?>,
                     name: <?php echo json_encode($tenant['prenom'] . ' ' . $tenant['nom']); ?>,
-                    signatureId: 'tenantSignature_<?php echo $tenant['id']; ?>',
-                    certifieId: 'certifie_exact_<?php echo $tenant['id']; ?>'
+                    signatureId: 'tenantSignature_<?php echo $index; ?>',
+                    certifieId: 'certifie_exact_<?php echo $index; ?>'
                 }<?php echo ($index < count($existing_tenants) - 1) ? ',' : ''; ?>
                 <?php endforeach; ?>
             ];
