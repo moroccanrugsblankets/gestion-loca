@@ -34,41 +34,26 @@ try {
         $stmt->execute([$logement_id]);
     }
     
+    // Get logement reference for property-specific equipment
+    $stmt = $pdo->prepare("SELECT reference FROM logements WHERE id = ?");
+    $stmt->execute([$logement_id]);
+    $logement_reference = $stmt->fetchColumn() ?: '';
+    
     // Get complete default equipment items from standardized template
     require_once '../includes/inventaire-standard-items.php';
-    $standardItems = getStandardInventaireItems();
+    $standardItems = getStandardInventaireItems($logement_reference);
     
     // Convert standardized items to flat equipment list
     $defaultEquipment = [];
     
-    // Helper function to get default quantity based on item type
-    $getDefaultQuantity = function($itemType) {
-        return ($itemType === 'countable') ? 0 : 1;
-    };
-    
-    foreach ($standardItems as $categoryName => $categoryContent) {
+    foreach ($standardItems as $categoryName => $categoryItems) {
         $defaultEquipment[$categoryName] = [];
-        
-        if ($categoryName === 'État des pièces') {
-            // État des pièces has subcategories
-            foreach ($categoryContent as $subcategoryName => $subcategoryItems) {
-                $fullCategoryName = $categoryName . ' - ' . $subcategoryName;
-                $defaultEquipment[$fullCategoryName] = [];
-                foreach ($subcategoryItems as $item) {
-                    $defaultEquipment[$fullCategoryName][] = [
-                        'nom' => $item['nom'],
-                        'quantite' => $getDefaultQuantity($item['type'])
-                    ];
-                }
-            }
-        } else {
-            // Other categories are flat
-            foreach ($categoryContent as $item) {
-                $defaultEquipment[$categoryName][] = [
-                    'nom' => $item['nom'],
-                    'quantite' => $getDefaultQuantity($item['type'])
-                ];
-            }
+        // New simplified structure - no subcategories
+        foreach ($categoryItems as $item) {
+            $defaultEquipment[$categoryName][] = [
+                'nom' => $item['nom'],
+                'quantite' => $item['quantite'] ?? 0
+            ];
         }
     }
     

@@ -189,7 +189,7 @@ if (!empty($logement_equipements)) {
     }
 } else {
     // Fallback to standard items if no equipment defined for this logement
-    $standardItems = getStandardInventaireItems();
+    $standardItems = getStandardInventaireItems($inventaire['logement_reference']);
 }
 
 // Generate initial inventory data structure from equipment
@@ -198,69 +198,29 @@ function generateInventoryDataFromEquipment($standardItems) {
     $data = [];
     $itemIndex = 0;
     
-    foreach ($standardItems as $categoryName => $categoryContent) {
-        // Check if category has subcategories (nested array with string keys)
-        $hasSubcategories = false;
-        if (is_array($categoryContent) && !empty($categoryContent)) {
-            $firstKey = array_key_first($categoryContent);
-            $firstValue = $categoryContent[$firstKey];
-            // If first value is an array and contains 'nom', it's a direct item
-            // If first value is an array but doesn't contain 'nom', it's a subcategory
-            if (is_array($firstValue) && !isset($firstValue['nom'])) {
-                $hasSubcategories = true;
-            }
-        }
-        
-        if ($hasSubcategories) {
-            // Category has subcategories
-            foreach ($categoryContent as $subcategoryName => $subcategoryItems) {
-                foreach ($subcategoryItems as $item) {
-                    $data[] = [
-                        'id' => ++$itemIndex,
-                        'categorie' => $categoryName,
-                        'sous_categorie' => $subcategoryName,
-                        'nom' => $item['nom'],
-                        'type' => $item['type'],
-                        'entree' => [
-                            'nombre' => null,
-                            'bon' => false,
-                            'usage' => false,
-                            'mauvais' => false,
-                        ],
-                        'sortie' => [
-                            'nombre' => null,
-                            'bon' => false,
-                            'usage' => false,
-                            'mauvais' => false,
-                        ],
-                        'commentaires' => ''
-                    ];
-                }
-            }
-        } else {
-            // Simple category (flat list of items)
-            foreach ($categoryContent as $item) {
-                $data[] = [
-                    'id' => ++$itemIndex,
-                    'categorie' => $categoryName,
-                    'sous_categorie' => null,
-                    'nom' => $item['nom'],
-                    'type' => $item['type'],
-                    'entree' => [
-                        'nombre' => null,
-                        'bon' => false,
-                        'usage' => false,
-                        'mauvais' => false,
-                    ],
-                    'sortie' => [
-                        'nombre' => null,
-                        'bon' => false,
-                        'usage' => false,
-                        'mauvais' => false,
-                    ],
-                    'commentaires' => ''
-                ];
-            }
+    // New simplified structure - no subcategories, flat list per category
+    foreach ($standardItems as $categoryName => $categoryItems) {
+        foreach ($categoryItems as $item) {
+            $data[] = [
+                'id' => ++$itemIndex,
+                'categorie' => $categoryName,
+                'sous_categorie' => null, // No subcategories in new structure
+                'nom' => $item['nom'],
+                'type' => $item['type'],
+                'entree' => [
+                    'nombre' => $item['quantite'] ?? 0,
+                    'bon' => isset($item['default_etat']) && $item['default_etat'] === 'bon',
+                    'usage' => false,
+                    'mauvais' => false,
+                ],
+                'sortie' => [
+                    'nombre' => null,
+                    'bon' => false,
+                    'usage' => false,
+                    'mauvais' => false,
+                ],
+                'commentaires' => ''
+            ];
         }
     }
     
