@@ -16,25 +16,22 @@
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/inventaire-standard-items.php';
 
 try {
     $pdo->beginTransaction();
     
     echo "=== Migration 050: Add Équipement 2 (Linge / Entretien) Category ===\n";
     
-    // Define the new category items
-    $equipement2Items = [
-        ['nom' => 'Matelas', 'quantite' => 1],
-        ['nom' => 'Oreillers', 'quantite' => 2],
-        ['nom' => 'Taies d\'oreiller', 'quantite' => 2],
-        ['nom' => 'Draps du dessous', 'quantite' => 1],
-        ['nom' => 'Couette', 'quantite' => 1],
-        ['nom' => 'Housse de couette', 'quantite' => 1],
-        ['nom' => 'Alaise', 'quantite' => 1],
-        ['nom' => 'Plaid', 'quantite' => 1],
-    ];
-    
+    // Get items from the standard template to avoid duplication
     $categoryName = 'Équipement 2 (Linge / Entretien)';
+    $standardItems = getStandardInventaireItems('');
+    
+    if (!isset($standardItems[$categoryName])) {
+        throw new Exception("Category '{$categoryName}' not found in standard items. Cannot proceed with migration.");
+    }
+    
+    $equipement2Items = $standardItems[$categoryName];
     
     // Get all logements
     $stmt = $pdo->query("SELECT id, reference FROM logements ORDER BY id");
