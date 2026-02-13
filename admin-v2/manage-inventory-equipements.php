@@ -222,6 +222,17 @@ if (empty($equipements)) {
 $equipements_by_category = [];
 foreach ($equipements as $eq) {
     $catId = $eq['categorie_id'];
+    
+    // If categorie_id is NULL, try to find it from category name for backward compatibility
+    if ($catId === null && !empty($eq['categorie'])) {
+        foreach ($categories_by_id as $id => $cat) {
+            if ($cat['nom'] === $eq['categorie']) {
+                $catId = $id;
+                break;
+            }
+        }
+    }
+    
     if (!isset($equipements_by_category[$catId])) {
         $equipements_by_category[$catId] = [];
     }
