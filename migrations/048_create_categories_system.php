@@ -91,7 +91,7 @@ try {
         ['nom' => 'Autres équipements', 'icone' => 'bi-box', 'ordre' => 90],
         // Add categories matching inventaire-standard-items.php
         ['nom' => 'Équipement 1 (Cuisine / Vaisselle)', 'icone' => 'bi-cup-hot', 'ordre' => 35],
-        ['nom' => 'Équipement 2 (Linge / Entretien)', 'icone' => 'bi-basket', 'ordre' => 65]
+        ['nom' => 'Équipement 2 (Linge / Entretien)', 'icone' => 'bi-heart', 'ordre' => 65]
     ];
     
     foreach ($standardCategories as $cat) {
