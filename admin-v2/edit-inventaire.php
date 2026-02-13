@@ -286,12 +286,22 @@ if (empty($equipements_data)) {
 function deduplicateTenantsByID($tenants) {
     $unique_tenants = [];
     $seen_ids = [];
+    $duplicate_count = 0;
+    
     foreach ($tenants as $tenant) {
         if (!isset($seen_ids[$tenant['id']])) {
             $unique_tenants[] = $tenant;
             $seen_ids[$tenant['id']] = true;
+        } else {
+            $duplicate_count++;
+            error_log("Duplicate tenant ID found in inventaire_locataires: ID={$tenant['id']}, Name={$tenant['prenom']} {$tenant['nom']}");
         }
     }
+    
+    if ($duplicate_count > 0) {
+        error_log("Total duplicate tenant records removed: $duplicate_count");
+    }
+    
     return $unique_tenants;
 }
 
@@ -318,11 +328,14 @@ if (empty($existing_tenants) && !empty($inventaire['contrat_id'])) {
     $stmt->execute([$inventaire['contrat_id']]);
     $contract_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Check if tenant already exists before inserting to prevent duplicates
-    $checkStmt = $pdo->prepare("
-        SELECT COUNT(*) FROM inventaire_locataires 
-        WHERE inventaire_id = ? AND locataire_id = ?
+    // Get existing tenant-inventaire relationships to avoid duplicate inserts
+    $existingLinkStmt = $pdo->prepare("
+        SELECT locataire_id FROM inventaire_locataires 
+        WHERE inventaire_id = ?
     ");
+    $existingLinkStmt->execute([$inventaire_id]);
+    $existing_tenant_ids = $existingLinkStmt->fetchAll(PDO::FETCH_COLUMN);
+    $existing_tenant_ids_set = array_flip($existing_tenant_ids); // Convert to associative array for O(1) lookup
     
     // Insert tenants into inventaire_locataires with duplicate check
     $insertStmt = $pdo->prepare("
@@ -331,11 +344,8 @@ if (empty($existing_tenants) && !empty($inventaire['contrat_id'])) {
     ");
     
     foreach ($contract_tenants as $tenant) {
-        // Check if this tenant is already linked to this inventaire
-        $checkStmt->execute([$inventaire_id, $tenant['id']]);
-        $exists = $checkStmt->fetchColumn();
-        
-        if (!$exists) {
+        // Check if this tenant is already linked to this inventaire using in-memory set
+        if (!isset($existing_tenant_ids_set[$tenant['id']])) {
             $insertStmt->execute([
                 $inventaire_id,
                 $tenant['id'],
