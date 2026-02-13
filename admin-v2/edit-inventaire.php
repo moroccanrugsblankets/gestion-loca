@@ -87,14 +87,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Update tenant signatures
         if (isset($_POST['tenants']) && is_array($_POST['tenants'])) {
+            // First, validate that all tenants have db_id
+            $missingDbIds = [];
+            foreach ($_POST['tenants'] as $tenantIndex => $tenantInfo) {
+                if (!isset($tenantInfo['db_id']) || empty($tenantInfo['db_id'])) {
+                    $missingDbIds[] = $tenantIndex;
+                }
+            }
+            
+            if (!empty($missingDbIds)) {
+                throw new Exception("Données de locataire incomplètes. Veuillez réessayer.");
+            }
+            
             foreach ($_POST['tenants'] as $tenantIndex => $tenantInfo) {
                 // Get the database ID from the hidden field
-                $tenantId = isset($tenantInfo['db_id']) ? (int)$tenantInfo['db_id'] : null;
-                
-                if (!$tenantId) {
-                    error_log("Missing db_id for tenant at index: $tenantIndex");
-                    continue;
-                }
+                $tenantId = (int)$tenantInfo['db_id'];
                 
                 // Only update certifie_exact if finalizing (not for draft saves)
                 // For draft saves, we preserve the existing value unless explicitly checked
