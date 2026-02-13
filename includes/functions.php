@@ -278,7 +278,16 @@ function updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve 
         return false;
     }
     
+    // Verify the update was successful and only affected one record
+    $updatedRecords = fetchAll("SELECT id, ordre, nom, prenom, signature_data FROM locataires WHERE signature_data = ?", [$relativePath]);
     error_log("✓ Database updated successfully for locataire ID: $locataireId");
+    error_log("Number of records with this signature file: " . count($updatedRecords));
+    foreach ($updatedRecords as $record) {
+        error_log("  - Locataire ID={$record['id']}, Ordre={$record['ordre']}, Nom={$record['prenom']} {$record['nom']}");
+    }
+    if (count($updatedRecords) > 1) {
+        error_log("✗ WARNING: Multiple tenant records have the same signature file! This may indicate a bug.");
+    }
     error_log("=== SIGNATURE SAVE COMPLETE ===");
     
     return true;

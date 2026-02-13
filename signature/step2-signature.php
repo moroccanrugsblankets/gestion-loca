@@ -136,7 +136,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 error_log("Step2-Signature: ✓ Verification OK - Tenant: {$tenantCheck['prenom']} {$tenantCheck['nom']}, Ordre: {$tenantCheck['ordre']}");
                 
-                if (updateTenantSignature($locataireId, $signatureData, null, $certifieExact)) {
+                // Additional check: If this is tenant 2, ensure tenant 1 has already signed
+                if ($numeroLocataire == 2) {
+                    $tenant1 = fetchOne("SELECT id, signature_timestamp FROM locataires WHERE contrat_id = ? AND ordre = 1", [$contratId]);
+                    if (!$tenant1 || empty($tenant1['signature_timestamp'])) {
+                        error_log("Step2-Signature: ✗ ERREUR - Tenant 2 trying to sign but tenant 1 hasn't signed yet!");
+                        $error = 'Erreur: Le locataire 1 doit signer en premier.';
+                    } else {
+                        error_log("Step2-Signature: ✓ Tenant 1 already signed, proceeding with tenant 2 signature");
+                    }
+                }
+                
+                if (empty($error) && updateTenantSignature($locataireId, $signatureData, null, $certifieExact)) {
                     error_log("Step2-Signature: ✓ Signature enregistrée avec succès");
                     logAction($contratId, 'signature_locataire', "Locataire $numeroLocataire a signé");
                     
