@@ -88,7 +88,10 @@ try {
         ['nom' => 'Literie et linge', 'icone' => 'bi-basket', 'ordre' => 60],
         ['nom' => 'Compteurs et équipements', 'icone' => 'bi-speedometer2', 'ordre' => 70],
         ['nom' => 'Clés et badges', 'icone' => 'bi-key', 'ordre' => 80],
-        ['nom' => 'Autres équipements', 'icone' => 'bi-box', 'ordre' => 90]
+        ['nom' => 'Autres équipements', 'icone' => 'bi-box', 'ordre' => 90],
+        // Add categories matching inventaire-standard-items.php
+        ['nom' => 'Équipement 1 (Cuisine / Vaisselle)', 'icone' => 'bi-cup-hot', 'ordre' => 35],
+        ['nom' => 'Équipement 2 (Linge / Entretien)', 'icone' => 'bi-basket', 'ordre' => 65]
     ];
     
     foreach ($standardCategories as $cat) {

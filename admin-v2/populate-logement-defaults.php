@@ -9,13 +9,22 @@ require_once '../includes/db.php';
 
 header('Content-Type: application/json');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['logement_id'])) {
-    echo json_encode(['success' => false, 'message' => 'Requête invalide']);
-    exit;
+// Support both GET and POST for better usability
+$logement_id = null;
+$action = 'populate';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $logement_id = isset($_POST['logement_id']) ? (int)$_POST['logement_id'] : 0;
+    $action = $_POST['action'] ?? 'populate';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    $logement_id = isset($_GET['logement_id']) ? (int)$_GET['logement_id'] : 0;
+    $action = $_GET['action'] ?? 'populate';
 }
 
-$logement_id = (int)$_POST['logement_id'];
-$action = $_POST['action'] ?? 'populate';
+if (!$logement_id) {
+    echo json_encode(['success' => false, 'message' => 'Requête invalide - logement_id manquant']);
+    exit;
+}
 
 // Verify logement exists
 $stmt = $pdo->prepare("SELECT id FROM logements WHERE id = ?");
@@ -43,37 +52,32 @@ try {
     require_once '../includes/inventaire-standard-items.php';
     $standardItems = getStandardInventaireItems($logement_reference);
     
-    // Convert standardized items to flat equipment list
-    $defaultEquipment = [];
-    
-    foreach ($standardItems as $categoryName => $categoryItems) {
-        $defaultEquipment[$categoryName] = [];
-        // New simplified structure - no subcategories
-        foreach ($categoryItems as $item) {
-            $defaultEquipment[$categoryName][] = [
-                'nom' => $item['nom'],
-                'quantite' => $item['quantite'] ?? 0
-            ];
-        }
+    // Build category name to ID mapping
+    $categoryIds = [];
+    $stmt = $pdo->query("SELECT id, nom FROM inventaire_categories");
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $categoryIds[$row['nom']] = $row['id'];
     }
     
     $insertStmt = $pdo->prepare("
-        INSERT INTO inventaire_equipements (logement_id, categorie, nom, quantite, ordre)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO inventaire_equipements (logement_id, categorie_id, categorie, nom, quantite, ordre)
+        VALUES (?, ?, ?, ?, ?, ?)
     ");
     
     $totalAdded = 0;
     $ordre = 0;
     
     // Insert all default equipment
-    foreach ($defaultEquipment as $catName => $items) {
-        foreach ($items as $item) {
+    foreach ($standardItems as $categoryName => $categoryItems) {
+        $categorie_id = $categoryIds[$categoryName] ?? null;
+        foreach ($categoryItems as $item) {
             $ordre++;
             $insertStmt->execute([
                 $logement_id,
-                $catName,
+                $categorie_id,
+                $categoryName,
                 $item['nom'],
-                $item['quantite'],
+                $item['quantite'] ?? 0,
                 $ordre
             ]);
             $totalAdded++;
