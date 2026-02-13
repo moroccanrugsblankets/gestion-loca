@@ -87,7 +87,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Update tenant signatures
         if (isset($_POST['tenants']) && is_array($_POST['tenants'])) {
-            foreach ($_POST['tenants'] as $tenantId => $tenantInfo) {
+            foreach ($_POST['tenants'] as $tenantIndex => $tenantInfo) {
+                // Get the database ID from the hidden field
+                $tenantId = isset($tenantInfo['db_id']) ? (int)$tenantInfo['db_id'] : null;
+                
+                if (!$tenantId) {
+                    error_log("Missing db_id for tenant at index: $tenantIndex");
+                    continue;
+                }
+                
                 // Only update certifie_exact if finalizing (not for draft saves)
                 // For draft saves, we preserve the existing value unless explicitly checked
                 // For finalize, we always update it (validation ensures it's checked)
@@ -783,19 +791,19 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                             <div class="signature-container" style="max-width: 300px;">
                                 <canvas id="tenantCanvas_<?php echo $index; ?>" width="300" height="150" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
                             </div>
-                            <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][signature]" 
+                            <input type="hidden" name="tenants[<?php echo $index; ?>][signature]" 
                                    id="tenantSignature_<?php echo $index; ?>" 
                                    value="<?php echo htmlspecialchars($tenant['signature_data'] ?? ''); ?>">
-                            <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][locataire_id]" 
-                                   value="<?php echo $tenant['locataire_id'] ?? ''; ?>">
-                            <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][nom]" 
-                                   value="<?php echo htmlspecialchars($tenant['nom']); ?>">
-                            <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][prenom]" 
-                                   value="<?php echo htmlspecialchars($tenant['prenom']); ?>">
-                            <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][email]" 
-                                   value="<?php echo htmlspecialchars($tenant['email'] ?? ''); ?>">
-                            <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][db_id]" 
+                            <input type="hidden" name="tenants[<?php echo $index; ?>][db_id]" 
                                    value="<?php echo $tenant['id']; ?>">
+                            <input type="hidden" name="tenants[<?php echo $index; ?>][locataire_id]" 
+                                   value="<?php echo $tenant['locataire_id'] ?? ''; ?>">
+                            <input type="hidden" name="tenants[<?php echo $index; ?>][nom]" 
+                                   value="<?php echo htmlspecialchars($tenant['nom']); ?>">
+                            <input type="hidden" name="tenants[<?php echo $index; ?>][prenom]" 
+                                   value="<?php echo htmlspecialchars($tenant['prenom']); ?>">
+                            <input type="hidden" name="tenants[<?php echo $index; ?>][email]" 
+                                   value="<?php echo htmlspecialchars($tenant['email'] ?? ''); ?>">
                             <div class="mt-2">
                                 <button type="button" class="btn btn-warning btn-sm" onclick="clearTenantSignature(<?php echo $index; ?>)">
                                     <i class="bi bi-eraser"></i> Effacer
@@ -804,7 +812,7 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                             <div class="mt-3">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" 
-                                           name="tenants[<?php echo $tenant['id']; ?>][certifie_exact]" 
+                                           name="tenants[<?php echo $index; ?>][certifie_exact]" 
                                            id="certifie_exact_<?php echo $index; ?>" 
                                            value="1"
                                            <?php echo !empty($tenant['certifie_exact']) ? 'checked' : ''; ?>>
@@ -1106,7 +1114,7 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
             const tenantValidations = [
                 <?php foreach ($existing_tenants as $index => $tenant): ?>
                 {
-                    index: <?php echo $index; ?>,
+                    tenantIndex: <?php echo $index; ?>,
                     name: <?php echo json_encode($tenant['prenom'] . ' ' . $tenant['nom']); ?>,
                     signatureId: 'tenantSignature_<?php echo $index; ?>',
                     certifieId: 'certifie_exact_<?php echo $index; ?>'
