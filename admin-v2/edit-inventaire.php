@@ -306,8 +306,7 @@ foreach ($existing_tenants as $idx => $t) {
 $tenant_ids = array_column($existing_tenants, 'id');
 $unique_ids = array_unique($tenant_ids);
 if (count($tenant_ids) !== count($unique_ids)) {
-    $error_msg = "CRITICAL DATA ERROR: Duplicate tenant IDs detected in inventaire $inventaire_id. IDs: " . implode(', ', $tenant_ids);
-    error_log($error_msg);
+    error_log("CRITICAL DATA ERROR: Duplicate tenant IDs detected in inventaire $inventaire_id. IDs: " . implode(', ', $tenant_ids));
     $_SESSION['error'] = "Erreur de données: Plusieurs locataires ont le même identifiant. Veuillez contacter l'administrateur.";
     // Continue with the data as-is - the user needs to see the problem and the logs will help debug it
 }
@@ -957,9 +956,9 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
         function initTenantSignature(id, tenantIndex) {
             // Check for duplicate initialization
             if (initializedCanvases.has(id)) {
-                console.error(`⚠️  DUPLICATE CANVAS ID DETECTED: Canvas ID ${id} was already initialized!`);
-                console.error(`This will cause Tenant ${tenantIndex} signature to not work properly.`);
-                console.error(`Root cause: Multiple tenant records have the same database ID.`);
+                console.error(`⚠️  DUPLICATE CANVAS ID DETECTED: Canvas ID ${id} was already initialized!\n` +
+                             `This will cause Tenant ${tenantIndex} signature to not work properly.\n` +
+                             `Root cause: Multiple tenant records have the same database ID.`);
                 
                 // Show user-visible error
                 const alertDiv = document.createElement('div');
