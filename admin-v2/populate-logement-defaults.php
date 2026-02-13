@@ -34,68 +34,64 @@ try {
         $stmt->execute([$logement_id]);
     }
     
-    // Get all active categories
-    $stmt = $pdo->query("
-        SELECT id, nom 
-        FROM inventaire_categories 
-        WHERE actif = TRUE 
-        ORDER BY ordre
-    ");
-    $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // Get complete default equipment items from standardized template
+    require_once '../includes/inventaire-standard-items.php';
+    $standardItems = getStandardInventaireItems();
     
-    // Default equipment items by category name
-    $defaultEquipment = [
-        'Électroménager' => [
-            ['nom' => 'Réfrigérateur', 'quantite' => 1],
-            ['nom' => 'Plaques de cuisson', 'quantite' => 1],
-            ['nom' => 'Four', 'quantite' => 1],
-            ['nom' => 'Hotte', 'quantite' => 1]
-        ],
-        'Mobilier' => [
-            ['nom' => 'Canapé', 'quantite' => 1],
-            ['nom' => 'Table', 'quantite' => 1],
-            ['nom' => 'Chaises', 'quantite' => 4]
-        ],
-        'Cuisine' => [
-            ['nom' => 'Évier', 'quantite' => 1],
-            ['nom' => 'Placards', 'quantite' => 1],
-            ['nom' => 'Plan de travail', 'quantite' => 1]
-        ],
-        'Salle de bain' => [
-            ['nom' => 'Lavabo', 'quantite' => 1],
-            ['nom' => 'Douche/Baignoire', 'quantite' => 1],
-            ['nom' => 'WC', 'quantite' => 1],
-            ['nom' => 'Miroir', 'quantite' => 1]
-        ],
-        'Linge de maison' => [
-            ['nom' => 'Rideaux', 'quantite' => 1]
-        ]
-    ];
+    // Convert standardized items to flat equipment list
+    $defaultEquipment = [];
+    
+    // Helper function to get default quantity based on item type
+    $getDefaultQuantity = function($itemType) {
+        return ($itemType === 'countable') ? 0 : 1;
+    };
+    
+    foreach ($standardItems as $categoryName => $categoryContent) {
+        $defaultEquipment[$categoryName] = [];
+        
+        if ($categoryName === 'État des pièces') {
+            // État des pièces has subcategories
+            foreach ($categoryContent as $subcategoryName => $subcategoryItems) {
+                $fullCategoryName = $categoryName . ' - ' . $subcategoryName;
+                $defaultEquipment[$fullCategoryName] = [];
+                foreach ($subcategoryItems as $item) {
+                    $defaultEquipment[$fullCategoryName][] = [
+                        'nom' => $item['nom'],
+                        'quantite' => $getDefaultQuantity($item['type'])
+                    ];
+                }
+            }
+        } else {
+            // Other categories are flat
+            foreach ($categoryContent as $item) {
+                $defaultEquipment[$categoryName][] = [
+                    'nom' => $item['nom'],
+                    'quantite' => $getDefaultQuantity($item['type'])
+                ];
+            }
+        }
+    }
     
     $insertStmt = $pdo->prepare("
-        INSERT INTO inventaire_equipements (logement_id, categorie_id, categorie, nom, quantite, ordre)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO inventaire_equipements (logement_id, categorie, nom, quantite, ordre)
+        VALUES (?, ?, ?, ?, ?)
     ");
     
     $totalAdded = 0;
     $ordre = 0;
     
-    foreach ($categories as $category) {
-        $catName = $category['nom'];
-        
-        if (isset($defaultEquipment[$catName])) {
-            foreach ($defaultEquipment[$catName] as $item) {
-                $ordre++;
-                $insertStmt->execute([
-                    $logement_id,
-                    $category['id'],
-                    $catName,
-                    $item['nom'],
-                    $item['quantite'],
-                    $ordre
-                ]);
-                $totalAdded++;
-            }
+    // Insert all default equipment
+    foreach ($defaultEquipment as $catName => $items) {
+        foreach ($items as $item) {
+            $ordre++;
+            $insertStmt->execute([
+                $logement_id,
+                $catName,
+                $item['nom'],
+                $item['quantite'],
+                $ordre
+            ]);
+            $totalAdded++;
         }
     }
     

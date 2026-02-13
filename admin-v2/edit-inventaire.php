@@ -358,7 +358,9 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                                             <tr>
                                                 <th rowspan="2" style="vertical-align: middle; width: 25%;">Élément</th>
                                                 <th colspan="4" class="text-center bg-primary text-white">Entrée</th>
+                                                <?php if (!$isEntreeInventory): ?>
                                                 <th colspan="4" class="text-center bg-success text-white">Sortie</th>
+                                                <?php endif; ?>
                                                 <th rowspan="2" style="vertical-align: middle; width: 15%;">Commentaires</th>
                                             </tr>
                                             <tr>
@@ -366,10 +368,12 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                                                 <th class="text-center" style="width: 5%;">Bon</th>
                                                 <th class="text-center" style="width: 5%;">D'usage</th>
                                                 <th class="text-center" style="width: 5%;">Mauvais</th>
+                                                <?php if (!$isEntreeInventory): ?>
                                                 <th class="text-center" style="width: 5%;">Nombre</th>
                                                 <th class="text-center" style="width: 5%;">Bon</th>
                                                 <th class="text-center" style="width: 5%;">D'usage</th>
                                                 <th class="text-center" style="width: 5%;">Mauvais</th>
+                                                <?php endif; ?>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -421,35 +425,33 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                                                 </td>
                                                 
                                                 <!-- Exit columns -->
-                                                <td class="text-center <?php echo $isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                                <?php if (!$isEntreeInventory): ?>
+                                                <td class="text-center">
                                                     <input type="number" 
                                                            name="items[<?php echo $itemIndex; ?>][sortie_nombre]" 
                                                            class="form-control form-control-sm text-center" 
                                                            value="<?php echo htmlspecialchars($sortie['nombre'] ?? ''); ?>" 
-                                                           min="0" 
-                                                           <?php echo $isEntreeInventory ? 'readonly' : ''; ?>>
+                                                           min="0">
                                                 </td>
-                                                <td class="text-center <?php echo $isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                                <td class="text-center">
                                                     <input type="checkbox" 
                                                            name="items[<?php echo $itemIndex; ?>][sortie_bon]" 
                                                            class="form-check-input"
-                                                           <?php echo (!empty($sortie['bon'])) ? 'checked' : ''; ?>
-                                                           <?php echo $isEntreeInventory ? 'disabled' : ''; ?>>
+                                                           <?php echo (!empty($sortie['bon'])) ? 'checked' : ''; ?>>
                                                 </td>
-                                                <td class="text-center <?php echo $isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                                <td class="text-center">
                                                     <input type="checkbox" 
                                                            name="items[<?php echo $itemIndex; ?>][sortie_usage]" 
                                                            class="form-check-input"
-                                                           <?php echo (!empty($sortie['usage'])) ? 'checked' : ''; ?>
-                                                           <?php echo $isEntreeInventory ? 'disabled' : ''; ?>>
+                                                           <?php echo (!empty($sortie['usage'])) ? 'checked' : ''; ?>>
                                                 </td>
-                                                <td class="text-center <?php echo $isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                                <td class="text-center">
                                                     <input type="checkbox" 
                                                            name="items[<?php echo $itemIndex; ?>][sortie_mauvais]" 
                                                            class="form-check-input"
-                                                           <?php echo (!empty($sortie['mauvais'])) ? 'checked' : ''; ?>
-                                                           <?php echo $isEntreeInventory ? 'disabled' : ''; ?>>
+                                                           <?php echo (!empty($sortie['mauvais'])) ? 'checked' : ''; ?>>
                                                 </td>
+                                                <?php endif; ?>
                                                 
                                                 <!-- Comments -->
                                                 <td>
@@ -473,7 +475,9 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                                         <tr>
                                             <th rowspan="2" style="vertical-align: middle; width: 25%;">Élément</th>
                                             <th colspan="4" class="text-center bg-primary text-white">Entrée</th>
+                                            <?php if (!$isEntreeInventory): ?>
                                             <th colspan="4" class="text-center bg-success text-white">Sortie</th>
+                                            <?php endif; ?>
                                             <th rowspan="2" style="vertical-align: middle; width: 15%;">Commentaires</th>
                                         </tr>
                                         <tr>
@@ -481,10 +485,12 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                                             <th class="text-center" style="width: 5%;">Bon</th>
                                             <th class="text-center" style="width: 5%;">D'usage</th>
                                             <th class="text-center" style="width: 5%;">Mauvais</th>
+                                            <?php if (!$isEntreeInventory): ?>
                                             <th class="text-center" style="width: 5%;">Nombre</th>
                                             <th class="text-center" style="width: 5%;">Bon</th>
                                             <th class="text-center" style="width: 5%;">D'usage</th>
                                             <th class="text-center" style="width: 5%;">Mauvais</th>
+                                            <?php endif; ?>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -536,35 +542,33 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                                             </td>
                                             
                                             <!-- Exit columns -->
-                                            <td class="text-center <?php echo $isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                            <?php if (!$isEntreeInventory): ?>
+                                            <td class="text-center">
                                                 <input type="number" 
                                                        name="items[<?php echo $itemIndex; ?>][sortie_nombre]" 
                                                        class="form-control form-control-sm text-center" 
                                                        value="<?php echo htmlspecialchars($sortie['nombre'] ?? ''); ?>" 
-                                                       min="0" 
-                                                       <?php echo $isEntreeInventory ? 'readonly' : ''; ?>>
+                                                       min="0">
                                             </td>
-                                            <td class="text-center <?php echo $isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                            <td class="text-center">
                                                 <input type="checkbox" 
                                                        name="items[<?php echo $itemIndex; ?>][sortie_bon]" 
                                                        class="form-check-input"
-                                                       <?php echo (!empty($sortie['bon'])) ? 'checked' : ''; ?>
-                                                       <?php echo $isEntreeInventory ? 'disabled' : ''; ?>>
+                                                       <?php echo (!empty($sortie['bon'])) ? 'checked' : ''; ?>>
                                             </td>
-                                            <td class="text-center <?php echo $isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                            <td class="text-center">
                                                 <input type="checkbox" 
                                                        name="items[<?php echo $itemIndex; ?>][sortie_usage]" 
                                                        class="form-check-input"
-                                                       <?php echo (!empty($sortie['usage'])) ? 'checked' : ''; ?>
-                                                       <?php echo $isEntreeInventory ? 'disabled' : ''; ?>>
+                                                       <?php echo (!empty($sortie['usage'])) ? 'checked' : ''; ?>>
                                             </td>
-                                            <td class="text-center <?php echo $isEntreeInventory ? 'readonly-column' : ''; ?>">
+                                            <td class="text-center">
                                                 <input type="checkbox" 
                                                        name="items[<?php echo $itemIndex; ?>][sortie_mauvais]" 
                                                        class="form-check-input"
-                                                       <?php echo (!empty($sortie['mauvais'])) ? 'checked' : ''; ?>
-                                                       <?php echo $isEntreeInventory ? 'disabled' : ''; ?>>
+                                                       <?php echo (!empty($sortie['mauvais'])) ? 'checked' : ''; ?>>
                                             </td>
+                                            <?php endif; ?>
                                             
                                             <!-- Comments -->
                                             <td>
