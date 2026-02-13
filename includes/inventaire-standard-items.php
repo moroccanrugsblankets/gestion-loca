@@ -69,6 +69,18 @@ function getStandardInventaireItems($logement_reference = '') {
             ['nom' => 'Casserole', 'type' => 'countable', 'quantite' => 1],
             ['nom' => 'Planche à découper', 'type' => 'countable', 'quantite' => 1],
         ],
+        
+        // 🛏 ÉQUIPEMENT 2 (Linge / Entretien)
+        'Équipement 2 (Linge / Entretien)' => [
+            ['nom' => 'Matelas', 'type' => 'countable', 'quantite' => 1],
+            ['nom' => 'Oreillers', 'type' => 'countable', 'quantite' => 2],
+            ['nom' => 'Taies d\'oreiller', 'type' => 'countable', 'quantite' => 2],
+            ['nom' => 'Draps du dessous', 'type' => 'countable', 'quantite' => 1],
+            ['nom' => 'Couette', 'type' => 'countable', 'quantite' => 1],
+            ['nom' => 'Housse de couette', 'type' => 'countable', 'quantite' => 1],
+            ['nom' => 'Alaise', 'type' => 'countable', 'quantite' => 1],
+            ['nom' => 'Plaid', 'type' => 'countable', 'quantite' => 1],
+        ],
     ];
     
     // Add property-specific items for RC-01, RC-02, RP-07
