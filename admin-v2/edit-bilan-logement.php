@@ -254,7 +254,7 @@ if (empty($bilanRows)) {
     
     // Add one Vide row as separator
     $newRows[] = [
-        'poste' => 'Vide',
+        'poste' => '',
         'commentaires' => '',
         'valeur' => '',
         'montant_du' => ''
@@ -273,7 +273,7 @@ if (empty($bilanRows)) {
         $bilanRows[] = ['poste' => $staticLine, 'commentaires' => '', 'valeur' => '', 'montant_du' => ''];
     }
     // Add Vide separator
-    $bilanRows[] = ['poste' => 'Vide', 'commentaires' => '', 'valeur' => '', 'montant_du' => ''];
+    $bilanRows[] = ['poste' => '', 'commentaires' => '', 'valeur' => '', 'montant_du' => ''];
     // Add one empty row for data entry
     $bilanRows[] = ['poste' => '', 'commentaires' => '', 'valeur' => '', 'montant_du' => ''];
 }
