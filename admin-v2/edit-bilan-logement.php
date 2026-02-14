@@ -8,6 +8,7 @@ require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
 require_once '../includes/functions.php';
+require_once '../pdf/generate-bilan-logement.php';
 
 // Get contract ID
 $contratId = isset($_GET['contrat_id']) ? (int)$_GET['contrat_id'] : 0;
@@ -78,17 +79,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         
         // If sending the bilan, save to history
         if ($sendBilan) {
-            // Get tenant emails from contract
+            // Get tenant emails from locataires table
             $stmt = $pdo->prepare("
-                SELECT email1, email2 FROM contrats 
-                WHERE id = ?
+                SELECT email FROM locataires 
+                WHERE contrat_id = ?
+                ORDER BY ordre
             ");
             $stmt->execute([$contratId]);
-            $emails = $stmt->fetch(PDO::FETCH_ASSOC);
+            $locataires = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             $recipientEmails = [];
-            if (!empty($emails['email1'])) $recipientEmails[] = $emails['email1'];
-            if (!empty($emails['email2'])) $recipientEmails[] = $emails['email2'];
+            foreach ($locataires as $locataire) {
+                if (!empty($locataire['email'])) {
+                    $recipientEmails[] = $locataire['email'];
+                }
+            }
+            
+            // Generate PDF
+            $pdfPath = generateBilanLogementPDF($contratId);
+            
+            if (!$pdfPath || !file_exists($pdfPath)) {
+                throw new Exception("Erreur lors de la génération du PDF du bilan");
+            }
+            
+            // Get contract and locataire info for email
+            $stmt = $pdo->prepare("
+                SELECT c.reference_unique as contrat_ref,
+                       l.adresse as logement_adresse,
+                       loc.prenom, loc.nom
+                FROM contrats c
+                LEFT JOIN logements l ON c.logement_id = l.id
+                LEFT JOIN locataires loc ON loc.contrat_id = c.id
+                WHERE c.id = ?
+                ORDER BY loc.ordre
+                LIMIT 1
+            ");
+            $stmt->execute([$contratId]);
+            $emailData = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            $locataireNom = ($emailData['prenom'] ?? '') . ' ' . ($emailData['nom'] ?? '');
+            
+            // Prepare email variables
+            $emailVariables = [
+                'locataire_nom' => $locataireNom,
+                'adresse' => $emailData['logement_adresse'] ?? '',
+                'contrat_ref' => $emailData['contrat_ref'] ?? '',
+                'date' => date('d/m/Y'),
+                'commentaire' => !empty($_POST['bilan_logement_commentaire']) 
+                    ? '<div class="info-box"><p>' . nl2br(htmlspecialchars($_POST['bilan_logement_commentaire'])) . '</p></div>' 
+                    : ''
+            ];
+            
+            // Send email to each recipient
+            $emailSent = false;
+            $emailErrors = [];
+            
+            foreach ($recipientEmails as $email) {
+                try {
+                    $sent = sendTemplatedEmail(
+                        'bilan_logement',
+                        $email,
+                        $emailVariables,
+                        $pdfPath
+                    );
+                    
+                    if ($sent) {
+                        $emailSent = true;
+                    } else {
+                        $emailErrors[] = "Échec de l'envoi à $email";
+                    }
+                } catch (Exception $emailEx) {
+                    error_log("Error sending bilan email to $email: " . $emailEx->getMessage());
+                    $emailErrors[] = "Erreur lors de l'envoi à $email: " . $emailEx->getMessage();
+                }
+            }
+            
+            // Clean up temp PDF file
+            if (file_exists($pdfPath)) {
+                unlink($pdfPath);
+            }
             
             // Save to send history
             $stmt = $pdo->prepare("
@@ -101,11 +170,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $contratId,
                 $_SESSION['user_id'] ?? 0,
                 json_encode($recipientEmails),
-                'Bilan envoyé depuis l\'interface admin'
+                'Bilan envoyé depuis l\'interface admin' . (!empty($emailErrors) ? ' - Erreurs: ' . implode(', ', $emailErrors) : '')
             ]);
             
-            // TODO: Implement actual email sending to tenant(s)
-            $_SESSION['success'] = "Bilan du logement enregistré et marqué comme envoyé";
+            // Set success or warning message
+            if ($emailSent && empty($emailErrors)) {
+                $_SESSION['success'] = "Bilan du logement enregistré et envoyé avec succès";
+            } elseif ($emailSent && !empty($emailErrors)) {
+                $_SESSION['warning'] = "Bilan enregistré. Email envoyé partiellement. Erreurs: " . implode(', ', $emailErrors);
+            } else {
+                $_SESSION['error'] = "Bilan enregistré mais échec de l'envoi des emails: " . implode(', ', $emailErrors);
+            }
         } else {
             $_SESSION['success'] = "Bilan du logement mis à jour avec succès";
         }

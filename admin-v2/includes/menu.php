@@ -48,6 +48,8 @@ $page_to_menu_map = [
     'finalize-inventaire.php' => 'inventaires.php',
     'compare-inventaire.php' => 'inventaires.php',
     'administrateurs-actions.php' => 'administrateurs.php',
+    'edit-bilan-logement.php' => 'parametres.php',
+    'bilan-logement-configuration.php' => 'parametres.php',
 ];
 
 // Check if current page is a detail page, if so use parent menu
@@ -146,6 +148,15 @@ $active_menu = $page_to_menu_map[$current_page] ?? $current_page;
             <a class="nav-link <?php echo $active_menu === 'parametres.php' ? 'active' : ''; ?>" href="parametres.php">
                 <i class="bi bi-gear"></i> Paramètres
             </a>
+            <?php if ($active_menu === 'parametres.php'): ?>
+            <ul class="nav flex-column ms-3">
+                <li class="nav-item">
+                    <a class="nav-link <?php echo $current_page === 'bilan-logement-configuration.php' ? 'active' : ''; ?>" href="bilan-logement-configuration.php" style="padding: 8px 20px; font-size: 0.9rem;">
+                        <i class="bi bi-file-earmark-bar-graph"></i> Bilan de Logement
+                    </a>
+                </li>
+            </ul>
+            <?php endif; ?>
         </li>
         <li class="nav-item">
             <a class="nav-link <?php echo $active_menu === 'cron-jobs.php' ? 'active' : ''; ?>" href="cron-jobs.php">
