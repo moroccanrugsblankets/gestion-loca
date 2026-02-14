@@ -76,11 +76,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             ]);
         }
         
-        // If sending the bilan, send email to tenant(s)
+        // If sending the bilan, mark it for sending to tenant(s)
         if ($sendBilan) {
             // TODO: Implement email sending to tenant(s)
-            // For now, just mark it as sent
-            $_SESSION['success'] = "Bilan du logement enregistré et marqué comme envoyé";
+            // For now, just mark it as ready to be sent
+            $_SESSION['success'] = "Bilan du logement enregistré et marqué comme prêt à envoyer";
         } else {
             $_SESSION['success'] = "Bilan du logement mis à jour avec succès";
         }
@@ -166,6 +166,16 @@ if (!$bilanSent) {
         ];
     };
     
+    // Helper function to check if data rows exist (beyond static lines)
+    $hasNonStaticRows = function($rows, $staticLines) {
+        foreach ($rows as $row) {
+            if (!in_array($row['poste'] ?? '', $staticLines)) {
+                return true;
+            }
+        }
+        return false;
+    };
+    
     // Add static lines at the beginning if they don't exist
     $staticLines = ['Vide', 'Eau', 'Électricité'];
     foreach ($staticLines as $staticLine) {
@@ -173,15 +183,7 @@ if (!$bilanSent) {
     }
     
     // If no data rows exist yet (only static lines), try to auto-import from inventaire
-    $hasDataRows = false;
-    foreach ($bilanRows as $row) {
-        if (!in_array($row['poste'] ?? '', $staticLines)) {
-            $hasDataRows = true;
-            break;
-        }
-    }
-    
-    if (!$hasDataRows && $inventaire) {
+    if (!$hasNonStaticRows($bilanRows, $staticLines) && $inventaire) {
         // Auto-import from inventaire - get equipment with comments
         $equipements = json_decode($inventaire['equipements_data'], true) ?: [];
         foreach ($equipements as $item) {
@@ -623,7 +625,9 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
                                 // Only import if there's something to import
                                 if (equipement || commentaire) {
                                     const poste = equipement;
-                                    // Remove text between brackets (including the brackets) from comments
+                                    // Remove category labels like '[Manquant]' or '[Endommagé]' that were
+                                    // previously added during import. This regex matches any text in square
+                                    // brackets followed by optional whitespace: /\[.*?\]\s*/g
                                     const comment = commentaire.replace(/\[.*?\]\s*/g, '');
                                     
                                     addBilanRowWithData(poste, comment, '', '');
