@@ -294,9 +294,9 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
 $sendHistory = [];
 if ($etat) {
     $stmt = $pdo->prepare("
-        SELECT bsh.*, u.nom as sender_name
+        SELECT bsh.*, a.nom as sender_name
         FROM bilan_send_history bsh
-        LEFT JOIN users u ON bsh.sent_by = u.id
+        LEFT JOIN administrateurs a ON bsh.sent_by = a.id
         WHERE bsh.etat_lieux_id = ?
         ORDER BY bsh.sent_at DESC
     ");
