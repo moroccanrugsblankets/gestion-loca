@@ -452,6 +452,8 @@ function getEquipmentQuantity($eq) {
  * @return string HTML pour les équipements
  */
 function buildEquipementsHtml($inventaire, $type = null, $entree_data = []) {
+    global $pdo;
+    
     $equipements_data = json_decode($inventaire['equipements_data'] ?? '[]', true);
     
     if (!is_array($equipements_data) || empty($equipements_data)) {
@@ -460,6 +462,17 @@ function buildEquipementsHtml($inventaire, $type = null, $entree_data = []) {
     
     // Determine if this is an exit inventory
     $isExitInventory = ($inventaire['type'] ?? 'entree') === 'sortie';
+    
+    // Fetch category order from database for proper sorting
+    $category_order = [];
+    try {
+        $stmt = $pdo->query("SELECT nom, ordre FROM inventaire_categories ORDER BY ordre ASC");
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $category_order[$row['nom']] = (int)$row['ordre'];
+        }
+    } catch (Exception $e) {
+        error_log("Failed to fetch category order: " . $e->getMessage());
+    }
     
     // Group by category and subcategory
     $equipements_by_category = [];
@@ -485,6 +498,16 @@ function buildEquipementsHtml($inventaire, $type = null, $entree_data = []) {
             $equipements_by_category[$cat]['_items'][] = $eq;
         }
     }
+    
+    // Sort categories by their ordre field from database
+    uksort($equipements_by_category, function($a, $b) use ($category_order) {
+        $orderA = $category_order[$a] ?? 999;
+        $orderB = $category_order[$b] ?? 999;
+        if ($orderA === $orderB) {
+            return strcmp($a, $b); // Alphabetical if same order
+        }
+        return $orderA - $orderB;
+    });
     
     $html = '';
     

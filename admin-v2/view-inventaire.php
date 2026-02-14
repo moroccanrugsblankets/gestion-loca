@@ -40,6 +40,17 @@ if (!is_array($equipements_data)) {
     $equipements_data = [];
 }
 
+// Fetch category order from database for proper sorting
+$category_order = [];
+try {
+    $stmt = $pdo->query("SELECT nom, ordre FROM inventaire_categories ORDER BY ordre ASC");
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $category_order[$row['nom']] = (int)$row['ordre'];
+    }
+} catch (Exception $e) {
+    error_log("Failed to fetch category order: " . $e->getMessage());
+}
+
 // Group by category
 $equipements_by_category = [];
 foreach ($equipements_data as $eq) {
@@ -49,6 +60,16 @@ foreach ($equipements_data as $eq) {
     }
     $equipements_by_category[$cat][] = $eq;
 }
+
+// Sort categories by their ordre field from database
+uksort($equipements_by_category, function($a, $b) use ($category_order) {
+    $orderA = $category_order[$a] ?? 999;
+    $orderB = $category_order[$b] ?? 999;
+    if ($orderA === $orderB) {
+        return strcmp($a, $b); // Alphabetical if same order
+    }
+    return $orderA - $orderB;
+});
 
 // Get locataires
 $stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ?");
