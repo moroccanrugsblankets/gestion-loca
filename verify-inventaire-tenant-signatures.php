@@ -108,7 +108,12 @@ foreach ($tenants as $index => $tenant) {
         }
         
         if ($signed_date) {
-            echo "  ├─ Signed Date: " . date('d/m/Y H:i:s', strtotime($signed_date)) . "\n";
+            $timestamp = strtotime($signed_date);
+            if ($timestamp !== false) {
+                echo "  ├─ Signed Date: " . date('d/m/Y H:i:s', $timestamp) . "\n";
+            } else {
+                echo "  ├─ Signed Date: INVALID FORMAT\n";
+            }
         }
     } else {
         echo "  ├─ Has Signature: NO\n";

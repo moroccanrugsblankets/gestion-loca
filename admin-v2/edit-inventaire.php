@@ -939,7 +939,23 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                         if (initializedCanvasIds.has(tenantId)) {
                             console.error('⚠️  CRITICAL: Duplicate canvas ID detected! Tenant ID ' + tenantId + ' already initialized.');
                             console.error('This will cause signature canvas conflicts. Please check the database for duplicate tenant records.');
-                            alert('ERREUR: ID de locataire en double détecté (ID: ' + tenantId + '). Les signatures pourraient ne pas fonctionner correctement. Contactez l\'administrateur.');
+                            
+                            // Show accessible error message in the DOM
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className = 'alert alert-danger alert-dismissible fade show';
+                            errorDiv.setAttribute('role', 'alert');
+                            errorDiv.setAttribute('aria-live', 'assertive');
+                            errorDiv.innerHTML = `
+                                <strong><i class="bi bi-exclamation-triangle"></i> Erreur Critique:</strong>
+                                ID de locataire en double détecté (ID: ${tenantId}). 
+                                Les signatures pourraient ne pas fonctionner correctement. 
+                                Veuillez contacter l'administrateur.
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+                            `;
+                            document.querySelector('.main-content').insertBefore(
+                                errorDiv, 
+                                document.querySelector('.header')
+                            );
                         } else {
                             initializedCanvasIds.add(tenantId);
                         }

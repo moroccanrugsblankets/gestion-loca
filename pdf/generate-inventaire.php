@@ -719,6 +719,13 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
     global $pdo, $config;
     
     $nbCols = count($locataires) + 1; // +1 for landlord
+    
+    // Guard against edge case of no locataires
+    if ($nbCols <= 0) {
+        error_log("WARNING: buildSignaturesTableInventaire called with no locataires");
+        $nbCols = 1; // Minimum 1 column for landlord
+    }
+    
     // Calculate column width percentage for consistent sizing
     // Use exact division for TCPDF - ensures columns sum to 100%
     $colWidthPercent = number_format(100 / $nbCols, 2, '.', '');
