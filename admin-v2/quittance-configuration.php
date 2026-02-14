@@ -104,6 +104,13 @@ if (empty($currentTemplate)) {
         .variable-badge:hover {
             background: #bbdefb;
         }
+        
+        /* Fallback styling for textarea in case TinyMCE fails to load */
+        #template_html {
+            min-height: 500px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
 
         .info-box {
             background: #fff3cd;
@@ -316,6 +323,12 @@ if (empty($currentTemplate)) {
 
         // Copy to clipboard function
         window.copyToClipboard = function(text, event) {
+            // Check if clipboard API is available
+            if (!navigator.clipboard) {
+                alert('La copie automatique n\'est pas disponible. Veuillez copier manuellement: ' + text);
+                return;
+            }
+            
             navigator.clipboard.writeText(text).then(function() {
                 // Show temporary success message
                 const originalText = event.target.textContent;
@@ -325,6 +338,7 @@ if (empty($currentTemplate)) {
                 }, 1000);
             }, function(err) {
                 console.error('Erreur lors de la copie: ', err);
+                alert('Erreur lors de la copie. Veuillez copier manuellement: ' + text);
             });
         };
 
