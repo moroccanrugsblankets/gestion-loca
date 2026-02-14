@@ -625,10 +625,11 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
                                 // Only import if there's something to import
                                 if (equipement || commentaire) {
                                     const poste = equipement;
-                                    // Remove category labels like '[Manquant]' or '[Endommagé]' that were
-                                    // previously added during import. This regex matches any text in square
-                                    // brackets followed by optional whitespace: /\[.*?\]\s*/g
-                                    const comment = commentaire.replace(/\[.*?\]\s*/g, '');
+                                    // Remove only known category labels like '[Manquant]' or '[Endommagé]' that
+                                    // were previously added during import at the START of the comment.
+                                    // This preserves user-added bracketed text like '[voir photo]' or '[TODO]'.
+                                    // Pattern: /^\[(Manquant|Endommagé)\]\s*/
+                                    const comment = commentaire.replace(/^\[(Manquant|Endommagé)\]\s*/, '');
                                     
                                     addBilanRowWithData(poste, comment, '', '');
                                     importedCount++;
