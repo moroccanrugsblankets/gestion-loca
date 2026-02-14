@@ -1,0 +1,274 @@
+<?php
+/**
+ * Génération du PDF pour Bilan du Logement
+ * My Invest Immobilier
+ */
+
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/functions.php';
+
+/**
+ * Convert relative image paths to absolute URLs for TCPDF
+ */
+function convertBilanImagePathsToAbsolute($html, $config) {
+    $baseUrl = rtrim($config['SITE_URL'], '/');
+    
+    $html = preg_replace_callback(
+        '/<img([^>]*?)src=["\']([^"\']+)["\']([^>]*?)>/i',
+        function($matches) use ($baseUrl) {
+            $beforeSrc = $matches[1];
+            $src = $matches[2];
+            $afterSrc = $matches[3];
+            
+            // Skip data URIs
+            if (strpos($src, 'data:') === 0) {
+                return $matches[0];
+            }
+            
+            // Skip already absolute URLs
+            if (preg_match('#^https?://#i', $src)) {
+                return $matches[0];
+            }
+            
+            // Convert relative paths to absolute URLs
+            $absoluteSrc = $src;
+            
+            if (strpos($src, '../') === 0) {
+                $relativePath = preg_replace('#^(\.\./)+#', '', $src);
+                $absoluteSrc = $baseUrl . '/' . $relativePath;
+            } elseif (strpos($src, './') === 0) {
+                $relativePath = substr($src, 2);
+                $absoluteSrc = $baseUrl . '/' . $relativePath;
+            } elseif (strpos($src, '/') === 0) {
+                $absoluteSrc = $baseUrl . $src;
+            } else {
+                $absoluteSrc = $baseUrl . '/' . $src;
+            }
+            
+            return '<img' . $beforeSrc . 'src="' . $absoluteSrc . '"' . $afterSrc . '>';
+        },
+        $html
+    );
+    
+    return $html;
+}
+
+/**
+ * Générer le PDF du bilan du logement
+ * 
+ * @param int $contratId ID du contrat
+ * @return string|false Chemin du fichier PDF généré, ou false en cas d'erreur
+ */
+function generateBilanLogementPDF($contratId) {
+    global $config, $pdo;
+
+    error_log("=== generateBilanLogementPDF - START ===");
+    error_log("Input - Contrat ID: $contratId");
+
+    // Validation
+    $contratId = (int)$contratId;
+    if ($contratId <= 0) {
+        error_log("Invalid contract ID: $contratId");
+        return false;
+    }
+
+    try {
+        // Get contract and logement details
+        $stmt = $pdo->prepare("
+            SELECT c.*, 
+                   l.adresse as logement_adresse,
+                   c.reference_unique as contrat_ref
+            FROM contrats c
+            LEFT JOIN logements l ON c.logement_id = l.id
+            WHERE c.id = ?
+        ");
+        $stmt->execute([$contratId]);
+        $contrat = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$contrat) {
+            error_log("Contract not found: $contratId");
+            return false;
+        }
+
+        // Get locataires
+        $stmt = $pdo->prepare("
+            SELECT nom, prenom, email 
+            FROM locataires 
+            WHERE contrat_id = ? 
+            ORDER BY ordre
+        ");
+        $stmt->execute([$contratId]);
+        $locataires = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $locataireNom = '';
+        if (!empty($locataires)) {
+            $locataireNom = $locataires[0]['prenom'] . ' ' . $locataires[0]['nom'];
+            if (count($locataires) > 1) {
+                $locataireNom .= ' et ' . $locataires[1]['prenom'] . ' ' . $locataires[1]['nom'];
+            }
+        }
+
+        // Get état des lieux de sortie with bilan data
+        $stmt = $pdo->prepare("
+            SELECT * FROM etats_lieux 
+            WHERE contrat_id = ? AND type = 'sortie'
+            ORDER BY created_at DESC 
+            LIMIT 1
+        ");
+        $stmt->execute([$contratId]);
+        $etatLieux = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$etatLieux || empty($etatLieux['bilan_logement_data'])) {
+            error_log("No bilan data found for contract: $contratId");
+            return false;
+        }
+
+        // Decode bilan data
+        $bilanRows = json_decode($etatLieux['bilan_logement_data'], true) ?: [];
+        
+        // Get HTML template from parametres
+        $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'bilan_logement_template_html'");
+        $stmt->execute();
+        $templateHtml = $stmt->fetchColumn();
+
+        if (!$templateHtml) {
+            error_log("Bilan logement template not found in parametres");
+            return false;
+        }
+
+        // Get logo if exists
+        $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'logo_societe'");
+        $stmt->execute();
+        $logoData = $stmt->fetchColumn();
+        
+        $logoHtml = '';
+        if ($logoData) {
+            if (strpos($logoData, 'data:') === 0 || strpos($logoData, 'uploads/') !== false) {
+                $logoHtml = '<img src="' . htmlspecialchars($logoData) . '" alt="Logo" style="max-width: 200px;">';
+            }
+        }
+
+        // Get signature if exists
+        $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_image'");
+        $stmt->execute();
+        $signatureData = $stmt->fetchColumn();
+        
+        $signatureHtml = '';
+        if ($signatureData) {
+            $signatureHtml = '<div style="margin-top: 20px;"><p><strong>Signature de l\'agence :</strong></p>';
+            $signatureHtml .= '<img src="' . htmlspecialchars($signatureData) . '" alt="Signature" style="max-width: 200px;">';
+            $signatureHtml .= '</div>';
+        }
+
+        // Build bilan rows HTML with new column structure
+        $bilanRowsHtml = '';
+        $totalValeur = 0;
+        $totalSoldeDebiteur = 0;
+        $totalSoldeCrediteur = 0;
+        
+        foreach ($bilanRows as $row) {
+            $poste = htmlspecialchars($row['poste'] ?? '');
+            $commentaires = htmlspecialchars($row['commentaires'] ?? '');
+            $valeur = htmlspecialchars($row['valeur'] ?? '');
+            
+            // Handle backward compatibility: montant_du -> solde_debiteur
+            $soldeDebiteur = $row['solde_debiteur'] ?? ($row['montant_du'] ?? '');
+            $soldeCrediteur = $row['solde_crediteur'] ?? '';
+            
+            // Parse values to add to totals
+            if (!empty($valeur) && is_numeric($valeur)) {
+                $totalValeur += floatval($valeur);
+            }
+            if (!empty($soldeDebiteur) && is_numeric($soldeDebiteur)) {
+                $totalSoldeDebiteur += floatval($soldeDebiteur);
+            }
+            if (!empty($soldeCrediteur) && is_numeric($soldeCrediteur)) {
+                $totalSoldeCrediteur += floatval($soldeCrediteur);
+            }
+            
+            // Format amounts for display
+            $valeurDisplay = !empty($valeur) && is_numeric($valeur) ? number_format(floatval($valeur), 2, ',', ' ') . ' €' : htmlspecialchars($valeur);
+            $soldeDebiteurDisplay = !empty($soldeDebiteur) && is_numeric($soldeDebiteur) ? number_format(floatval($soldeDebiteur), 2, ',', ' ') . ' €' : htmlspecialchars($soldeDebiteur);
+            $soldeCrediteurDisplay = !empty($soldeCrediteur) && is_numeric($soldeCrediteur) ? number_format(floatval($soldeCrediteur), 2, ',', ' ') . ' €' : htmlspecialchars($soldeCrediteur);
+            
+            $bilanRowsHtml .= '<tr>';
+            $bilanRowsHtml .= '<td>' . $poste . '</td>';
+            $bilanRowsHtml .= '<td>' . nl2br($commentaires) . '</td>';
+            $bilanRowsHtml .= '<td>' . $valeurDisplay . '</td>';
+            $bilanRowsHtml .= '<td>' . $soldeDebiteurDisplay . '</td>';
+            $bilanRowsHtml .= '<td>' . $soldeCrediteurDisplay . '</td>';
+            $bilanRowsHtml .= '</tr>';
+        }
+
+        // Build commentaire section
+        $commentaireHtml = '';
+        if (!empty($etatLieux['bilan_logement_commentaire'])) {
+            $commentaire = htmlspecialchars($etatLieux['bilan_logement_commentaire']);
+            $commentaireHtml = '<div class="commentaire-section">';
+            $commentaireHtml .= '<h3>Observations générales</h3>';
+            $commentaireHtml .= '<p>' . nl2br($commentaire) . '</p>';
+            $commentaireHtml .= '</div>';
+        }
+
+        // Replace variables in template
+        $variables = [
+            '{{logo}}' => $logoHtml,
+            '{{locataire_nom}}' => htmlspecialchars($locataireNom),
+            '{{contrat_ref}}' => htmlspecialchars($contrat['contrat_ref']),
+            '{{adresse}}' => htmlspecialchars($contrat['logement_adresse']),
+            '{{date}}' => date('d/m/Y'),
+            '{{bilan_rows}}' => $bilanRowsHtml,
+            '{{commentaire_section}}' => $commentaireHtml,
+            '{{total_valeur}}' => number_format($totalValeur, 2, ',', ' ') . ' €',
+            '{{total_solde_debiteur}}' => number_format($totalSoldeDebiteur, 2, ',', ' ') . ' €',
+            '{{total_solde_crediteur}}' => number_format($totalSoldeCrediteur, 2, ',', ' ') . ' €',
+            '{{total_montant}}' => number_format($totalSoldeDebiteur, 2, ',', ' ') . ' €', // Backward compatibility
+            '{{signature_agence}}' => $signatureHtml
+        ];
+
+        $html = str_replace(array_keys($variables), array_values($variables), $templateHtml);
+
+        // Convert relative paths to absolute URLs
+        $html = convertBilanImagePathsToAbsolute($html, $config);
+
+        // Generate PDF using TCPDF
+        $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+        
+        // Set document information
+        $pdf->SetCreator('MY Invest Immobilier');
+        $pdf->SetAuthor('MY Invest Immobilier');
+        $pdf->SetTitle('Bilan du Logement - ' . $contrat['contrat_ref']);
+        $pdf->SetSubject('Bilan du Logement');
+
+        // Remove default header/footer
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+
+        // Set margins
+        $pdf->SetMargins(15, 15, 15);
+        $pdf->SetAutoPageBreak(true, 15);
+
+        // Add page
+        $pdf->AddPage();
+
+        // Write HTML content
+        $pdf->writeHTML($html, true, false, true, false, '');
+
+        // Generate filename
+        $filename = 'bilan_logement_' . $contrat['contrat_ref'] . '_' . date('Ymd') . '.pdf';
+        $filepath = sys_get_temp_dir() . '/' . $filename;
+
+        // Save PDF to temp file
+        $pdf->Output($filepath, 'F');
+
+        error_log("PDF generated successfully: $filepath");
+        return $filepath;
+
+    } catch (Exception $e) {
+        error_log("Error generating bilan PDF: " . $e->getMessage());
+        error_log("Stack trace: " . $e->getTraceAsString());
+        return false;
+    }
+}

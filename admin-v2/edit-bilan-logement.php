@@ -8,6 +8,7 @@ require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
 require_once '../includes/functions.php';
+require_once '../pdf/generate-bilan-logement.php';
 
 // Get contract ID
 $contratId = isset($_GET['contrat_id']) ? (int)$_GET['contrat_id'] : 0;
@@ -78,17 +79,90 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         
         // If sending the bilan, save to history
         if ($sendBilan) {
-            // Get tenant emails from contract
+            // Get tenant emails from locataires table
             $stmt = $pdo->prepare("
-                SELECT email1, email2 FROM contrats 
-                WHERE id = ?
+                SELECT email FROM locataires 
+                WHERE contrat_id = ?
+                ORDER BY ordre
             ");
             $stmt->execute([$contratId]);
-            $emails = $stmt->fetch(PDO::FETCH_ASSOC);
+            $locataires = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             $recipientEmails = [];
-            if (!empty($emails['email1'])) $recipientEmails[] = $emails['email1'];
-            if (!empty($emails['email2'])) $recipientEmails[] = $emails['email2'];
+            foreach ($locataires as $locataire) {
+                if (!empty($locataire['email'])) {
+                    $recipientEmails[] = $locataire['email'];
+                }
+            }
+            
+            // Generate PDF
+            $pdfPath = generateBilanLogementPDF($contratId);
+            
+            if (!$pdfPath || !file_exists($pdfPath)) {
+                throw new Exception("Erreur lors de la génération du PDF du bilan");
+            }
+            
+            // Get contract and locataire info for email
+            $stmt = $pdo->prepare("
+                SELECT c.reference_unique as contrat_ref,
+                       l.adresse as logement_adresse,
+                       loc.prenom, loc.nom
+                FROM contrats c
+                LEFT JOIN logements l ON c.logement_id = l.id
+                LEFT JOIN locataires loc ON loc.contrat_id = c.id
+                WHERE c.id = ?
+                ORDER BY loc.ordre
+                LIMIT 1
+            ");
+            $stmt->execute([$contratId]);
+            $emailData = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // Build locataire name, trim to handle empty fields
+            $locataireNom = trim(($emailData['prenom'] ?? '') . ' ' . ($emailData['nom'] ?? ''));
+            
+            // Prepare email variables
+            $emailVariables = [
+                'locataire_nom' => $locataireNom,
+                'adresse' => $emailData['logement_adresse'] ?? '',
+                'contrat_ref' => $emailData['contrat_ref'] ?? '',
+                'date' => date('d/m/Y'),
+                'commentaire' => !empty($_POST['bilan_logement_commentaire']) 
+                    ? '<div class="info-box"><p>' . nl2br(htmlspecialchars($_POST['bilan_logement_commentaire'])) . '</p></div>' 
+                    : ''
+            ];
+            
+            // Send email to each recipient
+            $emailSent = false;
+            $emailErrors = [];
+            
+            foreach ($recipientEmails as $email) {
+                try {
+                    $sent = sendTemplatedEmail(
+                        'bilan_logement',
+                        $email,
+                        $emailVariables,
+                        $pdfPath
+                    );
+                    
+                    if ($sent) {
+                        $emailSent = true;
+                    } else {
+                        $emailErrors[] = "Échec de l'envoi à $email";
+                    }
+                } catch (Exception $emailEx) {
+                    error_log("Error sending bilan email to $email: " . $emailEx->getMessage());
+                    $emailErrors[] = "Erreur lors de l'envoi à $email: " . $emailEx->getMessage();
+                }
+            }
+            
+            // Clean up temp PDF file with path traversal protection
+            $realPath = realpath($pdfPath);
+            $tempDir = realpath(sys_get_temp_dir());
+            
+            // Only delete if file is actually in temp directory (security check with directory separator)
+            if ($realPath !== false && $tempDir !== false && strpos($realPath, $tempDir . DIRECTORY_SEPARATOR) === 0) {
+                @unlink($pdfPath);
+            }
             
             // Save to send history
             $stmt = $pdo->prepare("
@@ -101,11 +175,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $contratId,
                 $_SESSION['user_id'] ?? 0,
                 json_encode($recipientEmails),
-                'Bilan envoyé depuis l\'interface admin'
+                'Bilan envoyé depuis l\'interface admin' . (!empty($emailErrors) ? ' - Erreurs: ' . implode(', ', $emailErrors) : '')
             ]);
             
-            // TODO: Implement actual email sending to tenant(s)
-            $_SESSION['success'] = "Bilan du logement enregistré et marqué comme envoyé";
+            // Set success or warning message
+            if ($emailSent && empty($emailErrors)) {
+                $_SESSION['success'] = "Bilan du logement enregistré et envoyé avec succès";
+            } elseif ($emailSent && !empty($emailErrors)) {
+                $_SESSION['warning'] = "Bilan enregistré. Email envoyé partiellement. Erreurs: " . implode(', ', $emailErrors);
+            } else {
+                $_SESSION['error'] = "Bilan enregistré mais échec de l'envoi des emails: " . implode(', ', $emailErrors);
+            }
         } else {
             $_SESSION['success'] = "Bilan du logement mis à jour avec succès";
         }
@@ -198,7 +278,8 @@ if (empty($bilanRows)) {
                             'poste' => $equipement,
                             'commentaires' => $comment,
                             'valeur' => '',
-                            'montant_du' => ''
+                            'solde_debiteur' => '',
+                            'solde_crediteur' => ''
                         ];
                     }
                 }
@@ -212,7 +293,8 @@ if (empty($bilanRows)) {
             'poste' => '',
             'commentaires' => '',
             'valeur' => '',
-            'montant_du' => ''
+            'solde_debiteur' => '',
+            'solde_crediteur' => ''
         ];
     }
     
@@ -226,7 +308,8 @@ if (empty($bilanRows)) {
                     'poste' => $item['nom'] ?? '',
                     'commentaires' => $item['commentaires'],
                     'valeur' => '',
-                    'montant_du' => ''
+                    'solde_debiteur' => '',
+                    'solde_crediteur' => ''
                 ];
             }
         }
@@ -237,7 +320,8 @@ if (empty($bilanRows)) {
                 'poste' => '',
                 'commentaires' => '',
                 'valeur' => '',
-                'montant_du' => ''
+                'solde_debiteur' => '',
+                'solde_crediteur' => ''
             ];
         }
     }
@@ -248,7 +332,8 @@ if (empty($bilanRows)) {
             'poste' => $staticLine,
             'commentaires' => '',
             'valeur' => '',
-            'montant_du' => ''
+            'solde_debiteur' => '',
+            'solde_crediteur' => ''
         ];
     }
     
@@ -257,7 +342,8 @@ if (empty($bilanRows)) {
         'poste' => '',
         'commentaires' => '',
         'valeur' => '',
-        'montant_du' => ''
+        'solde_debiteur' => '',
+        'solde_crediteur' => ''
     ];
     
     // Use the new rows if we have any, otherwise create default
@@ -270,12 +356,12 @@ if (empty($bilanRows)) {
     // Add static lines and one empty row by default
     $bilanRows = [];
     foreach ($staticLines as $staticLine) {
-        $bilanRows[] = ['poste' => $staticLine, 'commentaires' => '', 'valeur' => '', 'montant_du' => ''];
+        $bilanRows[] = ['poste' => $staticLine, 'commentaires' => '', 'valeur' => '', 'solde_debiteur' => '', 'solde_crediteur' => ''];
     }
     // Add Vide separator
-    $bilanRows[] = ['poste' => '', 'commentaires' => '', 'valeur' => '', 'montant_du' => ''];
+    $bilanRows[] = ['poste' => '', 'commentaires' => '', 'valeur' => '', 'solde_debiteur' => '', 'solde_crediteur' => ''];
     // Add one empty row for data entry
-    $bilanRows[] = ['poste' => '', 'commentaires' => '', 'valeur' => '', 'montant_du' => ''];
+    $bilanRows[] = ['poste' => '', 'commentaires' => '', 'valeur' => '', 'solde_debiteur' => '', 'solde_crediteur' => ''];
 }
 
 // Get bilan_sections_data for import functionality from état des lieux
@@ -365,9 +451,24 @@ if ($etat) {
                         Contrat - <?php echo htmlspecialchars($contrat['contrat_ref']); ?>
                     </p>
                 </div>
-                <a href="contrat-detail.php?id=<?php echo $contratId; ?>" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-left"></i> Retour
-                </a>
+                <div>
+                    <?php if (!empty($bilanRows)): ?>
+                    <a href="download-bilan-logement.php?contrat_id=<?php echo $contratId; ?>" 
+                       class="btn btn-info me-2" 
+                       target="_blank"
+                       title="Prévisualiser le PDF">
+                        <i class="bi bi-file-pdf"></i> Voir le PDF
+                    </a>
+                    <a href="download-bilan-logement.php?contrat_id=<?php echo $contratId; ?>&download=1" 
+                       class="btn btn-outline-info me-2"
+                       title="Télécharger le PDF">
+                        <i class="bi bi-download"></i> Télécharger PDF
+                    </a>
+                    <?php endif; ?>
+                    <a href="contrat-detail.php?id=<?php echo $contratId; ?>" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Retour
+                    </a>
+                </div>
             </div>
         </div>
 
@@ -427,11 +528,12 @@ if ($etat) {
                         <table class="table table-bordered" id="bilanTable">
                             <thead class="table-light">
                                 <tr>
-                                    <th width="25%">Poste / Équipement</th>
-                                    <th width="35%">Commentaires</th>
-                                    <th width="15%">Valeur (€)</th>
-                                    <th width="15%">Montant dû (€)</th>
-                                    <th width="10%">Action</th>
+                                    <th width="20%">Poste / Équipement</th>
+                                    <th width="30%">Commentaires</th>
+                                    <th width="12%">Valeur (€)</th>
+                                    <th width="12%">Solde Débiteur (€)</th>
+                                    <th width="12%">Solde Créditeur (€)</th>
+                                    <th width="10%">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="bilanTableBody">
@@ -459,9 +561,17 @@ if ($etat) {
                                                onchange="calculateBilanTotals()">
                                     </td>
                                     <td>
-                                        <input type="number" name="bilan_rows[<?php echo $index; ?>][montant_du]" 
-                                               class="form-control bilan-field bilan-montant-du" 
-                                               value="<?php echo htmlspecialchars($row['montant_du'] ?? ''); ?>" 
+                                        <input type="number" name="bilan_rows[<?php echo $index; ?>][solde_debiteur]" 
+                                               class="form-control bilan-field bilan-solde-debiteur" 
+                                               value="<?php echo htmlspecialchars($row['solde_debiteur'] ?? ($row['montant_du'] ?? '')); ?>" 
+                                               step="0.01" min="0" 
+                                               placeholder="0.00"
+                                               onchange="calculateBilanTotals()">
+                                    </td>
+                                    <td>
+                                        <input type="number" name="bilan_rows[<?php echo $index; ?>][solde_crediteur]" 
+                                               class="form-control bilan-field bilan-solde-crediteur" 
+                                               value="<?php echo htmlspecialchars($row['solde_crediteur'] ?? ''); ?>" 
                                                step="0.01" min="0" 
                                                placeholder="0.00"
                                                onchange="calculateBilanTotals()">
@@ -478,7 +588,8 @@ if ($etat) {
                                 <tr>
                                     <td colspan="2" class="text-end"><strong>Total des frais constatés:</strong></td>
                                     <td><strong id="totalValeur">0.00 €</strong></td>
-                                    <td><strong id="totalMontantDu">0.00 €</strong></td>
+                                    <td><strong id="totalSoldeDebiteur">0.00 €</strong></td>
+                                    <td><strong id="totalSoldeCrediteur">0.00 €</strong></td>
                                     <td></td>
                                 </tr>
                             </tfoot>
@@ -690,7 +801,10 @@ if ($etat) {
                     data.rows.forEach(row => {
                         // Check if we haven't reached the max rows
                         if (document.querySelectorAll('.bilan-row').length < MAX_BILAN_ROWS) {
-                            addBilanRowWithData(row.poste, row.commentaires, row.valeur, row.montant_du);
+                            // Handle both old format (montant_du) and new format (solde_debiteur/solde_crediteur)
+                            const soldeDebiteur = row.solde_debiteur || row.montant_du || '';
+                            const soldeCrediteur = row.solde_crediteur || '';
+                            addBilanRowWithData(row.poste, row.commentaires, row.valeur, soldeDebiteur, soldeCrediteur);
                             importedCount++;
                         }
                     });
@@ -780,8 +894,8 @@ if ($etat) {
             }
         }
         
-        // Add a new row with data (updated to accept all 4 fields)
-        function addBilanRowWithData(poste, commentaires, valeur = '', montant_du = '') {
+        // Add a new row with data (updated to accept all 5 fields)
+        function addBilanRowWithData(poste, commentaires, valeur = '', solde_debiteur = '', solde_crediteur = '') {
             if (document.querySelectorAll('.bilan-row').length >= MAX_BILAN_ROWS) {
                 return;
             }
@@ -812,11 +926,19 @@ if ($etat) {
                            onchange="calculateBilanTotals()">
                 </td>
                 <td>
-                    <input type="number" name="bilan_rows[${bilanRowCounter}][montant_du]" 
-                           class="form-control bilan-field bilan-montant-du" 
+                    <input type="number" name="bilan_rows[${bilanRowCounter}][solde_debiteur]" 
+                           class="form-control bilan-field bilan-solde-debiteur" 
                            step="0.01" min="0" 
                            placeholder="0.00"
-                           value="${montant_du}"
+                           value="${solde_debiteur}"
+                           onchange="calculateBilanTotals()">
+                </td>
+                <td>
+                    <input type="number" name="bilan_rows[${bilanRowCounter}][solde_crediteur]" 
+                           class="form-control bilan-field bilan-solde-crediteur" 
+                           step="0.01" min="0" 
+                           placeholder="0.00"
+                           value="${solde_crediteur}"
                            onchange="calculateBilanTotals()">
                 </td>
                 <td class="text-center">
@@ -880,8 +1002,15 @@ if ($etat) {
                            onchange="calculateBilanTotals()">
                 </td>
                 <td>
-                    <input type="number" name="bilan_rows[${bilanRowCounter}][montant_du]" 
-                           class="form-control bilan-field bilan-montant-du" 
+                    <input type="number" name="bilan_rows[${bilanRowCounter}][solde_debiteur]" 
+                           class="form-control bilan-field bilan-solde-debiteur" 
+                           step="0.01" min="0" 
+                           placeholder="0.00"
+                           onchange="calculateBilanTotals()">
+                </td>
+                <td>
+                    <input type="number" name="bilan_rows[${bilanRowCounter}][solde_crediteur]" 
+                           class="form-control bilan-field bilan-solde-crediteur" 
                            step="0.01" min="0" 
                            placeholder="0.00"
                            onchange="calculateBilanTotals()">
@@ -913,23 +1042,30 @@ if ($etat) {
             validateBilanFields();
         }
         
-        // Calculate totals for Valeur and Montant dû
+        // Calculate totals for Valeur, Solde Débiteur and Solde Créditeur
         function calculateBilanTotals() {
             let totalValeur = 0;
-            let totalMontantDu = 0;
+            let totalSoldeDebiteur = 0;
+            let totalSoldeCrediteur = 0;
             
             document.querySelectorAll('.bilan-valeur').forEach(input => {
                 const value = parseFloat(input.value) || 0;
                 totalValeur += value;
             });
             
-            document.querySelectorAll('.bilan-montant-du').forEach(input => {
+            document.querySelectorAll('.bilan-solde-debiteur').forEach(input => {
                 const value = parseFloat(input.value) || 0;
-                totalMontantDu += value;
+                totalSoldeDebiteur += value;
+            });
+            
+            document.querySelectorAll('.bilan-solde-crediteur').forEach(input => {
+                const value = parseFloat(input.value) || 0;
+                totalSoldeCrediteur += value;
             });
             
             document.getElementById('totalValeur').textContent = totalValeur.toFixed(2) + ' €';
-            document.getElementById('totalMontantDu').textContent = totalMontantDu.toFixed(2) + ' €';
+            document.getElementById('totalSoldeDebiteur').textContent = totalSoldeDebiteur.toFixed(2) + ' €';
+            document.getElementById('totalSoldeCrediteur').textContent = totalSoldeCrediteur.toFixed(2) + ' €';
         }
         
         // Validate bilan fields - No mandatory fields, no coloring
