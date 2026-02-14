@@ -563,7 +563,7 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                                                     <input type="number" 
                                                            name="items[<?php echo $itemIndex; ?>][nombre]" 
                                                            class="form-control form-control-sm text-center" 
-                                                           value="<?php echo htmlspecialchars($existingData['nombre'] ?? ($existingData['entree']['nombre'] ?? '')); ?>" 
+                                                           value="<?php echo htmlspecialchars(getInventaireEquipmentQuantity($existingData)); ?>" 
                                                            min="0">
                                                 </td>
                                                 
@@ -612,7 +612,7 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                                                 <input type="number" 
                                                        name="items[<?php echo $itemIndex; ?>][nombre]" 
                                                        class="form-control form-control-sm text-center" 
-                                                       value="<?php echo htmlspecialchars($existingData['nombre'] ?? ($existingData['entree']['nombre'] ?? '')); ?>" 
+                                                       value="<?php echo htmlspecialchars(getInventaireEquipmentQuantity($existingData)); ?>" 
                                                        min="0">
                                             </td>
                                             

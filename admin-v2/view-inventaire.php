@@ -135,9 +135,8 @@ $locataires = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 </td>
                                 <td class="text-center">
                                     <?php 
-                                    // Support both new and old structure
-                                    $nombre = $eq['nombre'] ?? ($eq['entree']['nombre'] ?? ($eq['quantite_presente'] ?? '-'));
-                                    echo htmlspecialchars($nombre);
+                                    // Use helper function for backward compatibility
+                                    echo htmlspecialchars(getInventaireEquipmentQuantity($eq));
                                     ?>
                                 </td>
                                 <td>

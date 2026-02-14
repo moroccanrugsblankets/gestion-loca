@@ -390,10 +390,34 @@ function getQuantityValue($value) {
 }
 
 /**
- * Construire le HTML pour la liste des équipements avec format Entry/Exit
+ * Get equipment quantity with backward compatibility
+ * Supports new simplified structure and old entry/exit structure
+ * 
+ * @param array $eq Equipment item data
+ * @return mixed Quantity value (may be empty string or integer)
+ */
+function getEquipmentQuantity($eq) {
+    if (isset($eq['nombre'])) {
+        // New simplified structure
+        return $eq['nombre'];
+    } elseif (isset($eq['entree']['nombre'])) {
+        // Old structure with entree/sortie
+        return $eq['entree']['nombre'];
+    } elseif (isset($eq['quantite_presente'])) {
+        // Legacy format
+        return $eq['quantite_presente'];
+    } elseif (isset($eq['quantite_attendue'])) {
+        // Legacy format fallback
+        return $eq['quantite_attendue'];
+    }
+    return '';
+}
+
+/**
+ * Construire le HTML pour la liste des équipements (structure simplifiée)
  * 
  * @param array $inventaire Données de l'inventaire
- * @param string $type Type d'inventaire (entree/sortie)
+ * @param string $type Type d'inventaire (deprecated, kept for compatibility)
  * @return string HTML pour les équipements
  */
 function buildEquipementsHtml($inventaire, $type = null) {
@@ -478,21 +502,8 @@ function renderEquipementsTable($equipements, $type) {
     foreach ($equipements as $eq) {
         $nom = htmlspecialchars($eq['nom'] ?? '');
         
-        // Get quantity - support both new and old structure
-        $nombre = '';
-        if (isset($eq['nombre'])) {
-            // New simplified structure
-            $nombre = getQuantityValue($eq['nombre']);
-        } elseif (isset($eq['entree']['nombre'])) {
-            // Old structure with entree/sortie
-            $nombre = getQuantityValue($eq['entree']['nombre']);
-        } elseif (isset($eq['quantite_presente'])) {
-            // Legacy format
-            $nombre = getQuantityValue($eq['quantite_presente']);
-        } elseif (isset($eq['quantite_attendue'])) {
-            // Legacy format fallback
-            $nombre = getQuantityValue($eq['quantite_attendue']);
-        }
+        // Get quantity - use helper function for backward compatibility
+        $nombre = getQuantityValue(getEquipmentQuantity($eq));
         
         // Comments
         $commentaires = htmlspecialchars($eq['commentaires'] ?? $eq['observations'] ?? '');
