@@ -65,6 +65,8 @@ if (empty($currentTemplate)) {
     <title>Configuration des Quittances - Admin MyInvest</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- TinyMCE Cloud - API key is public and domain-restricted -->
+    <script src="https://cdn.tiny.cloud/1/odjqanpgdv2zolpduplee65ntoou1b56hg6gvgxvrt8dreh0/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
     <?php require_once __DIR__ . '/includes/sidebar-styles.php'; ?>
     <style>
         .header {
@@ -96,12 +98,13 @@ if (empty($currentTemplate)) {
             font-size: 0.9rem;
             margin: 3px;
             display: inline-block;
+            cursor: pointer;
+            transition: background 0.2s;
         }
-        .template-editor {
-            height: 500px;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
+        .variable-badge:hover {
+            background: #bbdefb;
         }
+
         .info-box {
             background: #fff3cd;
             border-left: 4px solid #ffc107;
@@ -144,40 +147,40 @@ if (empty($currentTemplate)) {
         <!-- Variables disponibles -->
         <div class="config-card">
             <h5><i class="bi bi-code-square"></i> Variables Disponibles</h5>
-            <p>Utilisez ces variables dans votre template HTML. Elles seront automatiquement remplacées lors de la génération du PDF :</p>
+            <p>Cliquez sur une variable pour la copier dans le presse-papier :</p>
             
             <div class="row">
                 <div class="col-md-6">
                     <h6 class="mt-3">Informations Quittance</h6>
-                    <span class="variable-badge">{{reference_quittance}}</span>
-                    <span class="variable-badge">{{periode}}</span>
-                    <span class="variable-badge">{{mois}}</span>
-                    <span class="variable-badge">{{annee}}</span>
-                    <span class="variable-badge">{{date_generation}}</span>
-                    <span class="variable-badge">{{date_debut_periode}}</span>
-                    <span class="variable-badge">{{date_fin_periode}}</span>
+                    <span class="variable-badge" onclick="copyToClipboard('{{reference_quittance}}', event)" title="Référence de la quittance">{{reference_quittance}}</span>
+                    <span class="variable-badge" onclick="copyToClipboard('{{periode}}', event)" title="Période (mois et année)">{{periode}}</span>
+                    <span class="variable-badge" onclick="copyToClipboard('{{mois}}', event)" title="Mois">{{mois}}</span>
+                    <span class="variable-badge" onclick="copyToClipboard('{{annee}}', event)" title="Année">{{annee}}</span>
+                    <span class="variable-badge" onclick="copyToClipboard('{{date_generation}}', event)" title="Date de génération">{{date_generation}}</span>
+                    <span class="variable-badge" onclick="copyToClipboard('{{date_debut_periode}}', event)" title="Date de début de période">{{date_debut_periode}}</span>
+                    <span class="variable-badge" onclick="copyToClipboard('{{date_fin_periode}}', event)" title="Date de fin de période">{{date_fin_periode}}</span>
                     
                     <h6 class="mt-3">Montants</h6>
-                    <span class="variable-badge">{{montant_loyer}}</span>
-                    <span class="variable-badge">{{montant_charges}}</span>
-                    <span class="variable-badge">{{montant_total}}</span>
+                    <span class="variable-badge" onclick="copyToClipboard('{{montant_loyer}}', event)" title="Montant du loyer">{{montant_loyer}}</span>
+                    <span class="variable-badge" onclick="copyToClipboard('{{montant_charges}}', event)" title="Montant des charges">{{montant_charges}}</span>
+                    <span class="variable-badge" onclick="copyToClipboard('{{montant_total}}', event)" title="Montant total">{{montant_total}}</span>
                 </div>
                 
                 <div class="col-md-6">
                     <h6 class="mt-3">Locataires</h6>
-                    <span class="variable-badge">{{locataires_noms}}</span>
-                    <span class="variable-badge">{{locataire_nom}}</span>
-                    <span class="variable-badge">{{locataire_prenom}}</span>
+                    <span class="variable-badge" onclick="copyToClipboard('{{locataires_noms}}', event)" title="Noms complets des locataires">{{locataires_noms}}</span>
+                    <span class="variable-badge" onclick="copyToClipboard('{{locataire_nom}}', event)" title="Nom du locataire">{{locataire_nom}}</span>
+                    <span class="variable-badge" onclick="copyToClipboard('{{locataire_prenom}}', event)" title="Prénom du locataire">{{locataire_prenom}}</span>
                     
                     <h6 class="mt-3">Logement</h6>
-                    <span class="variable-badge">{{adresse}}</span>
-                    <span class="variable-badge">{{logement_reference}}</span>
+                    <span class="variable-badge" onclick="copyToClipboard('{{adresse}}', event)" title="Adresse du logement">{{adresse}}</span>
+                    <span class="variable-badge" onclick="copyToClipboard('{{logement_reference}}', event)" title="Référence du logement">{{logement_reference}}</span>
                     
                     <h6 class="mt-3">Société</h6>
-                    <span class="variable-badge">{{nom_societe}}</span>
-                    <span class="variable-badge">{{adresse_societe}}</span>
-                    <span class="variable-badge">{{tel_societe}}</span>
-                    <span class="variable-badge">{{email_societe}}</span>
+                    <span class="variable-badge" onclick="copyToClipboard('{{nom_societe}}', event)" title="Nom de la société">{{nom_societe}}</span>
+                    <span class="variable-badge" onclick="copyToClipboard('{{adresse_societe}}', event)" title="Adresse de la société">{{adresse_societe}}</span>
+                    <span class="variable-badge" onclick="copyToClipboard('{{tel_societe}}', event)" title="Téléphone de la société">{{tel_societe}}</span>
+                    <span class="variable-badge" onclick="copyToClipboard('{{email_societe}}', event)" title="Email de la société">{{email_societe}}</span>
                 </div>
             </div>
         </div>
@@ -198,7 +201,6 @@ if (empty($currentTemplate)) {
                 <div class="mb-3">
                     <label for="template_html" class="form-label">Code HTML du Template</label>
                     <textarea 
-                        class="form-control template-editor" 
                         id="template_html" 
                         name="template_html" 
                         required><?php echo htmlspecialchars($currentTemplate); ?></textarea>
@@ -296,6 +298,36 @@ if (empty($currentTemplate)) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Initialize TinyMCE
+        tinymce.init({
+            selector: '#template_html',
+            height: 600,
+            menubar: true,
+            plugins: [
+                'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+                'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                'insertdatetime', 'media', 'table', 'help', 'wordcount'
+            ],
+            toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright | bullist numlist outdent indent | code',
+            content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }',
+            code_dialog_width: 800,
+            code_dialog_height: 600
+        });
+
+        // Copy to clipboard function
+        window.copyToClipboard = function(text, event) {
+            navigator.clipboard.writeText(text).then(function() {
+                // Show temporary success message
+                const originalText = event.target.textContent;
+                event.target.textContent = '✓ Copié !';
+                setTimeout(function() {
+                    event.target.textContent = originalText;
+                }, 1000);
+            }, function(err) {
+                console.error('Erreur lors de la copie: ', err);
+            });
+        };
+
         // Handle reset template button
         document.getElementById('resetTemplateBtn').addEventListener('click', function() {
             if(confirm('Êtes-vous sûr de vouloir réinitialiser le template au modèle par défaut ?')) {
