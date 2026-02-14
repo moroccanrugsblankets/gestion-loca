@@ -180,22 +180,22 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
     }
     
     // Create a simple table for locataires_info without borders and colors
-    // Just add ":" after "Locataire 1" and "Locataire 2"
+    // Optimized font size for readability while maintaining compact layout
     $locatairesInfoHtml = '<table style="width: 100%; border-collapse: collapse;">';
     $locatairesInfoHtml .= '<tr>';
-    $locatairesInfoHtml .= '<th style="padding: 8px; text-align: left; width: 50%;">Locataire 1:</th>';
+    $locatairesInfoHtml .= '<th style="padding: 6px; text-align: left; width: 50%; font-size: 10pt;">Locataire 1:</th>';
     if (count($locatairesInfo) > 1) {
-        $locatairesInfoHtml .= '<th style="padding: 8px; text-align: left; width: 50%;">Locataire 2:</th>';
+        $locatairesInfoHtml .= '<th style="padding: 6px; text-align: left; width: 50%; font-size: 10pt;">Locataire 2:</th>';
     }
     $locatairesInfoHtml .= '</tr>';
     $locatairesInfoHtml .= '<tr>';
-    $locatairesInfoHtml .= '<td style="padding: 8px; vertical-align: top;">';
+    $locatairesInfoHtml .= '<td style="padding: 6px; vertical-align: top; font-size: 10pt;">';
     $locatairesInfoHtml .= '<strong>' . $locatairesInfo[0]['nom_complet'] . '</strong><br>';
     $locatairesInfoHtml .= 'Né(e) le ' . $locatairesInfo[0]['date_naissance'] . '<br>';
     $locatairesInfoHtml .= 'Email : ' . $locatairesInfo[0]['email'];
     $locatairesInfoHtml .= '</td>';
     if (count($locatairesInfo) > 1) {
-        $locatairesInfoHtml .= '<td style="padding: 8px; vertical-align: top;">';
+        $locatairesInfoHtml .= '<td style="padding: 6px; vertical-align: top; font-size: 10pt;">';
         $locatairesInfoHtml .= '<strong>' . $locatairesInfo[1]['nom_complet'] . '</strong><br>';
         $locatairesInfoHtml .= 'Né(e) le ' . $locatairesInfo[1]['date_naissance'] . '<br>';
         $locatairesInfoHtml .= 'Email : ' . $locatairesInfo[1]['email'];
@@ -274,12 +274,13 @@ function buildSignaturesTable($contrat, $locataires) {
     // TCPDF-optimized table structure with proper cell styling
     // Use border="1" and cellspacing="0" for consistent cell rendering
     // Explicit width and height for consistent layout
-    $html = '<table cellspacing="0" cellpadding="15" border="1" style="width: 100%; border-collapse: collapse; margin-top: 20px; background: transparent;">';
+    // Reduced padding for more compact signature table
+    $html = '<table cellspacing="0" cellpadding="10" border="1" style="width: 100%; border-collapse: collapse; margin-top: 20px; background: transparent;">';
     $html .= '<tbody><tr>';
 
     // Bailleur column
-    $html .= '<td style="width: ' . $colWidth . '%; vertical-align: top; text-align: center; padding: 15px; border: 1px solid #333; background: transparent;">';
-    $html .= '<p style="margin: 0 0 10px 0; font-weight: bold;">Le bailleur :</p>';
+    $html .= '<td style="width: ' . $colWidth . '%; vertical-align: top; text-align: center; padding: 10px; border: 1px solid #333; background: transparent; font-size: 10pt;">';
+    $html .= '<p style="margin: 0 0 8px 0; font-weight: bold;">Le bailleur :</p>';
     
     if ($contrat['statut'] === 'valide') {
         // Check if signature feature is enabled using getParameter
@@ -310,17 +311,17 @@ function buildSignaturesTable($contrat, $locataires) {
 
     // Locataires columns
     foreach ($locataires as $i => $loc) {
-        $html .= '<td style="width: ' . $colWidth . '%; vertical-align: top; text-align: center; padding: 15px; border: 1px solid #333; background: transparent;">';
+        $html .= '<td style="width: ' . $colWidth . '%; vertical-align: top; text-align: center; padding: 10px; border: 1px solid #333; background: transparent; font-size: 10pt;">';
 
         // Tenant label
         if ($nbCols === 2) {
-            $html .= '<p style="margin: 0 0 5px 0; font-weight: bold;">Locataire :</p>';
+            $html .= '<p style="margin: 0 0 4px 0; font-weight: bold;">Locataire :</p>';
         } else {
-            $html .= '<p style="margin: 0 0 5px 0; font-weight: bold;">Locataire ' . ($i + 1) . ' :</p>';
+            $html .= '<p style="margin: 0 0 4px 0; font-weight: bold;">Locataire ' . ($i + 1) . ' :</p>';
         }
 
         // Tenant name
-        $html .= '<p style="margin: 0 0 10px 0;">' . htmlspecialchars($loc['prenom']) . ' ' . htmlspecialchars($loc['nom']) . '</p>';
+        $html .= '<p style="margin: 0 0 8px 0;">' . htmlspecialchars($loc['prenom']) . ' ' . htmlspecialchars($loc['nom']) . '</p>';
 
         // Signature image - consistent sizing and no backgrounds
         if (!empty($loc['signature_data']) && preg_match('/^uploads\/signatures\//', $loc['signature_data'])) {

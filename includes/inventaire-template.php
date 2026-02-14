@@ -122,9 +122,8 @@ function getDefaultInventaireTemplate() {
         .observations {
             white-space: pre-wrap;
             word-wrap: break-word;
-            background-color: #fffef0;
+            background-color: #f9f9f9;
             padding: 10px;
-            border-left: 3px solid #f39c12;
             margin: 10px 0;
         }
         .footer {
