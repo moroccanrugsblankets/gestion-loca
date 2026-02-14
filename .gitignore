@@ -30,6 +30,9 @@ test-*.php
 .DS_Store
 Thumbs.db
 
+# Documentation files (generated)
+*.md
+
 # IDE
 .vscode/
 .idea/
