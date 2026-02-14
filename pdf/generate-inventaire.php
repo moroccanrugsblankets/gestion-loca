@@ -18,9 +18,9 @@ define('INVENTAIRE_SIGNATURE_MAX_WIDTH', '20mm');
 define('INVENTAIRE_SIGNATURE_MAX_HEIGHT', '10mm');
 
 // Style CSS pour les images de signature (sans bordures)
-// Simplified for TCPDF compatibility - removed unsupported properties (outline, border-color)
-// TCPDF works best with minimal, explicit CSS
-define('INVENTAIRE_SIGNATURE_IMG_STYLE', 'width: 130px; height: auto; border: 0; border-width: 0; border-style: none; background: transparent; padding: 0; margin: 0;');
+// Simplified for TCPDF compatibility - removed unsupported inline CSS
+// TCPDF works best with HTML attributes instead of CSS
+define('INVENTAIRE_SIGNATURE_IMG_STYLE', 'width: 130px; height: auto;');
 
 /**
  * Convert relative image paths to absolute URLs for TCPDF
@@ -568,7 +568,7 @@ function getInventoryTableHeader($type = 'sortie') {
  * Render equipment table for PDF
  */
 function renderEquipementsTable($equipements, $type) {
-    $html = '<table cellspacing="0" cellpadding="4" border="0" style="width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px;">';
+    $html = '<table cellspacing="0" cellpadding="4" border="0" style="width: 100%; margin-bottom: 10px; font-size: 10px;">';
     $html .= getInventoryTableHeader($type);
     $html .= '<tbody>';
     
@@ -730,23 +730,17 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
     // Use exact division for TCPDF - ensures columns sum to 100%
     $colWidthPercent = number_format(100 / $nbCols, 2, '.', '');
 
-    // Build signature table with proper TCPDF-compatible structure and consistent styling
-    // All styling is inline for maximum TCPDF compatibility
-    // Using explicit dimensions and transparent backgrounds throughout
-    $tableStyle = 'width: 100%; border-collapse: collapse; margin-top: 20px; text-align: center; ' 
-        . 'background: transparent; background-color: transparent; border: 0; border-width: 0px; border-style: none;';
-    $rowStyle = 'background: transparent; background-color: transparent; border: 0;';
-    // Ensure cells have consistent width, transparent background, no borders, and proper padding
-    $cellStyle = 'width: ' . $colWidthPercent . '%; vertical-align: top; text-align: center; ' 
-        . 'padding: 12px 8px; background: transparent; background-color: transparent; ' 
-        . 'border: 0; border-width: 0px; border-style: none; border-color: transparent;';
+    // Build signature table with proper TCPDF-compatible structure
+    // Using HTML attributes instead of inline CSS for better TCPDF compatibility
+    $tableStyle = 'width: 100%; margin-top: 20px; text-align: center;';
+    $cellStyle = 'width: ' . $colWidthPercent . '%; vertical-align: top; text-align: center; padding: 12px 8px;';
     
-    $html = '<table cellspacing="0" cellpadding="0" border="0" style="' . $tableStyle . '">'
-        . '<tbody><tr style="' . $rowStyle . '">';
+    $html = '<table cellspacing="0" cellpadding="4" border="0" style="' . $tableStyle . '">'
+        . '<tbody><tr>';
 
     // Landlord column
     $html .= '<td style="' . $cellStyle . '">';
-    $html .= '<p style="margin: 5px 0; font-weight: bold; background: transparent; background-color: transparent;"><strong>Le bailleur :</strong></p>';
+    $html .= '<p style="margin: 5px 0; font-weight: bold;"><strong>Le bailleur :</strong></p>';
     
     // Get landlord signature from parametres - fetch both in one query using COALESCE
     $stmt = $pdo->prepare("
@@ -796,14 +790,14 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
     }
     
     $placeSignature = !empty($inventaire['lieu_signature']) ? htmlspecialchars($inventaire['lieu_signature']) : htmlspecialchars($config['DEFAULT_SIGNATURE_LOCATION'] ?? 'Annemasse');
-    $html .= '<p style="font-size: 8pt; margin: 5px 0 3px 0; background: transparent; background-color: transparent;"><br>&nbsp;<br>&nbsp;<br>Fait à ' . $placeSignature . '</p>';
+    $html .= '<p style="font-size: 8pt; margin: 5px 0 3px 0;"><br>&nbsp;<br>&nbsp;<br>Fait à ' . $placeSignature . '</p>';
     
     if (!empty($inventaire['date_inventaire'])) {
         $signDate = date('d/m/Y', strtotime($inventaire['date_inventaire']));
-        $html .= '<p style="font-size: 8pt; margin: 3px 0; background: transparent; background-color: transparent;">Le ' . $signDate . '</p>';
+        $html .= '<p style="font-size: 8pt; margin: 3px 0;">Le ' . $signDate . '</p>';
     }
     
-    $html .= '<p style="font-size: 9pt; margin: 5px 0; font-weight: bold; background: transparent; background-color: transparent;">' . htmlspecialchars($inventaire['bailleur_nom'] ?? $config['COMPANY_NAME']) . '</p>';
+    $html .= '<p style="font-size: 9pt; margin: 5px 0; font-weight: bold;">' . htmlspecialchars($inventaire['bailleur_nom'] ?? $config['COMPANY_NAME']) . '</p>';
     $html .= '</td>';
 
     // Tenant columns - iterate through each tenant with unique signature
@@ -815,7 +809,7 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
         $html .= '<td style="' . $cellStyle . '">';
 
         $tenantLabel = ($nbCols === 2) ? 'Locataire :' : 'Locataire ' . ($idx + 1) . ' :';
-        $html .= '<p style="margin: 5px 0; font-weight: bold; background: transparent; background-color: transparent;"><strong>' . $tenantLabel . '</strong></p>';
+        $html .= '<p style="margin: 5px 0; font-weight: bold;"><strong>' . $tenantLabel . '</strong></p>';
 
         // Display tenant signature if available
         if (!empty($tenantInfo['signature'])) {
@@ -862,12 +856,12 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
             
             if (!empty($tenantInfo['date_signature'])) {
                 $signDate = date('d/m/Y à H:i', strtotime($tenantInfo['date_signature']));
-                $html .= '<p style="font-size: 8pt; margin: 5px 0 3px 0; background: transparent; background-color: transparent;"><br>&nbsp;<br>&nbsp;<br>Signé le ' . $signDate . '</p>';
+                $html .= '<p style="font-size: 8pt; margin: 5px 0 3px 0;"><br>&nbsp;<br>&nbsp;<br>Signé le ' . $signDate . '</p>';
             }
             
             // Display "Certifié exact" checkbox status
             if (!empty($tenantInfo['certifie_exact'])) {
-                $html .= '<p style="font-size: 8pt; margin: 3px 0; background: transparent; background-color: transparent;">✓ Certifié exact</p>';
+                $html .= '<p style="font-size: 8pt; margin: 3px 0;">✓ Certifié exact</p>';
             }
         } else {
             // No signature for this tenant
@@ -875,7 +869,7 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
         }
 
         $tenantName = htmlspecialchars(trim(($tenantInfo['prenom'] ?? '') . ' ' . ($tenantInfo['nom'] ?? '')));
-        $html .= '<p style="font-size: 9pt; margin: 5px 0; font-weight: bold; background: transparent; background-color: transparent;">' . $tenantName . '</p>';
+        $html .= '<p style="font-size: 9pt; margin: 5px 0; font-weight: bold;">' . $tenantName . '</p>';
         $html .= '</td>';
     }
 
