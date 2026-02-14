@@ -163,7 +163,7 @@ function generateBilanLogementPDF($contratId) {
         }
 
         // Build bilan rows HTML with complete table structure (without thead/tbody tags)
-        $bilanRowsHtml = '<table>';
+        $bilanRowsHtml = '<table border="1" cellspacing="0" cellpadding="4">';
         
         // Add header row
         $bilanRowsHtml .= '<tr>';
