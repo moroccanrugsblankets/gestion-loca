@@ -55,10 +55,11 @@ SET valeur = '<!DOCTYPE html>
     <table>
         <thead>
             <tr>
-                <th style="width: 30%;">Poste</th>
-                <th style="width: 35%;">Commentaires</th>
+                <th style="width: 25%;">Poste</th>
+                <th style="width: 30%;">Commentaires</th>
                 <th style="width: 15%;">Valeur</th>
-                <th style="width: 20%;">Montant dû</th>
+                <th style="width: 15%;">Débit</th>
+                <th style="width: 15%;">Crédit</th>
             </tr>
         </thead>
         <tbody>

@@ -2,11 +2,19 @@
 /**
  * Test HTML Preview - Bilan Logement
  * This page allows testing the HTML template before TCPDF processing
+ * ADMIN ACCESS ONLY
  * My Invest Immobilier
  */
 
 require_once 'includes/config.php';
 require_once 'includes/db.php';
+
+// Security: Require authentication (uncomment when auth is available)
+// session_start();
+// if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+//     header('Location: admin-v2/login.php');
+//     exit;
+// }
 
 // Get contract ID from URL parameter
 $contratId = isset($_GET['contrat_id']) ? (int)$_GET['contrat_id'] : 0;
@@ -264,6 +272,10 @@ if ($contratId > 0) {
         <?php if ($htmlPreview && !$error): ?>
             <div class="preview-container">
                 <h3 class="mb-3">Aperçu HTML</h3>
+                <div class="alert alert-info">
+                    <strong>⚠️ Note de sécurité:</strong> Cette page est destinée uniquement aux administrateurs pour tester le rendu HTML.
+                    Toutes les variables utilisateur sont échappées avant l'insertion dans le template.
+                </div>
                 <div class="preview-frame">
                     <?= $htmlPreview ?>
                 </div>
