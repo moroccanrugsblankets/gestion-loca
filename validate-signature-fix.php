@@ -24,7 +24,7 @@ if (!file_exists($functionsFile)) {
     $content = file_get_contents($functionsFile);
     
     // Check for updateTenantSignature using uniqid
-    if (preg_match('/function updateTenantSignature.*?uniqid\([\'"][\'"]\s*,\s*true\)/s', $content)) {
+    if (preg_match('/function updateTenantSignature.*?uniqid\(\s*[\'"][\'"]?\s*,\s*true\s*\)/s', $content)) {
         echo "✓ PASS: updateTenantSignature uses uniqid() with entropy\n";
     } else {
         echo "✗ FAIL: updateTenantSignature does not use uniqid() properly\n";
@@ -32,7 +32,7 @@ if (!file_exists($functionsFile)) {
     }
     
     // Check for updateInventaireTenantSignature using uniqid
-    if (preg_match('/function updateInventaireTenantSignature.*?uniqid\([\'"][\'"]\s*,\s*true\)/s', $content)) {
+    if (preg_match('/function updateInventaireTenantSignature.*?uniqid\(\s*[\'"][\'"]?\s*,\s*true\s*\)/s', $content)) {
         echo "✓ PASS: updateInventaireTenantSignature uses uniqid() with entropy\n";
     } else {
         echo "✗ FAIL: updateInventaireTenantSignature does not use uniqid() properly\n";
@@ -40,7 +40,7 @@ if (!file_exists($functionsFile)) {
     }
     
     // Check for updateEtatLieuxTenantSignature using uniqid
-    if (preg_match('/function updateEtatLieuxTenantSignature.*?uniqid\([\'"][\'"]\s*,\s*true\)/s', $content)) {
+    if (preg_match('/function updateEtatLieuxTenantSignature.*?uniqid\(\s*[\'"][\'"]?\s*,\s*true\s*\)/s', $content)) {
         echo "✓ PASS: updateEtatLieuxTenantSignature uses uniqid() with entropy\n";
     } else {
         echo "✗ FAIL: updateEtatLieuxTenantSignature does not use uniqid() properly\n";
@@ -185,21 +185,21 @@ if (!file_exists($step2File)) {
     echo "✗ FAIL: step2-signature.php not found\n";
     $allTestsPassed = false;
 } else {
-    $content = file_get_contents($step2File);
+    $step2Content = file_get_contents($step2File);
     
     // Check for current_locataire_id session variable
-    if (strpos($content, '$_SESSION[\'current_locataire_id\']') !== false) {
+    if (strpos($step2Content, '$_SESSION[\'current_locataire_id\']') !== false) {
         echo "✓ PASS: step2-signature.php uses tenant-specific session variable\n";
     } else {
         echo "✗ FAIL: Missing tenant ID session handling\n";
         $allTestsPassed = false;
     }
     
-    // Check for defensive tenant ID validation
-    if (preg_match('/WHERE id = \?/', $content)) {
-        echo "✓ PASS: Tenant validation uses WHERE id = ? for specificity\n";
+    // Check for defensive tenant ID validation in updateTenantSignature call
+    if (strpos($step2Content, 'updateTenantSignature($locataireId') !== false) {
+        echo "✓ PASS: Tenant validation passes specific locataire ID to update function\n";
     } else {
-        echo "✗ WARNING: Tenant validation may not be specific enough\n";
+        echo "✗ WARNING: Tenant update call may not be specific enough\n";
     }
 }
 

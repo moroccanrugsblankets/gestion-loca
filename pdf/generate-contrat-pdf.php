@@ -333,8 +333,8 @@ function buildSignaturesTable($contrat, $locataires) {
             $html .= '<div style="margin: 10px 0; min-height: 60px;">&nbsp;</div>';
         }
         
-        // "Certifié exact" indicator
-        $html .= '<p style="margin: 10px 0 5px 0; font-size: 9pt;">☑ Certifié exact</p>';
+        // "Certifié exact" indicator - using standard text for PDF compatibility
+        $html .= '<p style="margin: 10px 0 5px 0; font-size: 9pt;">[✓] Certifié exact</p>';
 
         // Signature metadata
         if (!empty($loc['signature_timestamp']) || !empty($loc['signature_ip'])) {
