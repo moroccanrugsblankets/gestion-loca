@@ -1053,45 +1053,6 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
             let allValid = true;
             let errors = [];
             
-            // Validate equipment: if state checkbox is checked, number must be provided
-            const equipmentRows = document.querySelectorAll('tbody tr');
-            equipmentRows.forEach((row, index) => {
-                // Get all inputs in this row
-                const entreeNombre = row.querySelector('input[name*="[entree_nombre]"]');
-                const entreeBon = row.querySelector('input[name*="[entree_bon]"]');
-                const entreeUsage = row.querySelector('input[name*="[entree_usage]"]');
-                const entreeMauvais = row.querySelector('input[name*="[entree_mauvais]"]');
-                
-                const sortieNombre = row.querySelector('input[name*="[sortie_nombre]"]');
-                const sortieBon = row.querySelector('input[name*="[sortie_bon]"]');
-                const sortieUsage = row.querySelector('input[name*="[sortie_usage]"]');
-                const sortieMauvais = row.querySelector('input[name*="[sortie_mauvais]"]');
-                
-                const itemName = row.querySelector('strong')?.textContent || 'Élément ' + (index + 1);
-                
-                // Check Entry: if any checkbox is checked, number is required
-                if (!entreeNombre?.hasAttribute('readonly')) {
-                    const entreeChecked = (entreeBon?.checked || entreeUsage?.checked || entreeMauvais?.checked);
-                    const entreeNombreValue = entreeNombre?.value ? parseInt(entreeNombre.value) : 0;
-                    
-                    if (entreeChecked && entreeNombreValue <= 0) {
-                        errors.push('Entrée - ' + itemName + ': Un nombre doit être renseigné si un état est coché');
-                        allValid = false;
-                    }
-                }
-                
-                // Check Exit: if any checkbox is checked, number is required
-                if (!sortieNombre?.hasAttribute('readonly')) {
-                    const sortieChecked = (sortieBon?.checked || sortieUsage?.checked || sortieMauvais?.checked);
-                    const sortieNombreValue = sortieNombre?.value ? parseInt(sortieNombre.value) : 0;
-                    
-                    if (sortieChecked && sortieNombreValue <= 0) {
-                        errors.push('Sortie - ' + itemName + ': Un nombre doit être renseigné si un état est coché');
-                        allValid = false;
-                    }
-                }
-            });
-            
             // Validate tenant signatures - using array index instead of DB ID
             const tenantValidations = [
                 <?php foreach ($existing_tenants as $index => $tenant): ?>
