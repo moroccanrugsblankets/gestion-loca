@@ -70,6 +70,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 // Prepare email data with template variables (unified template)
                 $templateId = 'inventaire_envoye'; // Use unified template
                 
+                // Determine type label for email
+                $typeLabel = ($inventaire['type'] === 'entree') ? 'Entrée' : 'Sortie';
+                
                 // Send email to each tenant with admin in BCC
                 $emailsSent = [];
                 $emailsFailed = [];
@@ -81,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     }
                     
                     $emailVariables = [
-                        'locataire_nom' => $tenant['prenom'] . ' ' . $tenant['nom'],
+                        'locataire_nom' => trim($tenant['prenom'] . ' ' . $tenant['nom']),
                         'adresse' => $inventaire['adresse'],
                         'date_inventaire' => date('d/m/Y', strtotime($inventaire['date_inventaire'])),
                         'reference' => $inventaire['reference_unique'] ?? 'N/A',
@@ -254,6 +257,24 @@ try {
         }
     }
     
+    // Fetch all tenants associated with this inventaire
+    $stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? ORDER BY id ASC");
+    $stmt->execute([$id]);
+    $tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    if (empty($tenants)) {
+        error_log("WARNING: No tenants found in inventaire_locataires for inventaire ID: $id");
+        // Fallback to single tenant from inventaire table if available
+        if (!empty($inventaire['locataire_nom_complet']) && !empty($inventaire['locataire_email'])) {
+            $tenants = [[
+                'id' => null,
+                'nom' => $inventaire['locataire_nom_complet'],
+                'prenom' => '',
+                'email' => $inventaire['locataire_email']
+            ]];
+        }
+    }
+    
     // Check for missing required fields
     $missingFields = [];
     $requiredFields = ['contrat_id', 'type', 'locataire_email', 'locataire_nom_complet', 'adresse', 'date_inventaire'];
@@ -342,7 +363,6 @@ try {
             <h5 class="mb-4">Récapitulatif</h5>
             
             <div class="info-item">
-            <div class="info-item">
                 <span class="info-label">Référence:</span>
                 <?php echo htmlspecialchars($inventaire['reference_unique']); ?>
             </div>
@@ -357,15 +377,28 @@ try {
                 <?php echo htmlspecialchars($inventaire['adresse']); ?>
             </div>
             
-            <div class="info-item">
-                <span class="info-label">Locataire:</span>
-                <?php echo htmlspecialchars($inventaire['locataire_nom_complet']); ?>
-            </div>
-            
-            <div class="info-item">
-                <span class="info-label">Email du locataire:</span>
-                <?php echo htmlspecialchars($inventaire['locataire_email']); ?>
-            </div>
+            <?php if (!empty($tenants)): ?>
+                <?php if (count($tenants) === 1): ?>
+                    <div class="info-item">
+                        <span class="info-label">Locataire:</span>
+                        <?php echo htmlspecialchars(trim($tenants[0]['prenom'] . ' ' . $tenants[0]['nom'])); ?>
+                    </div>
+                    
+                    <div class="info-item">
+                        <span class="info-label">Email du locataire:</span>
+                        <?php echo htmlspecialchars($tenants[0]['email']); ?>
+                    </div>
+                <?php else: ?>
+                    <div class="info-item">
+                        <span class="info-label">Locataires:</span>
+                        <ul class="mb-0 mt-1">
+                            <?php foreach ($tenants as $tenant): ?>
+                                <li><?php echo htmlspecialchars(trim($tenant['prenom'] . ' ' . $tenant['nom'])); ?> - <?php echo htmlspecialchars($tenant['email']); ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
+            <?php endif; ?>
             
             <?php if (!empty($missingFields)): ?>
             <div class="alert alert-warning mt-3">
@@ -383,9 +416,19 @@ try {
                 <i class="bi bi-info-circle"></i>
                 <strong>Le PDF sera envoyé automatiquement à:</strong>
                 <ul class="mb-0 mt-2">
-                    <li>Locataire: <?php echo htmlspecialchars($inventaire['locataire_email']); ?></li>
-                    <li>Copie: <?php echo htmlspecialchars(getAdminEmail()); ?></li>
+                    <?php if (!empty($tenants)): ?>
+                        <?php if (count($tenants) === 1): ?>
+                            <li>Locataire: <?php echo htmlspecialchars($tenants[0]['email']); ?></li>
+                        <?php else: ?>
+                            <?php foreach ($tenants as $tenant): ?>
+                                <li>Locataire: <?php echo htmlspecialchars($tenant['email']); ?></li>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    <?php endif; ?>
                 </ul>
+                <small class="text-muted mt-2 d-block">
+                    <i class="bi bi-info-circle"></i> Les administrateurs recevront une copie cachée (BCC) de chaque email.
+                </small>
             </div>
             
             <form method="POST" action="">
