@@ -168,7 +168,7 @@ $bilanRows = [];
 $bilanSent = false; // Track if bilan has been sent
 
 // Define static lines that should always be present
-$staticLines = ['Eau', 'Électricité', 'Vide'];
+$staticLines = ['Eau', 'Électricité'];
 
 if ($etat && !empty($etat['bilan_logement_data'])) {
     $bilanRows = json_decode($etat['bilan_logement_data'], true) ?: [];
