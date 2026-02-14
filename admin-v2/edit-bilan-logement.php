@@ -440,9 +440,24 @@ if ($etat) {
                         Contrat - <?php echo htmlspecialchars($contrat['contrat_ref']); ?>
                     </p>
                 </div>
-                <a href="contrat-detail.php?id=<?php echo $contratId; ?>" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-left"></i> Retour
-                </a>
+                <div>
+                    <?php if (!empty($bilanRows)): ?>
+                    <a href="download-bilan-logement.php?contrat_id=<?php echo $contratId; ?>" 
+                       class="btn btn-info me-2" 
+                       target="_blank"
+                       title="Prévisualiser le PDF">
+                        <i class="bi bi-file-pdf"></i> Voir le PDF
+                    </a>
+                    <a href="download-bilan-logement.php?contrat_id=<?php echo $contratId; ?>&download=1" 
+                       class="btn btn-outline-info me-2"
+                       title="Télécharger le PDF">
+                        <i class="bi bi-download"></i> Télécharger PDF
+                    </a>
+                    <?php endif; ?>
+                    <a href="contrat-detail.php?id=<?php echo $contratId; ?>" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Retour
+                    </a>
+                </div>
             </div>
         </div>
 
