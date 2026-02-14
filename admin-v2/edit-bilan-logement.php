@@ -121,6 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $locataireNom = trim(($emailData['prenom'] ?? '') . ' ' . ($emailData['nom'] ?? ''));
             
             // Prepare email variables
+            // Note: 'signature' variable will be automatically replaced by sendTemplatedEmail via replaceTemplateVariables
             $emailVariables = [
                 'locataire_nom' => $locataireNom,
                 'adresse' => $emailData['logement_adresse'] ?? '',
@@ -137,11 +138,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             
             foreach ($recipientEmails as $email) {
                 try {
+                    // Send email with admin BCC to ensure admins receive a copy
                     $sent = sendTemplatedEmail(
                         'bilan_logement',
                         $email,
                         $emailVariables,
-                        $pdfPath
+                        $pdfPath,
+                        false, // isAdminEmail
+                        true   // addAdminBcc - ensures admins receive a copy
                     );
                     
                     if ($sent) {

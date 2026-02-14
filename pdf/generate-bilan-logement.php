@@ -146,7 +146,7 @@ function generateBilanLogementPDF($contratId) {
         $logoHtml = '';
         if ($logoData) {
             if (strpos($logoData, 'data:') === 0 || strpos($logoData, 'uploads/') !== false) {
-                $logoHtml = '<img src="' . htmlspecialchars($logoData) . '" alt="Logo" style="max-width: 200px;">';
+                $logoHtml = '<img src="' . htmlspecialchars($logoData) . '" alt="Logo" style="max-width: 150px; max-height: 80px;">';
             }
         }
 
