@@ -76,11 +76,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             ]);
         }
         
-        // If sending the bilan, mark it for sending to tenant(s)
+        // If sending the bilan, save to history
         if ($sendBilan) {
-            // TODO: Implement email sending to tenant(s)
-            // For now, just mark it as ready to be sent
-            $_SESSION['success'] = "Bilan du logement enregistré et marqué comme prêt à envoyer";
+            // Get tenant emails from contract
+            $stmt = $pdo->prepare("
+                SELECT email1, email2 FROM contrats 
+                WHERE id = ?
+            ");
+            $stmt->execute([$contratId]);
+            $emails = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            $recipientEmails = [];
+            if (!empty($emails['email1'])) $recipientEmails[] = $emails['email1'];
+            if (!empty($emails['email2'])) $recipientEmails[] = $emails['email2'];
+            
+            // Save to send history
+            $stmt = $pdo->prepare("
+                INSERT INTO bilan_send_history (
+                    etat_lieux_id, contrat_id, sent_by, recipient_emails, notes
+                ) VALUES (?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([
+                $etatLieuxId,
+                $contratId,
+                $_SESSION['user_id'] ?? 0,
+                json_encode($recipientEmails),
+                'Bilan envoyé depuis l\'interface admin'
+            ]);
+            
+            // TODO: Implement actual email sending to tenant(s)
+            $_SESSION['success'] = "Bilan du logement enregistré et marqué comme envoyé";
         } else {
             $_SESSION['success'] = "Bilan du logement mis à jour avec succès";
         }
@@ -143,7 +168,7 @@ $bilanRows = [];
 $bilanSent = false; // Track if bilan has been sent
 
 // Define static lines that should always be present
-$staticLines = ['Vide', 'Eau', 'Électricité'];
+$staticLines = ['Eau', 'Électricité', 'Vide'];
 
 if ($etat && !empty($etat['bilan_logement_data'])) {
     $bilanRows = json_decode($etat['bilan_logement_data'], true) ?: [];
@@ -151,42 +176,53 @@ if ($etat && !empty($etat['bilan_logement_data'])) {
     $bilanSent = isset($etat['bilan_sent']) && $etat['bilan_sent'];
 }
 
-// Auto-import logic: Only import if bilan hasn't been sent yet
-if (!$bilanSent) {
-    // Create hash maps for O(1) lookups
-    $existingPostesMap = array_flip(array_column($bilanRows, 'poste'));
-    $staticLinesMap = array_flip($staticLines);
+// Auto-import logic: Import in order - État de sortie, Inventaire, Static fields with separators
+// Only auto-import if no data exists yet (empty bilanRows)
+if (empty($bilanRows)) {
+    $newRows = [];
     
-    // Add static lines at the beginning if they don't exist
-    foreach ($staticLines as $staticLine) {
-        if (!isset($existingPostesMap[$staticLine])) {
-            $bilanRows[] = [
-                'poste' => $staticLine,
-                'commentaires' => '',
-                'valeur' => '',
-                'montant_du' => ''
-            ];
+    // 1. Import État de sortie first (from bilan_sections_data)
+    if ($etat && !empty($etat['bilan_sections_data'])) {
+        $bilanSectionsDataTemp = json_decode($etat['bilan_sections_data'], true) ?: [];
+        foreach ($bilanSectionsDataTemp as $section => $items) {
+            if (is_array($items)) {
+                foreach ($items as $item) {
+                    $equipement = $item['equipement'] ?? '';
+                    $commentaire = $item['commentaire'] ?? '';
+                    
+                    // Only import if there's something to import
+                    if ($equipement || $commentaire) {
+                        // Remove known category labels from start of comment
+                        $comment = preg_replace('/^\[(Manquant|Endommagé)\]\s*/i', '', $commentaire);
+                        $newRows[] = [
+                            'poste' => $equipement,
+                            'commentaires' => $comment,
+                            'valeur' => '',
+                            'montant_du' => ''
+                        ];
+                    }
+                }
+            }
         }
     }
     
-    // Helper function to check if data rows exist (beyond static lines)
-    $hasNonStaticRows = function($rows, $staticLinesMap) {
-        foreach ($rows as $row) {
-            $poste = $row['poste'] ?? '';
-            if (!isset($staticLinesMap[$poste])) {
-                return true;
-            }
-        }
-        return false;
-    };
+    // Add separator line after État de sortie if we imported data
+    if (!empty($newRows)) {
+        $newRows[] = [
+            'poste' => '',
+            'commentaires' => '',
+            'valeur' => '',
+            'montant_du' => ''
+        ];
+    }
     
-    // If no data rows exist yet (only static lines), try to auto-import from inventaire
-    if (!$hasNonStaticRows($bilanRows, $staticLinesMap) && $inventaire) {
-        // Auto-import from inventaire - get equipment with comments
+    // 2. Import Inventaire second (from inventaire equipements_data)
+    if ($inventaire && !empty($inventaire['equipements_data'])) {
         $equipements = json_decode($inventaire['equipements_data'], true) ?: [];
+        $inventaireStartIndex = count($newRows);
         foreach ($equipements as $item) {
             if (isset($item['commentaires']) && trim($item['commentaires']) !== '') {
-                $bilanRows[] = [
+                $newRows[] = [
                     'poste' => $item['nom'] ?? '',
                     'commentaires' => $item['commentaires'],
                     'valeur' => '',
@@ -194,6 +230,39 @@ if (!$bilanSent) {
                 ];
             }
         }
+        
+        // Add separator line after Inventaire if we imported data
+        if (count($newRows) > $inventaireStartIndex) {
+            $newRows[] = [
+                'poste' => '',
+                'commentaires' => '',
+                'valeur' => '',
+                'montant_du' => ''
+            ];
+        }
+    }
+    
+    // 3. Add static fields (Eau, Électricité, Vide) at the end
+    foreach ($staticLines as $staticLine) {
+        $newRows[] = [
+            'poste' => $staticLine,
+            'commentaires' => '',
+            'valeur' => '',
+            'montant_du' => ''
+        ];
+    }
+    
+    // Add one Vide row as separator
+    $newRows[] = [
+        'poste' => 'Vide',
+        'commentaires' => '',
+        'valeur' => '',
+        'montant_du' => ''
+    ];
+    
+    // Use the new rows if we have any, otherwise create default
+    if (!empty($newRows)) {
+        $bilanRows = $newRows;
     }
 }
 
@@ -203,6 +272,8 @@ if (empty($bilanRows)) {
     foreach ($staticLines as $staticLine) {
         $bilanRows[] = ['poste' => $staticLine, 'commentaires' => '', 'valeur' => '', 'montant_du' => ''];
     }
+    // Add Vide separator
+    $bilanRows[] = ['poste' => 'Vide', 'commentaires' => '', 'valeur' => '', 'montant_du' => ''];
     // Add one empty row for data entry
     $bilanRows[] = ['poste' => '', 'commentaires' => '', 'valeur' => '', 'montant_du' => ''];
 }
@@ -217,6 +288,20 @@ if ($etat && !empty($etat['bilan_sections_data'])) {
 $justificatifs = [];
 if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
     $justificatifs = json_decode($etat['bilan_logement_justificatifs'], true) ?: [];
+}
+
+// Get send history
+$sendHistory = [];
+if ($etat) {
+    $stmt = $pdo->prepare("
+        SELECT bsh.*, u.nom as sender_name
+        FROM bilan_send_history bsh
+        LEFT JOIN users u ON bsh.sent_by = u.id
+        WHERE bsh.etat_lieux_id = ?
+        ORDER BY bsh.sent_at DESC
+    ");
+    $stmt->execute([$etat['id']]);
+    $sendHistory = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
 <!DOCTYPE html>
@@ -251,14 +336,7 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
             padding-bottom: 0.75rem;
             border-bottom: 2px solid #e9ecef;
         }
-        #bilanTable .bilan-field.is-invalid {
-            border-color: #dc3545;
-            background-color: #f8d7da;
-        }
-        #bilanTable .bilan-field.is-valid {
-            border-color: #28a745;
-            background-color: #d4edda;
-        }
+        /* Removed green/red coloring - no fields are mandatory */
         #bilanTable thead th {
             background-color: #f8f9fa;
             font-weight: 600;
@@ -324,21 +402,20 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="mb-0">Tableau des dégradations</h6>
                         <div>
-                            <?php if (!$bilanSent): ?>
-                                <?php if (!empty($bilanSectionsData)): ?>
-                                <button type="button" class="btn btn-sm btn-warning me-2" onclick="importFromExitState()" id="importExitStateBtn">
-                                    <i class="bi bi-download"></i> Importer depuis l'état de sortie
-                                </button>
-                                <?php endif; ?>
-                                <?php if ($inventaire): ?>
-                                <button type="button" class="btn btn-sm btn-success me-2" onclick="importFromExitInventory()" id="importBilanBtn">
-                                    <i class="bi bi-download"></i> Importer depuis l'inventaire de sortie
-                                </button>
-                                <?php endif; ?>
-                            <?php else: ?>
+                            <?php if ($bilanSent): ?>
                                 <span class="badge bg-info text-white me-2">
                                     <i class="bi bi-check-circle"></i> Bilan envoyé
                                 </span>
+                            <?php endif; ?>
+                            <?php if (!empty($bilanSectionsData)): ?>
+                            <button type="button" class="btn btn-sm btn-warning me-2" onclick="importFromExitState()" id="importExitStateBtn">
+                                <i class="bi bi-download"></i> Importer depuis l'état de sortie
+                            </button>
+                            <?php endif; ?>
+                            <?php if ($inventaire): ?>
+                            <button type="button" class="btn btn-sm btn-success me-2" onclick="importFromExitInventory()" id="importBilanBtn">
+                                <i class="bi bi-download"></i> Importer depuis l'inventaire de sortie
+                            </button>
                             <?php endif; ?>
                             <button type="button" class="btn btn-sm btn-primary" onclick="addBilanRow()" id="addBilanRowBtn">
                                 <i class="bi bi-plus-circle"></i> Ajouter une ligne
@@ -416,7 +493,7 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
                     </div>
                     
                     <div class="alert alert-warning mt-2">
-                        <i class="bi bi-exclamation-triangle"></i> Maximum 20 lignes. Les champs vides sont validés avec une bordure rouge.
+                        <i class="bi bi-exclamation-triangle"></i> Maximum 20 lignes. Aucun champ n'est obligatoire.
                     </div>
                 </div>
                 
@@ -515,14 +592,62 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
                     <button type="submit" class="btn btn-primary btn-lg">
                         <i class="bi bi-save"></i> Enregistrer le bilan
                     </button>
-                    <?php if (!$bilanSent): ?>
                     <button type="submit" name="send_bilan" value="1" class="btn btn-success btn-lg ms-2">
-                        <i class="bi bi-send"></i> Enregistrer et envoyer au(x) locataire(s)
+                        <i class="bi bi-send"></i> <?php echo $bilanSent ? 'Renvoyer au(x) locataire(s)' : 'Enregistrer et envoyer au(x) locataire(s)'; ?>
                     </button>
-                    <?php endif; ?>
                 </div>
             </div>
         </form>
+        
+        <!-- Send History Section -->
+        <?php if (!empty($sendHistory)): ?>
+        <div class="form-card">
+            <div class="section-title">
+                <i class="bi bi-clock-history"></i> Historique des envois
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date et heure</th>
+                            <th>Envoyé par</th>
+                            <th>Destinataires</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($sendHistory as $history): ?>
+                        <tr>
+                            <td>
+                                <i class="bi bi-calendar-check"></i>
+                                <?php echo date('d/m/Y à H:i', strtotime($history['sent_at'])); ?>
+                            </td>
+                            <td>
+                                <i class="bi bi-person"></i>
+                                <?php echo htmlspecialchars($history['sender_name'] ?? 'Utilisateur inconnu'); ?>
+                            </td>
+                            <td>
+                                <i class="bi bi-envelope"></i>
+                                <?php 
+                                $recipients = json_decode($history['recipient_emails'], true);
+                                if (is_array($recipients) && !empty($recipients)) {
+                                    echo htmlspecialchars(implode(', ', $recipients));
+                                } else {
+                                    echo '<span class="text-muted">N/A</span>';
+                                }
+                                ?>
+                            </td>
+                            <td>
+                                <?php echo htmlspecialchars($history['notes'] ?? ''); ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -807,50 +932,16 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
             document.getElementById('totalMontantDu').textContent = totalMontantDu.toFixed(2) + ' €';
         }
         
-        // Validate bilan fields
+        // Validate bilan fields - No mandatory fields, no coloring
         function validateBilanFields() {
-            let allValid = true;
-            const rows = document.querySelectorAll('.bilan-row');
-            
-            rows.forEach(row => {
-                const fields = row.querySelectorAll('.bilan-field');
-                let rowHasValue = false;
-                
-                // Check if any field in the row has a value
-                fields.forEach(field => {
-                    if (field.value.trim() !== '') {
-                        rowHasValue = true;
-                    }
-                });
-                
-                // If row has any value, only Poste and Commentaires fields are required
-                // Valeur and Montant dû fields are optional (empty values are treated as 0 in calculations)
-                if (rowHasValue) {
-                    fields.forEach(field => {
-                        // Skip validation for valeur and montant_du fields (they are optional)
-                        if (field.classList.contains('bilan-valeur') || field.classList.contains('bilan-montant-du')) {
-                            field.classList.remove('is-invalid', 'is-valid');
-                            return;
-                        }
-                        
-                        if (field.value.trim() === '') {
-                            field.classList.add('is-invalid');
-                            field.classList.remove('is-valid');
-                            allValid = false;
-                        } else {
-                            field.classList.remove('is-invalid');
-                            field.classList.add('is-valid');
-                        }
-                    });
-                } else {
-                    // Empty row - remove validation classes
-                    fields.forEach(field => {
-                        field.classList.remove('is-invalid', 'is-valid');
-                    });
-                }
+            // Remove all validation classes - no fields are mandatory
+            const fields = document.querySelectorAll('.bilan-field');
+            fields.forEach(field => {
+                field.classList.remove('is-invalid', 'is-valid');
             });
             
-            return allValid;
+            // Always return true since no fields are mandatory
+            return true;
         }
         
         // Update the add row button state
@@ -1063,13 +1154,10 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
             validateBilanFields();
         });
         
-        // Handle form submission
+        // Handle form submission - No validation needed as no fields are mandatory
         document.getElementById('bilanForm').addEventListener('submit', function(e) {
-            if (!validateBilanFields()) {
-                e.preventDefault();
-                alert('Veuillez remplir tous les champs des lignes qui contiennent des données');
-                return false;
-            }
+            // Simply allow the form to submit - validation always passes
+            return true;
         });
     </script>
 </body>
