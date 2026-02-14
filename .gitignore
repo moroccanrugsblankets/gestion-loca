@@ -84,6 +84,7 @@ test-refactoring.php
 !test-html-preview-bail.php
 !test-html-preview-etat-lieux.php
 !test-html-preview-inventaire.php
+!test-html-preview-bilan-logement.php
 test-upload.html
 test-signature-fix.html
 test-candidature-evaluation.php
