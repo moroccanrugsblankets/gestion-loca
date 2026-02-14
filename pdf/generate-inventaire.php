@@ -20,7 +20,7 @@ define('INVENTAIRE_SIGNATURE_MAX_HEIGHT', '10mm');
 // Style CSS pour les images de signature (sans bordures)
 // Simplified for TCPDF compatibility - removed unsupported inline CSS
 // TCPDF works best with HTML attributes instead of CSS
-define('INVENTAIRE_SIGNATURE_IMG_STYLE', 'width: 100px; height: auto;');
+define('INVENTAIRE_SIGNATURE_IMG_STYLE', 'width: 80px; height: auto;');
 
 /**
  * Convert relative image paths to absolute URLs for TCPDF
