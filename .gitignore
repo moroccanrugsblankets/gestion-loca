@@ -8,6 +8,7 @@ uploads/signatures/*
 # PDF générés (contiennent des données personnelles)
 pdf/*
 !pdf/generate-bail.php
+!pdf/generate-bilan-logement.php
 !pdf/generate-contrat-pdf.php
 !pdf/generate-etat-lieux.php
 !pdf/generate-inventaire.php
