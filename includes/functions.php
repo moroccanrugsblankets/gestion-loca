@@ -235,10 +235,13 @@ function updateTenantSignature($locataireId, $signatureData, $mentionLuApprouve 
         }
     }
     
-    // Generate unique filename using microtime for better uniqueness
-    // Use microtime(true) to get microsecond precision and avoid collisions
-    $timestamp = str_replace('.', '_', (string)microtime(true));
-    $filename = "tenant_locataire_{$locataireId}_{$timestamp}.jpg";
+    // Generate unique filename using uniqid() with more_entropy for guaranteed uniqueness
+    // uniqid(prefix, more_entropy=true) generates a 23-char unique ID based on microtime
+    // with additional random component, eliminating collision risk even in rapid succession
+    $uniqueId = uniqid('', true);  // e.g., "65a1b2c3d4e5f.12345678"
+    // Replace dot with underscore for filesystem safety
+    $uniqueId = str_replace('.', '_', $uniqueId);
+    $filename = "tenant_locataire_{$locataireId}_{$uniqueId}.jpg";
     $filepath = $uploadsDir . '/' . $filename;
     
     // Save physical file
@@ -336,8 +339,11 @@ function updateEtatLieuxTenantSignature($etatLieuxLocataireId, $signatureData, $
         }
     }
     
-    // Generate unique filename
-    $filename = "etat_lieux_tenant_{$etatLieuxId}_{$etatLieuxLocataireId}_" . time() . ".jpg";
+    // Generate unique filename using uniqid() for guaranteed uniqueness
+    // This prevents collisions even if multiple tenants sign simultaneously
+    $uniqueId = uniqid('', true);
+    $uniqueId = str_replace('.', '_', $uniqueId);
+    $filename = "etat_lieux_tenant_{$etatLieuxId}_{$etatLieuxLocataireId}_{$uniqueId}.jpg";
     $filepath = $uploadsDir . '/' . $filename;
     
     // Save physical file
@@ -413,8 +419,11 @@ function updateInventaireTenantSignature($inventaireLocataireId, $signatureData,
         }
     }
     
-    // Generate unique filename with timestamp and tenant ID for uniqueness
-    $filename = "inventaire_tenant_{$inventaireId}_{$inventaireLocataireId}_" . time() . ".jpg";
+    // Generate unique filename using uniqid() for guaranteed uniqueness
+    // This prevents collisions even if multiple tenants sign simultaneously
+    $uniqueId = uniqid('', true);
+    $uniqueId = str_replace('.', '_', $uniqueId);
+    $filename = "inventaire_tenant_{$inventaireId}_{$inventaireLocataireId}_{$uniqueId}.jpg";
     $filepath = $uploadsDir . '/' . $filename;
     
     error_log("updateInventaireTenantSignature: Saving signature to file: $filename");

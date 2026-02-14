@@ -269,13 +269,18 @@ function buildSignaturesTable($contrat, $locataires) {
     global $pdo, $config;
 
     $nbCols = count($locataires) + 1; // +1 pour le bailleur
-    $colWidth = 100 / $nbCols;
+    $colWidth = round(100 / $nbCols, 2); // Use rounded percentage for consistent widths
 
-    $html = '<table cellspacing="0" cellpadding="10" border="0" style="width: 100%; border: none; margin-top: 20px;"><tbody><tr>';
+    // TCPDF-optimized table structure with proper cell styling
+    // Use border="1" and cellspacing="0" for consistent cell rendering
+    // Explicit width and height for consistent layout
+    $html = '<table cellspacing="0" cellpadding="15" border="1" style="width: 100%; border-collapse: collapse; margin-top: 20px; background: transparent;">';
+    $html .= '<tbody><tr>';
 
-    // Bailleur
-    $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px; border: none;">';
-    $html .= '<p><strong>Le bailleur :</strong></p>';
+    // Bailleur column
+    $html .= '<td style="width: ' . $colWidth . '%; vertical-align: top; text-align: center; padding: 15px; border: 1px solid #333; background: transparent;">';
+    $html .= '<p style="margin: 0 0 10px 0; font-weight: bold;">Le bailleur :</p>';
+    
     if ($contrat['statut'] === 'valide') {
         // Check if signature feature is enabled using getParameter
         $signatureEnabled = getParameter('signature_societe_enabled', false);
@@ -286,50 +291,62 @@ function buildSignaturesTable($contrat, $locataires) {
 
             if (!empty($signatureSociete) && preg_match('/^uploads\/signatures\//', $signatureSociete)) {
                 $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($signatureSociete, '/');
-                $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Société" width="120" border="0">';
+                // Consistent image sizing - remove borders and backgrounds
+                $html .= '<div style="margin: 10px 0; min-height: 60px;">';
+                $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Société" style="width: 120px; height: auto; border: none; background: transparent;">';
+                $html .= '</div>';
             }
         }
 
         if (!empty($contrat['date_validation'])) {
             $ts = strtotime($contrat['date_validation']);
             if ($ts !== false) {
-                $html .= '<div style="margin-top:5px; font-size:8pt; color:#666;"><br>&nbsp;<br>&nbsp;<br>Validé le : ' . date('d/m/Y H:i:s', $ts) . '</div>';
+                $html .= '<p style="margin: 10px 0 5px 0; font-size: 8pt; color: #666;">Validé le : ' . date('d/m/Y H:i:s', $ts) . '</p>';
             }
         }
-        $html .= '<div style="margin-top:5px; font-size:8pt; color:#666;">MY INVEST IMMOBILIER</div>';
+        $html .= '<p style="margin: 5px 0 0 0; font-size: 8pt; color: #666;">MY INVEST IMMOBILIER</p>';
     }
     $html .= '</td>';
 
-    // Locataires
+    // Locataires columns
     foreach ($locataires as $i => $loc) {
-        $html .= '<td style="width:' . $colWidth . '%; vertical-align: top; text-align:center; padding:10px; border: none;">';
+        $html .= '<td style="width: ' . $colWidth . '%; vertical-align: top; text-align: center; padding: 15px; border: 1px solid #333; background: transparent;">';
 
+        // Tenant label
         if ($nbCols === 2) {
-            $html .= '<p><strong>Locataire :</strong></p>';
+            $html .= '<p style="margin: 0 0 5px 0; font-weight: bold;">Locataire :</p>';
         } else {
-            $html .= '<p><strong>Locataire ' . ($i + 1) . ' :</strong></p>';
+            $html .= '<p style="margin: 0 0 5px 0; font-weight: bold;">Locataire ' . ($i + 1) . ' :</p>';
         }
 
-        $html .= '<p>' . htmlspecialchars($loc['prenom']) . ' ' . htmlspecialchars($loc['nom']) . '</p>';
+        // Tenant name
+        $html .= '<p style="margin: 0 0 10px 0;">' . htmlspecialchars($loc['prenom']) . ' ' . htmlspecialchars($loc['nom']) . '</p>';
 
+        // Signature image - consistent sizing and no backgrounds
         if (!empty($loc['signature_data']) && preg_match('/^uploads\/signatures\//', $loc['signature_data'])) {
             $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($loc['signature_data'], '/');
-			$html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" width="180" border="0">';
+            $html .= '<div style="margin: 10px 0; min-height: 60px;">';
+            $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Locataire" style="width: 150px; height: auto; border: none; background: transparent;">';
+            $html .= '</div>';
+        } else {
+            // Placeholder for unsigned tenant to maintain consistent cell height
+            $html .= '<div style="margin: 10px 0; min-height: 60px;">&nbsp;</div>';
         }
         
-        // Add "Certifié exact" checkbox indicator - always show for clarity
-        $html .= '<p style="margin-top:5px; font-size:9pt;"><br>&nbsp;<br>&nbsp;<br>Certifié exact</p>';
+        // "Certifié exact" indicator
+        $html .= '<p style="margin: 10px 0 5px 0; font-size: 9pt;">☑ Certifié exact</p>';
 
+        // Signature metadata
         if (!empty($loc['signature_timestamp']) || !empty($loc['signature_ip'])) {
-            $html .= '<div style="margin-top:10px; font-size:8pt; color:#666;">';
+            $html .= '<div style="margin: 10px 0 0 0; font-size: 8pt; color: #666;">';
             if (!empty($loc['signature_timestamp'])) {
                 $ts = strtotime($loc['signature_timestamp']);
                 if ($ts !== false) {
-                    $html .= 'Signé le ' . date('d/m/Y à H:i', $ts) . '<br>';
+                    $html .= '<p style="margin: 2px 0;">Signé le ' . date('d/m/Y à H:i', $ts) . '</p>';
                 }
             }
             if (!empty($loc['signature_ip'])) {
-                $html .= 'IP : ' . htmlspecialchars($loc['signature_ip']);
+                $html .= '<p style="margin: 2px 0;">IP : ' . htmlspecialchars($loc['signature_ip']) . '</p>';
             }
             $html .= '</div>';
         }
