@@ -105,7 +105,7 @@ if ($inventaire['type'] === 'sortie') {
 $html = replaceInventaireTemplateVariables($templateHtml, $inventaire, $locataires);
 
 // Add a debug header
-echo "<!DOCTYPE html><html><head><meta charset='UTF-8'><style>
+/*echo "<!DOCTYPE html><html><head><meta charset='UTF-8'><style>
 .debug-header {
     background: #fff3cd;
     border: 2px solid #ffc107;
@@ -126,9 +126,12 @@ echo "<!DOCTYPE html><html><head><meta charset='UTF-8'><style>
     padding: 2px 6px;
     border-radius: 3px;
 }
-</style></head><body>";
+</style></head><body>";*/
 
-echo "<div class='debug-header'>";
+// Add a debug header
+echo "<!DOCTYPE html><html><head><meta charset='UTF-8'></head><body>";
+
+/*echo "<div class='debug-header'>";
 echo "<h2>🔍 Test HTML Preview - Inventaire</h2>";
 echo "<p><strong>Mode:</strong> Aperçu HTML avant traitement TCPDF</p>";
 echo "<p><strong>Inventaire ID:</strong> " . $inventaireId . "</p>";
@@ -138,7 +141,8 @@ echo "<p><strong>Adresse:</strong> " . htmlspecialchars($inventaire['adresse']) 
 echo "<p><em>Inspectez les éléments de signature pour identifier les balises/CSS non supportées par TCPDF</em></p>";
 echo "<p><a href='test-html-preview-inventaire.php?type=" . $inventaire['type'] . "'>← Retour à la liste</a> | ";
 echo "<a href='pdf/generate-inventaire.php?id=" . $inventaireId . "' target='_blank'>Voir le PDF</a></p>";
-echo "</div>";
+echo "</div>";*/
+
 
 // Display the generated HTML
 echo $html;
