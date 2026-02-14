@@ -519,19 +519,19 @@ function buildEquipementsHtml($inventaire, $type) {
  * @return string HTML for table header
  */
 function getInventoryTableHeader($type = 'sortie') {
-    $html = '<tr style="background-color: #3498db; color: #FFFFFF;">';
+    $html = '<tr style="background-color:#3498db; color:#FFFFFF;">';
 
     if ($type === 'sortie') {
         // Sortie: Élément (57mm) + Entrée (4×11.5mm = 46mm) + Sortie (4×11.5mm = 46mm) + Commentaires (41mm) ≈ 190mm
-        $html .= '<th rowspan="2" style="border:1px solid #ddd; padding:6px; width:57mm; font-size:9px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle;">Élément</th>';
-        $html .= '<th colspan="4" style="border:1px solid #ddd; padding:6px; text-align:center; background-color:#2196F3; color:#FFFFFF; font-size:9px; vertical-align:middle;">Entrée</th>';
-        $html .= '<th colspan="4" style="border:1px solid #ddd; padding:6px; text-align:center; background-color:#4CAF50; color:#FFFFFF; font-size:9px; vertical-align:middle;">Sortie</th>';
-        $html .= '<th rowspan="2" style="border:1px solid #ddd; padding:6px; width:41mm; font-size:9px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle;">Commentaires</th>';
+        $html .= '<td rowspan="2" style="border:1px solid #ddd; padding:6px; width:57mm; font-size:9px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle;">Élément</td>';
+        $html .= '<td colspan="4" style="border:1px solid #ddd; padding:6px; text-align:center; background-color:#2196F3; color:#FFFFFF; font-size:9px; vertical-align:middle;">Entrée</td>';
+        $html .= '<td colspan="4" style="border:1px solid #ddd; padding:6px; text-align:center; background-color:#4CAF50; color:#FFFFFF; font-size:9px; vertical-align:middle;">Sortie</td>';
+        $html .= '<td rowspan="2" style="border:1px solid #ddd; padding:6px; width:41mm; font-size:9px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle;">Commentaires</td>';
     } else {
         // Entrée: Élément (67mm) + Entrée (4×12mm = 48mm) + Commentaires (75mm) ≈ 190mm
-        $html .= '<th rowspan="2" style="border:1px solid #ddd; padding:6px; width:67mm; font-size:9px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle;">Élément</th>';
-        $html .= '<th colspan="4" style="border:1px solid #ddd; padding:6px; text-align:center; background-color:#2196F3; color:#FFFFFF; font-size:9px; vertical-align:middle;">Entrée</th>';
-        $html .= '<th rowspan="2" style="border:1px solid #ddd; padding:6px; width:75mm; font-size:9px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle;">Commentaires</th>';
+        $html .= '<td rowspan="2" style="border:1px solid #ddd; padding:6px; width:67mm; font-size:9px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle;">Élément</td>';
+        $html .= '<td colspan="4" style="border:1px solid #ddd; padding:6px; text-align:center; background-color:#2196F3; color:#FFFFFF; font-size:9px; vertical-align:middle;">Entrée</td>';
+        $html .= '<td rowspan="2" style="border:1px solid #ddd; padding:6px; width:75mm; font-size:9px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle;">Commentaires</td>';
     }
 
     $html .= '</tr>';
@@ -540,22 +540,20 @@ function getInventoryTableHeader($type = 'sortie') {
     if ($type === 'sortie') {
         // Sous-colonnes Entrée et Sortie (11.5mm chacune)
         $subWidth = '11.5mm';
-        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">Nombre</th>';
-        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">Bon</th>';
-        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">D\'usage</th>';
-        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">Mauvais</th>';
-
-        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">Nombre</th>';
-        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">Bon</th>';
-        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">D\'usage</th>';
-        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">Mauvais</th>';
+        $labels = ['Nombre','Bon','D\'usage','Mauvais'];
+        foreach ($labels as $label) {
+            $html .= '<td style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">'.$label.'</td>';
+        }
+        foreach ($labels as $label) {
+            $html .= '<td style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">'.$label.'</td>';
+        }
     } else {
         // Sous-colonnes Entrée (12mm chacune)
         $subWidth = '12mm';
-        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">Nombre</th>';
-        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">Bon</th>';
-        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">D\'usage</th>';
-        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">Mauvais</th>';
+        $labels = ['Nombre','Bon','D\'usage','Mauvais'];
+        foreach ($labels as $label) {
+            $html .= '<td style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">'.$label.'</td>';
+        }
     }
 
     $html .= '</tr>';
