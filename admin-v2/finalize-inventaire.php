@@ -426,9 +426,6 @@ try {
                         <?php endif; ?>
                     <?php endif; ?>
                 </ul>
-                <small class="text-muted mt-2 d-block">
-                    <i class="bi bi-info-circle"></i> Les administrateurs recevront une copie cachée (BCC) de chaque email.
-                </small>
             </div>
             
             <form method="POST" action="">
