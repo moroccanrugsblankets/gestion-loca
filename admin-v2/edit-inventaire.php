@@ -85,11 +85,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $inventaire_id
         ]);
         
-        // Update tenant signatures - array key is now the DB ID (like etat-lieux)
+        // Update tenant signatures - array key is now the loop index, extract DB ID from hidden field
         if (isset($_POST['tenants']) && is_array($_POST['tenants'])) {
-            foreach ($_POST['tenants'] as $tenantId => $tenantInfo) {
-                // $tenantId is the database ID from the array key
-                $tenantId = (int)$tenantId;
+            // First, validate that all tenants have db_id field
+            $missingDbIds = [];
+            foreach ($_POST['tenants'] as $tenantIndex => $tenantInfo) {
+                if (!isset($tenantInfo['db_id']) || empty($tenantInfo['db_id'])) {
+                    $missingDbIds[] = $tenantIndex;
+                    error_log("WARNING: Tenant at index $tenantIndex is missing db_id field");
+                }
+            }
+            
+            if (!empty($missingDbIds)) {
+                throw new Exception("Données de locataire incomplètes (indices: " . implode(', ', $missingDbIds) . "). Veuillez réessayer.");
+            }
+            
+            foreach ($_POST['tenants'] as $tenantIndex => $tenantInfo) {
+                // Extract the database ID from the hidden field (not from array key)
+                $tenantId = (int)$tenantInfo['db_id'];
+                
+                // Log for debugging
+                error_log("Processing tenant at index $tenantIndex with DB ID $tenantId");
                 
                 // Only update certifie_exact if finalizing (not for draft saves)
                 // For draft saves, we preserve the existing value unless explicitly checked
@@ -122,21 +138,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!empty($tenantInfo['signature'])) {
                     // Validate signature format (expected: data:image/(jpeg|jpg|png);base64,<base64_data>)
                     if (!preg_match('/^data:image\/(jpeg|jpg|png);base64,[A-Za-z0-9+\/=]+$/', $tenantInfo['signature'])) {
-                        error_log("Invalid signature format for tenant ID: $tenantId - Expected: data:image/jpeg;base64,...");
+                        error_log("Invalid signature format for tenant index $tenantIndex (DB ID: $tenantId) - Expected: data:image/jpeg;base64,...");
                         continue;
                     }
                     
                     // Log signature save attempt for debugging
-                    error_log("SAVE: Attempting to save signature for tenant DB ID: $tenantId, inventaire: $inventaire_id");
+                    error_log("SAVE: Attempting to save signature for tenant index $tenantIndex (DB ID: $tenantId), inventaire: $inventaire_id");
                     error_log("SAVE: Signature data length: " . strlen($tenantInfo['signature']) . " bytes");
                     
                     // Use the helper function from functions.php
                     $result = updateInventaireTenantSignature($tenantId, $tenantInfo['signature'], $inventaire_id);
                     
                     if (!$result) {
-                        error_log("SAVE: ❌ Failed to save signature for tenant ID: $tenantId");
+                        error_log("SAVE: ❌ Failed to save signature for tenant index $tenantIndex (DB ID: $tenantId)");
                     } else {
-                        error_log("SAVE: ✓ Successfully saved signature for tenant ID: $tenantId");
+                        error_log("SAVE: ✓ Successfully saved signature for tenant index $tenantIndex (DB ID: $tenantId)");
                     }
                 }
             }
@@ -372,6 +388,7 @@ foreach ($existing_tenants as &$tenant) {
     $tenant['signature_data'] = $tenant['signature'] ?? '';
     $tenant['signature_timestamp'] = $tenant['date_signature'] ?? '';
 }
+unset($tenant); // Clean up reference to prevent accidental modifications
 
 // CRITICAL: Final validation to ensure no duplicate tenant IDs
 // This prevents the canvas ID collision bug
@@ -814,10 +831,11 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                 <?php foreach ($existing_tenants as $index => $tenant): ?>
                 <!-- 
                     IMPORTANT: Each tenant has unique identifiers to prevent signature duplication:
-                    - Canvas ID: tenantCanvas_<?php echo $tenant['id']; ?> (unique per tenant DB ID)
-                    - Hidden field ID: tenantSignature_<?php echo $tenant['id']; ?> (unique per tenant DB ID)
-                    - Array key uses DB ID: tenants[<?php echo $tenant['id']; ?>] to match etat-lieux pattern
-                    This ensures each tenant's signature is saved to a unique file path
+                    - Canvas ID: tenantCanvas_<?php echo $index; ?> (unique per loop index)
+                    - Hidden field ID: tenantSignature_<?php echo $index; ?> (unique per loop index)
+                    - Array key uses loop index: tenants[<?php echo $index; ?>] for guaranteed uniqueness
+                    - Database ID is preserved in hidden field: tenants[<?php echo $index; ?>][db_id]
+                    This ensures each tenant's signature works independently, regardless of database issues
                 -->
                 <div class="mb-4 pb-4 border-bottom">
                     <h6 class="mb-3">
@@ -841,7 +859,7 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                                         if (strlen($signatureSrc) <= 2 * 1024 * 1024) {
                                             $displaySrc = $signatureSrc;
                                         } else {
-                                            error_log("Oversized signature data URL for tenant ID: " . (int)$tenant['id']);
+                                            error_log("Oversized signature data URL for tenant index $index (DB ID: " . (int)$tenant['id'] . ")");
                                             $displaySrc = '';
                                         }
                                     } elseif (preg_match('/^uploads\/signatures\/[a-zA-Z0-9_\-]+\.(jpg|jpeg|png)$/', $signatureSrc)) {
@@ -849,7 +867,7 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                                         $displaySrc = '../' . $signatureSrc;
                                     } else {
                                         // Invalid or unexpected format - don't display to prevent security issues
-                                        error_log("Invalid signature path format detected for tenant ID: " . (int)$tenant['id']);
+                                        error_log("Invalid signature path format detected for tenant index $index (DB ID: " . (int)$tenant['id'] . ")");
                                         $displaySrc = '';
                                     }
                                     ?>
@@ -861,32 +879,34 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                             <?php endif; ?>
                             <label class="form-label">Veuillez signer dans le cadre ci-dessous :</label>
                             <div class="signature-container" style="max-width: 300px;">
-                                <canvas id="tenantCanvas_<?php echo $tenant['id']; ?>" width="300" height="150" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
+                                <canvas id="tenantCanvas_<?php echo $index; ?>" width="300" height="150" style="background: transparent; border: none; outline: none; padding: 0;"></canvas>
                             </div>
-                            <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][signature]" 
-                                   id="tenantSignature_<?php echo $tenant['id']; ?>" 
+                            <input type="hidden" name="tenants[<?php echo $index; ?>][signature]" 
+                                   id="tenantSignature_<?php echo $index; ?>" 
                                    value="<?php echo htmlspecialchars($tenant['signature_data'] ?? ''); ?>">
-                            <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][locataire_id]" 
+                            <input type="hidden" name="tenants[<?php echo $index; ?>][db_id]" 
+                                   value="<?php echo $tenant['id']; ?>">
+                            <input type="hidden" name="tenants[<?php echo $index; ?>][locataire_id]" 
                                    value="<?php echo $tenant['locataire_id'] ?? ''; ?>">
-                            <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][nom]" 
+                            <input type="hidden" name="tenants[<?php echo $index; ?>][nom]" 
                                    value="<?php echo htmlspecialchars($tenant['nom']); ?>">
-                            <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][prenom]" 
+                            <input type="hidden" name="tenants[<?php echo $index; ?>][prenom]" 
                                    value="<?php echo htmlspecialchars($tenant['prenom']); ?>">
-                            <input type="hidden" name="tenants[<?php echo $tenant['id']; ?>][email]" 
+                            <input type="hidden" name="tenants[<?php echo $index; ?>][email]" 
                                    value="<?php echo htmlspecialchars($tenant['email'] ?? ''); ?>">
                             <div class="mt-2">
-                                <button type="button" class="btn btn-warning btn-sm" onclick="clearTenantSignature(<?php echo $tenant['id']; ?>)">
+                                <button type="button" class="btn btn-warning btn-sm" onclick="clearTenantSignature(<?php echo $index; ?>)">
                                     <i class="bi bi-eraser"></i> Effacer
                                 </button>
                             </div>
                             <div class="mt-3">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" 
-                                           name="tenants[<?php echo $tenant['id']; ?>][certifie_exact]" 
-                                           id="certifie_exact_<?php echo $tenant['id']; ?>" 
+                                           name="tenants[<?php echo $index; ?>][certifie_exact]" 
+                                           id="certifie_exact_<?php echo $index; ?>" 
                                            value="1"
                                            <?php echo !empty($tenant['certifie_exact']) ? 'checked' : ''; ?>>
-                                    <label class="form-check-label" for="certifie_exact_<?php echo $tenant['id']; ?>">
+                                    <label class="form-check-label" for="certifie_exact_<?php echo $index; ?>">
                                         <strong>Certifié exact</strong>
                                     </label>
                                 </div>
@@ -927,18 +947,19 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
             console.log('=== INVENTAIRE TENANT SIGNATURE INITIALIZATION ===');
             console.log('Total tenants to initialize: <?php echo count($existing_tenants); ?>');
             
-            // Initialize tenant signatures using tenant DB IDs for uniqueness
+            // Initialize tenant signatures using array index for uniqueness
             <?php if (!empty($existing_tenants)): ?>
                 <?php foreach ($existing_tenants as $index => $tenant): ?>
                     {
-                        const tenantId = <?php echo $tenant['id']; ?>;
+                        const tenantIndex = <?php echo $index; ?>;
+                        const tenantDbId = <?php echo $tenant['id']; ?>;
                         const tenantName = <?php echo json_encode($tenant['prenom'] . ' ' . $tenant['nom']); ?>;
-                        console.log('Initializing Tenant <?php echo $index + 1; ?>: DB_ID=' + tenantId + ', Name=' + tenantName + ', Canvas=tenantCanvas_' + tenantId);
+                        console.log('Initializing Tenant <?php echo $index + 1; ?>: Index=' + tenantIndex + ', DB_ID=' + tenantDbId + ', Name=' + tenantName + ', Canvas=tenantCanvas_' + tenantIndex);
                         
-                        // Check for duplicate canvas ID
-                        if (initializedCanvasIds.has(tenantId)) {
-                            console.error('⚠️  CRITICAL: Duplicate canvas ID detected! Tenant ID ' + tenantId + ' already initialized.');
-                            console.error('This will cause signature canvas conflicts. Please check the database for duplicate tenant records.');
+                        // Check for duplicate canvas ID (should never happen with index-based IDs)
+                        if (initializedCanvasIds.has(tenantIndex)) {
+                            console.error('⚠️  CRITICAL: Duplicate canvas index detected! Index ' + tenantIndex + ' already initialized.');
+                            console.error('This should never happen with index-based identifiers. Please report this bug.');
                             
                             // Show accessible error message in the DOM
                             const errorDiv = document.createElement('div');
@@ -947,7 +968,7 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                             errorDiv.setAttribute('aria-live', 'assertive');
                             errorDiv.innerHTML = `
                                 <strong><i class="bi bi-exclamation-triangle"></i> Erreur Critique:</strong>
-                                ID de locataire en double détecté (ID: ${tenantId}). 
+                                ID de canvas en double détecté (Index: ${tenantIndex}). 
                                 Les signatures pourraient ne pas fonctionner correctement. 
                                 Veuillez contacter l'administrateur.
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
@@ -957,15 +978,15 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                                 document.querySelector('.header')
                             );
                         } else {
-                            initializedCanvasIds.add(tenantId);
+                            initializedCanvasIds.add(tenantIndex);
                         }
                         
-                        initTenantSignature(tenantId);
+                        initTenantSignature(tenantIndex);
                     }
                 <?php endforeach; ?>
             <?php endif; ?>
             
-            console.log('Initialized canvas IDs:', Array.from(initializedCanvasIds));
+            console.log('Initialized canvas indices:', Array.from(initializedCanvasIds));
             console.log('=== INITIALIZATION COMPLETE ===');
         });
         
@@ -1178,9 +1199,9 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
         
         // Handle form submission with validation
         document.getElementById('inventaireForm').addEventListener('submit', function(e) {
-            // Save all tenant signatures before submission using tenant DB IDs
-            <?php foreach ($existing_tenants as $tenant): ?>
-                saveTenantSignature(<?php echo $tenant['id']; ?>);
+            // Save all tenant signatures before submission using array indices
+            <?php foreach ($existing_tenants as $index => $tenant): ?>
+                saveTenantSignature(<?php echo $index; ?>);
             <?php endforeach; ?>
             
             // Check if this is a draft save (no finalize parameter)
@@ -1234,14 +1255,15 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                 }
             });
             
-            // Validate tenant signatures - using tenant DB IDs instead of indices
+            // Validate tenant signatures - using array index instead of DB ID
             const tenantValidations = [
                 <?php foreach ($existing_tenants as $index => $tenant): ?>
                 {
-                    tenantId: <?php echo $tenant['id']; ?>,
+                    tenantIndex: <?php echo $index; ?>,
+                    tenantDbId: <?php echo $tenant['id']; ?>,
                     name: <?php echo json_encode($tenant['prenom'] . ' ' . $tenant['nom']); ?>,
-                    signatureId: 'tenantSignature_<?php echo $tenant['id']; ?>',
-                    certifieId: 'certifie_exact_<?php echo $tenant['id']; ?>'
+                    signatureId: 'tenantSignature_<?php echo $index; ?>',
+                    certifieId: 'certifie_exact_<?php echo $index; ?>'
                 }<?php echo ($index < count($existing_tenants) - 1) ? ',' : ''; ?>
                 <?php endforeach; ?>
             ];
