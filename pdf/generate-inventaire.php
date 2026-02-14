@@ -548,7 +548,7 @@ function getInventoryTableHeader($isExitInventory = false) {
         // Élément (65mm) + Qté Entrée (30mm) + Nombre (30mm) + Commentaires (65mm) ≈ 190mm
         $html .= '<td style="border:1px solid #ddd; padding:6px; width:65mm; font-size:10px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle; font-weight:bold;">Élément</td>';
         $html .= '<td style="border:1px solid #ddd; padding:6px; width:30mm; font-size:10px; background-color:#95a5a6; color:#FFFFFF; text-align:center; vertical-align:middle; font-weight:bold;">Qté Entrée</td>';
-        $html .= '<td style="border:1px solid #ddd; padding:6px; width:30mm; font-size:10px; background-color:#3498db; color:#FFFFFF; text-align:center; vertical-align:middle; font-weight:bold;">Nombre</td>';
+        $html .= '<td style="border:1px solid #ddd; padding:6px; width:30mm; font-size:10px; background-color:#3498db; color:#FFFFFF; text-align:center; vertical-align:middle; font-weight:bold;">Qté Sortie</td>';
         $html .= '<td style="border:1px solid #ddd; padding:6px; width:65mm; font-size:10px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle; font-weight:bold;">Commentaire</td>';
     } else {
         // Entry inventory: 3 columns
