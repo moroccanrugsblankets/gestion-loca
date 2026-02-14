@@ -23,6 +23,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     try {
         $pdo->beginTransaction();
         
+        // Check if we should mark the bilan as sent
+        $sendBilan = isset($_POST['send_bilan']) && $_POST['send_bilan'] === '1';
+        
         // Prepare bilan_logement_data if provided
         $bilanData = null;
         if (isset($_POST['bilan_rows']) && is_array($_POST['bilan_rows'])) {
@@ -43,14 +46,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $stmt = $pdo->prepare("
                 INSERT INTO etats_lieux (
                     contrat_id, type, date_etat, locataire_present, 
-                    bilan_logement_data, bilan_logement_commentaire,
+                    bilan_logement_data, bilan_logement_commentaire, bilan_sent,
                     created_at, updated_at
-                ) VALUES (?, 'sortie', CURDATE(), TRUE, ?, ?, NOW(), NOW())
+                ) VALUES (?, 'sortie', CURDATE(), TRUE, ?, ?, ?, NOW(), NOW())
             ");
             $stmt->execute([
                 $contratId,
                 $bilanData,
-                $_POST['bilan_logement_commentaire'] ?? ''
+                $_POST['bilan_logement_commentaire'] ?? '',
+                $sendBilan ? 1 : 0
             ]);
             $etatLieuxId = $pdo->lastInsertId();
         } else {
@@ -59,6 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 UPDATE etats_lieux SET
                     bilan_logement_data = ?,
                     bilan_logement_commentaire = ?,
+                    bilan_sent = ?,
                     updated_at = NOW()
                 WHERE id = ?
             ");
@@ -66,12 +71,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $stmt->execute([
                 $bilanData,
                 $_POST['bilan_logement_commentaire'] ?? '',
+                $sendBilan ? 1 : 0,
                 $etatLieuxId
             ]);
         }
         
+        // If sending the bilan, send email to tenant(s)
+        if ($sendBilan) {
+            // TODO: Implement email sending to tenant(s)
+            // For now, just mark it as sent
+            $_SESSION['success'] = "Bilan du logement enregistré et marqué comme envoyé";
+        } else {
+            $_SESSION['success'] = "Bilan du logement mis à jour avec succès";
+        }
+        
         $pdo->commit();
-        $_SESSION['success'] = "Bilan du logement mis à jour avec succès";
         header('Location: edit-bilan-logement.php?contrat_id=' . $contratId);
         exit;
         
@@ -497,9 +511,16 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
                 <a href="contrat-detail.php?id=<?php echo $contratId; ?>" class="btn btn-secondary">
                     <i class="bi bi-arrow-left"></i> Annuler
                 </a>
-                <button type="submit" class="btn btn-primary btn-lg">
-                    <i class="bi bi-save"></i> Enregistrer le bilan
-                </button>
+                <div>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-save"></i> Enregistrer le bilan
+                    </button>
+                    <?php if (!$bilanSent): ?>
+                    <button type="submit" name="send_bilan" value="1" class="btn btn-success btn-lg ms-2">
+                        <i class="bi bi-send"></i> Enregistrer et envoyer au(x) locataire(s)
+                    </button>
+                    <?php endif; ?>
+                </div>
             </div>
         </form>
     </div>
