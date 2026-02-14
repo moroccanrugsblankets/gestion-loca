@@ -108,15 +108,6 @@ foreach ($allParams as $param) {
             </div>
         </div>
 
-        <!-- Info about contract configuration -->
-        <div class="alert alert-info alert-dismissible fade show">
-            <i class="bi bi-info-circle"></i>
-            <strong>Configuration des contrats :</strong> 
-            Les paramètres relatifs aux contrats (template HTML, signature électronique) sont gérés dans 
-            <a href="contrat-configuration.php" class="alert-link"><strong>Configuration du Template de Contrat</strong></a>.
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-
         <?php if (isset($_SESSION['error'])): ?>
             <div class="alert alert-danger alert-dismissible fade show">
                 <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
