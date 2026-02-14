@@ -258,19 +258,23 @@ if (!$template) {
             code_dialog_height: 600
         });
 
-        // Copy to clipboard function
-        function copyToClipboard(text, event) {
-            navigator.clipboard.writeText(text).then(function() {
-                // Show temporary success message
-                const originalText = event.target.textContent;
-                event.target.textContent = '✓ Copié !';
-                setTimeout(function() {
-                    event.target.textContent = originalText;
-                }, 1000);
-            }, function(err) {
-                console.error('Erreur lors de la copie: ', err);
-            });
-        }
+        // Copy to clipboard function (wrapped in IIFE to avoid global scope pollution)
+        (function() {
+            'use strict';
+            
+            window.copyToClipboard = function(text, event) {
+                navigator.clipboard.writeText(text).then(function() {
+                    // Show temporary success message
+                    const originalText = event.target.textContent;
+                    event.target.textContent = '✓ Copié !';
+                    setTimeout(function() {
+                        event.target.textContent = originalText;
+                    }, 1000);
+                }, function(err) {
+                    console.error('Erreur lors de la copie: ', err);
+                });
+            };
+        })();
     </script>
 </body>
 </html>

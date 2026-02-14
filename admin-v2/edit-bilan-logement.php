@@ -117,7 +117,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $stmt->execute([$contratId]);
             $emailData = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            $locataireNom = ($emailData['prenom'] ?? '') . ' ' . ($emailData['nom'] ?? '');
+            // Build locataire name, trim to handle empty fields
+            $locataireNom = trim(($emailData['prenom'] ?? '') . ' ' . ($emailData['nom'] ?? ''));
             
             // Prepare email variables
             $emailVariables = [
