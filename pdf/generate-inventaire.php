@@ -214,8 +214,7 @@ function generateInventairePDF($inventaireId) {
         $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
         $pdf->SetCreator('MY INVEST IMMOBILIER');
         
-        $typeLabel = ($type === 'entree') ? 'Entrée' : 'Sortie';
-        $pdf->SetTitle("Inventaire $typeLabel - " . ($inventaire['reference_unique'] ?? ''));
+        $pdf->SetTitle("Inventaire - " . ($inventaire['reference_unique'] ?? ''));
         
         $pdf->SetMargins(15, 10, 15);
         $pdf->SetAutoPageBreak(true, 10);
@@ -246,7 +245,7 @@ function generateInventairePDF($inventaireId) {
         $dateStr = date('Ymd');
         // Sanitize reference for filename
         $safeReference = preg_replace('/[^a-zA-Z0-9_-]/', '_', $inventaire['reference_unique']);
-        $filename = "inventaire_{$type}_{$safeReference}_{$dateStr}.pdf";
+        $filename = "inventaire_{$safeReference}_{$dateStr}.pdf";
         $filepath = $pdfDir . $filename;
         
         error_log("Saving to: $filepath");
@@ -291,10 +290,6 @@ function generateInventairePDF($inventaireId) {
 function replaceInventaireTemplateVariables($template, $inventaire, $locataires) {
     global $config;
     
-    // Type
-    $type = $inventaire['type'] ?? 'entree';
-    $typeLabel = ($type === 'entree') ? "D'ENTRÉE" : "DE SORTIE";
-    
     // Dates
     $dateInventaire = !empty($inventaire['date_inventaire']) ? date('d/m/Y', strtotime($inventaire['date_inventaire'])) : date('d/m/Y');
     $dateSignature = !empty($inventaire['date_signature']) ? date('d/m/Y', strtotime($inventaire['date_signature'])) : $dateInventaire;
@@ -316,8 +311,8 @@ function replaceInventaireTemplateVariables($template, $inventaire, $locataires)
         $locataireNom = htmlspecialchars(trim(($firstLocataire['prenom'] ?? '') . ' ' . ($firstLocataire['nom'] ?? '')));
     }
     
-    // Equipements list - Build HTML table/list
-    $equipementsHtml = buildEquipementsHtml($inventaire, $type);
+    // Equipements list - Build HTML table/list (type no longer needed)
+    $equipementsHtml = buildEquipementsHtml($inventaire);
     
     // Observations générales
     $observations = trim($inventaire['observations_generales'] ?? '');
@@ -334,70 +329,11 @@ function replaceInventaireTemplateVariables($template, $inventaire, $locataires)
     // Build signatures table
     $signaturesTable = buildSignaturesTableInventaire($inventaire, $locataires);
     
-    // Sortie-specific sections
-    $comparaisonSection = '';
-    $equipementsManquantsSection = '';
-    $depotGarantieSection = '';
-    
-    if ($type === 'sortie') {
-        // Comparaison avec entrée
-        if (!empty($inventaire['comparaison_entree'])) {
-            $comparaisonText = convertAndEscapeText($inventaire['comparaison_entree']);
-            $comparaisonSection = "<h2>4. Comparaison avec l'inventaire d'entrée</h2><div class='observations'>$comparaisonText</div>";
-        }
-        
-        // Equipements manquants/endommagés
-        $equipementsManquants = json_decode($inventaire['equipements_manquants'] ?? '[]', true) ?: [];
-        $equipementsEndommages = json_decode($inventaire['equipements_endommages'] ?? '[]', true) ?: [];
-        
-        if (!empty($equipementsManquants) || !empty($equipementsEndommages)) {
-            $equipementsManquantsSection = "<h2>5. Équipements manquants ou endommagés</h2>";
-            
-            if (!empty($equipementsManquants)) {
-                $equipementsManquantsSection .= "<h3>Équipements manquants</h3><ul>";
-                foreach ($equipementsManquants as $eq) {
-                    $nom = htmlspecialchars($eq['nom'] ?? '');
-                    $quantite = (int)($eq['quantite'] ?? 0);
-                    $equipementsManquantsSection .= "<li>$nom (Quantité: $quantite)</li>";
-                }
-                $equipementsManquantsSection .= "</ul>";
-            }
-            
-            if (!empty($equipementsEndommages)) {
-                $equipementsManquantsSection .= "<h3>Équipements endommagés</h3><ul>";
-                foreach ($equipementsEndommages as $eq) {
-                    $nom = htmlspecialchars($eq['nom'] ?? '');
-                    $observations = htmlspecialchars($eq['observations'] ?? '');
-                    $equipementsManquantsSection .= "<li>$nom";
-                    if (!empty($observations)) {
-                        $equipementsManquantsSection .= " - $observations";
-                    }
-                    $equipementsManquantsSection .= "</li>";
-                }
-                $equipementsManquantsSection .= "</ul>";
-            }
-        }
-        
-        // Dépôt de garantie
-        if (!empty($inventaire['depot_garantie_retenue']) || !empty($inventaire['depot_garantie_motif'])) {
-            $depotRetenue = number_format((float)($inventaire['depot_garantie_retenue'] ?? 0), 2, ',', ' ');
-            $depotMotif = convertAndEscapeText($inventaire['depot_garantie_motif'] ?? '');
-            
-            $depotGarantieSection = "<h2>6. Dépôt de garantie</h2>";
-            $depotGarantieSection .= "<div class='info-section'>";
-            $depotGarantieSection .= "<div class='info-row'><span class='info-label'>Montant retenu :</span><span class='info-value'>$depotRetenue €</span></div>";
-            if (!empty($depotMotif)) {
-                $depotGarantieSection .= "<div class='info-row'><span class='info-label'>Motif :</span><span class='info-value'>$depotMotif</span></div>";
-            }
-            $depotGarantieSection .= "</div>";
-        }
-    }
-    
     // Prepare variable replacements
     $vars = [
         '{{reference}}' => $reference,
-        '{{type}}' => strtolower($type),
-        '{{type_label}}' => $typeLabel,
+        '{{type}}' => 'inventaire', // Generic type
+        '{{type_label}}' => '', // No longer needed
         '{{date}}' => $dateInventaire,
         '{{date_inventaire}}' => $dateInventaire,
         '{{adresse}}' => $adresse,
@@ -409,10 +345,11 @@ function replaceInventaireTemplateVariables($template, $inventaire, $locataires)
         '{{lieu_signature}}' => $lieuSignature,
         '{{date_signature}}' => $dateSignature,
         '{{signatures_table}}' => $signaturesTable,
-        // Sortie-specific variables
-        '{{comparaison_section}}' => $comparaisonSection,
-        '{{equipements_manquants_section}}' => $equipementsManquantsSection,
-        '{{depot_garantie_section}}' => $depotGarantieSection,
+        // Remove sortie-specific variables (no longer used)
+        '{{comparaison}}' => '',
+        '{{comparaison_section}}' => '',
+        '{{equipements_manquants_section}}' => '',
+        '{{depot_garantie_section}}' => '',
     ];
     
     // Handle conditional rows
@@ -459,7 +396,7 @@ function getQuantityValue($value) {
  * @param string $type Type d'inventaire (entree/sortie)
  * @return string HTML pour les équipements
  */
-function buildEquipementsHtml($inventaire, $type) {
+function buildEquipementsHtml($inventaire, $type = null) {
     $equipements_data = json_decode($inventaire['equipements_data'] ?? '[]', true);
     
     if (!is_array($equipements_data) || empty($equipements_data)) {
@@ -515,122 +452,66 @@ function buildEquipementsHtml($inventaire, $type) {
 
 /**
  * Generate table header HTML for inventory equipment table
- * @param string $type Type of inventory ('entree' or 'sortie')
+ * Simplified to 3 columns: Élément, Nombre, Commentaire
  * @return string HTML for table header
  */
-function getInventoryTableHeader($type = 'sortie') {
+function getInventoryTableHeader() {
     $html = '<tr style="background-color:#3498db; color:#FFFFFF;">';
-
-    if ($type === 'sortie') {
-        // Sortie: Élément (57mm) + Entrée (4×11.5mm = 46mm) + Sortie (4×11.5mm = 46mm) + Commentaires (41mm) ≈ 190mm
-        $html .= '<td rowspan="2" style="border:1px solid #ddd; padding:6px; width:57mm; font-size:9px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle;">Élément</td>';
-        $html .= '<td colspan="4" style="border:1px solid #ddd; padding:6px; text-align:center; background-color:#2196F3; color:#FFFFFF; font-size:9px; vertical-align:middle;">Entrée</td>';
-        $html .= '<td colspan="4" style="border:1px solid #ddd; padding:6px; text-align:center; background-color:#4CAF50; color:#FFFFFF; font-size:9px; vertical-align:middle;">Sortie</td>';
-        $html .= '<td rowspan="2" style="border:1px solid #ddd; padding:6px; width:41mm; font-size:9px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle;">Commentaires</td>';
-    } else {
-        // Entrée: Élément (67mm) + Entrée (4×12mm = 48mm) + Commentaires (75mm) ≈ 190mm
-        $html .= '<td rowspan="2" style="border:1px solid #ddd; padding:6px; width:67mm; font-size:9px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle;">Élément</td>';
-        $html .= '<td colspan="4" style="border:1px solid #ddd; padding:6px; text-align:center; background-color:#2196F3; color:#FFFFFF; font-size:9px; vertical-align:middle;">Entrée</td>';
-        $html .= '<td rowspan="2" style="border:1px solid #ddd; padding:6px; width:75mm; font-size:9px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle;">Commentaires</td>';
-    }
-
-    $html .= '</tr>';
-    $html .= '<tr style="background-color:#ecf0f1;">';
-
-    if ($type === 'sortie') {
-        // Sous-colonnes Entrée et Sortie (11.5mm chacune)
-        $subWidth = '11.5mm';
-        $labels = ['Nombre','Bon','D\'usage','Mauvais'];
-        foreach ($labels as $label) {
-            $html .= '<td style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">'.$label.'</td>';
-        }
-        foreach ($labels as $label) {
-            $html .= '<td style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">'.$label.'</td>';
-        }
-    } else {
-        // Sous-colonnes Entrée (12mm chacune)
-        $subWidth = '12mm';
-        $labels = ['Nombre','Bon','D\'usage','Mauvais'];
-        foreach ($labels as $label) {
-            $html .= '<td style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">'.$label.'</td>';
-        }
-    }
-
+    
+    // Simplified to 3 columns: Élément (80mm) + Nombre (30mm) + Commentaires (80mm) ≈ 190mm
+    $html .= '<td style="border:1px solid #ddd; padding:6px; width:80mm; font-size:10px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle; font-weight:bold;">Élément</td>';
+    $html .= '<td style="border:1px solid #ddd; padding:6px; width:30mm; font-size:10px; background-color:#3498db; color:#FFFFFF; text-align:center; vertical-align:middle; font-weight:bold;">Nombre</td>';
+    $html .= '<td style="border:1px solid #ddd; padding:6px; width:80mm; font-size:10px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle; font-weight:bold;">Commentaire</td>';
+    
     $html .= '</tr>';
     return $html;
 }
 
 /**
- * Render equipment table for PDF
+ * Render equipment table for PDF - simplified to 3 columns
  */
 function renderEquipementsTable($equipements, $type) {
     $html = '<table cellspacing="0" cellpadding="4" border="0" style="width: 100%; margin-bottom: 10px; font-size: 10px;">';
-    $html .= getInventoryTableHeader($type);
+    $html .= getInventoryTableHeader();
     $html .= '<tbody>';
     
     foreach ($equipements as $eq) {
         $nom = htmlspecialchars($eq['nom'] ?? '');
         
-        // Get Entry data
-        $entree = $eq['entree'] ?? [];
-        $entreeNombre = getQuantityValue($entree['nombre'] ?? null);
-        $entreeBon = getCheckboxSymbol($entree['bon'] ?? false);
-        $entreeUsage = getCheckboxSymbol($entree['usage'] ?? false);
-        $entreeMauvais = getCheckboxSymbol($entree['mauvais'] ?? false);
-        
-        // Get Exit data
-        $sortie = $eq['sortie'] ?? [];
-        $sortieNombre = getQuantityValue($sortie['nombre'] ?? null);
-        $sortieBon = getCheckboxSymbol($sortie['bon'] ?? false);
-        $sortieUsage = getCheckboxSymbol($sortie['usage'] ?? false);
-        $sortieMauvais = getCheckboxSymbol($sortie['mauvais'] ?? false);
+        // Get quantity - support both new and old structure
+        $nombre = '';
+        if (isset($eq['nombre'])) {
+            // New simplified structure
+            $nombre = getQuantityValue($eq['nombre']);
+        } elseif (isset($eq['entree']['nombre'])) {
+            // Old structure with entree/sortie
+            $nombre = getQuantityValue($eq['entree']['nombre']);
+        } elseif (isset($eq['quantite_presente'])) {
+            // Legacy format
+            $nombre = getQuantityValue($eq['quantite_presente']);
+        } elseif (isset($eq['quantite_attendue'])) {
+            // Legacy format fallback
+            $nombre = getQuantityValue($eq['quantite_attendue']);
+        }
         
         // Comments
-        $commentaires = htmlspecialchars($eq['commentaires'] ?? $eq['observations'] ?? '-');
-        
-        // Fallback to legacy format if new format not present
-        if (empty($entree) && empty($sortie)) {
-            // Legacy format
-            $quantite = isset($eq['quantite_presente']) ? (int)$eq['quantite_presente'] : (int)($eq['quantite_attendue'] ?? 0);
-            $etat = $eq['etat'] ?? '';
-            
-            // Map old state to new checkbox format
-            if ($type === 'entree') {
-                $entreeNombre = $quantite;
-                if ($etat === 'Bon') $entreeBon = getCheckboxSymbol(true);
-                elseif ($etat === 'Moyen') $entreeUsage = getCheckboxSymbol(true);
-                elseif ($etat === 'Mauvais') $entreeMauvais = getCheckboxSymbol(true);
-            } else {
-                $sortieNombre = $quantite;
-                if ($etat === 'Bon') $sortieBon = getCheckboxSymbol(true);
-                elseif ($etat === 'Moyen') $sortieUsage = getCheckboxSymbol(true);
-                elseif ($etat === 'Mauvais') $sortieMauvais = getCheckboxSymbol(true);
-            }
-        }
+        $commentaires = htmlspecialchars($eq['commentaires'] ?? $eq['observations'] ?? '');
         
         $html .= '<tr style="background-color: #ffffff;">';
-        $html .= '<td style="border: 1px solid #ddd; padding: 4px; font-size: 9px; text-align: left; vertical-align: top;">' . $nom . '</td>';
-        // Entry columns
-        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 9px; vertical-align: middle;">' . $entreeNombre . '</td>';
-        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px; vertical-align: middle;">' . $entreeBon . '</td>';
-        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px; vertical-align: middle;">' . $entreeUsage . '</td>';
-        $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px; vertical-align: middle;">' . $entreeMauvais . '</td>';
-        
-        // Exit columns - only show for sortie type
-        if ($type === 'sortie') {
-            $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 9px; vertical-align: middle;">' . $sortieNombre . '</td>';
-            $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px; vertical-align: middle;">' . $sortieBon . '</td>';
-            $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px; vertical-align: middle;">' . $sortieUsage . '</td>';
-            $html .= '<td style="border: 1px solid #ddd; padding: 4px; text-align: center; font-size: 14px; vertical-align: middle;">' . $sortieMauvais . '</td>';
-        }
-        
-        // Comments
-        $html .= '<td style="border: 1px solid #ddd; padding: 4px; font-size: 9px; text-align: left; vertical-align: top;">' . $commentaires . '</td>';
+        $html .= '<td style="border: 1px solid #ddd; padding: 6px; font-size: 10px; text-align: left; vertical-align: top;">' . $nom . '</td>';
+        $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 10px; vertical-align: middle;">' . $nombre . '</td>';
+        $html .= '<td style="border: 1px solid #ddd; padding: 6px; font-size: 10px; text-align: left; vertical-align: top;">' . $commentaires . '</td>';
         $html .= '</tr>';
     }
     
     $html .= '</tbody>';
     $html .= '</table>';
+    
+    // Add standard note at the end
+    $html .= '<div style="margin-top: 15px; padding: 10px; background-color: #f8f9fa; border-left: 3px solid #3498db; font-size: 10px; font-style: italic;">';
+    $html .= 'L\'ensemble des éléments composant le logement est conforme à leur destination.';
+    $html .= '</div>';
+    
     return $html;
 }
 
