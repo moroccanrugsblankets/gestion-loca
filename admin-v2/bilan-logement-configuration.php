@@ -78,20 +78,7 @@ if (!$template) {
     </div>
     
     <h2>Détail du Bilan</h2>
-    <table>
-        <thead>
-            <tr>
-                <th style="width: 20%;">Poste / Équipement</th>
-                <th style="width: 30%;">Commentaires</th>
-                <th style="width: 12%;">Valeur (€)</th>
-                <th style="width: 12%;">Solde Débiteur (€)</th>
-                <th style="width: 12%;">Solde Créditeur (€)</th>
-            </tr>
-        </thead>
-        <tbody>
-            {{bilan_rows}}
-        </tbody>
-    </table>
+    {{bilan_rows}}
     
     {{commentaire_section}}
     
@@ -237,7 +224,7 @@ if (!$template) {
             <ul>
                 <li>Le template utilise HTML et CSS standard</li>
                 <li>Les variables sont remplacées dynamiquement lors de la génération du PDF</li>
-                <li>La variable <code>{{bilan_rows}}</code> sera remplacée par les lignes du tableau</li>
+                <li>La variable <code>{{bilan_rows}}</code> sera remplacée par le tableau complet avec en-têtes et données</li>
                 <li>La variable <code>{{commentaire_section}}</code> affiche les observations si présentes</li>
                 <li>Le PDF est généré avec TCPDF, certaines fonctionnalités CSS avancées peuvent ne pas fonctionner</li>
                 <li>Les images doivent utiliser des chemins absolus ou des URLs complètes</li>

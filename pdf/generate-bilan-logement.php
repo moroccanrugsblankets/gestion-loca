@@ -162,8 +162,18 @@ function generateBilanLogementPDF($contratId) {
             $signatureHtml .= '</div>';
         }
 
-        // Build bilan rows HTML with new column structure
-        $bilanRowsHtml = '';
+        // Build bilan rows HTML with complete table structure (without thead/tbody tags)
+        $bilanRowsHtml = '<table>';
+        
+        // Add header row
+        $bilanRowsHtml .= '<tr>';
+        $bilanRowsHtml .= '<th style="width: 25%;">Poste</th>';
+        $bilanRowsHtml .= '<th style="width: 30%;">Commentaires</th>';
+        $bilanRowsHtml .= '<th style="width: 15%;">Valeur</th>';
+        $bilanRowsHtml .= '<th style="width: 15%;">Débit</th>';
+        $bilanRowsHtml .= '<th style="width: 15%;">Crédit</th>';
+        $bilanRowsHtml .= '</tr>';
+        
         $totalValeur = 0;
         $totalSoldeDebiteur = 0;
         $totalSoldeCrediteur = 0;
@@ -201,6 +211,8 @@ function generateBilanLogementPDF($contratId) {
             $bilanRowsHtml .= '<td>' . $soldeCrediteurDisplay . '</td>';
             $bilanRowsHtml .= '</tr>';
         }
+        
+        $bilanRowsHtml .= '</table>';
 
         // Build commentaire section
         $commentaireHtml = '';
