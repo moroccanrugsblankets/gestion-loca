@@ -30,6 +30,22 @@ test-*.php
 .DS_Store
 Thumbs.db
 
+# Generated documentation files (exclude from new commits)
+# Keep README.md and other important docs, but ignore generated guides
+*_GUIDE.md
+*_SUMMARY.md
+*_IMPLEMENTATION.md
+*_FIX.md
+*_DOCUMENTATION.md
+GUIDE_*.md
+PR_SUMMARY_*.md
+SECURITY_SUMMARY_*.md
+VISUAL_*.md
+FIX_*.md
+IMPLEMENTATION_*.md
+RESUME_*.md
+RAPPORT_*.md
+
 # IDE
 .vscode/
 .idea/
@@ -66,6 +82,7 @@ test-refactoring.php
 !test-html-preview-contrat.php
 !test-html-preview-bail.php
 !test-html-preview-etat-lieux.php
+!test-html-preview-inventaire.php
 test-upload.html
 test-signature-fix.html
 test-candidature-evaluation.php

@@ -94,17 +94,14 @@ function getDefaultEtatLieuxTemplate() {
             margin: 10px auto;
         }
         /* Signature image styles - must match ETAT_LIEUX_SIGNATURE_IMG_STYLE in pdf/generate-etat-lieux.php */
+        /* Simplified for TCPDF compatibility - removed outline, box-shadow, border-color (not well supported) */
         .signature-box img {
-            max-width: 20mm !important;
-            max-height: 10mm !important;
+            width: 150px !important;
+            height: auto !important;
             display: block !important;
             border: 0 !important;
             border-width: 0 !important;
             border-style: none !important;
-            border-color: transparent !important;
-            outline: none !important;
-            outline-width: 0 !important;
-            box-shadow: none !important;
             background: transparent !important;
             padding: 0 !important;
             margin: 0 auto !important;
@@ -341,17 +338,14 @@ function getDefaultExitEtatLieuxTemplate() {
             margin: 10px auto;
         }
         /* Signature image styles - must match ETAT_LIEUX_SIGNATURE_IMG_STYLE in pdf/generate-etat-lieux.php */
+        /* Simplified for TCPDF compatibility - removed outline, box-shadow, border-color (not well supported) */
         .signature-box img {
-            max-width: 20mm !important;
-            max-height: 10mm !important;
+            width: 150px !important;
+            height: auto !important;
             display: block !important;
             border: 0 !important;
             border-width: 0 !important;
             border-style: none !important;
-            border-color: transparent !important;
-            outline: none !important;
-            outline-width: 0 !important;
-            box-shadow: none !important;
             background: transparent !important;
             padding: 0 !important;
             margin: 0 auto !important;

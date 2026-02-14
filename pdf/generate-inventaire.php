@@ -18,9 +18,9 @@ define('INVENTAIRE_SIGNATURE_MAX_WIDTH', '20mm');
 define('INVENTAIRE_SIGNATURE_MAX_HEIGHT', '10mm');
 
 // Style CSS pour les images de signature (sans bordures)
-// Using explicit TCPDF-compatible CSS to ensure no borders are rendered
-// Width and height set explicitly for consistent sizing
-define('INVENTAIRE_SIGNATURE_IMG_STYLE', 'width: 130px; height: auto; max-width: 150px; max-height: 40px; border: 0; border-width: 0px; border-style: none; border-color: white; outline: 0; outline-width: 0px; padding: 0; margin: 0; background: transparent; background-color: transparent;');
+// Simplified for TCPDF compatibility - removed unsupported properties (outline, border-color)
+// TCPDF works best with minimal, explicit CSS
+define('INVENTAIRE_SIGNATURE_IMG_STYLE', 'width: 130px; height: auto; border: 0; border-width: 0; border-style: none; background: transparent; padding: 0; margin: 0;');
 
 /**
  * Convert relative image paths to absolute URLs for TCPDF
