@@ -833,7 +833,7 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
             
             // Display "Certifié exact" checkbox status
             if (!empty($tenantInfo['certifie_exact'])) {
-                $html .= '<p style="font-size: 8pt; margin: 3px 0;">✓ Certifié exact</p>';
+                $html .= '<p style="font-size: 8pt; margin: 3px 0;">Certifié exact</p>';
             }
         } else {
             // No signature for this tenant
