@@ -518,11 +518,6 @@ function renderEquipementsTable($equipements, $type) {
     $html .= '</tbody>';
     $html .= '</table>';
     
-    // Add standard note at the end
-    $html .= '<div style="margin-top: 15px; padding: 10px; background-color: #f8f9fa; border-left: 3px solid #3498db; font-size: 10px; font-style: italic;">';
-    $html .= 'L\'ensemble des éléments composant le logement est conforme à leur destination.';
-    $html .= '</div>';
-    
     return $html;
 }
 
