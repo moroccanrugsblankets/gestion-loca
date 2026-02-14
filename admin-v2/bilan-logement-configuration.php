@@ -196,15 +196,15 @@ if (!$template) {
                 <h6><i class="bi bi-tags"></i> Variables Disponibles</h6>
                 <p class="small mb-2">Cliquez sur une variable pour la copier dans le presse-papier :</p>
                 <div>
-                    <span class="variable-tag" onclick="copyToClipboard('{{logo}}')" title="Logo de l'entreprise">{{logo}}</span>
-                    <span class="variable-tag" onclick="copyToClipboard('{{locataire_nom}}')" title="Nom complet du locataire">{{locataire_nom}}</span>
-                    <span class="variable-tag" onclick="copyToClipboard('{{contrat_ref}}')" title="Référence du contrat">{{contrat_ref}}</span>
-                    <span class="variable-tag" onclick="copyToClipboard('{{adresse}}')" title="Adresse du logement">{{adresse}}</span>
-                    <span class="variable-tag" onclick="copyToClipboard('{{date}}')" title="Date d'établissement">{{date}}</span>
-                    <span class="variable-tag" onclick="copyToClipboard('{{bilan_rows}}')" title="Lignes du tableau de bilan">{{bilan_rows}}</span>
-                    <span class="variable-tag" onclick="copyToClipboard('{{commentaire_section}}')" title="Section des observations">{{commentaire_section}}</span>
-                    <span class="variable-tag" onclick="copyToClipboard('{{total_montant}}')" title="Montant total">{{total_montant}}</span>
-                    <span class="variable-tag" onclick="copyToClipboard('{{signature_agence}}')" title="Signature de l'agence">{{signature_agence}}</span>
+                    <span class="variable-tag" onclick="copyToClipboard('{{logo}}', event)" title="Logo de l'entreprise">{{logo}}</span>
+                    <span class="variable-tag" onclick="copyToClipboard('{{locataire_nom}}', event)" title="Nom complet du locataire">{{locataire_nom}}</span>
+                    <span class="variable-tag" onclick="copyToClipboard('{{contrat_ref}}', event)" title="Référence du contrat">{{contrat_ref}}</span>
+                    <span class="variable-tag" onclick="copyToClipboard('{{adresse}}', event)" title="Adresse du logement">{{adresse}}</span>
+                    <span class="variable-tag" onclick="copyToClipboard('{{date}}', event)" title="Date d'établissement">{{date}}</span>
+                    <span class="variable-tag" onclick="copyToClipboard('{{bilan_rows}}', event)" title="Lignes du tableau de bilan">{{bilan_rows}}</span>
+                    <span class="variable-tag" onclick="copyToClipboard('{{commentaire_section}}', event)" title="Section des observations">{{commentaire_section}}</span>
+                    <span class="variable-tag" onclick="copyToClipboard('{{total_montant}}', event)" title="Montant total">{{total_montant}}</span>
+                    <span class="variable-tag" onclick="copyToClipboard('{{signature_agence}}', event)" title="Signature de l'agence">{{signature_agence}}</span>
                 </div>
             </div>
 
@@ -259,7 +259,7 @@ if (!$template) {
         });
 
         // Copy to clipboard function
-        function copyToClipboard(text) {
+        function copyToClipboard(text, event) {
             navigator.clipboard.writeText(text).then(function() {
                 // Show temporary success message
                 const originalText = event.target.textContent;

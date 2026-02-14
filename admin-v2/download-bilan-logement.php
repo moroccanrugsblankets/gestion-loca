@@ -88,7 +88,11 @@ try {
     readfile($pdfPath);
     
     // Clean up temporary file
-    if (strpos($pdfPath, '/tmp/') !== false || strpos($pdfPath, sys_get_temp_dir()) !== false) {
+    $realPath = realpath($pdfPath);
+    $tempDir = realpath(sys_get_temp_dir());
+    
+    // Only delete if file is actually in temp directory (security check)
+    if ($realPath !== false && $tempDir !== false && strpos($realPath, $tempDir) === 0) {
         @unlink($pdfPath);
     }
     
