@@ -142,6 +142,9 @@ $inventaire = $stmt->fetch(PDO::FETCH_ASSOC);
 $bilanRows = [];
 $bilanSent = false; // Track if bilan has been sent
 
+// Define static lines that should always be present
+$staticLines = ['Vide', 'Eau', 'Électricité'];
+
 if ($etat && !empty($etat['bilan_logement_data'])) {
     $bilanRows = json_decode($etat['bilan_logement_data'], true) ?: [];
     // Check if bilan has been sent
@@ -150,24 +153,20 @@ if ($etat && !empty($etat['bilan_logement_data'])) {
 
 // Auto-import logic: Only import if bilan hasn't been sent yet
 if (!$bilanSent) {
-    // Define static lines that should always be present
-    $staticLines = ['Vide', 'Eau', 'Électricité'];
+    // Collect existing postes for efficient lookup
+    $existingPostes = array_column($bilanRows, 'poste');
     
-    // Helper function to add static lines if they don't exist
-    $addStaticLineIfNotExists = function(&$rows, $poste) {
-        foreach ($rows as $row) {
-            if (isset($row['poste']) && $row['poste'] === $poste) {
-                return; // Already exists
-            }
+    // Add static lines at the beginning if they don't exist
+    foreach ($staticLines as $staticLine) {
+        if (!in_array($staticLine, $existingPostes)) {
+            $bilanRows[] = [
+                'poste' => $staticLine,
+                'commentaires' => '',
+                'valeur' => '',
+                'montant_du' => ''
+            ];
         }
-        // Add the static line
-        $rows[] = [
-            'poste' => $poste,
-            'commentaires' => '',
-            'valeur' => '',
-            'montant_du' => ''
-        ];
-    };
+    }
     
     // Helper function to check if data rows exist (beyond static lines)
     $hasNonStaticRows = function($rows, $staticLines) {
@@ -178,11 +177,6 @@ if (!$bilanSent) {
         }
         return false;
     };
-    
-    // Add static lines at the beginning if they don't exist
-    foreach ($staticLines as $staticLine) {
-        $addStaticLineIfNotExists($bilanRows, $staticLine);
-    }
     
     // If no data rows exist yet (only static lines), try to auto-import from inventaire
     if (!$hasNonStaticRows($bilanRows, $staticLines) && $inventaire) {
@@ -203,12 +197,12 @@ if (!$bilanSent) {
 
 if (empty($bilanRows)) {
     // Add static lines and one empty row by default
-    $bilanRows = [
-        ['poste' => 'Vide', 'commentaires' => '', 'valeur' => '', 'montant_du' => ''],
-        ['poste' => 'Eau', 'commentaires' => '', 'valeur' => '', 'montant_du' => ''],
-        ['poste' => 'Électricité', 'commentaires' => '', 'valeur' => '', 'montant_du' => ''],
-        ['poste' => '', 'commentaires' => '', 'valeur' => '', 'montant_du' => '']
-    ];
+    $bilanRows = [];
+    foreach ($staticLines as $staticLine) {
+        $bilanRows[] = ['poste' => $staticLine, 'commentaires' => '', 'valeur' => '', 'montant_du' => ''];
+    }
+    // Add one empty row for data entry
+    $bilanRows[] = ['poste' => '', 'commentaires' => '', 'valeur' => '', 'montant_du' => ''];
 }
 
 // Get bilan_sections_data for import functionality from état des lieux
