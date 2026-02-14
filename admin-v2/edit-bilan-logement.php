@@ -150,6 +150,9 @@ if ($etat && !empty($etat['bilan_logement_data'])) {
 
 // Auto-import logic: Only import if bilan hasn't been sent yet
 if (!$bilanSent) {
+    // Define static lines that should always be present
+    $staticLines = ['Vide', 'Eau', 'Électricité'];
+    
     // Helper function to add static lines if they don't exist
     $addStaticLineIfNotExists = function(&$rows, $poste) {
         foreach ($rows as $row) {
@@ -177,7 +180,6 @@ if (!$bilanSent) {
     };
     
     // Add static lines at the beginning if they don't exist
-    $staticLines = ['Vide', 'Eau', 'Électricité'];
     foreach ($staticLines as $staticLine) {
         $addStaticLineIfNotExists($bilanRows, $staticLine);
     }
