@@ -67,8 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 error_log("PDF generated successfully: " . $pdfPath);
                 error_log("PDF file size: " . filesize($pdfPath) . " bytes");
                 
-                // Prepare email data with template variables (unified template)
-                $templateId = 'inventaire_envoye'; // Use unified template
+                // Determine template ID based on inventory type
+                $templateId = ($inventaire['type'] === 'sortie') ? 'inventaire_sortie_envoye' : 'inventaire_entree_envoye';
+                error_log("Using email template: " . $templateId);
                 
                 // Determine type label for email
                 $typeLabel = ($inventaire['type'] === 'entree') ? 'Entrée' : 'Sortie';
