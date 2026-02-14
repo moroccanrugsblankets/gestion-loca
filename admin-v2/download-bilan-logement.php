@@ -91,8 +91,8 @@ try {
     $realPath = realpath($pdfPath);
     $tempDir = realpath(sys_get_temp_dir());
     
-    // Only delete if file is actually in temp directory (security check)
-    if ($realPath !== false && $tempDir !== false && strpos($realPath, $tempDir) === 0) {
+    // Only delete if file is actually in temp directory (security check with directory separator)
+    if ($realPath !== false && $tempDir !== false && strpos($realPath, $tempDir . DIRECTORY_SEPARATOR) === 0) {
         @unlink($pdfPath);
     }
     

@@ -154,9 +154,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 }
             }
             
-            // Clean up temp PDF file
-            if (file_exists($pdfPath)) {
-                unlink($pdfPath);
+            // Clean up temp PDF file with path traversal protection
+            $realPath = realpath($pdfPath);
+            $tempDir = realpath(sys_get_temp_dir());
+            
+            // Only delete if file is actually in temp directory (security check with directory separator)
+            if ($realPath !== false && $tempDir !== false && strpos($realPath, $tempDir . DIRECTORY_SEPARATOR) === 0) {
+                @unlink($pdfPath);
             }
             
             // Save to send history
