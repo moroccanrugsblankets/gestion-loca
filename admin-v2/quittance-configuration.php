@@ -210,8 +210,9 @@ if (empty($currentTemplate)) {
                     <textarea 
                         id="template_html" 
                         name="template_html" 
+                        aria-describedby="template_help"
                         required><?php echo htmlspecialchars($currentTemplate); ?></textarea>
-                    <div class="form-text">
+                    <div id="template_help" class="form-text">
                         Le template doit être un document HTML complet avec les balises &lt;html&gt;, &lt;head&gt;, &lt;body&gt;.
                     </div>
                 </div>
@@ -321,26 +322,47 @@ if (empty($currentTemplate)) {
             code_dialog_height: 600
         });
 
-        // Copy to clipboard function
-        window.copyToClipboard = function(text, event) {
-            // Check if clipboard API is available
-            if (!navigator.clipboard) {
-                alert('La copie automatique n\'est pas disponible. Veuillez copier manuellement: ' + text);
-                return;
-            }
+        // Copy to clipboard function (namespaced to avoid global pollution)
+        (function() {
+            'use strict';
             
-            navigator.clipboard.writeText(text).then(function() {
-                // Show temporary success message
-                const originalText = event.target.textContent;
-                event.target.textContent = '✓ Copié !';
-                setTimeout(function() {
-                    event.target.textContent = originalText;
-                }, 1000);
-            }, function(err) {
-                console.error('Erreur lors de la copie: ', err);
-                alert('Erreur lors de la copie. Veuillez copier manuellement: ' + text);
-            });
-        };
+            window.copyToClipboard = function(text, event) {
+                // Sanitize text to prevent XSS (escape HTML entities)
+                var sanitizedText = String(text).replace(/[&<>"']/g, function(match) {
+                    var escapeChars = {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        '"': '&quot;',
+                        "'": '&#39;'
+                    };
+                    return escapeChars[match];
+                });
+                
+                // Check if clipboard API is available
+                if (!navigator.clipboard) {
+                    // Create a temporary element to show the text safely
+                    var tempDiv = document.createElement('div');
+                    tempDiv.textContent = 'La copie automatique n\'est pas disponible. Veuillez copier manuellement: ' + text;
+                    alert(tempDiv.textContent);
+                    return;
+                }
+                
+                navigator.clipboard.writeText(text).then(function() {
+                    // Show temporary success message
+                    var originalText = event.target.textContent;
+                    event.target.textContent = '✓ Copié !';
+                    setTimeout(function() {
+                        event.target.textContent = originalText;
+                    }, 1000);
+                }, function(err) {
+                    console.error('Erreur lors de la copie: ', err);
+                    var tempDiv = document.createElement('div');
+                    tempDiv.textContent = 'Erreur lors de la copie. Veuillez copier manuellement: ' + text;
+                    alert(tempDiv.textContent);
+                });
+            };
+        })();
 
         // Handle reset template button
         document.getElementById('resetTemplateBtn').addEventListener('click', function() {
