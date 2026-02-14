@@ -67,9 +67,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 error_log("PDF generated successfully: " . $pdfPath);
                 error_log("PDF file size: " . filesize($pdfPath) . " bytes");
                 
-                // Prepare email data with template variables
-                $typeLabel = $inventaire['type'] === 'entree' ? "d'entrée" : "de sortie";
-                $templateId = $inventaire['type'] === 'entree' ? 'inventaire_entree_envoye' : 'inventaire_sortie_envoye';
+                // Prepare email data with template variables (unified template)
+                $templateId = 'inventaire_envoye'; // Use unified template
                 
                 // Send email to each tenant with admin in BCC
                 $emailsSent = [];
@@ -220,9 +219,6 @@ try {
     error_log("Date inventaire: " . ($inventaire['date_inventaire'] ?? 'NULL'));
     error_log("Contrat ref: " . ($inventaire['contrat_ref'] ?? 'NULL'));
     
-    // Compute type label once for reuse
-    $typeLabel = $inventaire['type'] === 'entree' ? "d'entrée" : "de sortie";
-    
     // Fix missing address from logement if available
     $needsUpdate = false;
     $fieldsToUpdate = [];
@@ -346,12 +342,6 @@ try {
             <h5 class="mb-4">Récapitulatif</h5>
             
             <div class="info-item">
-                <span class="info-label">Type:</span>
-                <span class="badge bg-<?php echo $inventaire['type'] === 'entree' ? 'success' : 'danger'; ?>">
-                    Inventaire <?php echo $inventaire['type'] === 'entree' ? "d'entrée" : "de sortie"; ?>
-                </span>
-            </div>
-            
             <div class="info-item">
                 <span class="info-label">Référence:</span>
                 <?php echo htmlspecialchars($inventaire['reference_unique']); ?>

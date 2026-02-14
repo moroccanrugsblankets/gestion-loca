@@ -983,3 +983,27 @@ function getAdminEmail() {
     return $config['ADMIN_EMAIL'] ?? 'location@myinvest-immobilier.com';
 }
 
+/**
+ * Get equipment quantity with backward compatibility
+ * Supports new simplified structure and old entry/exit structure
+ * 
+ * @param array $eq Equipment item data
+ * @return mixed Quantity value (may be empty string or integer)
+ */
+function getInventaireEquipmentQuantity($eq) {
+    if (isset($eq['nombre'])) {
+        // New simplified structure
+        return $eq['nombre'];
+    } elseif (isset($eq['entree']['nombre'])) {
+        // Old structure with entree/sortie
+        return $eq['entree']['nombre'];
+    } elseif (isset($eq['quantite_presente'])) {
+        // Legacy format
+        return $eq['quantite_presente'];
+    } elseif (isset($eq['quantite_attendue'])) {
+        // Legacy format fallback
+        return $eq['quantite_attendue'];
+    }
+    return '';
+}
+

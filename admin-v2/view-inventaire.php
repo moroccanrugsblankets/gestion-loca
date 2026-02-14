@@ -78,7 +78,7 @@ $locataires = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="header">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h4>Inventaire - <?php echo ucfirst($inventaire['type']); ?></h4>
+                    <h4>Inventaire</h4>
                     <p class="text-muted mb-0"><?php echo htmlspecialchars($inventaire['reference_unique']); ?></p>
                 </div>
                 <div>
@@ -120,13 +120,11 @@ $locataires = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <h5><i class="bi bi-box-seam"></i> <?php echo htmlspecialchars($categorie); ?></h5>
                 <div class="table-responsive">
                     <table class="table table-sm">
-                        <thead>
+                        <thead class="table-light">
                             <tr>
-                                <th>Équipement</th>
-                                <th>Qté attendue</th>
-                                <th>Qté présente</th>
-                                <th>État</th>
-                                <th>Observations</th>
+                                <th style="width: 40%;">Élément</th>
+                                <th style="width: 15%;" class="text-center">Nombre</th>
+                                <th style="width: 45%;">Commentaire</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -134,26 +132,19 @@ $locataires = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <tr>
                                 <td>
                                     <strong><?php echo htmlspecialchars($eq['nom']); ?></strong>
-                                    <?php if (!empty($eq['description'])): ?>
-                                        <br><small class="text-muted"><?php echo htmlspecialchars($eq['description']); ?></small>
-                                    <?php endif; ?>
                                 </td>
-                                <td><?php echo $eq['quantite_attendue']; ?></td>
-                                <td><?php echo $eq['quantite_presente'] ?? '-'; ?></td>
+                                <td class="text-center">
+                                    <?php 
+                                    // Use helper function for backward compatibility
+                                    echo htmlspecialchars(getInventaireEquipmentQuantity($eq));
+                                    ?>
+                                </td>
                                 <td>
-                                    <?php if (!empty($eq['etat'])): ?>
-                                        <span class="badge badge-etat bg-<?php 
-                                            echo $eq['etat'] === 'Bon' ? 'success' : 
-                                                ($eq['etat'] === 'Moyen' ? 'warning' : 
-                                                ($eq['etat'] === 'Manquant' ? 'danger' : 'secondary')); 
-                                        ?>">
-                                            <?php echo htmlspecialchars($eq['etat']); ?>
-                                        </span>
-                                    <?php else: ?>
-                                        -
-                                    <?php endif; ?>
+                                    <?php 
+                                    $commentaire = $eq['commentaires'] ?? ($eq['observations'] ?? '');
+                                    echo htmlspecialchars($commentaire);
+                                    ?>
                                 </td>
-                                <td><?php echo htmlspecialchars($eq['observations'] ?? ''); ?></td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
