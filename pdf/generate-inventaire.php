@@ -464,6 +464,8 @@ function buildEquipementsHtml($inventaire, $type = null, $entree_data = []) {
     $isExitInventory = ($inventaire['type'] ?? 'entree') === 'sortie';
     
     // Fetch category order from database for proper sorting
+    // Note: This query is executed per PDF generation. Category order is relatively static
+    // and could be cached if performance becomes an issue in the future.
     $category_order = [];
     try {
         $stmt = $pdo->query("SELECT nom, ordre FROM inventaire_categories ORDER BY ordre ASC");

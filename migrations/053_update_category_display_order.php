@@ -25,10 +25,22 @@ try {
     ");
     $stmt->execute();
     $updated = $stmt->rowCount();
-    echo "  ✓ Updated {$updated} row(s)\n";
+    if ($updated === 0) {
+        echo "  ⚠ Warning: Category 'Équipement 1 (Cuisine / Vaisselle)' not found or already has ordre = 10\n";
+    } else {
+        echo "  ✓ Updated {$updated} row(s)\n";
+    }
     
     // Meubles already has ordre = 20, no change needed
     echo "\n'Meubles' already has ordre = 20, no change needed\n";
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM inventaire_categories WHERE nom = 'Meubles'");
+    $stmt->execute();
+    $count = $stmt->fetchColumn();
+    if ($count === 0) {
+        echo "  ⚠ Warning: Category 'Meubles' not found in database\n";
+    } else {
+        echo "  ✓ Category 'Meubles' exists\n";
+    }
     
     // Update Électroménager from ordre 1 to 30
     echo "\nUpdating 'Électroménager' order from 1 to 30...\n";
@@ -39,7 +51,11 @@ try {
     ");
     $stmt->execute();
     $updated = $stmt->rowCount();
-    echo "  ✓ Updated {$updated} row(s)\n";
+    if ($updated === 0) {
+        echo "  ⚠ Warning: Category 'Électroménager' not found or already has ordre = 30\n";
+    } else {
+        echo "  ✓ Updated {$updated} row(s)\n";
+    }
     
     // Display final order for verification
     echo "\n=== Final Category Order ===\n";

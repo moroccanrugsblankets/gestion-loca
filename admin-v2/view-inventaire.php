@@ -41,6 +41,8 @@ if (!is_array($equipements_data)) {
 }
 
 // Fetch category order from database for proper sorting
+// Note: This query is executed per page view. Category order is relatively static
+// and could be cached if performance becomes an issue in the future.
 $category_order = [];
 try {
     $stmt = $pdo->query("SELECT nom, ordre FROM inventaire_categories ORDER BY ordre ASC");
