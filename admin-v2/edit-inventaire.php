@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // First, validate that all tenants have db_id field
             $missingDbIds = [];
             foreach ($_POST['tenants'] as $tenantIndex => $tenantInfo) {
-                if (!isset($tenantInfo['db_id']) || empty($tenantInfo['db_id'])) {
+                if (!isset($tenantInfo['db_id']) || $tenantInfo['db_id'] === '') {
                     $missingDbIds[] = $tenantIndex;
                     error_log("WARNING: Tenant at index $tenantIndex is missing db_id field");
                 }
