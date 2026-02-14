@@ -288,7 +288,7 @@ function generateInventairePDF($inventaireId) {
  * @return string HTML avec variables remplacées
  */
 function replaceInventaireTemplateVariables($template, $inventaire, $locataires) {
-    global $config;
+    global $config, $pdo;
     
     // Dates
     $dateInventaire = !empty($inventaire['date_inventaire']) ? date('d/m/Y', strtotime($inventaire['date_inventaire'])) : date('d/m/Y');
@@ -311,8 +311,38 @@ function replaceInventaireTemplateVariables($template, $inventaire, $locataires)
         $locataireNom = htmlspecialchars(trim(($firstLocataire['prenom'] ?? '') . ' ' . ($firstLocataire['nom'] ?? '')));
     }
     
-    // Equipements list - Build HTML table/list (type no longer needed)
-    $equipementsHtml = buildEquipementsHtml($inventaire);
+    // Fetch entry inventory data for exit inventories
+    $entree_inventory_data = [];
+    if (($inventaire['type'] ?? 'entree') === 'sortie' && !empty($inventaire['contrat_id'])) {
+        try {
+            $stmt = $pdo->prepare("
+                SELECT equipements_data 
+                FROM inventaires 
+                WHERE contrat_id = ? AND type = 'entree' 
+                ORDER BY date_inventaire DESC 
+                LIMIT 1
+            ");
+            $stmt->execute([$inventaire['contrat_id']]);
+            $entree_inventory = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($entree_inventory && !empty($entree_inventory['equipements_data'])) {
+                $entree_items = json_decode($entree_inventory['equipements_data'], true);
+                if (is_array($entree_items)) {
+                    // Index by item ID for easy lookup
+                    foreach ($entree_items as $item) {
+                        if (isset($item['id'])) {
+                            $entree_inventory_data[$item['id']] = $item;
+                        }
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            error_log("Failed to fetch entry inventory for exit PDF: " . $e->getMessage());
+        }
+    }
+    
+    // Equipements list - Build HTML table/list with entry data if available
+    $equipementsHtml = buildEquipementsHtml($inventaire, null, $entree_inventory_data);
     
     // Observations générales
     $observations = trim($inventaire['observations_generales'] ?? '');
@@ -418,14 +448,18 @@ function getEquipmentQuantity($eq) {
  * 
  * @param array $inventaire Données de l'inventaire
  * @param string $type Type d'inventaire (deprecated, kept for compatibility)
+ * @param array $entree_data Optional entry inventory data for exit inventories
  * @return string HTML pour les équipements
  */
-function buildEquipementsHtml($inventaire, $type = null) {
+function buildEquipementsHtml($inventaire, $type = null, $entree_data = []) {
     $equipements_data = json_decode($inventaire['equipements_data'] ?? '[]', true);
     
     if (!is_array($equipements_data) || empty($equipements_data)) {
         return '<p><em>Aucun équipement enregistré.</em></p>';
     }
+    
+    // Determine if this is an exit inventory
+    $isExitInventory = ($inventaire['type'] ?? 'entree') === 'sortie';
     
     // Group by category and subcategory
     $equipements_by_category = [];
@@ -461,13 +495,13 @@ function buildEquipementsHtml($inventaire, $type = null) {
         if (!empty($categoryData['_subcategories'])) {
             foreach ($categoryData['_subcategories'] as $subcategorie => $equipements) {
                 $html .= '<h4 style="margin-top: 15px; margin-bottom: 8px; color: #34495e; font-size: 14px; font-weight: 600;">' . htmlspecialchars($subcategorie) . '</h4>';
-                $html .= renderEquipementsTable($equipements, $type);
+                $html .= renderEquipementsTable($equipements, $type, $isExitInventory, $entree_data);
             }
         }
         
         // Render direct items (if any)
         if (!empty($categoryData['_items'])) {
-            $html .= renderEquipementsTable($categoryData['_items'], $type);
+            $html .= renderEquipementsTable($categoryData['_items'], $type, $isExitInventory, $entree_data);
         }
     }
     
@@ -477,41 +511,71 @@ function buildEquipementsHtml($inventaire, $type = null) {
 /**
  * Generate table header HTML for inventory equipment table
  * Simplified to 3 columns: Élément, Nombre, Commentaire
+ * For exit inventories: 4 columns: Élément, Qté Entrée, Nombre, Commentaire
+ * @param bool $isExitInventory Whether this is an exit inventory
  * @return string HTML for table header
  */
-function getInventoryTableHeader() {
+function getInventoryTableHeader($isExitInventory = false) {
     $html = '<tr style="background-color:#3498db; color:#FFFFFF;">';
     
-    // Simplified to 3 columns: Élément (80mm) + Nombre (30mm) + Commentaires (80mm) ≈ 190mm
-    $html .= '<td style="border:1px solid #ddd; padding:6px; width:80mm; font-size:10px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle; font-weight:bold;">Élément</td>';
-    $html .= '<td style="border:1px solid #ddd; padding:6px; width:30mm; font-size:10px; background-color:#3498db; color:#FFFFFF; text-align:center; vertical-align:middle; font-weight:bold;">Nombre</td>';
-    $html .= '<td style="border:1px solid #ddd; padding:6px; width:80mm; font-size:10px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle; font-weight:bold;">Commentaire</td>';
+    if ($isExitInventory) {
+        // Exit inventory: 4 columns with entry reference
+        // Élément (65mm) + Qté Entrée (30mm) + Nombre (30mm) + Commentaires (65mm) ≈ 190mm
+        $html .= '<td style="border:1px solid #ddd; padding:6px; width:65mm; font-size:10px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle; font-weight:bold;">Élément</td>';
+        $html .= '<td style="border:1px solid #ddd; padding:6px; width:30mm; font-size:10px; background-color:#95a5a6; color:#FFFFFF; text-align:center; vertical-align:middle; font-weight:bold;">Qté Entrée</td>';
+        $html .= '<td style="border:1px solid #ddd; padding:6px; width:30mm; font-size:10px; background-color:#3498db; color:#FFFFFF; text-align:center; vertical-align:middle; font-weight:bold;">Nombre</td>';
+        $html .= '<td style="border:1px solid #ddd; padding:6px; width:65mm; font-size:10px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle; font-weight:bold;">Commentaire</td>';
+    } else {
+        // Entry inventory: 3 columns
+        // Élément (80mm) + Nombre (30mm) + Commentaires (80mm) ≈ 190mm
+        $html .= '<td style="border:1px solid #ddd; padding:6px; width:80mm; font-size:10px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle; font-weight:bold;">Élément</td>';
+        $html .= '<td style="border:1px solid #ddd; padding:6px; width:30mm; font-size:10px; background-color:#3498db; color:#FFFFFF; text-align:center; vertical-align:middle; font-weight:bold;">Nombre</td>';
+        $html .= '<td style="border:1px solid #ddd; padding:6px; width:80mm; font-size:10px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle; font-weight:bold;">Commentaire</td>';
+    }
     
     $html .= '</tr>';
     return $html;
 }
 
 /**
- * Render equipment table for PDF - simplified to 3 columns
+ * Render equipment table for PDF - simplified to 3 columns (or 4 for exit)
  */
-function renderEquipementsTable($equipements, $type) {
+function renderEquipementsTable($equipements, $type, $isExitInventory = false, $entree_data = []) {
     $html = '<table cellspacing="0" cellpadding="4" border="0" style="width: 100%; margin-bottom: 10px; font-size: 10px;">';
-    $html .= getInventoryTableHeader();
+    $html .= getInventoryTableHeader($isExitInventory);
     $html .= '<tbody>';
     
     foreach ($equipements as $eq) {
         $nom = htmlspecialchars($eq['nom'] ?? '');
+        $itemId = $eq['id'] ?? null;
         
         // Get quantity - use helper function for backward compatibility
         $nombre = getQuantityValue(getEquipmentQuantity($eq));
+        
+        // Get entry quantity for exit inventories
+        $entreeQty = '';
+        if ($isExitInventory && $itemId && isset($entree_data[$itemId])) {
+            $entreeQty = getQuantityValue(getEquipmentQuantity($entree_data[$itemId]));
+        }
         
         // Comments
         $commentaires = htmlspecialchars($eq['commentaires'] ?? $eq['observations'] ?? '');
         
         $html .= '<tr style="background-color: #ffffff;">';
-        $html .= '<td style="border: 1px solid #ddd; padding: 6px; font-size: 10px; text-align: left; vertical-align: top;">' . $nom . '</td>';
-        $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 10px; vertical-align: middle;">' . $nombre . '</td>';
-        $html .= '<td style="border: 1px solid #ddd; padding: 6px; font-size: 10px; text-align: left; vertical-align: top;">' . $commentaires . '</td>';
+        
+        if ($isExitInventory) {
+            // Exit inventory: 4 columns
+            $html .= '<td style="border: 1px solid #ddd; padding: 6px; font-size: 10px; text-align: left; vertical-align: top;">' . $nom . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 10px; vertical-align: middle; background-color: #ecf0f1; color: #7f8c8d;">' . ($entreeQty !== '' ? $entreeQty : '—') . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 10px; vertical-align: middle;">' . $nombre . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 6px; font-size: 10px; text-align: left; vertical-align: top;">' . $commentaires . '</td>';
+        } else {
+            // Entry inventory: 3 columns
+            $html .= '<td style="border: 1px solid #ddd; padding: 6px; font-size: 10px; text-align: left; vertical-align: top;">' . $nom . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 10px; vertical-align: middle;">' . $nombre . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 6px; font-size: 10px; text-align: left; vertical-align: top;">' . $commentaires . '</td>';
+        }
+        
         $html .= '</tr>';
     }
     

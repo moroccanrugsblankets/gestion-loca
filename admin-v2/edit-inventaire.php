@@ -37,6 +37,32 @@ if (!$inventaire) {
     exit;
 }
 
+// If this is an exit inventory, fetch the related entry inventory for reference
+$entree_inventory_data = [];
+if ($inventaire['type'] === 'sortie' && !empty($inventaire['contrat_id'])) {
+    $stmt = $pdo->prepare("
+        SELECT equipements_data 
+        FROM inventaires 
+        WHERE contrat_id = ? AND type = 'entree' 
+        ORDER BY date_inventaire DESC 
+        LIMIT 1
+    ");
+    $stmt->execute([$inventaire['contrat_id']]);
+    $entree_inventory = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($entree_inventory && !empty($entree_inventory['equipements_data'])) {
+        $entree_items = json_decode($entree_inventory['equipements_data'], true);
+        if (is_array($entree_items)) {
+            // Index by item ID for easy lookup
+            foreach ($entree_items as $item) {
+                if (isset($item['id'])) {
+                    $entree_inventory_data[$item['id']] = $item;
+                }
+            }
+        }
+    }
+}
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
@@ -538,15 +564,19 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                                     <table class="table table-sm table-bordered inventory-table">
                                         <thead class="table-light">
                                             <tr>
-                                                <th style="width: 40%;">Élément</th>
+                                                <th style="width: <?php echo $inventaire['type'] === 'sortie' ? '30%' : '40%'; ?>;">Élément</th>
+                                                <?php if ($inventaire['type'] === 'sortie'): ?>
+                                                    <th class="text-center readonly-column" style="width: 15%;" title="Quantité à l'entrée">Qté Entrée</th>
+                                                <?php endif; ?>
                                                 <th class="text-center" style="width: 15%;">Nombre</th>
-                                                <th style="width: 45%;">Commentaire</th>
+                                                <th style="width: <?php echo $inventaire['type'] === 'sortie' ? '40%' : '45%'; ?>;">Commentaire</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <?php foreach ($subcategoryItems as $item): 
                                                 $itemIndex++;
                                                 $existingData = $existing_data_by_id[$itemIndex] ?? null;
+                                                $entreeRef = $entree_inventory_data[$itemIndex] ?? null;
                                             ?>
                                             <tr>
                                                 <td>
@@ -557,6 +587,18 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                                                     <input type="hidden" name="items[<?php echo $itemIndex; ?>][nom]" value="<?php echo htmlspecialchars($item['nom']); ?>">
                                                     <input type="hidden" name="items[<?php echo $itemIndex; ?>][type]" value="<?php echo htmlspecialchars($item['type']); ?>">
                                                 </td>
+                                                
+                                                <?php if ($inventaire['type'] === 'sortie'): ?>
+                                                <!-- Entry reference column (read-only) -->
+                                                <td class="text-center readonly-column">
+                                                    <span class="text-muted">
+                                                        <?php 
+                                                        $entreeQty = $entreeRef['nombre'] ?? '';
+                                                        echo $entreeQty !== '' ? htmlspecialchars($entreeQty) : '—';
+                                                        ?>
+                                                    </span>
+                                                </td>
+                                                <?php endif; ?>
                                                 
                                                 <!-- Nombre column -->
                                                 <td class="text-center">
@@ -587,15 +629,19 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                                 <table class="table table-sm table-bordered inventory-table">
                                     <thead class="table-light">
                                         <tr>
-                                            <th style="width: 40%;">Élément</th>
+                                            <th style="width: <?php echo $inventaire['type'] === 'sortie' ? '30%' : '40%'; ?>;">Élément</th>
+                                            <?php if ($inventaire['type'] === 'sortie'): ?>
+                                                <th class="text-center readonly-column" style="width: 15%;" title="Quantité à l'entrée">Qté Entrée</th>
+                                            <?php endif; ?>
                                             <th class="text-center" style="width: 15%;">Nombre</th>
-                                            <th style="width: 45%;">Commentaire</th>
+                                            <th style="width: <?php echo $inventaire['type'] === 'sortie' ? '40%' : '45%'; ?>;">Commentaire</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php foreach ($categoryContent as $item): 
                                             $itemIndex++;
                                             $existingData = $existing_data_by_id[$itemIndex] ?? null;
+                                            $entreeRef = $entree_inventory_data[$itemIndex] ?? null;
                                         ?>
                                         <tr>
                                             <td>
@@ -606,6 +652,18 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                                                 <input type="hidden" name="items[<?php echo $itemIndex; ?>][nom]" value="<?php echo htmlspecialchars($item['nom']); ?>">
                                                 <input type="hidden" name="items[<?php echo $itemIndex; ?>][type]" value="<?php echo htmlspecialchars($item['type']); ?>">
                                             </td>
+                                            
+                                            <?php if ($inventaire['type'] === 'sortie'): ?>
+                                            <!-- Entry reference column (read-only) -->
+                                            <td class="text-center readonly-column">
+                                                <span class="text-muted">
+                                                    <?php 
+                                                    $entreeQty = $entreeRef['nombre'] ?? '';
+                                                    echo $entreeQty !== '' ? htmlspecialchars($entreeQty) : '—';
+                                                    ?>
+                                                </span>
+                                            </td>
+                                            <?php endif; ?>
                                             
                                             <!-- Nombre column -->
                                             <td class="text-center">
@@ -994,45 +1052,6 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
             // Validate that all tenants have signed and checked "Certifié exact" (only for finalization)
             let allValid = true;
             let errors = [];
-            
-            // Validate equipment: if state checkbox is checked, number must be provided
-            const equipmentRows = document.querySelectorAll('tbody tr');
-            equipmentRows.forEach((row, index) => {
-                // Get all inputs in this row
-                const entreeNombre = row.querySelector('input[name*="[entree_nombre]"]');
-                const entreeBon = row.querySelector('input[name*="[entree_bon]"]');
-                const entreeUsage = row.querySelector('input[name*="[entree_usage]"]');
-                const entreeMauvais = row.querySelector('input[name*="[entree_mauvais]"]');
-                
-                const sortieNombre = row.querySelector('input[name*="[sortie_nombre]"]');
-                const sortieBon = row.querySelector('input[name*="[sortie_bon]"]');
-                const sortieUsage = row.querySelector('input[name*="[sortie_usage]"]');
-                const sortieMauvais = row.querySelector('input[name*="[sortie_mauvais]"]');
-                
-                const itemName = row.querySelector('strong')?.textContent || 'Élément ' + (index + 1);
-                
-                // Check Entry: if any checkbox is checked, number is required
-                if (!entreeNombre?.hasAttribute('readonly')) {
-                    const entreeChecked = (entreeBon?.checked || entreeUsage?.checked || entreeMauvais?.checked);
-                    const entreeNombreValue = entreeNombre?.value ? parseInt(entreeNombre.value) : 0;
-                    
-                    if (entreeChecked && entreeNombreValue <= 0) {
-                        errors.push('Entrée - ' + itemName + ': Un nombre doit être renseigné si un état est coché');
-                        allValid = false;
-                    }
-                }
-                
-                // Check Exit: if any checkbox is checked, number is required
-                if (!sortieNombre?.hasAttribute('readonly')) {
-                    const sortieChecked = (sortieBon?.checked || sortieUsage?.checked || sortieMauvais?.checked);
-                    const sortieNombreValue = sortieNombre?.value ? parseInt(sortieNombre.value) : 0;
-                    
-                    if (sortieChecked && sortieNombreValue <= 0) {
-                        errors.push('Sortie - ' + itemName + ': Un nombre doit être renseigné si un état est coché');
-                        allValid = false;
-                    }
-                }
-            });
             
             // Validate tenant signatures - using array index instead of DB ID
             const tenantValidations = [

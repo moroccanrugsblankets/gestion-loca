@@ -34,25 +34,7 @@ function getStandardInventaireItems($logement_reference = '') {
     $is_rc_or_rf = in_array($ref_prefix, ['RC', 'RF']);
     
     $items = [
-        // 🪑 MEUBLES (all set to Bon État / Good condition)
-        'Meubles' => [
-            ['nom' => 'Chaises', 'type' => 'countable', 'quantite' => 2, 'default_etat' => 'bon'],
-            ['nom' => 'Canapé', 'type' => 'countable', 'quantite' => 1, 'default_etat' => 'bon'],
-            ['nom' => 'Table à manger', 'type' => 'countable', 'quantite' => 1, 'default_etat' => 'bon'],
-            ['nom' => 'Table basse', 'type' => 'countable', 'quantite' => 1, 'default_etat' => 'bon'],
-            ['nom' => 'Placards intégrées', 'type' => 'item', 'quantite' => 1, 'default_etat' => 'bon'],
-        ],
-        
-        // 🔌 ÉLECTROMÉNAGER
-        'Électroménager' => [
-            ['nom' => 'Réfrigérateur', 'type' => 'countable', 'quantite' => 1],
-            ['nom' => 'Machine à laver séchante', 'type' => 'countable', 'quantite' => 1],
-            ['nom' => 'Télévision', 'type' => 'countable', 'quantite' => 1],
-            ['nom' => 'Fire Stick', 'type' => 'countable', 'quantite' => 1],
-            ['nom' => 'Plaque de cuisson', 'type' => 'countable', 'quantite' => 1],
-        ],
-        
-        // 🍽 ÉQUIPEMENT 1 (Cuisine / Vaisselle)
+        // 🍽 ÉQUIPEMENT 1 (Cuisine / Vaisselle) - FIRST
         'Équipement 1 (Cuisine / Vaisselle)' => [
             ['nom' => 'Grandes assiettes', 'type' => 'countable', 'quantite' => 4],
             ['nom' => 'Assiettes à dessert', 'type' => 'countable', 'quantite' => 4],
@@ -70,7 +52,25 @@ function getStandardInventaireItems($logement_reference = '') {
             ['nom' => 'Planche à découper', 'type' => 'countable', 'quantite' => 1],
         ],
         
-        // 🛏 ÉQUIPEMENT 2 (Linge / Entretien)
+        // 🪑 MEUBLES - SECOND
+        'Meubles' => [
+            ['nom' => 'Chaises', 'type' => 'countable', 'quantite' => 2],
+            ['nom' => 'Canapé', 'type' => 'countable', 'quantite' => 1],
+            ['nom' => 'Table à manger', 'type' => 'countable', 'quantite' => 1],
+            ['nom' => 'Table basse', 'type' => 'countable', 'quantite' => 1],
+            ['nom' => 'Placards intégrées', 'type' => 'item', 'quantite' => 1],
+        ],
+        
+        // 🔌 ÉLECTROMÉNAGER - THIRD
+        'Électroménager' => [
+            ['nom' => 'Réfrigérateur', 'type' => 'countable', 'quantite' => 1],
+            ['nom' => 'Machine à laver séchante', 'type' => 'countable', 'quantite' => 1],
+            ['nom' => 'Télévision', 'type' => 'countable', 'quantite' => 1],
+            ['nom' => 'Fire Stick', 'type' => 'countable', 'quantite' => 1],
+            ['nom' => 'Plaque de cuisson', 'type' => 'countable', 'quantite' => 1],
+        ],
+        
+        // 🛏 ÉQUIPEMENT 2 (Linge / Entretien) - FOURTH
         'Équipement 2 (Linge / Entretien)' => [
             ['nom' => 'Matelas', 'type' => 'countable', 'quantite' => 1],
             ['nom' => 'Oreillers', 'type' => 'countable', 'quantite' => 2],
@@ -85,14 +85,14 @@ function getStandardInventaireItems($logement_reference = '') {
     
     // Add property-specific items for RC-01, RC-02, RP-07
     if ($is_rc01_02_rp07) {
-        $items['Meubles'][] = ['nom' => 'Lit double', 'type' => 'countable', 'quantite' => 1, 'default_etat' => 'bon'];
-        $items['Meubles'][] = ['nom' => 'Tables de chevets', 'type' => 'countable', 'quantite' => 2, 'default_etat' => 'bon'];
+        $items['Meubles'][] = ['nom' => 'Lit double', 'type' => 'countable', 'quantite' => 1];
+        $items['Meubles'][] = ['nom' => 'Tables de chevets', 'type' => 'countable', 'quantite' => 2];
     }
     
     // Add property-specific items for RC and RF prefixes
     if ($is_rc_or_rf) {
-        $items['Meubles'][] = ['nom' => 'Lustres / Plafonniers', 'type' => 'countable', 'quantite' => 1, 'default_etat' => 'bon'];
-        $items['Meubles'][] = ['nom' => 'Lampadaire', 'type' => 'countable', 'quantite' => 1, 'default_etat' => 'bon'];
+        $items['Meubles'][] = ['nom' => 'Lustres / Plafonniers', 'type' => 'countable', 'quantite' => 1];
+        $items['Meubles'][] = ['nom' => 'Lampadaire', 'type' => 'countable', 'quantite' => 1];
         $items['Électroménager'][] = ['nom' => 'Four grill / micro-ondes', 'type' => 'countable', 'quantite' => 1];
         $items['Électroménager'][] = ['nom' => 'Aspirateur', 'type' => 'countable', 'quantite' => 1];
     }
@@ -103,7 +103,7 @@ function getStandardInventaireItems($logement_reference = '') {
 /**
  * Generate initial inventory data structure from standard items
  * @param string $logement_reference Property reference for property-specific equipment
- * @return array Formatted data for JSON storage with both entry and exit fields initialized
+ * @return array Formatted data for JSON storage
  */
 function generateStandardInventoryData($logement_reference = '') {
     $items = getStandardInventaireItems($logement_reference);
@@ -111,26 +111,15 @@ function generateStandardInventoryData($logement_reference = '') {
     $itemIndex = 0;
     
     foreach ($items as $categoryName => $categoryItems) {
-        // New simplified structure - no subcategories, flat list
+        // Simplified structure - no subcategories, flat list
         foreach ($categoryItems as $item) {
             $data[] = [
                 'id' => ++$itemIndex,
                 'categorie' => $categoryName,
-                'sous_categorie' => null, // No subcategories in new structure
+                'sous_categorie' => null,
                 'nom' => $item['nom'],
                 'type' => $item['type'],
-                'entree' => [
-                    'nombre' => $item['quantite'] ?? 0,
-                    'bon' => isset($item['default_etat']) && $item['default_etat'] === 'bon',
-                    'usage' => false,
-                    'mauvais' => false,
-                ],
-                'sortie' => [
-                    'nombre' => null,
-                    'bon' => false,
-                    'usage' => false,
-                    'mauvais' => false,
-                ],
+                'nombre' => $item['quantite'] ?? 0,
                 'commentaires' => ''
             ];
         }
