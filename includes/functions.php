@@ -751,6 +751,9 @@ function replaceTemplateVariables($template, $data) {
         // Ensure value is a string
         $value = $value !== null ? (string)$value : '';
         // Don't escape HTML for 'signature' and 'commentaire' variables since they contain HTML
+        // SECURITY NOTE: These variables should already be sanitized before being passed here
+        // - 'signature' is from trusted database/admin input
+        // - 'commentaire' is user input that's already escaped with htmlspecialchars() before being wrapped in HTML
         if ($key === 'signature' || $key === 'commentaire') {
             $template = str_replace($placeholder, $value, $template);
         } else {
