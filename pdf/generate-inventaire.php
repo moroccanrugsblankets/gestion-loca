@@ -521,44 +521,44 @@ function buildEquipementsHtml($inventaire, $type) {
 function getInventoryTableHeader($type = 'sortie') {
     $html = '<thead>';
     $html .= '<tr style="background-color: #3498db; color: #FFFFFF;">';
-    
-    // Fixed widths that total to 100%
+
     if ($type === 'sortie') {
-        // Sortie: Element (30%) + Entrée (4×6% = 24%) + Sortie (4×6% = 24%) + Comments (22%) = 100%
-        $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 6px; width: 30%; font-size: 9px; background-color: #3498db; color: #FFFFFF; text-align: left; vertical-align: middle;">Élément</th>';
-        $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 6px; text-align: center; background-color: #2196F3; color: #FFFFFF; font-size: 9px; vertical-align: middle;">Entrée</th>';
-        $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 6px; text-align: center; background-color: #4CAF50; color: #FFFFFF; font-size: 9px; vertical-align: middle;">Sortie</th>';
-        $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 6px; width: 22%; font-size: 9px; background-color: #3498db; color: #FFFFFF; text-align: left; vertical-align: middle;">Commentaires</th>';
+        // Sortie: Élément (57mm) + Entrée (4×11.5mm = 46mm) + Sortie (4×11.5mm = 46mm) + Commentaires (41mm) ≈ 190mm
+        $html .= '<th rowspan="2" style="border:1px solid #ddd; padding:6px; width:57mm; font-size:9px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle;">Élément</th>';
+        $html .= '<th colspan="4" style="border:1px solid #ddd; padding:6px; text-align:center; background-color:#2196F3; color:#FFFFFF; font-size:9px; vertical-align:middle;">Entrée</th>';
+        $html .= '<th colspan="4" style="border:1px solid #ddd; padding:6px; text-align:center; background-color:#4CAF50; color:#FFFFFF; font-size:9px; vertical-align:middle;">Sortie</th>';
+        $html .= '<th rowspan="2" style="border:1px solid #ddd; padding:6px; width:41mm; font-size:9px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle;">Commentaires</th>';
     } else {
-        // Entree: Element (35%) + Entrée (4×10% = 40%) + Comments (25%) = 100%
-        $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 6px; width: 35%; font-size: 9px; background-color: #3498db; color: #FFFFFF; text-align: left; vertical-align: middle;">Élément</th>';
-        $html .= '<th colspan="4" style="border: 1px solid #ddd; padding: 6px; text-align: center; background-color: #2196F3; color: #FFFFFF; font-size: 9px; vertical-align: middle;">Entrée</th>';
-        $html .= '<th rowspan="2" style="border: 1px solid #ddd; padding: 6px; width: 25%; font-size: 9px; background-color: #3498db; color: #FFFFFF; text-align: left; vertical-align: middle;">Commentaires</th>';
+        // Entrée: Élément (67mm) + Entrée (4×12mm = 48mm) + Commentaires (75mm) ≈ 190mm
+        $html .= '<th rowspan="2" style="border:1px solid #ddd; padding:6px; width:67mm; font-size:9px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle;">Élément</th>';
+        $html .= '<th colspan="4" style="border:1px solid #ddd; padding:6px; text-align:center; background-color:#2196F3; color:#FFFFFF; font-size:9px; vertical-align:middle;">Entrée</th>';
+        $html .= '<th rowspan="2" style="border:1px solid #ddd; padding:6px; width:75mm; font-size:9px; background-color:#3498db; color:#FFFFFF; text-align:left; vertical-align:middle;">Commentaires</th>';
     }
-    
+
     $html .= '</tr>';
-    $html .= '<tr style="background-color: #ecf0f1;">';
-    
+    $html .= '<tr style="background-color:#ecf0f1;">';
+
     if ($type === 'sortie') {
-        // Entrée sub-columns (4 × 6% = 24%)
-        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 6%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Nombre</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 6%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Bon</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 6%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">D\'usage</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 6%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Mauvais</th>';
-        
-        // Sortie sub-columns (4 × 6% = 24%)
-        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 6%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Nombre</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 6%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Bon</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 6%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">D\'usage</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 6%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Mauvais</th>';
+        // Sous-colonnes Entrée et Sortie (11.5mm chacune)
+        $subWidth = '11.5mm';
+        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">Nombre</th>';
+        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">Bon</th>';
+        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">D\'usage</th>';
+        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">Mauvais</th>';
+
+        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">Nombre</th>';
+        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">Bon</th>';
+        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">D\'usage</th>';
+        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">Mauvais</th>';
     } else {
-        // Entrée sub-columns (4 × 10% = 40%)
-        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 10%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Nombre</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 10%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Bon</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 10%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">D\'usage</th>';
-        $html .= '<th style="border: 1px solid #ddd; padding: 3px; text-align: center; width: 10%; font-size: 8px; background-color: #ecf0f1; color: #000000; vertical-align: middle;">Mauvais</th>';
+        // Sous-colonnes Entrée (12mm chacune)
+        $subWidth = '12mm';
+        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">Nombre</th>';
+        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">Bon</th>';
+        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">D\'usage</th>';
+        $html .= '<th style="border:1px solid #ddd; padding:3px; text-align:center; width:'.$subWidth.'; font-size:8px; background-color:#ecf0f1; color:#000000; vertical-align:middle;">Mauvais</th>';
     }
-    
+
     $html .= '</tr>';
     $html .= '</thead>';
     return $html;
