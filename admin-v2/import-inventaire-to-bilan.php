@@ -61,14 +61,8 @@ try {
     // Convert to bilan rows format
     $bilanRows = [];
     foreach ($equipementsAvecCommentaires as $item) {
-        // Build descriptive poste name
+        // Use only the equipment name without category prefixes
         $poste = $item['poste'];
-        if (!empty($item['categorie'])) {
-            $poste = $item['categorie'] . ' - ' . $poste;
-        }
-        if (!empty($item['sous_categorie'])) {
-            $poste .= ' (' . $item['sous_categorie'] . ')';
-        }
         
         // Analyze condition to suggest valeur/montant
         $sortie = $item['sortie'];
