@@ -373,6 +373,20 @@ foreach ($existing_tenants as &$tenant) {
     $tenant['signature_timestamp'] = $tenant['date_signature'] ?? '';
 }
 
+// CRITICAL: Final validation to ensure no duplicate tenant IDs
+// This prevents the canvas ID collision bug
+$tenant_ids = array_column($existing_tenants, 'id');
+$unique_tenant_ids = array_unique($tenant_ids);
+if (count($tenant_ids) !== count($unique_tenant_ids)) {
+    error_log("⚠️  CRITICAL: Duplicate tenant IDs detected in inventaire_locataires for inventaire_id=$inventaire_id");
+    error_log("Tenant IDs: " . implode(', ', $tenant_ids));
+    error_log("Unique IDs: " . implode(', ', $unique_tenant_ids));
+    $_SESSION['error'] = "Erreur de données: Plusieurs locataires ont le même identifiant. Veuillez contacter l'administrateur.";
+}
+
+// Log tenant IDs for debugging
+error_log("INVENTAIRE $inventaire_id: Rendering " . count($existing_tenants) . " tenant(s) with IDs: " . implode(', ', $tenant_ids));
+
 $isEntreeInventory = ($inventaire['type'] === 'entree');
 ?>
 <!DOCTYPE html>
@@ -905,14 +919,54 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
         // Configuration
         const SIGNATURE_JPEG_QUALITY = 0.95;
         
+        // Track initialized canvas IDs to detect duplicates
+        const initializedCanvasIds = new Set();
+        
         // Initialize tenant signature canvases on page load
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('=== INVENTAIRE TENANT SIGNATURE INITIALIZATION ===');
+            console.log('Total tenants to initialize: <?php echo count($existing_tenants); ?>');
+            
             // Initialize tenant signatures using tenant DB IDs for uniqueness
             <?php if (!empty($existing_tenants)): ?>
-                <?php foreach ($existing_tenants as $tenant): ?>
-                    initTenantSignature(<?php echo $tenant['id']; ?>);
+                <?php foreach ($existing_tenants as $index => $tenant): ?>
+                    {
+                        const tenantId = <?php echo $tenant['id']; ?>;
+                        const tenantName = <?php echo json_encode($tenant['prenom'] . ' ' . $tenant['nom']); ?>;
+                        console.log('Initializing Tenant <?php echo $index + 1; ?>: DB_ID=' + tenantId + ', Name=' + tenantName + ', Canvas=tenantCanvas_' + tenantId);
+                        
+                        // Check for duplicate canvas ID
+                        if (initializedCanvasIds.has(tenantId)) {
+                            console.error('⚠️  CRITICAL: Duplicate canvas ID detected! Tenant ID ' + tenantId + ' already initialized.');
+                            console.error('This will cause signature canvas conflicts. Please check the database for duplicate tenant records.');
+                            
+                            // Show accessible error message in the DOM
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className = 'alert alert-danger alert-dismissible fade show';
+                            errorDiv.setAttribute('role', 'alert');
+                            errorDiv.setAttribute('aria-live', 'assertive');
+                            errorDiv.innerHTML = `
+                                <strong><i class="bi bi-exclamation-triangle"></i> Erreur Critique:</strong>
+                                ID de locataire en double détecté (ID: ${tenantId}). 
+                                Les signatures pourraient ne pas fonctionner correctement. 
+                                Veuillez contacter l'administrateur.
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+                            `;
+                            document.querySelector('.main-content').insertBefore(
+                                errorDiv, 
+                                document.querySelector('.header')
+                            );
+                        } else {
+                            initializedCanvasIds.add(tenantId);
+                        }
+                        
+                        initTenantSignature(tenantId);
+                    }
                 <?php endforeach; ?>
             <?php endif; ?>
+            
+            console.log('Initialized canvas IDs:', Array.from(initializedCanvasIds));
+            console.log('=== INITIALIZATION COMPLETE ===');
         });
         
         // Function to duplicate Entry data to Exit
