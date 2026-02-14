@@ -79,10 +79,11 @@ if (!$template) {
     <table>
         <thead>
             <tr>
-                <th style="width: 30%;">Poste</th>
-                <th style="width: 35%;">Commentaires</th>
-                <th style="width: 15%;">Valeur</th>
-                <th style="width: 20%;">Montant dû</th>
+                <th style="width: 20%;">Poste / Équipement</th>
+                <th style="width: 30%;">Commentaires</th>
+                <th style="width: 12%;">Valeur (€)</th>
+                <th style="width: 12%;">Solde Débiteur (€)</th>
+                <th style="width: 12%;">Solde Créditeur (€)</th>
             </tr>
         </thead>
         <tbody>
@@ -93,8 +94,10 @@ if (!$template) {
     {{commentaire_section}}
     
     <div class="total-section">
-        <h3>Total à régler</h3>
-        <p style="font-size: 20px; font-weight: bold; color: #2c3e50;">{{total_montant}}</p>
+        <h3>Totaux</h3>
+        <p><strong>Total Valeur:</strong> {{total_valeur}}</p>
+        <p><strong>Total Solde Débiteur:</strong> {{total_solde_debiteur}}</p>
+        <p><strong>Total Solde Créditeur:</strong> {{total_solde_crediteur}}</p>
     </div>
     
     <div class="signature-section">
