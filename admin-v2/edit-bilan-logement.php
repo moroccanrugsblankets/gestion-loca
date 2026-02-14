@@ -153,12 +153,13 @@ if ($etat && !empty($etat['bilan_logement_data'])) {
 
 // Auto-import logic: Only import if bilan hasn't been sent yet
 if (!$bilanSent) {
-    // Collect existing postes for efficient lookup
-    $existingPostes = array_column($bilanRows, 'poste');
+    // Create hash maps for O(1) lookups
+    $existingPostesMap = array_flip(array_column($bilanRows, 'poste'));
+    $staticLinesMap = array_flip($staticLines);
     
     // Add static lines at the beginning if they don't exist
     foreach ($staticLines as $staticLine) {
-        if (!in_array($staticLine, $existingPostes)) {
+        if (!isset($existingPostesMap[$staticLine])) {
             $bilanRows[] = [
                 'poste' => $staticLine,
                 'commentaires' => '',
@@ -169,9 +170,10 @@ if (!$bilanSent) {
     }
     
     // Helper function to check if data rows exist (beyond static lines)
-    $hasNonStaticRows = function($rows, $staticLines) {
+    $hasNonStaticRows = function($rows, $staticLinesMap) {
         foreach ($rows as $row) {
-            if (!in_array($row['poste'] ?? '', $staticLines)) {
+            $poste = $row['poste'] ?? '';
+            if (!isset($staticLinesMap[$poste])) {
                 return true;
             }
         }
@@ -179,7 +181,7 @@ if (!$bilanSent) {
     };
     
     // If no data rows exist yet (only static lines), try to auto-import from inventaire
-    if (!$hasNonStaticRows($bilanRows, $staticLines) && $inventaire) {
+    if (!$hasNonStaticRows($bilanRows, $staticLinesMap) && $inventaire) {
         // Auto-import from inventaire - get equipment with comments
         $equipements = json_decode($inventaire['equipements_data'], true) ?: [];
         foreach ($equipements as $item) {
