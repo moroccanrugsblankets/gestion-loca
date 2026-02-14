@@ -626,8 +626,8 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
                                     // Remove only known category labels like '[Manquant]' or '[Endommagé]' that
                                     // were previously added during import at the START of the comment.
                                     // This preserves user-added bracketed text like '[voir photo]' or '[TODO]'.
-                                    // Pattern: /^\[(Manquant|Endommagé)\]\s*/
-                                    const comment = commentaire.replace(/^\[(Manquant|Endommagé)\]\s*/, '');
+                                    // Case-insensitive pattern: /^\[(Manquant|Endommagé)\]\s*/i
+                                    const comment = commentaire.replace(/^\[(Manquant|Endommagé)\]\s*/i, '');
                                     
                                     addBilanRowWithData(poste, comment, '', '');
                                     importedCount++;
