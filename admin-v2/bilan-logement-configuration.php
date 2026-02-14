@@ -39,25 +39,25 @@ if (!$template) {
 <head>
     <meta charset="UTF-8">
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.3; color: #333; margin: 20px; }
+        body { font-family: Arial, sans-serif; line-height: 1.4; color: #333; margin: 20px; }
         .header { text-align: center; margin-bottom: 20px; }
         .header img { max-width: 200px; margin-bottom: 10px; }
         .header h1 { color: #2c3e50; margin: 10px 0; line-height: 1.2; }
         .info-section { background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 15px; }
         .info-section h2 { color: #3498db; margin-top: 0; margin-bottom: 10px; line-height: 1.2; }
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .info-item { padding: 4px 0; line-height: 1.3; }
+        .info-item { padding: 4px 0; line-height: 1.4; }
         .info-item strong { color: #2c3e50; }
         table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-        table th { background: #3498db; color: white; padding: 8px; text-align: left; font-size: 9pt; line-height: 1.2; }
-        table td { border: 1px solid #ddd; padding: 6px; font-size: 9pt; line-height: 1.2; }
+        table th { background: #3498db; color: white; padding: 8px; text-align: left; font-size: 10pt; line-height: 1.3; }
+        table td { border: 1px solid #ddd; padding: 6px; font-size: 10pt; line-height: 1.3; }
         table tr:nth-child(even) { background: #f8f9fa; }
         .commentaire-section { margin: 15px 0; padding: 12px; background: #f9f9f9; }
         .total-section { margin-top: 20px; padding: 15px; background: #e8f4f8; border-radius: 5px; }
         .total-section h3 { color: #2c3e50; margin-top: 0; margin-bottom: 8px; line-height: 1.2; }
-        .total-section p { margin: 4px 0; line-height: 1.3; }
+        .total-section p { margin: 4px 0; line-height: 1.4; }
         .signature-section { margin-top: 30px; padding: 15px; }
-        .signature-section p { margin: 4px 0; line-height: 1.3; }
+        .signature-section p { margin: 4px 0; line-height: 1.4; }
     </style>
 </head>
 <body>

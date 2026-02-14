@@ -180,22 +180,22 @@ function replaceContratTemplateVariables($template, $contrat, $locataires) {
     }
     
     // Create a simple table for locataires_info without borders and colors
-    // Reduced font size in table cells for better readability
+    // Optimized font size for readability while maintaining compact layout
     $locatairesInfoHtml = '<table style="width: 100%; border-collapse: collapse;">';
     $locatairesInfoHtml .= '<tr>';
-    $locatairesInfoHtml .= '<th style="padding: 6px; text-align: left; width: 50%; font-size: 9pt;">Locataire 1:</th>';
+    $locatairesInfoHtml .= '<th style="padding: 6px; text-align: left; width: 50%; font-size: 10pt;">Locataire 1:</th>';
     if (count($locatairesInfo) > 1) {
-        $locatairesInfoHtml .= '<th style="padding: 6px; text-align: left; width: 50%; font-size: 9pt;">Locataire 2:</th>';
+        $locatairesInfoHtml .= '<th style="padding: 6px; text-align: left; width: 50%; font-size: 10pt;">Locataire 2:</th>';
     }
     $locatairesInfoHtml .= '</tr>';
     $locatairesInfoHtml .= '<tr>';
-    $locatairesInfoHtml .= '<td style="padding: 6px; vertical-align: top; font-size: 9pt;">';
+    $locatairesInfoHtml .= '<td style="padding: 6px; vertical-align: top; font-size: 10pt;">';
     $locatairesInfoHtml .= '<strong>' . $locatairesInfo[0]['nom_complet'] . '</strong><br>';
     $locatairesInfoHtml .= 'Né(e) le ' . $locatairesInfo[0]['date_naissance'] . '<br>';
     $locatairesInfoHtml .= 'Email : ' . $locatairesInfo[0]['email'];
     $locatairesInfoHtml .= '</td>';
     if (count($locatairesInfo) > 1) {
-        $locatairesInfoHtml .= '<td style="padding: 6px; vertical-align: top; font-size: 9pt;">';
+        $locatairesInfoHtml .= '<td style="padding: 6px; vertical-align: top; font-size: 10pt;">';
         $locatairesInfoHtml .= '<strong>' . $locatairesInfo[1]['nom_complet'] . '</strong><br>';
         $locatairesInfoHtml .= 'Né(e) le ' . $locatairesInfo[1]['date_naissance'] . '<br>';
         $locatairesInfoHtml .= 'Email : ' . $locatairesInfo[1]['email'];
@@ -279,7 +279,7 @@ function buildSignaturesTable($contrat, $locataires) {
     $html .= '<tbody><tr>';
 
     // Bailleur column
-    $html .= '<td style="width: ' . $colWidth . '%; vertical-align: top; text-align: center; padding: 10px; border: 1px solid #333; background: transparent; font-size: 9pt;">';
+    $html .= '<td style="width: ' . $colWidth . '%; vertical-align: top; text-align: center; padding: 10px; border: 1px solid #333; background: transparent; font-size: 10pt;">';
     $html .= '<p style="margin: 0 0 8px 0; font-weight: bold;">Le bailleur :</p>';
     
     if ($contrat['statut'] === 'valide') {
@@ -311,7 +311,7 @@ function buildSignaturesTable($contrat, $locataires) {
 
     // Locataires columns
     foreach ($locataires as $i => $loc) {
-        $html .= '<td style="width: ' . $colWidth . '%; vertical-align: top; text-align: center; padding: 10px; border: 1px solid #333; background: transparent; font-size: 9pt;">';
+        $html .= '<td style="width: ' . $colWidth . '%; vertical-align: top; text-align: center; padding: 10px; border: 1px solid #333; background: transparent; font-size: 10pt;">';
 
         // Tenant label
         if ($nbCols === 2) {
