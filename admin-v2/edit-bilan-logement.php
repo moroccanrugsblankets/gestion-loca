@@ -23,6 +23,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     try {
         $pdo->beginTransaction();
         
+        // Check if we should mark the bilan as sent
+        $sendBilan = isset($_POST['send_bilan']) && $_POST['send_bilan'] === '1';
+        
         // Prepare bilan_logement_data if provided
         $bilanData = null;
         if (isset($_POST['bilan_rows']) && is_array($_POST['bilan_rows'])) {
@@ -43,14 +46,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $stmt = $pdo->prepare("
                 INSERT INTO etats_lieux (
                     contrat_id, type, date_etat, locataire_present, 
-                    bilan_logement_data, bilan_logement_commentaire,
+                    bilan_logement_data, bilan_logement_commentaire, bilan_sent,
                     created_at, updated_at
-                ) VALUES (?, 'sortie', CURDATE(), TRUE, ?, ?, NOW(), NOW())
+                ) VALUES (?, 'sortie', CURDATE(), TRUE, ?, ?, ?, NOW(), NOW())
             ");
             $stmt->execute([
                 $contratId,
                 $bilanData,
-                $_POST['bilan_logement_commentaire'] ?? ''
+                $_POST['bilan_logement_commentaire'] ?? '',
+                $sendBilan ? 1 : 0
             ]);
             $etatLieuxId = $pdo->lastInsertId();
         } else {
@@ -59,6 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 UPDATE etats_lieux SET
                     bilan_logement_data = ?,
                     bilan_logement_commentaire = ?,
+                    bilan_sent = ?,
                     updated_at = NOW()
                 WHERE id = ?
             ");
@@ -66,12 +71,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $stmt->execute([
                 $bilanData,
                 $_POST['bilan_logement_commentaire'] ?? '',
+                $sendBilan ? 1 : 0,
                 $etatLieuxId
             ]);
         }
         
+        // If sending the bilan, mark it for sending to tenant(s)
+        if ($sendBilan) {
+            // TODO: Implement email sending to tenant(s)
+            // For now, just mark it as ready to be sent
+            $_SESSION['success'] = "Bilan du logement enregistré et marqué comme prêt à envoyer";
+        } else {
+            $_SESSION['success'] = "Bilan du logement mis à jour avec succès";
+        }
+        
         $pdo->commit();
-        $_SESSION['success'] = "Bilan du logement mis à jour avec succès";
         header('Location: edit-bilan-logement.php?contrat_id=' . $contratId);
         exit;
         
@@ -126,41 +140,71 @@ $inventaire = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Prepare bilan rows from état des lieux if available
 $bilanRows = [];
+$bilanSent = false; // Track if bilan has been sent
+
+// Define static lines that should always be present
+$staticLines = ['Vide', 'Eau', 'Électricité'];
+
 if ($etat && !empty($etat['bilan_logement_data'])) {
     $bilanRows = json_decode($etat['bilan_logement_data'], true) ?: [];
+    // Check if bilan has been sent
+    $bilanSent = isset($etat['bilan_sent']) && $etat['bilan_sent'];
 }
 
-// If no rows from état des lieux, try to get data from inventaire
-if (empty($bilanRows) && $inventaire) {
-    // Helper function to convert inventaire items to bilan rows
-    $convertInventaireItems = function($items, $prefix) {
-        $rows = [];
-        foreach ($items as $item) {
-            $rows[] = [
-                'poste' => $item['nom'] ?? $item['equipement'] ?? '',
-                'commentaires' => $prefix . ' - ' . ($item['observations'] ?? ''),
-                'valeur' => $item['valeur'] ?? '',
-                'montant_du' => $item['valeur'] ?? ''
+// Auto-import logic: Only import if bilan hasn't been sent yet
+if (!$bilanSent) {
+    // Create hash maps for O(1) lookups
+    $existingPostesMap = array_flip(array_column($bilanRows, 'poste'));
+    $staticLinesMap = array_flip($staticLines);
+    
+    // Add static lines at the beginning if they don't exist
+    foreach ($staticLines as $staticLine) {
+        if (!isset($existingPostesMap[$staticLine])) {
+            $bilanRows[] = [
+                'poste' => $staticLine,
+                'commentaires' => '',
+                'valeur' => '',
+                'montant_du' => ''
             ];
         }
-        return $rows;
-    };
-    
-    // Prepare rows from inventaire data
-    if (!empty($inventaire['equipements_manquants'])) {
-        $manquants = json_decode($inventaire['equipements_manquants'], true) ?: [];
-        $bilanRows = array_merge($bilanRows, $convertInventaireItems($manquants, 'Équipement manquant'));
     }
     
-    if (!empty($inventaire['equipements_endommages'])) {
-        $endommages = json_decode($inventaire['equipements_endommages'], true) ?: [];
-        $bilanRows = array_merge($bilanRows, $convertInventaireItems($endommages, 'Équipement endommagé'));
+    // Helper function to check if data rows exist (beyond static lines)
+    $hasNonStaticRows = function($rows, $staticLinesMap) {
+        foreach ($rows as $row) {
+            $poste = $row['poste'] ?? '';
+            if (!isset($staticLinesMap[$poste])) {
+                return true;
+            }
+        }
+        return false;
+    };
+    
+    // If no data rows exist yet (only static lines), try to auto-import from inventaire
+    if (!$hasNonStaticRows($bilanRows, $staticLinesMap) && $inventaire) {
+        // Auto-import from inventaire - get equipment with comments
+        $equipements = json_decode($inventaire['equipements_data'], true) ?: [];
+        foreach ($equipements as $item) {
+            if (isset($item['commentaires']) && trim($item['commentaires']) !== '') {
+                $bilanRows[] = [
+                    'poste' => $item['nom'] ?? '',
+                    'commentaires' => $item['commentaires'],
+                    'valeur' => '',
+                    'montant_du' => ''
+                ];
+            }
+        }
     }
 }
 
 if (empty($bilanRows)) {
-    // Add one empty row by default
-    $bilanRows = [['poste' => '', 'commentaires' => '', 'valeur' => '', 'montant_du' => '']];
+    // Add static lines and one empty row by default
+    $bilanRows = [];
+    foreach ($staticLines as $staticLine) {
+        $bilanRows[] = ['poste' => $staticLine, 'commentaires' => '', 'valeur' => '', 'montant_du' => ''];
+    }
+    // Add one empty row for data entry
+    $bilanRows[] = ['poste' => '', 'commentaires' => '', 'valeur' => '', 'montant_du' => ''];
 }
 
 // Get bilan_sections_data for import functionality from état des lieux
@@ -280,15 +324,21 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="mb-0">Tableau des dégradations</h6>
                         <div>
-                            <?php if (!empty($bilanSectionsData)): ?>
-                            <button type="button" class="btn btn-sm btn-warning me-2" onclick="importFromExitState()" id="importExitStateBtn">
-                                <i class="bi bi-download"></i> Importer depuis l'état de sortie
-                            </button>
-                            <?php endif; ?>
-                            <?php if ($inventaire): ?>
-                            <button type="button" class="btn btn-sm btn-success me-2" onclick="importFromExitInventory()" id="importBilanBtn">
-                                <i class="bi bi-download"></i> Importer depuis l'inventaire de sortie
-                            </button>
+                            <?php if (!$bilanSent): ?>
+                                <?php if (!empty($bilanSectionsData)): ?>
+                                <button type="button" class="btn btn-sm btn-warning me-2" onclick="importFromExitState()" id="importExitStateBtn">
+                                    <i class="bi bi-download"></i> Importer depuis l'état de sortie
+                                </button>
+                                <?php endif; ?>
+                                <?php if ($inventaire): ?>
+                                <button type="button" class="btn btn-sm btn-success me-2" onclick="importFromExitInventory()" id="importBilanBtn">
+                                    <i class="bi bi-download"></i> Importer depuis l'inventaire de sortie
+                                </button>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <span class="badge bg-info text-white me-2">
+                                    <i class="bi bi-check-circle"></i> Bilan envoyé
+                                </span>
                             <?php endif; ?>
                             <button type="button" class="btn btn-sm btn-primary" onclick="addBilanRow()" id="addBilanRowBtn">
                                 <i class="bi bi-plus-circle"></i> Ajouter une ligne
@@ -320,7 +370,8 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
                                         <input type="text" name="bilan_rows[<?php echo $index; ?>][commentaires]" 
                                                class="form-control bilan-field" 
                                                value="<?php echo htmlspecialchars($row['commentaires'] ?? ''); ?>" 
-                                               placeholder="Description détaillée">
+                                               placeholder="Description détaillée"
+                                               list="commentairesSuggestions">
                                     </td>
                                     <td>
                                         <input type="number" name="bilan_rows[<?php echo $index; ?>][valeur]" 
@@ -355,6 +406,13 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
                                 </tr>
                             </tfoot>
                         </table>
+                        
+                        <!-- Datalist for comment suggestions -->
+                        <datalist id="commentairesSuggestions">
+                            <option value="Vide">
+                            <option value="Solde créditeur">
+                            <option value="Solde débiteur">
+                        </datalist>
                     </div>
                     
                     <div class="alert alert-warning mt-2">
@@ -453,9 +511,16 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
                 <a href="contrat-detail.php?id=<?php echo $contratId; ?>" class="btn btn-secondary">
                     <i class="bi bi-arrow-left"></i> Annuler
                 </a>
-                <button type="submit" class="btn btn-primary btn-lg">
-                    <i class="bi bi-save"></i> Enregistrer le bilan
-                </button>
+                <div>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-save"></i> Enregistrer le bilan
+                    </button>
+                    <?php if (!$bilanSent): ?>
+                    <button type="submit" name="send_bilan" value="1" class="btn btn-success btn-lg ms-2">
+                        <i class="bi bi-send"></i> Enregistrer et envoyer au(x) locataire(s)
+                    </button>
+                    <?php endif; ?>
+                </div>
             </div>
         </form>
     </div>
@@ -557,16 +622,12 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
                                 
                                 // Only import if there's something to import
                                 if (equipement || commentaire) {
-                                    // Map section names to readable labels
-                                    const sectionLabels = {
-                                        'manquants': 'Manquant',
-                                        'endommages': 'Endommagé'
-                                    };
-                                    const sectionLabel = sectionLabels[section] || 
-                                                        section.charAt(0).toUpperCase() + section.slice(1);
-                                    
                                     const poste = equipement;
-                                    const comment = `[${sectionLabel}] ${commentaire}`;
+                                    // Remove only known category labels like '[Manquant]' or '[Endommagé]' that
+                                    // were previously added during import at the START of the comment.
+                                    // This preserves user-added bracketed text like '[voir photo]' or '[TODO]'.
+                                    // Case-insensitive pattern: /^\[(Manquant|Endommagé)\]\s*/i
+                                    const comment = commentaire.replace(/^\[(Manquant|Endommagé)\]\s*/i, '');
                                     
                                     addBilanRowWithData(poste, comment, '', '');
                                     importedCount++;
@@ -614,7 +675,8 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
                     <input type="text" name="bilan_rows[${bilanRowCounter}][commentaires]" 
                            class="form-control bilan-field" 
                            value="${escapeHtml(commentaires || '')}"
-                           placeholder="Description détaillée">
+                           placeholder="Description détaillée"
+                           list="commentairesSuggestions">
                 </td>
                 <td>
                     <input type="number" name="bilan_rows[${bilanRowCounter}][valeur]" 
@@ -682,7 +744,8 @@ if ($etat && !empty($etat['bilan_logement_justificatifs'])) {
                 <td>
                     <input type="text" name="bilan_rows[${bilanRowCounter}][commentaires]" 
                            class="form-control bilan-field" 
-                           placeholder="Description détaillée">
+                           placeholder="Description détaillée"
+                           list="commentairesSuggestions">
                 </td>
                 <td>
                     <input type="number" name="bilan_rows[${bilanRowCounter}][valeur]" 
