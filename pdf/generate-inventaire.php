@@ -519,8 +519,7 @@ function buildEquipementsHtml($inventaire, $type) {
  * @return string HTML for table header
  */
 function getInventoryTableHeader($type = 'sortie') {
-    $html = '<thead>';
-    $html .= '<tr style="background-color: #3498db; color: #FFFFFF;">';
+    $html = '<tr style="background-color: #3498db; color: #FFFFFF;">';
 
     if ($type === 'sortie') {
         // Sortie: Élément (57mm) + Entrée (4×11.5mm = 46mm) + Sortie (4×11.5mm = 46mm) + Commentaires (41mm) ≈ 190mm
@@ -560,7 +559,6 @@ function getInventoryTableHeader($type = 'sortie') {
     }
 
     $html .= '</tr>';
-    $html .= '</thead>';
     return $html;
 }
 
