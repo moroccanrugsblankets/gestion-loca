@@ -20,7 +20,7 @@ define('INVENTAIRE_SIGNATURE_MAX_HEIGHT', '10mm');
 // Style CSS pour les images de signature (sans bordures)
 // Simplified for TCPDF compatibility - removed unsupported inline CSS
 // TCPDF works best with HTML attributes instead of CSS
-define('INVENTAIRE_SIGNATURE_IMG_STYLE', 'width: 80px; height: auto;');
+define('INVENTAIRE_SIGNATURE_IMG_STYLE', 'width: 120px; height: auto;');
 
 /**
  * Convert relative image paths to absolute URLs for TCPDF
@@ -748,16 +748,14 @@ function buildSignaturesTableInventaire($inventaire, $locataires) {
             if (file_exists($fullPath)) {
                 // Use public URL for signature image with no-border styling
                 $publicUrl = rtrim($config['SITE_URL'], '/') . '/' . ltrim($landlordSigPath, '/');
-                $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" border="0" style="' 
-                    . INVENTAIRE_SIGNATURE_IMG_STYLE . '">';
+                $html .= '<img src="' . htmlspecialchars($publicUrl) . '" alt="Signature Bailleur" border="0" width="80">';
             } else {
                 error_log("Landlord signature file not found: $fullPath");
             }
         } else {
             // Still base64 after conversion attempt - use as fallback but log warning
             error_log("WARNING: Using base64 signature for landlord (conversion may have failed)");
-            $html .= '<img src="' . htmlspecialchars($landlordSigPath) . '" alt="Signature Bailleur" border="0" style="' 
-                . INVENTAIRE_SIGNATURE_IMG_STYLE . '">';
+            $html .= '<img src="' . htmlspecialchars($landlordSigPath) . '" alt="Signature Bailleur" border="0" width="80">';
         }
     }
     
