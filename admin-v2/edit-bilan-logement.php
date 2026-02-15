@@ -726,7 +726,6 @@ if ($etat) {
                     <thead class="table-light">
                         <tr>
                             <th>Date et heure</th>
-                            <th>Envoyé par</th>
                             <th>Destinataires</th>
                             <th>Notes</th>
                         </tr>
@@ -737,10 +736,6 @@ if ($etat) {
                             <td>
                                 <i class="bi bi-calendar-check"></i>
                                 <?php echo date('d/m/Y à H:i', strtotime($history['sent_at'])); ?>
-                            </td>
-                            <td>
-                                <i class="bi bi-person"></i>
-                                <?php echo htmlspecialchars($history['sender_name'] ?? 'Utilisateur inconnu'); ?>
                             </td>
                             <td>
                                 <i class="bi bi-envelope"></i>

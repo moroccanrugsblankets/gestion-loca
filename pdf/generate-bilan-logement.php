@@ -169,9 +169,9 @@ function generateBilanLogementPDF($contratId) {
         $bilanRowsHtml .= '<tr>';
         $bilanRowsHtml .= '<th style="width: 25%;">Poste</th>';
         $bilanRowsHtml .= '<th style="width: 30%;">Commentaires</th>';
-        $bilanRowsHtml .= '<th style="width: 15%;">Valeur</th>';
-        $bilanRowsHtml .= '<th style="width: 15%;">Débit</th>';
-        $bilanRowsHtml .= '<th style="width: 15%;">Crédit</th>';
+        $bilanRowsHtml .= '<th style="width: 15%;">Valeur (€)</th>';
+        $bilanRowsHtml .= '<th style="width: 15%;">Solde Débiteur (€)</th>';
+        $bilanRowsHtml .= '<th style="width: 15%;">Solde Créditeur (€)</th>';
         $bilanRowsHtml .= '</tr>';
         
         $totalValeur = 0;
@@ -211,6 +211,14 @@ function generateBilanLogementPDF($contratId) {
             $bilanRowsHtml .= '<td>' . $soldeCrediteurDisplay . '</td>';
             $bilanRowsHtml .= '</tr>';
         }
+        
+        // Add totals row
+        $bilanRowsHtml .= '<tr style="font-weight: bold; background-color: #f0f0f0;">';
+        $bilanRowsHtml .= '<td colspan="2" style="text-align: right;">TOTAL</td>';
+        $bilanRowsHtml .= '<td>' . number_format($totalValeur, 2, ',', ' ') . ' €</td>';
+        $bilanRowsHtml .= '<td>' . number_format($totalSoldeDebiteur, 2, ',', ' ') . ' €</td>';
+        $bilanRowsHtml .= '<td>' . number_format($totalSoldeCrediteur, 2, ',', ' ') . ' €</td>';
+        $bilanRowsHtml .= '</tr>';
         
         $bilanRowsHtml .= '</table>';
 
