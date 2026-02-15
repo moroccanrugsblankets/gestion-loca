@@ -216,7 +216,7 @@ function generateInventairePDF($inventaireId) {
         
         $pdf->SetTitle("Inventaire - " . ($inventaire['reference_unique'] ?? ''));
         
-        $pdf->SetMargins(15, 10, 15);
+        $pdf->SetMargins(10, 10, 10);
         $pdf->SetAutoPageBreak(true, 10);
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
