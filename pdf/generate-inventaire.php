@@ -590,15 +590,15 @@ function renderEquipementsTable($equipements, $type, $isExitInventory = false, $
         
         if ($isExitInventory) {
             // Exit inventory: 4 columns
-            $html .= '<td style="border: 1px solid #ddd; padding: 6px; font-size: 10px; text-align: left; vertical-align: top;">' . $nom . '</td>';
-            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 10px; vertical-align: middle; background-color: #ecf0f1; color: #7f8c8d;">' . ($entreeQty !== '' ? $entreeQty : '—') . '</td>';
-            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 10px; vertical-align: middle;">' . $nombre . '</td>';
-            $html .= '<td style="border: 1px solid #ddd; padding: 6px; font-size: 10px; text-align: left; vertical-align: top;">' . $commentaires . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 3px 6px; font-size: 10px; text-align: left; vertical-align: top;">' . $nom . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 3px 6px; text-align: center; font-size: 10px; vertical-align: middle; background-color: #ecf0f1; color: #7f8c8d;">' . ($entreeQty !== '' ? $entreeQty : '—') . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 3px 6px; text-align: center; font-size: 10px; vertical-align: middle;">' . $nombre . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 3px 6px; font-size: 10px; text-align: left; vertical-align: top;">' . $commentaires . '</td>';
         } else {
             // Entry inventory: 3 columns
-            $html .= '<td style="border: 1px solid #ddd; padding: 6px; font-size: 10px; text-align: left; vertical-align: top;">' . $nom . '</td>';
-            $html .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; font-size: 10px; vertical-align: middle;">' . $nombre . '</td>';
-            $html .= '<td style="border: 1px solid #ddd; padding: 6px; font-size: 10px; text-align: left; vertical-align: top;">' . $commentaires . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 3px 6px; font-size: 10px; text-align: left; vertical-align: top;">' . $nom . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 3px 6px; text-align: center; font-size: 10px; vertical-align: middle;">' . $nombre . '</td>';
+            $html .= '<td style="border: 1px solid #ddd; padding: 3px 6px; font-size: 10px; text-align: left; vertical-align: top;">' . $commentaires . '</td>';
         }
         
         $html .= '</tr>';
