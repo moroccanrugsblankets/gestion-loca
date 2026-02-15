@@ -104,9 +104,14 @@ $stats = [
         <div class="header">
             <div class="d-flex justify-content-between align-items-center">
                 <h4>Gestion des Contrats</h4>
-                <a href="generer-contrat.php" class="btn btn-primary">
-                    <i class="bi bi-plus-circle"></i> Générer un contrat
-                </a>
+                <div class="d-flex gap-2">
+                    <a href="quittances.php" class="btn btn-info">
+                        <i class="bi bi-receipt"></i> Quittances
+                    </a>
+                    <a href="generer-contrat.php" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Générer un contrat
+                    </a>
+                </div>
             </div>
         </div>
 
@@ -335,22 +340,42 @@ $stats = [
         }
         
         function deleteContract(contractId, reference) {
-            if (confirm('Êtes-vous sûr de vouloir supprimer le contrat ' + reference + ' ?\n\nCette action est irréversible et supprimera :\n- Le contrat de la base de données\n- Les fichiers PDF associés\n- Les documents des locataires\n\nLe logement sera remis en disponibilité.')) {
-                // Create a form and submit it
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = 'supprimer-contrat.php';
-                
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'contrat_id';
-                input.value = contractId;
-                
-                form.appendChild(input);
-                document.body.appendChild(form);
-                form.submit();
-            }
+            document.getElementById('contractId').value = contractId;
+            document.getElementById('contractRef').textContent = reference;
+            var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModal.show();
         }
     </script>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="deleteModalLabel">Confirmer la suppression</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Êtes-vous sûr de vouloir supprimer le contrat <strong id="contractRef"></strong> ?</p>
+                    <p class="text-danger mb-0">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>Cette action est irréversible et supprimera :
+                    </p>
+                    <ul class="text-danger">
+                        <li>Le contrat de la base de données</li>
+                        <li>Les fichiers PDF associés</li>
+                        <li>Les documents des locataires</li>
+                    </ul>
+                    <p class="text-muted">Le logement sera remis en disponibilité.</p>
+                </div>
+                <div class="modal-footer">
+                    <form method="POST" action="supprimer-contrat.php" id="deleteForm">
+                        <input type="hidden" name="contrat_id" id="contractId">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-danger">Supprimer</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
