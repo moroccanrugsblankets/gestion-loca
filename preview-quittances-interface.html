@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview - Gestion des Quittances</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        .preview-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .preview-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .stats-card {
+            border-radius: 15px;
+            padding: 20px;
+            color: white;
+            margin-bottom: 20px;
+        }
+        .stats-card.primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .stats-card.success { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); }
+        .stats-card.warning { background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); }
+        .badge-sent { background-color: #28a745; color: white; padding: 5px 10px; border-radius: 5px; }
+        .badge-not-sent { background-color: #ffc107; color: white; padding: 5px 10px; border-radius: 5px; }
+        .table-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .info-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .info-row {
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #6c757d;
+        }
+        .screenshot-title {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px 10px 0 0;
+            margin: -30px -30px 20px -30px;
+        }
+        .btn-group-sm .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <h1 class="text-center mb-4">
+            <i class="bi bi-receipt"></i> Preview: Interface de Gestion des Quittances
+        </h1>
+        
+        <!-- Screenshot 1: Contrats page with Quittances button -->
+        <div class="preview-section">
+            <div class="screenshot-title">
+                <h4 class="mb-0">1. Button "Quittances" sur la page Contrats</h4>
+            </div>
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> 
+                <strong>Nouvelle fonctionnalité:</strong> Un bouton "Quittances" a été ajouté sur la page de gestion des contrats pour accéder facilement à l'interface de gestion des quittances.
+            </div>
+            <div class="d-flex justify-content-between align-items-center bg-light p-3 rounded">
+                <h4 class="mb-0">Gestion des Contrats</h4>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-info">
+                        <i class="bi bi-receipt"></i> Quittances
+                    </button>
+                    <button class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Générer un contrat
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screenshot 2: Quittances List Page -->
+        <div class="preview-section">
+            <div class="screenshot-title">
+                <h4 class="mb-0">2. Page de Gestion des Quittances - Vue Liste</h4>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="bi bi-receipt"></i> Gestion des Quittances</h1>
+                <button class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Retour aux Contrats
+                </button>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="stats-card primary">
+                        <h3>24</h3>
+                        <p class="mb-0">Total Quittances</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stats-card success">
+                        <h3>20</h3>
+                        <p class="mb-0">Envoyées</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stats-card warning">
+                        <h3>4</h3>
+                        <p class="mb-0">Non Envoyées</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="table-card mb-4">
+                <h5 class="mb-3"><i class="bi bi-funnel"></i> Filtres</h5>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Recherche</label>
+                        <input type="text" class="form-control" placeholder="Référence, adresse...">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Contrat</label>
+                        <input type="text" class="form-control" placeholder="Réf. contrat">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Mois</label>
+                        <select class="form-select">
+                            <option>Tous</option>
+                            <option>Janvier</option>
+                            <option>Février</option>
+                            <option selected>Mars</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Année</label>
+                        <select class="form-select">
+                            <option>Toutes</option>
+                            <option selected>2024</option>
+                            <option>2023</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-primary w-100">
+                            <i class="bi bi-search"></i> Filtrer
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="table-card">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Référence</th>
+                                <th>Contrat</th>
+                                <th>Logement</th>
+                                <th>Locataires</th>
+                                <th>Période</th>
+                                <th>Montant</th>
+                                <th>Date Génération</th>
+                                <th>Email</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>QUIT-2024-03-001</strong></td>
+                                <td><a href="#">CTR-2024-001</a></td>
+                                <td>
+                                    <strong>LOG-001</strong>
+                                    <br><small class="text-muted">15 Rue de la Paix, Paris</small>
+                                </td>
+                                <td><small>Jean Dupont, Marie Martin</small></td>
+                                <td><strong>Mars 2024</strong></td>
+                                <td>
+                                    <strong>1 200,00 €</strong>
+                                    <br><small class="text-muted">
+                                        Loyer: 1 000,00 €<br>
+                                        Charges: 200,00 €
+                                    </small>
+                                </td>
+                                <td><small>15/03/2024 14:30</small></td>
+                                <td>
+                                    <span class="badge badge-sent">
+                                        <i class="bi bi-check-circle"></i> Envoyé
+                                    </span>
+                                    <br><small class="text-muted">15/03/2024 14:35</small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-success" title="Télécharger PDF">
+                                            <i class="bi bi-download"></i>
+                                        </button>
+                                        <button class="btn btn-outline-primary" title="Modifier">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-outline-info" title="Renvoyer email">
+                                            <i class="bi bi-envelope"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" title="Supprimer">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>QUIT-2024-02-001</strong></td>
+                                <td><a href="#">CTR-2024-001</a></td>
+                                <td>
+                                    <strong>LOG-001</strong>
+                                    <br><small class="text-muted">15 Rue de la Paix, Paris</small>
+                                </td>
+                                <td><small>Jean Dupont, Marie Martin</small></td>
+                                <td><strong>Février 2024</strong></td>
+                                <td>
+                                    <strong>1 200,00 €</strong>
+                                    <br><small class="text-muted">
+                                        Loyer: 1 000,00 €<br>
+                                        Charges: 200,00 €
+                                    </small>
+                                </td>
+                                <td><small>15/02/2024 10:15</small></td>
+                                <td>
+                                    <span class="badge badge-not-sent">
+                                        <i class="bi bi-exclamation-circle"></i> Non envoyé
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-success" title="Télécharger PDF">
+                                            <i class="bi bi-download"></i>
+                                        </button>
+                                        <button class="btn btn-outline-primary" title="Modifier">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-outline-info" title="Renvoyer email">
+                                            <i class="bi bi-envelope"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" title="Supprimer">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screenshot 3: Edit Quittance Page -->
+        <div class="preview-section">
+            <div class="screenshot-title">
+                <h4 class="mb-0">3. Page de Modification d'une Quittance</h4>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="bi bi-pencil"></i> Modifier Quittance</h1>
+                <button class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Retour
+                </button>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="info-card">
+                        <h5 class="mb-3"><i class="bi bi-info-circle"></i> Informations de la Quittance</h5>
+                        
+                        <div class="info-row">
+                            <div class="info-label">Référence</div>
+                            <div>QUIT-2024-03-001</div>
+                        </div>
+                        
+                        <div class="info-row">
+                            <div class="info-label">Contrat</div>
+                            <div><a href="#">CTR-2024-001</a></div>
+                        </div>
+                        
+                        <div class="info-row">
+                            <div class="info-label">Logement</div>
+                            <div>
+                                <strong>LOG-001</strong><br>
+                                <small class="text-muted">15 Rue de la Paix, Paris</small>
+                            </div>
+                        </div>
+                        
+                        <div class="info-row">
+                            <div class="info-label">Locataires</div>
+                            <div>Jean Dupont, Marie Martin</div>
+                        </div>
+                        
+                        <div class="info-row">
+                            <div class="info-label">Période</div>
+                            <div><strong>Mars 2024</strong></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="info-card">
+                        <h5 class="mb-3"><i class="bi bi-currency-euro"></i> Montants</h5>
+                        
+                        <div class="info-row">
+                            <div class="info-label">Loyer</div>
+                            <div>1 000,00 €</div>
+                        </div>
+                        
+                        <div class="info-row">
+                            <div class="info-label">Charges</div>
+                            <div>200,00 €</div>
+                        </div>
+                        
+                        <div class="info-row">
+                            <div class="info-label">Total</div>
+                            <div><strong class="text-primary">1 200,00 €</strong></div>
+                        </div>
+                        
+                        <div class="info-row">
+                            <div class="info-label">Email Envoyé</div>
+                            <div>
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Oui
+                                </span>
+                                <br><small class="text-muted">Le 15/03/2024 14:35</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <div class="info-card">
+                        <h5 class="mb-3"><i class="bi bi-pencil-square"></i> Modifier les Notes</h5>
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notes</label>
+                            <textarea class="form-control" rows="5" placeholder="Ajoutez des notes concernant cette quittance...">Paiement reçu en temps et en heure.</textarea>
+                            <div class="form-text">Ces notes sont privées et ne seront pas visibles dans le PDF.</div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary">
+                                <i class="bi bi-save"></i> Enregistrer
+                            </button>
+                            <button class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Annuler
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screenshot 4: Delete Confirmation Modal -->
+        <div class="preview-section">
+            <div class="screenshot-title">
+                <h4 class="mb-0">4. Modal de Confirmation de Suppression</h4>
+            </div>
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> 
+                <strong>Amélioration de l'UX:</strong> Toutes les suppressions utilisent maintenant des modals Bootstrap pour une expérience utilisateur cohérente et éviter les suppressions accidentelles.
+            </div>
+            <div class="modal-dialog position-relative" style="display: block; position: relative !important; margin-top: 0;">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">Confirmer la suppression</h5>
+                        <button type="button" class="btn-close btn-close-white"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Êtes-vous sûr de vouloir supprimer la quittance <strong>QUIT-2024-03-001</strong> ?</p>
+                        <p class="text-danger mb-0">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>Cette action est irréversible et supprimera :
+                        </p>
+                        <ul class="text-danger">
+                            <li>La quittance de la base de données</li>
+                            <li>Le fichier PDF associé</li>
+                        </ul>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary">Annuler</button>
+                        <button type="submit" class="btn btn-danger">Supprimer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screenshot 5: Resend Email Modal -->
+        <div class="preview-section">
+            <div class="screenshot-title">
+                <h4 class="mb-0">5. Modal de Renvoi d'Email</h4>
+            </div>
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle"></i> 
+                <strong>Fonctionnalité de renvoi:</strong> Possibilité de renvoyer l'email de quittance aux locataires avec copie BCC aux administrateurs.
+            </div>
+            <div class="modal-dialog position-relative" style="display: block; position: relative !important; margin-top: 0;">
+                <div class="modal-content">
+                    <div class="modal-header bg-info text-white">
+                        <h5 class="modal-title">Confirmer le renvoi</h5>
+                        <button type="button" class="btn-close btn-close-white"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Voulez-vous renvoyer l'email de la quittance <strong>QUIT-2024-03-001</strong> ?</p>
+                        <p class="mb-0">
+                            <i class="bi bi-info-circle-fill me-2"></i>L'email sera envoyé au(x) locataire(s) avec une copie aux administrateurs.
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary">Annuler</button>
+                        <button type="submit" class="btn btn-info">Renvoyer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="preview-section">
+            <div class="screenshot-title">
+                <h4 class="mb-0">Résumé des Fonctionnalités Implémentées</h4>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="text-success"><i class="bi bi-check-circle-fill"></i> Interface de Gestion des Quittances</h5>
+                    <ul>
+                        <li>Liste complète avec filtres (contrat, mois, année, recherche)</li>
+                        <li>Statistiques en temps réel (total, envoyées, non envoyées)</li>
+                        <li>Actions: Télécharger, Modifier, Renvoyer email, Supprimer</li>
+                        <li>Indicateurs visuels clairs pour le statut d'envoi</li>
+                    </ul>
+                    
+                    <h5 class="text-success mt-3"><i class="bi bi-check-circle-fill"></i> Modification de Quittances</h5>
+                    <ul>
+                        <li>Affichage complet des informations</li>
+                        <li>Modification des notes internes</li>
+                        <li>Accès direct au contrat associé</li>
+                        <li>Téléchargement du PDF depuis la page d'édition</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h5 class="text-success"><i class="bi bi-check-circle-fill"></i> Sécurité et UX</h5>
+                    <ul>
+                        <li>Modals de confirmation pour toutes les suppressions</li>
+                        <li>Transactions sécurisées avec rollback en cas d'erreur</li>
+                        <li>Suppression automatique des fichiers PDF</li>
+                        <li>Logs d'audit pour traçabilité</li>
+                    </ul>
+                    
+                    <h5 class="text-success mt-3"><i class="bi bi-check-circle-fill"></i> Envoi d'Emails</h5>
+                    <ul>
+                        <li>Utilisation du système de templates existant</li>
+                        <li>Envoi aux locataires avec BCC aux administrateurs</li>
+                        <li>Pièce jointe PDF automatique</li>
+                        <li>Possibilité de renvoyer les emails</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -75,6 +75,8 @@ $emailsFailed = 0;
 
 // Send email to each tenant
 foreach ($locataires as $locataire) {
+    // Send email to tenant with PDF attachment and BCC to administrators
+    // Parameters: templateId, to, variables, attachmentPath, isAdminEmail=false, addAdminBcc=true
     $emailSent = sendTemplatedEmail('quittance_envoyee', $locataire['email'], [
         'locataire_nom' => $locataire['nom'],
         'locataire_prenom' => $locataire['prenom'],
@@ -84,7 +86,7 @@ foreach ($locataires as $locataire) {
         'montant_charges' => $montantCharges,
         'montant_total' => $montantTotal,
         'signature' => getParameter('email_signature', '')
-    ], $quittance['fichier_pdf'], false, true); // false = not admin email, true = add admin BCC
+    ], $quittance['fichier_pdf'], false, true);
     
     if ($emailSent) {
         $emailsSent++;
