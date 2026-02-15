@@ -14,11 +14,11 @@ $contrat_info = null;
 if ($contrat_id_filter > 0) {
     $stmt = $pdo->prepare("
         SELECT c.reference_unique, 
-               (SELECT GROUP_CONCAT(CONCAT(prenom, ' ', nom) SEPARATOR ', ') 
-                FROM locataires 
-                WHERE contrat_id = c.id) as locataires_noms
+               GROUP_CONCAT(CONCAT(l.prenom, ' ', l.nom) SEPARATOR ', ') as locataires_noms
         FROM contrats c
+        LEFT JOIN locataires l ON l.contrat_id = c.id
         WHERE c.id = ?
+        GROUP BY c.id, c.reference_unique
     ");
     $stmt->execute([$contrat_id_filter]);
     $contrat_info = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -229,7 +229,7 @@ $nomsMois = [
             </form>
             <div class="row mt-2">
                 <div class="col-12">
-                    <a href="quittances.php<?php echo $contrat_id_filter > 0 ? '?contrat_id=' . $contrat_id_filter : ''; ?>" class="btn btn-secondary btn-sm">
+                    <a href="quittances.php<?php echo $contrat_id_filter > 0 ? '?contrat_id=' . (int)$contrat_id_filter : ''; ?>" class="btn btn-secondary btn-sm">
                         <i class="bi bi-x-circle"></i> Réinitialiser
                     </a>
                 </div>
