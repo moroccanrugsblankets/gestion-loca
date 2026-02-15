@@ -566,7 +566,7 @@ function getInventoryTableHeader($isExitInventory = false) {
  * Render equipment table for PDF - simplified to 3 columns (or 4 for exit)
  */
 function renderEquipementsTable($equipements, $type, $isExitInventory = false, $entree_data = []) {
-    $html = '<table cellspacing="0" cellpadding="2" border="0" style="width: 100%; margin-bottom: 10px; font-size: 10px;">';
+    $html = '<table cellspacing="0" cellpadding="1" border="0" style="width: 100%; margin-bottom: 10px; font-size: 10px;">';
     $html .= getInventoryTableHeader($isExitInventory);
     $html .= '<tbody>';
     
