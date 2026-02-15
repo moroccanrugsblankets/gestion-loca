@@ -514,12 +514,12 @@ function buildEquipementsHtml($inventaire, $type = null, $entree_data = []) {
     $html = '';
     
     foreach ($equipements_by_category as $categorie => $categoryData) {
-        $html .= '<h3 style="margin-top: 10px; margin-bottom: 8px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px;">' . htmlspecialchars($categorie) . '</h3>';
+        $html .= '<h4 style="margin-top: 10px; margin-bottom: 8px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px;">' . htmlspecialchars($categorie) . '</h4>';
         
         // Render subcategories first (if any)
         if (!empty($categoryData['_subcategories'])) {
             foreach ($categoryData['_subcategories'] as $subcategorie => $equipements) {
-                $html .= '<h4 style="margin-top: 10px; margin-bottom: 6px; color: #34495e; font-size: 12px; font-weight: 600;">' . htmlspecialchars($subcategorie) . '</h4>';
+                $html .= '<h5 style="margin-top: 10px; margin-bottom: 6px; color: #34495e; font-size: 12px; font-weight: 600;">' . htmlspecialchars($subcategorie) . '</h5>';
                 $html .= renderEquipementsTable($equipements, $type, $isExitInventory, $entree_data);
             }
         }
