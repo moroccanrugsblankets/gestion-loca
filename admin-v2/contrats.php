@@ -284,7 +284,7 @@ $stats = [
                                         <a href="edit-bilan-logement.php?contrat_id=<?php echo $contrat['id']; ?>" class="btn btn-outline-info" title="Bilan de logement">
                                             <i class="bi bi-clipboard-check"></i>
                                         </a>
-                                        <a href="quittances.php?contrat=<?php echo htmlspecialchars($contrat['reference_unique'], ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-secondary" title="Quittances">
+                                        <a href="quittances.php?contrat_id=<?php echo $contrat['id']; ?>" class="btn btn-outline-secondary" title="Quittances">
                                             <i class="bi bi-receipt"></i>
                                         </a>
                                     <?php endif; ?>

@@ -4,10 +4,25 @@ require_once 'auth.php';
 require_once '../includes/db.php';
 
 // Get filters
-$contrat_filter = isset($_GET['contrat']) ? trim($_GET['contrat']) : '';
+$contrat_id_filter = isset($_GET['contrat_id']) ? (int)$_GET['contrat_id'] : 0;
 $mois_filter = isset($_GET['mois']) ? (int)$_GET['mois'] : 0;
 $annee_filter = isset($_GET['annee']) ? (int)$_GET['annee'] : 0;
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+
+// Get contract info if filtering by contract
+$contrat_info = null;
+if ($contrat_id_filter > 0) {
+    $stmt = $pdo->prepare("
+        SELECT c.reference_unique, 
+               (SELECT GROUP_CONCAT(CONCAT(prenom, ' ', nom) SEPARATOR ', ') 
+                FROM locataires 
+                WHERE contrat_id = c.id) as locataires_noms
+        FROM contrats c
+        WHERE c.id = ?
+    ");
+    $stmt->execute([$contrat_id_filter]);
+    $contrat_info = $stmt->fetch(PDO::FETCH_ASSOC);
+}
 
 // Build query
 $sql = "
@@ -25,9 +40,9 @@ $sql = "
 ";
 $params = [];
 
-if ($contrat_filter) {
-    $sql .= " AND c.reference_unique LIKE ?";
-    $params[] = "%$contrat_filter%";
+if ($contrat_id_filter > 0) {
+    $sql .= " AND q.contrat_id = ?";
+    $params[] = $contrat_id_filter;
 }
 
 if ($mois_filter > 0) {
@@ -105,10 +120,27 @@ $nomsMois = [
     <div class="main-content">
         <div class="container-fluid mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1><i class="bi bi-receipt"></i> Gestion des Quittances</h1>
-            <a href="contrats.php" class="btn btn-secondary">
-                <i class="bi bi-arrow-left"></i> Retour aux Contrats
-            </a>
+            <div>
+                <h1><i class="bi bi-receipt"></i> Gestion des Quittances</h1>
+                <?php if ($contrat_info): ?>
+                    <p class="mb-0 text-muted">
+                        <strong>Contrat :</strong> <?php echo htmlspecialchars($contrat_info['reference_unique']); ?>
+                    </p>
+                    <p class="mb-0 text-muted">
+                        <strong>Locataire(s) :</strong> <?php echo htmlspecialchars($contrat_info['locataires_noms'] ?? 'N/A'); ?>
+                    </p>
+                <?php endif; ?>
+            </div>
+            <div>
+                <?php if ($contrat_id_filter > 0): ?>
+                    <a href="generer-quittances.php?id=<?php echo $contrat_id_filter; ?>" class="btn btn-success me-2">
+                        <i class="bi bi-plus-circle"></i> Ajouter une Quittance
+                    </a>
+                <?php endif; ?>
+                <a href="contrats.php" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Retour aux Contrats
+                </a>
+            </div>
         </div>
 
         <?php if (isset($_SESSION['success'])): ?>
@@ -156,15 +188,14 @@ $nomsMois = [
         <!-- Filters -->
         <div class="table-card mb-4">
             <form method="GET" action="quittances.php" class="row g-3">
-                <div class="col-md-3">
+                <?php if ($contrat_id_filter > 0): ?>
+                    <input type="hidden" name="contrat_id" value="<?php echo $contrat_id_filter; ?>">
+                <?php endif; ?>
+                <div class="col-md-4">
                     <label class="form-label">Recherche</label>
                     <input type="text" name="search" class="form-control" placeholder="Référence, adresse..." value="<?php echo htmlspecialchars($search); ?>">
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Contrat</label>
-                    <input type="text" name="contrat" class="form-control" placeholder="Réf. contrat" value="<?php echo htmlspecialchars($contrat_filter); ?>">
-                </div>
-                <div class="col-md-2">
                     <label class="form-label">Mois</label>
                     <select name="mois" class="form-select">
                         <option value="">Tous</option>
@@ -175,7 +206,7 @@ $nomsMois = [
                         <?php endfor; ?>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label class="form-label">Année</label>
                     <select name="annee" class="form-select">
                         <option value="">Toutes</option>
@@ -198,7 +229,7 @@ $nomsMois = [
             </form>
             <div class="row mt-2">
                 <div class="col-12">
-                    <a href="quittances.php" class="btn btn-secondary btn-sm">
+                    <a href="quittances.php<?php echo $contrat_id_filter > 0 ? '?contrat_id=' . $contrat_id_filter : ''; ?>" class="btn btn-secondary btn-sm">
                         <i class="bi bi-x-circle"></i> Réinitialiser
                     </a>
                 </div>
