@@ -514,7 +514,7 @@ function buildEquipementsHtml($inventaire, $type = null, $entree_data = []) {
     $html = '';
     
     foreach ($equipements_by_category as $categorie => $categoryData) {
-        $html .= '<h3 style="margin-top: 15px; margin-bottom: 10px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px;">' . htmlspecialchars($categorie) . '</h3>';
+        $html .= '<h3 style="margin-top: 10px; margin-bottom: 8px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px;">' . htmlspecialchars($categorie) . '</h3>';
         
         // Render subcategories first (if any)
         if (!empty($categoryData['_subcategories'])) {
@@ -566,7 +566,7 @@ function getInventoryTableHeader($isExitInventory = false) {
  * Render equipment table for PDF - simplified to 3 columns (or 4 for exit)
  */
 function renderEquipementsTable($equipements, $type, $isExitInventory = false, $entree_data = []) {
-    $html = '<table cellspacing="0" cellpadding="2" border="0" style="width: 100%; margin-bottom: 10px; font-size: 9px;">';
+    $html = '<table cellspacing="0" cellpadding="2" border="0" style="width: 100%; margin-bottom: 5px; font-size: 9px;">';
     $html .= getInventoryTableHeader($isExitInventory);
     $html .= '<tbody>';
     
