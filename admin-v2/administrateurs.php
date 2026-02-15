@@ -376,27 +376,37 @@ $stats = [
         }
         
         function deleteAdmin(adminId, username) {
-            if (confirm('Êtes-vous sûr de vouloir supprimer le compte administrateur "' + username + '" ?\n\nCette action est irréversible.')) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = 'administrateurs-actions.php';
-                
-                const actionInput = document.createElement('input');
-                actionInput.type = 'hidden';
-                actionInput.name = 'action';
-                actionInput.value = 'delete';
-                
-                const idInput = document.createElement('input');
-                idInput.type = 'hidden';
-                idInput.name = 'id';
-                idInput.value = adminId;
-                
-                form.appendChild(actionInput);
-                form.appendChild(idInput);
-                document.body.appendChild(form);
-                form.submit();
-            }
+            document.getElementById('deleteAdminId').value = adminId;
+            document.getElementById('deleteAdminName').textContent = username;
+            var deleteModal = new bootstrap.Modal(document.getElementById('deleteAdminModal'));
+            deleteModal.show();
         }
     </script>
+
+    <!-- Delete Admin Confirmation Modal -->
+    <div class="modal fade" id="deleteAdminModal" tabindex="-1" aria-labelledby="deleteAdminModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="deleteAdminModalLabel">Confirmer la suppression</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Êtes-vous sûr de vouloir supprimer le compte administrateur <strong id="deleteAdminName"></strong> ?</p>
+                    <p class="text-danger mb-0">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>Cette action est irréversible.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <form method="POST" action="administrateurs-actions.php" id="deleteAdminForm">
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="id" id="deleteAdminId">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-danger">Supprimer</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
