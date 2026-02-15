@@ -514,7 +514,7 @@ function buildEquipementsHtml($inventaire, $type = null, $entree_data = []) {
     $html = '';
     
     foreach ($equipements_by_category as $categorie => $categoryData) {
-        $html .= '<h3 style="margin-top: 20px; margin-bottom: 10px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px;">' . htmlspecialchars($categorie) . '</h3>';
+        $html .= '<h3 style="margin-top: 15px; margin-bottom: 10px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px;">' . htmlspecialchars($categorie) . '</h3>';
         
         // Render subcategories first (if any)
         if (!empty($categoryData['_subcategories'])) {
