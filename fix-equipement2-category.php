@@ -8,9 +8,14 @@ require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 
 try {
+    $pdo->beginTransaction();
+    
     echo "=== Fixing Équipement 2 (Linge / Entretien) Category ===\n\n";
     
+    // Category configuration (matches migrations 048, 051, and 058)
     $categoryName = 'Équipement 2 (Linge / Entretien)';
+    $defaultIcon = 'bi-heart';
+    $defaultOrder = 65;
     
     // Step 1: Check if the category exists
     $stmt = $pdo->prepare("SELECT id, nom, actif, ordre FROM inventaire_categories WHERE nom = ?");
@@ -23,9 +28,9 @@ try {
         
         $stmt = $pdo->prepare("
             INSERT INTO inventaire_categories (nom, icone, ordre, actif)
-            VALUES (?, 'bi-heart', 65, TRUE)
+            VALUES (?, ?, ?, TRUE)
         ");
-        $stmt->execute([$categoryName]);
+        $stmt->execute([$categoryName, $defaultIcon, $defaultOrder]);
         $categoryId = $pdo->lastInsertId();
         
         echo "✅ Category created with ID: {$categoryId}\n\n";
@@ -45,11 +50,11 @@ try {
         }
     }
     
-    // Step 3: Check equipment items with this category name but no categorie_id
+    // Step 3: Check equipment items with this category name but no/wrong categorie_id
     $stmt = $pdo->prepare("
         SELECT COUNT(*) 
         FROM inventaire_equipements 
-        WHERE categorie = ? AND (categorie_id IS NULL OR categorie_id != ?)
+        WHERE categorie = ? AND COALESCE(categorie_id, 0) != ?
     ");
     $stmt->execute([$categoryName, $categoryId]);
     $unlinkedCount = $stmt->fetchColumn();
@@ -100,9 +105,13 @@ try {
         }
     }
     
+    $pdo->commit();
     echo "\n=== Fix completed successfully! ===\n";
     
 } catch (Exception $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     echo "\n❌ ERROR: " . $e->getMessage() . "\n";
     echo "Stack trace:\n" . $e->getTraceAsString() . "\n";
     exit(1);

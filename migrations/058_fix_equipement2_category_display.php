@@ -13,7 +13,10 @@ try {
     
     echo "=== Migration 058: Fix Équipement 2 (Linge / Entretien) Category ===\n\n";
     
+    // Category configuration (matches migrations 048 and 051)
     $categoryName = 'Équipement 2 (Linge / Entretien)';
+    $defaultIcon = 'bi-heart';
+    $defaultOrder = 65;
     
     // Step 1: Ensure category exists and is active
     echo "Step 1: Checking category existence and status...\n";
@@ -25,9 +28,9 @@ try {
         echo "  Creating category '{$categoryName}'...\n";
         $stmt = $pdo->prepare("
             INSERT INTO inventaire_categories (nom, icone, ordre, actif)
-            VALUES (?, 'bi-heart', 65, TRUE)
+            VALUES (?, ?, ?, TRUE)
         ");
-        $stmt->execute([$categoryName]);
+        $stmt->execute([$categoryName, $defaultIcon, $defaultOrder]);
         $categoryId = $pdo->lastInsertId();
         echo "  ✓ Category created with ID: {$categoryId}\n";
     } else {
@@ -44,12 +47,13 @@ try {
         }
     }
     
-    // Step 2: Link equipment items that have the category name but no categorie_id
+    // Step 2: Link equipment items that have the category name but no/wrong categorie_id
     echo "\nStep 2: Linking equipment items to category...\n";
+    // Update items that either have no category ID or have a different category ID
     $stmt = $pdo->prepare("
         UPDATE inventaire_equipements 
         SET categorie_id = ? 
-        WHERE categorie = ? AND (categorie_id IS NULL OR categorie_id != ?)
+        WHERE categorie = ? AND COALESCE(categorie_id, 0) != ?
     ");
     $stmt->execute([$categoryId, $categoryName, $categoryId]);
     $updated = $stmt->rowCount();
