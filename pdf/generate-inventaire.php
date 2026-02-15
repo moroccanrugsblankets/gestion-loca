@@ -519,7 +519,7 @@ function buildEquipementsHtml($inventaire, $type = null, $entree_data = []) {
         // Render subcategories first (if any)
         if (!empty($categoryData['_subcategories'])) {
             foreach ($categoryData['_subcategories'] as $subcategorie => $equipements) {
-                $html .= '<h4 style="margin-top: 15px; margin-bottom: 8px; color: #34495e; font-size: 14px; font-weight: 600;">' . htmlspecialchars($subcategorie) . '</h4>';
+                $html .= '<h4 style="margin-top: 10px; margin-bottom: 6px; color: #34495e; font-size: 12px; font-weight: 600;">' . htmlspecialchars($subcategorie) . '</h4>';
                 $html .= renderEquipementsTable($equipements, $type, $isExitInventory, $entree_data);
             }
         }
