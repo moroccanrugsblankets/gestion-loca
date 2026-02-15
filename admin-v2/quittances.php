@@ -77,6 +77,7 @@ $nomsMois = [
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="../assets/css/admin.css">
+    <?php require_once __DIR__ . '/includes/sidebar-styles.php'; ?>
     <style>
         .stats-card {
             border-radius: 15px;
@@ -98,9 +99,11 @@ $nomsMois = [
     </style>
 </head>
 <body>
-    <?php include 'header.php'; ?>
+    <?php require_once __DIR__ . '/includes/menu.php'; ?>
 
-    <div class="container-fluid mt-4">
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="container-fluid mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1><i class="bi bi-receipt"></i> Gestion des Quittances</h1>
             <a href="contrats.php" class="btn btn-secondary">
@@ -324,6 +327,8 @@ $nomsMois = [
             </div>
         </div>
     </div>
+
+    </div><!-- End Main Content -->
 
     <!-- Resend Email Confirmation Modal -->
     <div class="modal fade" id="resendEmailModal" tabindex="-1" aria-labelledby="resendEmailModalLabel" aria-hidden="true">
