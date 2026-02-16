@@ -75,10 +75,11 @@ function generateBilanLogementPDF($contratId) {
     }
 
     try {
-        // Get contract and logement details
+        // Get contract and logement details (including depot_garantie from logements table)
         $stmt = $pdo->prepare("
             SELECT c.*, 
                    l.adresse as logement_adresse,
+                   l.depot_garantie as depot_garantie,
                    c.reference_unique as contrat_ref
             FROM contrats c
             LEFT JOIN logements l ON c.logement_id = l.id
@@ -91,6 +92,9 @@ function generateBilanLogementPDF($contratId) {
             error_log("Contract not found: $contratId");
             return false;
         }
+        
+        // Extract depot_garantie for later use
+        $depotGarantie = floatval($contrat['depot_garantie'] ?? 0);
 
         // Get locataires
         $stmt = $pdo->prepare("
@@ -232,6 +236,17 @@ function generateBilanLogementPDF($contratId) {
             $commentaireHtml .= '</div>';
         }
 
+        // Calculate financial summary values
+        // Valeur estimative = total valeur from bilan rows
+        $valeurEstimative = $totalValeur;
+        
+        // Calculate: Montant à restituer = Dépôt de garantie + Solde Créditeur - Solde Débiteur (if > 0, else 0)
+        $calculResultat = $depotGarantie + $totalSoldeCrediteur - $totalSoldeDebiteur;
+        $montantARestituer = $calculResultat > 0 ? $calculResultat : 0;
+        
+        // Calculate: Reste dû = abs(Dépôt de garantie + Solde Créditeur - Solde Débiteur) (if < 0, else 0)
+        $resteDu = $calculResultat < 0 ? abs($calculResultat) : 0;
+
         // Replace variables in template
         $variables = [
             '{{logo}}' => $logoHtml,
@@ -245,7 +260,12 @@ function generateBilanLogementPDF($contratId) {
             '{{total_solde_debiteur}}' => number_format($totalSoldeDebiteur, 2, ',', ' ') . ' €',
             '{{total_solde_crediteur}}' => number_format($totalSoldeCrediteur, 2, ',', ' ') . ' €',
             '{{total_montant}}' => number_format($totalSoldeDebiteur, 2, ',', ' ') . ' €', // Backward compatibility
-            '{{signature_agence}}' => $signatureHtml
+            '{{signature_agence}}' => $signatureHtml,
+            // New financial summary variables
+            '{{depot_garantie}}' => number_format($depotGarantie, 2, ',', ' ') . ' €',
+            '{{valeur_estimative}}' => number_format($valeurEstimative, 2, ',', ' ') . ' €',
+            '{{montant_a_restituer}}' => number_format($montantARestituer, 2, ',', ' ') . ' €',
+            '{{reste_du}}' => number_format($resteDu, 2, ',', ' ') . ' €'
         ];
 
         $html = str_replace(array_keys($variables), array_values($variables), $templateHtml);

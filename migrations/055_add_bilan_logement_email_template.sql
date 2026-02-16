@@ -78,7 +78,6 @@ INSERT INTO parametres (cle, valeur, type, groupe, description) VALUES
         .header h1 { color: #2c3e50; margin: 10px 0; }
         .info-section { background: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
         .info-section h2 { color: #3498db; margin-top: 0; }
-        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .info-item { padding: 8px 0; }
         .info-item strong { color: #2c3e50; }
         table { width: 100%; border-collapse: collapse; margin: 20px 0; }
@@ -86,8 +85,9 @@ INSERT INTO parametres (cle, valeur, type, groupe, description) VALUES
         table td { border: 1px solid #ddd; padding: 10px; }
         table tr:nth-child(even) { background: #f8f9fa; }
         .commentaire-section { margin: 20px 0; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; }
-        .total-section { margin-top: 30px; padding: 20px; background: #e8f4f8; border-radius: 5px; }
-        .total-section h3 { color: #2c3e50; margin-top: 0; }
+        .recapitulatif-financier { margin-top: 30px; padding: 20px; background: #e8f4f8; border-radius: 5px; }
+        .recapitulatif-financier h3 { color: #2c3e50; margin-top: 0; margin-bottom: 15px; }
+        .recapitulatif-financier .disclaimer { font-size: 11px; color: #666; margin-top: 15px; font-style: italic; }
         .signature-section { margin-top: 40px; padding: 20px; }
     </style>
 </head>
@@ -100,34 +100,52 @@ INSERT INTO parametres (cle, valeur, type, groupe, description) VALUES
     
     <div class="info-section">
         <h2>Informations du Contrat</h2>
-        <div class="info-grid">
-            <div class="info-item"><strong>Locataire :</strong> {{locataire_nom}}</div>
-            <div class="info-item"><strong>Référence :</strong> {{contrat_ref}}</div>
-            <div class="info-item"><strong>Adresse :</strong> {{adresse}}</div>
-            <div class="info-item"><strong>Date :</strong> {{date}}</div>
-        </div>
+        <table border="0" cellpadding="5" cellspacing="0" style="border: none;">
+            <tr>
+                <td style="border: none; width: 50%;"><strong>Locataire :</strong> {{locataire_nom}}</td>
+                <td style="border: none; width: 50%;"><strong>Référence :</strong> {{contrat_ref}}</td>
+            </tr>
+            <tr>
+                <td style="border: none;"><strong>Adresse :</strong> {{adresse}}</td>
+                <td style="border: none;"><strong>Date :</strong> {{date}}</td>
+            </tr>
+        </table>
     </div>
     
     <h2>Détail du Bilan</h2>
-    <table>
-        <thead>
-            <tr>
-                <th style="width: 30%;">Poste</th>
-                <th style="width: 35%;">Commentaires</th>
-                <th style="width: 15%;">Valeur</th>
-                <th style="width: 20%;">Montant dû</th>
-            </tr>
-        </thead>
-        <tbody>
-            {{bilan_rows}}
-        </tbody>
-    </table>
+    {{bilan_rows}}
     
     {{commentaire_section}}
     
-    <div class="total-section">
-        <h3>Total à régler</h3>
-        <p style="font-size: 20px; font-weight: bold; color: #2c3e50;">{{total_montant}}</p>
+    <div class="recapitulatif-financier">
+        <h3>Récapitulatif Financier</h3>
+        <table border="1" cellpadding="8" cellspacing="0">
+            <tr>
+                <td style="width: 60%;"><strong>Dépôt de garantie :</strong></td>
+                <td style="width: 40%; text-align: right;">{{depot_garantie}}</td>
+            </tr>
+            <tr>
+                <td><strong>Valeur estimative :</strong></td>
+                <td style="text-align: right;">{{valeur_estimative}}</td>
+            </tr>
+            <tr>
+                <td><strong>Solde Débiteur :</strong></td>
+                <td style="text-align: right;">{{total_solde_debiteur}}</td>
+            </tr>
+            <tr>
+                <td><strong>Solde Créditeur :</strong></td>
+                <td style="text-align: right;">{{total_solde_crediteur}}</td>
+            </tr>
+            <tr style="background-color: #d4edda;">
+                <td><strong>Montant à restituer :</strong></td>
+                <td style="text-align: right; font-weight: bold;">{{montant_a_restituer}}</td>
+            </tr>
+            <tr style="background-color: #f8d7da;">
+                <td><strong>Reste dû :</strong></td>
+                <td style="text-align: right; font-weight: bold;">{{reste_du}}</td>
+            </tr>
+        </table>
+        <p class="disclaimer">Les soldes débiteurs et créditeurs figurant dans le tableau s''entendent comme étant respectivement à la charge ou en faveur du locataire.</p>
     </div>
     
     <div class="signature-section">
