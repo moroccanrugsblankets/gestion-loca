@@ -293,7 +293,7 @@ function generateBilanLogementPDF($contratId) {
         $pdf->SetAutoPageBreak(true, 15);
 
         //Set Fonts
-        $pdf->SetFont('Courier', 'BI', 11, '', 'false');
+        $pdf->SetFont('', '', 11, '', 'false');
         
         // Add page
         $pdf->AddPage();
