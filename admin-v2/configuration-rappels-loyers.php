@@ -273,6 +273,7 @@ $cronJob = $stmtCronJob->fetch(PDO::FETCH_ASSOC);
 <body>
     <?php require_once __DIR__ . '/includes/menu.php'; ?>
     
+    <div class="main-content">
     <div class="container-fluid mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
@@ -498,6 +499,7 @@ $cronJob = $stmtCronJob->fetch(PDO::FETCH_ASSOC);
             </div>
         </form>
     </div>
+    </div><!-- end main-content -->
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
