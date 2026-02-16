@@ -221,9 +221,9 @@ function generateBilanLogementPDF($contratId) {
         // Add totals row
         $bilanRowsHtml .= '<tr style="font-weight: bold; background-color: #f0f0f0;">';
         $bilanRowsHtml .= '<td colspan="2" style="text-align: right;">TOTAL</td>';
-        $bilanRowsHtml .= '<td>' . number_format($totalValeur, 2, ',', ' ') . ' €</td>';
-        $bilanRowsHtml .= '<td>' . number_format($totalSoldeDebiteur, 2, ',', ' ') . ' €</td>';
-        $bilanRowsHtml .= '<td>' . number_format($totalSoldeCrediteur, 2, ',', ' ') . ' €</td>';
+        $bilanRowsHtml .= '<td style="text-align:center; vertical-align:middle;">' . number_format($totalValeur, 2, ',', ' ') . ' €</td>';
+        $bilanRowsHtml .= '<td style="text-align:center; vertical-align:middle;">' . number_format($totalSoldeDebiteur, 2, ',', ' ') . ' €</td>';
+        $bilanRowsHtml .= '<td style="text-align:center; vertical-align:middle;">' . number_format($totalSoldeCrediteur, 2, ',', ' ') . ' €</td>';
         $bilanRowsHtml .= '</tr>';
         
         $bilanRowsHtml .= '</table>';
