@@ -330,17 +330,6 @@ if (empty($bilanRows)) {
         }
     }
     
-    // Add separator line after État de sortie if we imported data
-    if (!empty($newRows)) {
-        $newRows[] = [
-            'poste' => '',
-            'commentaires' => '',
-            'valeur' => '',
-            'solde_debiteur' => '',
-            'solde_crediteur' => ''
-        ];
-    }
-    
     // 2. Import Inventaire second (from inventaire equipements_data)
     if ($inventaire && !empty($inventaire['equipements_data'])) {
         $equipements = json_decode($inventaire['equipements_data'], true) ?: [];
@@ -357,16 +346,6 @@ if (empty($bilanRows)) {
             }
         }
         
-        // Add separator line after Inventaire if we imported data
-        if (count($newRows) > $inventaireStartIndex) {
-            $newRows[] = [
-                'poste' => '',
-                'commentaires' => '',
-                'valeur' => '',
-                'solde_debiteur' => '',
-                'solde_crediteur' => ''
-            ];
-        }
     }
     
     // 3. Add static fields (Eau, Électricité, Vide) at the end
@@ -380,14 +359,6 @@ if (empty($bilanRows)) {
         ];
     }
     
-    // Add one Vide row as separator
-    $newRows[] = [
-        'poste' => '',
-        'commentaires' => '',
-        'valeur' => '',
-        'solde_debiteur' => '',
-        'solde_crediteur' => ''
-    ];
     
     // Use the new rows if we have any, otherwise create default
     if (!empty($newRows)) {
@@ -401,10 +372,6 @@ if (empty($bilanRows)) {
     foreach ($staticLines as $staticLine) {
         $bilanRows[] = ['poste' => $staticLine, 'commentaires' => '', 'valeur' => '', 'solde_debiteur' => '', 'solde_crediteur' => ''];
     }
-    // Add Vide separator
-    $bilanRows[] = ['poste' => '', 'commentaires' => '', 'valeur' => '', 'solde_debiteur' => '', 'solde_crediteur' => ''];
-    // Add one empty row for data entry
-    $bilanRows[] = ['poste' => '', 'commentaires' => '', 'valeur' => '', 'solde_debiteur' => '', 'solde_crediteur' => ''];
 }
 
 // Get bilan_sections_data for import functionality from état des lieux
