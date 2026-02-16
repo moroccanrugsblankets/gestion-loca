@@ -89,6 +89,11 @@ if (!$template) {
         <p><strong>Total Solde Créditeur:</strong> {{total_solde_crediteur}}</p>
     </div>
     
+    <div class="total-section" style="margin-top: 10px; background: #fff3cd; border-left: 4px solid #ffc107;">
+        <h3>Récapitulatif Financier</h3>
+        <p style="line-height: 1.6;"><strong>Dépôt de garantie :</strong> {{depot_garantie}} | <strong>Valeur estimative :</strong> {{valeur_estimative}} | <strong>Solde Débiteur:</strong> {{total_solde_debiteur}} | <strong>Solde Créditeur:</strong> {{total_solde_crediteur}} | <strong>Montant à restituer:</strong> {{montant_a_restituer}} | <strong>Reste dû:</strong> {{reste_du}}</p>
+    </div>
+    
     <div class="signature-section">
         <p><strong>Établi le :</strong> {{date}}</p>
         {{signature_agence}}
@@ -197,6 +202,12 @@ if (!$template) {
                     <span class="variable-tag" onclick="copyToClipboard('{{commentaire_section}}', event)" title="Section des observations">{{commentaire_section}}</span>
                     <span class="variable-tag" onclick="copyToClipboard('{{total_montant}}', event)" title="Montant total">{{total_montant}}</span>
                     <span class="variable-tag" onclick="copyToClipboard('{{signature_agence}}', event)" title="Signature de l'agence">{{signature_agence}}</span>
+                    <span class="variable-tag" onclick="copyToClipboard('{{depot_garantie}}', event)" title="Dépôt de garantie">{{depot_garantie}}</span>
+                    <span class="variable-tag" onclick="copyToClipboard('{{valeur_estimative}}', event)" title="Valeur estimative du bien">{{valeur_estimative}}</span>
+                    <span class="variable-tag" onclick="copyToClipboard('{{total_solde_debiteur}}', event)" title="Total Solde Débiteur">{{total_solde_debiteur}}</span>
+                    <span class="variable-tag" onclick="copyToClipboard('{{total_solde_crediteur}}', event)" title="Total Solde Créditeur">{{total_solde_crediteur}}</span>
+                    <span class="variable-tag" onclick="copyToClipboard('{{montant_a_restituer}}', event)" title="Montant à restituer au locataire">{{montant_a_restituer}}</span>
+                    <span class="variable-tag" onclick="copyToClipboard('{{reste_du}}', event)" title="Reste dû par le locataire">{{reste_du}}</span>
                 </div>
             </div>
 
