@@ -173,11 +173,11 @@ function generateBilanLogementPDF($contratId) {
         
         // Add header row
         $bilanRowsHtml .= '<tr style="color:#ffffff;background-color:#3498db;">';
-        $bilanRowsHtml .= '<th style="width: 25%;text-align:center; vertical-align:middle;">Poste</th>';
-        $bilanRowsHtml .= '<th style="width: 30%;text-align:center; vertical-align:middle;">Commentaires</th>';
-        $bilanRowsHtml .= '<th style="width: 15%;text-align:center; vertical-align:middle;">Valeur (€)</th>';
-        $bilanRowsHtml .= '<th style="width: 15%;text-align:center; vertical-align:middle;">Solde Débiteur (€)</th>';
-        $bilanRowsHtml .= '<th style="width: 15%;text-align:center; vertical-align:middle;">Solde Créditeur (€)</th>';
+        $bilanRowsHtml .= '<th style="width: 25%;text-align:center; vertical-align:middle;font-size:11pt;">Poste</th>';
+        $bilanRowsHtml .= '<th style="width: 30%;text-align:center; vertical-align:middle;font-size:11pt;">Commentaires</th>';
+        $bilanRowsHtml .= '<th style="width: 15%;text-align:center; vertical-align:middle;font-size:11pt;">Valeur (€)</th>';
+        $bilanRowsHtml .= '<th style="width: 15%;text-align:center; vertical-align:middle;font-size:11pt;">Solde Débiteur (€)</th>';
+        $bilanRowsHtml .= '<th style="width: 15%;text-align:center; vertical-align:middle;font-size:11pt;">Solde Créditeur (€)</th>';
         $bilanRowsHtml .= '</tr>';
         
         $totalValeur = 0;
@@ -205,9 +205,9 @@ function generateBilanLogementPDF($contratId) {
             }
             
             // Format amounts for display
-            $valeurDisplay = !empty($valeur) && is_numeric($valeur) ? number_format(floatval($valeur), 2, ',', ' ') . ' €' : htmlspecialchars($valeur);
-            $soldeDebiteurDisplay = !empty($soldeDebiteur) && is_numeric($soldeDebiteur) ? number_format(floatval($soldeDebiteur), 2, ',', ' ') . ' €' : htmlspecialchars($soldeDebiteur);
-            $soldeCrediteurDisplay = !empty($soldeCrediteur) && is_numeric($soldeCrediteur) ? number_format(floatval($soldeCrediteur), 2, ',', ' ') . ' €' : htmlspecialchars($soldeCrediteur);
+            $valeurDisplay = !empty($valeur) && is_numeric($valeur) ? number_format(floatval($valeur), 2, ',', '') : htmlspecialchars($valeur);
+            $soldeDebiteurDisplay = !empty($soldeDebiteur) && is_numeric($soldeDebiteur) ? number_format(floatval($soldeDebiteur), 2, ',', '')  : htmlspecialchars($soldeDebiteur);
+            $soldeCrediteurDisplay = !empty($soldeCrediteur) && is_numeric($soldeCrediteur) ? number_format(floatval($soldeCrediteur), 2, ',', '')  : htmlspecialchars($soldeCrediteur);
             
             $bilanRowsHtml .= '<tr>';
             $bilanRowsHtml .= '<td>' . $poste . '</td>';
