@@ -173,11 +173,11 @@ function generateBilanLogementPDF($contratId) {
         
         // Add header row
         $bilanRowsHtml .= '<tr style="color:#ffffff;background-color:#3498db;">';
-        $bilanRowsHtml .= '<th style="width: 25%;text-align:center; vertical-align:middle;font-size:10pt;font-weight:bold;">Poste</th>';
-        $bilanRowsHtml .= '<th style="width: 30%;text-align:center; vertical-align:middle;font-size:10pt;font-weight:bold;">Commentaires</th>';
-        $bilanRowsHtml .= '<th style="width: 15%;text-align:center; vertical-align:middle;font-size:10pt;font-weight:bold;">Valeur (€)</th>';
-        $bilanRowsHtml .= '<th style="width: 15%;text-align:center; vertical-align:middle;font-size:10pt;font-weight:bold;">Solde Débiteur (€)</th>';
-        $bilanRowsHtml .= '<th style="width: 15%;text-align:center; vertical-align:middle;font-size:10pt;font-weight:bold;">Solde Créditeur (€)</th>';
+        $bilanRowsHtml .= '<th style="width: 25%;text-align:center; vertical-align:middle;font-size:9pt;font-weight:bold;">Poste</th>';
+        $bilanRowsHtml .= '<th style="width: 30%;text-align:center; vertical-align:middle;font-size:9pt;font-weight:bold;">Commentaires</th>';
+        $bilanRowsHtml .= '<th style="width: 15%;text-align:center; vertical-align:middle;font-size:9pt;font-weight:bold;">Valeur (€)</th>';
+        $bilanRowsHtml .= '<th style="width: 15%;text-align:center; vertical-align:middle;font-size:9pt;font-weight:bold;">Solde Débiteur (€)</th>';
+        $bilanRowsHtml .= '<th style="width: 15%;text-align:center; vertical-align:middle;font-size:9pt;font-weight:bold;">Solde Créditeur (€)</th>';
         $bilanRowsHtml .= '</tr>';
         
         $totalValeur = 0;
@@ -232,7 +232,7 @@ function generateBilanLogementPDF($contratId) {
         $commentaireHtml = '';
         if (!empty($etatLieux['bilan_logement_commentaire'])) {
             $commentaire = htmlspecialchars($etatLieux['bilan_logement_commentaire']);
-            $commentaireHtml = '<div><strong><span style="font-size: 12pt;">Observations générales</span></strong><br><span style="font-size: 10pt;">' . nl2br($commentaire) . '</span></div>';
+            $commentaireHtml = '<div><strong><span style="font-size: 12pt;">Observations générales</span></strong><br><br><span style="font-size: 10pt;">' . nl2br($commentaire) . '</span></div>';
         }
 
         // Calculate financial summary values
