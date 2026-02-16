@@ -52,6 +52,7 @@ $page_to_menu_map = [
     'administrateurs-actions.php' => 'administrateurs.php',
     'edit-bilan-logement.php' => 'contrats.php',
     'bilan-logement-configuration.php' => 'contrats.php',
+    'configuration-rappels-loyers.php' => 'gestion-loyers.php',
 ];
 
 // Check if current page is a detail page, if so use parent menu
@@ -141,6 +142,20 @@ $active_menu = $page_to_menu_map[$current_page] ?? $current_page;
                 <li class="nav-item">
                     <a class="nav-link <?php echo $current_page === 'inventaire-configuration.php' ? 'active' : ''; ?>" href="inventaire-configuration.php" style="padding: 8px 20px; font-size: 0.9rem;">
                         <i class="bi bi-gear"></i> Configuration
+                    </a>
+                </li>
+            </ul>
+            <?php endif; ?>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link <?php echo $active_menu === 'gestion-loyers.php' ? 'active' : ''; ?>" href="gestion-loyers.php">
+                <i class="bi bi-cash-stack"></i> Gestion des Loyers
+            </a>
+            <?php if ($active_menu === 'gestion-loyers.php'): ?>
+            <ul class="nav flex-column ms-3">
+                <li class="nav-item">
+                    <a class="nav-link <?php echo $current_page === 'configuration-rappels-loyers.php' ? 'active' : ''; ?>" href="configuration-rappels-loyers.php" style="padding: 8px 20px; font-size: 0.9rem;">
+                        <i class="bi bi-gear"></i> Configuration Rappels
                     </a>
                 </li>
             </ul>

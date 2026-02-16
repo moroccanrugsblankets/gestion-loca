@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aperçu - Module Gestion des Loyers</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background: #f8f9fa;
+            padding: 20px;
+        }
+        
+        .preview-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .preview-section {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .preview-title {
+            color: #007bff;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #007bff;
+        }
+        
+        .payment-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+        
+        .payment-table th,
+        .payment-table td {
+            border: 1px solid #dee2e6;
+            padding: 10px 6px;
+            text-align: center;
+        }
+        
+        .payment-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        .payment-table .property-cell {
+            text-align: left;
+            font-weight: 600;
+            background-color: #f8f9fa;
+            min-width: 180px;
+        }
+        
+        .payment-cell {
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 70px;
+        }
+        
+        .payment-cell:hover {
+            opacity: 0.8;
+        }
+        
+        .payment-cell.paye {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .payment-cell.impaye {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .payment-cell.attente {
+            background-color: #ffc107;
+            color: #333;
+        }
+        
+        .payment-cell .status-icon {
+            font-size: 18px;
+            display: block;
+        }
+        
+        .payment-cell .amount {
+            font-size: 10px;
+            margin-top: 3px;
+            opacity: 0.9;
+        }
+        
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            padding: 20px;
+            border-radius: 8px;
+            color: white;
+            text-align: center;
+        }
+        
+        .stat-card.total { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .stat-card.paye { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); }
+        .stat-card.impaye { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); }
+        .stat-card.attente { background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); }
+        
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-box {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+        }
+        
+        .config-preview {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .day-box {
+            text-align: center;
+            padding: 12px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .day-box.default {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+        }
+        
+        .day-box.selected {
+            background: #007bff;
+            color: white;
+            border: 2px solid #0056b3;
+        }
+        
+        .email-preview {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        
+        .email-header {
+            background: #dc3545;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .email-content {
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .email-btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        
+        .current-month {
+            background-color: #e3f2fd !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <!-- Header -->
+        <div class="text-center mb-5">
+            <h1><i class="bi bi-cash-stack text-primary"></i> Module de Gestion et Rappel des Loyers</h1>
+            <p class="lead text-muted">Aperçu des interfaces et fonctionnalités</p>
+        </div>
+        
+        <!-- Section 1: Dashboard Statistics -->
+        <div class="preview-section">
+            <div class="preview-title"><i class="bi bi-graph-up"></i> 1. Statistiques en Temps Réel</div>
+            <p class="text-muted mb-4">Vue d'ensemble instantanée de l'état des paiements du mois en cours</p>
+            
+            <div class="stats-summary">
+                <div class="stat-card total">
+                    <div class="stat-value">12</div>
+                    <div class="stat-label">Biens en location</div>
+                </div>
+                <div class="stat-card paye">
+                    <div class="stat-value">8</div>
+                    <div class="stat-label">Loyers payés ce mois</div>
+                </div>
+                <div class="stat-card impaye">
+                    <div class="stat-value">2</div>
+                    <div class="stat-label">Loyers impayés</div>
+                </div>
+                <div class="stat-card attente">
+                    <div class="stat-value">2</div>
+                    <div class="stat-label">En attente</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section 2: Color-Coded Payment Table -->
+        <div class="preview-section">
+            <div class="preview-title"><i class="bi bi-table"></i> 2. Tableau de Suivi des Paiements</div>
+            <p class="text-muted mb-4">Cliquez sur une case pour changer le statut (cycle: attente → payé → impayé)</p>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-box" style="background-color: #28a745;"></div>
+                    <span><strong>Payé</strong> - Loyer reçu</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box" style="background-color: #dc3545;"></div>
+                    <span><strong>Impayé</strong> - Loyer non reçu</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box" style="background-color: #ffc107;"></div>
+                    <span><strong>En attente</strong> - Statut non défini</span>
+                </div>
+            </div>
+            
+            <div style="overflow-x: auto;">
+                <table class="payment-table">
+                    <thead>
+                        <tr>
+                            <th class="property-cell">Bien / Locataire</th>
+                            <th>Janvier<br><small>2026</small></th>
+                            <th class="current-month">Février<br><small>2026</small></th>
+                            <th>Mars<br><small>2026</small></th>
+                            <th>Avril<br><small>2026</small></th>
+                            <th>Mai<br><small>2026</small></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="property-cell">
+                                <strong>RP-01</strong><br>
+                                <small class="text-muted">Jean Dupont</small><br>
+                                <small>15 rue de la Paix</small>
+                            </td>
+                            <td class="payment-cell paye">
+                                <span class="status-icon">✓</span>
+                                <div class="amount">1030€</div>
+                            </td>
+                            <td class="payment-cell paye">
+                                <span class="status-icon">✓</span>
+                                <div class="amount">1030€</div>
+                            </td>
+                            <td class="payment-cell attente">
+                                <span class="status-icon">⏳</span>
+                                <div class="amount">1030€</div>
+                            </td>
+                            <td class="payment-cell attente">
+                                <span class="status-icon">⏳</span>
+                                <div class="amount">1030€</div>
+                            </td>
+                            <td class="payment-cell attente">
+                                <span class="status-icon">⏳</span>
+                                <div class="amount">1030€</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="property-cell">
+                                <strong>RP-02</strong><br>
+                                <small class="text-muted">Marie Martin</small><br>
+                                <small>8 avenue Victor Hugo</small>
+                            </td>
+                            <td class="payment-cell paye">
+                                <span class="status-icon">✓</span>
+                                <div class="amount">850€</div>
+                            </td>
+                            <td class="payment-cell impaye">
+                                <span class="status-icon">✗</span>
+                                <div class="amount">850€</div>
+                            </td>
+                            <td class="payment-cell attente">
+                                <span class="status-icon">⏳</span>
+                                <div class="amount">850€</div>
+                            </td>
+                            <td class="payment-cell attente">
+                                <span class="status-icon">⏳</span>
+                                <div class="amount">850€</div>
+                            </td>
+                            <td class="payment-cell attente">
+                                <span class="status-icon">⏳</span>
+                                <div class="amount">850€</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="property-cell">
+                                <strong>RP-03</strong><br>
+                                <small class="text-muted">Paul Durand</small><br>
+                                <small>22 boulevard Carnot</small>
+                            </td>
+                            <td class="payment-cell paye">
+                                <span class="status-icon">✓</span>
+                                <div class="amount">950€</div>
+                            </td>
+                            <td class="payment-cell paye">
+                                <span class="status-icon">✓</span>
+                                <div class="amount">950€</div>
+                            </td>
+                            <td class="payment-cell attente">
+                                <span class="status-icon">⏳</span>
+                                <div class="amount">950€</div>
+                            </td>
+                            <td class="payment-cell attente">
+                                <span class="status-icon">⏳</span>
+                                <div class="amount">950€</div>
+                            </td>
+                            <td class="payment-cell attente">
+                                <span class="status-icon">⏳</span>
+                                <div class="amount">950€</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="property-cell">
+                                <strong>RP-04</strong><br>
+                                <small class="text-muted">Sophie Bernard</small><br>
+                                <small>5 place de la Mairie</small>
+                            </td>
+                            <td class="payment-cell paye">
+                                <span class="status-icon">✓</span>
+                                <div class="amount">780€</div>
+                            </td>
+                            <td class="payment-cell attente">
+                                <span class="status-icon">⏳</span>
+                                <div class="amount">780€</div>
+                            </td>
+                            <td class="payment-cell attente">
+                                <span class="status-icon">⏳</span>
+                                <div class="amount">780€</div>
+                            </td>
+                            <td class="payment-cell attente">
+                                <span class="status-icon">⏳</span>
+                                <div class="amount">780€</div>
+                            </td>
+                            <td class="payment-cell attente">
+                                <span class="status-icon">⏳</span>
+                                <div class="amount">780€</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Section 3: Configuration Interface -->
+        <div class="preview-section">
+            <div class="preview-title"><i class="bi bi-gear"></i> 3. Configuration des Rappels</div>
+            <p class="text-muted mb-4">Configurez les dates d'envoi et les destinataires</p>
+            
+            <h5 class="mt-4 mb-3">Dates d'envoi automatique (sélectionnez les jours du mois)</h5>
+            <div class="config-preview">
+                <div class="day-box default">1</div>
+                <div class="day-box default">2</div>
+                <div class="day-box default">3</div>
+                <div class="day-box default">4</div>
+                <div class="day-box default">5</div>
+                <div class="day-box default">6</div>
+                <div class="day-box selected">7</div>
+                <div class="day-box default">8</div>
+                <div class="day-box selected">9</div>
+                <div class="day-box default">10</div>
+                <div class="day-box default">11</div>
+                <div class="day-box default">12</div>
+                <div class="day-box default">13</div>
+                <div class="day-box default">14</div>
+                <div class="day-box selected">15</div>
+                <div class="day-box default">16</div>
+                <div class="day-box default">17</div>
+                <div class="day-box default">18</div>
+                <div class="day-box default">19</div>
+                <div class="day-box default">20</div>
+                <div class="day-box default">21</div>
+                <div class="day-box default">22</div>
+                <div class="day-box default">23</div>
+                <div class="day-box default">24</div>
+                <div class="day-box default">25</div>
+                <div class="day-box default">26</div>
+                <div class="day-box default">27</div>
+                <div class="day-box default">28</div>
+                <div class="day-box default">29</div>
+                <div class="day-box default">30</div>
+                <div class="day-box default">31</div>
+            </div>
+            <p class="text-muted mt-3"><small><i class="bi bi-info-circle"></i> Jours sélectionnés: 7, 9, 15 (par défaut)</small></p>
+            
+            <div class="alert alert-info mt-4">
+                <i class="bi bi-lightbulb"></i> <strong>Configuration recommandée:</strong>
+                <ul class="mb-0 mt-2">
+                    <li>Dates d'envoi: 7, 9, et 15 du mois</li>
+                    <li>Au moins 1 administrateur destinataire</li>
+                    <li>Bouton vers l'interface activé dans les emails</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Section 4: Email Preview -->
+        <div class="preview-section">
+            <div class="preview-title"><i class="bi bi-envelope"></i> 4. Aperçu des Emails Automatiques</div>
+            
+            <!-- Email impayé -->
+            <h5 class="mt-4 mb-3">Email de rappel (loyers impayés détectés)</h5>
+            <div class="email-preview">
+                <div class="email-header">
+                    <h2>⚠️ Rappel de Loyers</h2>
+                </div>
+                <div class="email-content">
+                    <p><strong>Bonjour,</strong></p>
+                    
+                    <div style="background: white; padding: 15px; border-left: 4px solid #dc3545; margin: 15px 0;">
+                        <p><strong>Récapitulatif pour Février 2026:</strong></p>
+                        <ul>
+                            <li>Total de biens en location: <strong>4</strong></li>
+                            <li style="color: #28a745;">✅ Loyers payés: <strong>2</strong></li>
+                            <li style="color: #dc3545;">❌ Loyers impayés: <strong>1</strong></li>
+                            <li style="color: #ffc107;">⏳ En attente: <strong>1</strong></li>
+                        </ul>
+                        <p style="color: #dc3545; font-size: 16px; font-weight: bold;">⚠️ Attention ! Il reste des loyers impayés ou en attente de confirmation.</p>
+                    </div>
+                    
+                    <div style="text-align: center;">
+                        <a href="#" class="email-btn">📊 Accéder à l'interface de gestion</a>
+                    </div>
+                    
+                    <p>Cordialement,<br>
+                    <strong>My Invest Immobilier</strong></p>
+                </div>
+            </div>
+            
+            <!-- Email confirmation -->
+            <h5 class="mt-5 mb-3">Email de confirmation (tous les loyers payés)</h5>
+            <div class="email-preview">
+                <div class="email-header" style="background: #28a745;">
+                    <h2>✅ Loyers à Jour</h2>
+                </div>
+                <div class="email-content">
+                    <p><strong>Bonjour,</strong></p>
+                    
+                    <div style="background: white; padding: 15px; border-left: 4px solid #28a745; margin: 15px 0;">
+                        <p><strong>Récapitulatif pour Février 2026:</strong></p>
+                        <ul>
+                            <li>Total de biens en location: <strong>4</strong></li>
+                            <li style="color: #28a745;">✅ Loyers payés: <strong>4</strong></li>
+                            <li style="color: #dc3545;">❌ Loyers impayés: <strong>0</strong></li>
+                            <li style="color: #ffc107;">⏳ En attente: <strong>0</strong></li>
+                        </ul>
+                        <p style="color: #28a745; font-size: 16px; font-weight: bold;">🎉 Excellente nouvelle ! Tous les loyers sont à jour.</p>
+                    </div>
+                    
+                    <div style="text-align: center;">
+                        <a href="#" class="email-btn">📊 Accéder à l'interface de gestion</a>
+                    </div>
+                    
+                    <p>Cordialement,<br>
+                    <strong>My Invest Immobilier</strong></p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section 5: Features Summary -->
+        <div class="preview-section">
+            <div class="preview-title"><i class="bi bi-list-check"></i> 5. Fonctionnalités Clés</div>
+            
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-robot text-primary"></i> Automatisation</h5>
+                            <ul class="mb-0">
+                                <li>Envoi automatique aux dates configurées</li>
+                                <li>Création automatique des entrées de suivi</li>
+                                <li>Message adapté selon le statut</li>
+                                <li>Compteur et historique des rappels</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-palette text-success"></i> Interface Visuelle</h5>
+                            <ul class="mb-0">
+                                <li>Code couleur intuitif (vert/rouge/orange)</li>
+                                <li>Vue synthétique sur 12 mois</li>
+                                <li>Statistiques en temps réel</li>
+                                <li>Modification rapide par clic</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-gear text-info"></i> Configuration</h5>
+                            <ul class="mb-0">
+                                <li>Dates d'envoi personnalisables (1-31)</li>
+                                <li>Sélection des destinataires</li>
+                                <li>Activation/désactivation du module</li>
+                                <li>Options d'email configurables</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-hand-index text-warning"></i> Actions Manuelles</h5>
+                            <ul class="mb-0">
+                                <li>Envoi manuel aux administrateurs</li>
+                                <li>Rappel direct au locataire</li>
+                                <li>Modification du statut par clic</li>
+                                <li>Notes et annotations possibles</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="text-center mt-5 mb-3">
+            <p class="text-muted">
+                <i class="bi bi-file-earmark-text"></i> 
+                Consultez la documentation complète dans 
+                <strong>MODULE_RAPPEL_LOYERS.md</strong>
+            </p>
+            <p class="text-muted">
+                <small>Module développé pour MY Invest Immobilier - 2026</small>
+            </p>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
