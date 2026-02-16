@@ -35,25 +35,26 @@ $stmtLogements = $pdo->query("
 ");
 $logements = $stmtLogements->fetchAll(PDO::FETCH_ASSOC);
 
-// Générer la liste des 12 derniers mois
-$mois = [];
-for ($i = 11; $i >= 0; $i--) {
-    $date = new DateTime();
-    $date->modify("-$i months");
-    $mois[] = [
-        'num' => (int)$date->format('n'),
-        'annee' => (int)$date->format('Y'),
-        'nom' => strftime('%B', $date->getTimestamp()),
-        'nom_court' => substr(strftime('%B', $date->getTimestamp()), 0, 3)
-    ];
-}
-
 // Nom des mois en français
 $nomsMois = [
     1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril',
     5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août',
     9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'
 ];
+
+// Générer la liste des 12 derniers mois
+$mois = [];
+for ($i = 11; $i >= 0; $i--) {
+    $date = new DateTime();
+    $date->modify("-$i months");
+    $moisNum = (int)$date->format('n');
+    $mois[] = [
+        'num' => $moisNum,
+        'annee' => (int)$date->format('Y'),
+        'nom' => $nomsMois[$moisNum],
+        'nom_court' => substr($nomsMois[$moisNum], 0, 3)
+    ];
+}
 
 // Récupérer les statuts de paiement pour tous les logements et mois
 $statutsPaiement = [];
@@ -227,6 +228,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 throw new Exception('Échec de l\'envoi de l\'email');
             }
+            exit;
+        }
+        
+        // Envoi de rappel manuel aux administrateurs
+        if (isset($_POST['action']) && $_POST['action'] === 'envoyer_rappel_administrateurs') {
+            // Inclure le script de rappel pour exécuter la logique
+            require_once __DIR__ . '/../cron/rappel-loyers.php';
             exit;
         }
         
@@ -614,7 +622,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 return;
             }
             
-            window.location.href = '../cron/rappel-loyers.php?manual=1';
+            // Envoyer la requête AJAX
+            fetch('', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    action: 'envoyer_rappel_administrateurs'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    location.reload();
+                } else {
+                    alert('❌ Erreur: ' + (data.error || 'Échec de l\'envoi'));
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                alert('Erreur de communication avec le serveur');
+            });
         }
     </script>
 </body>
