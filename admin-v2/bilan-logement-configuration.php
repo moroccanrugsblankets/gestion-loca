@@ -92,6 +92,7 @@ if (!$template) {
     <div class="total-section" style="margin-top: 10px; background: #fff3cd; border-left: 4px solid #ffc107;">
         <h3>Récapitulatif Financier</h3>
         <p style="line-height: 1.6;"><strong>Dépôt de garantie :</strong> {{depot_garantie}} | <strong>Valeur estimative :</strong> {{valeur_estimative}} | <strong>Solde Débiteur:</strong> {{total_solde_debiteur}} | <strong>Solde Créditeur:</strong> {{total_solde_crediteur}} | <strong>Montant à restituer:</strong> {{montant_a_restituer}} | <strong>Reste dû:</strong> {{reste_du}}</p>
+        <p style="line-height: 1.6; margin-top: 10px;"><strong>{{phrase_recap_financier}}</strong></p>
     </div>
     
     <div class="signature-section">
@@ -208,6 +209,7 @@ if (!$template) {
                     <span class="variable-tag" onclick="copyToClipboard('{{total_solde_crediteur}}', event)" title="Total Solde Créditeur">{{total_solde_crediteur}}</span>
                     <span class="variable-tag" onclick="copyToClipboard('{{montant_a_restituer}}', event)" title="Montant à restituer au locataire">{{montant_a_restituer}}</span>
                     <span class="variable-tag" onclick="copyToClipboard('{{reste_du}}', event)" title="Reste dû par le locataire">{{reste_du}}</span>
+                    <span class="variable-tag" onclick="copyToClipboard('{{phrase_recap_financier}}', event)" title="Phrase récapitulative financière automatique">{{phrase_recap_financier}}</span>
                 </div>
             </div>
 
@@ -237,6 +239,12 @@ if (!$template) {
                 <li>Les variables sont remplacées dynamiquement lors de la génération du PDF</li>
                 <li>La variable <code>{{bilan_rows}}</code> sera remplacée par le tableau complet avec en-têtes et données</li>
                 <li>La variable <code>{{commentaire_section}}</code> affiche les observations si présentes</li>
+                <li>La variable <code>{{phrase_recap_financier}}</code> affiche automatiquement:
+                    <ul>
+                        <li>Si <code>{{reste_du}}</code> &gt; 0 : "Vous devez nous régler la somme de {{reste_du}} €."</li>
+                        <li>Si <code>{{montant_a_restituer}}</code> &gt; 0 : "Vous recevrez prochainement la somme de {{montant_a_restituer}} €."</li>
+                    </ul>
+                </li>
                 <li>Le PDF est généré avec TCPDF, certaines fonctionnalités CSS avancées peuvent ne pas fonctionner</li>
                 <li>Les images doivent utiliser des chemins absolus ou des URLs complètes</li>
             </ul>

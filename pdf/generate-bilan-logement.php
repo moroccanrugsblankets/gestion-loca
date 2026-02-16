@@ -246,6 +246,14 @@ function generateBilanLogementPDF($contratId) {
         // Calculate: Reste dû = abs(Dépôt de garantie + Solde Créditeur - Solde Débiteur) (if < 0, else 0)
         $resteDu = $calculResultat < 0 ? abs($calculResultat) : 0;
 
+        // Generate phrase_recap_financier based on conditions
+        $phraseRecapFinancier = '';
+        if ($resteDu > 0) {
+            $phraseRecapFinancier = 'Vous devez nous régler la somme de ' . number_format($resteDu, 2, ',', ' ') . ' €.';
+        } elseif ($montantARestituer > 0) {
+            $phraseRecapFinancier = 'Vous recevrez prochainement la somme de ' . number_format($montantARestituer, 2, ',', ' ') . ' €.';
+        }
+
         // Replace variables in template
         $variables = [
             '{{logo}}' => $logoHtml,
@@ -264,7 +272,8 @@ function generateBilanLogementPDF($contratId) {
             '{{depot_garantie}}' => number_format($depotGarantie, 2, ',', ' ') . ' €',
             '{{valeur_estimative}}' => number_format($valeurEstimative, 2, ',', ' ') . ' €',
             '{{montant_a_restituer}}' => number_format($montantARestituer, 2, ',', ' ') . ' €',
-            '{{reste_du}}' => number_format($resteDu, 2, ',', ' ') . ' €'
+            '{{reste_du}}' => number_format($resteDu, 2, ',', ' ') . ' €',
+            '{{phrase_recap_financier}}' => $phraseRecapFinancier
         ];
 
         $html = str_replace(array_keys($variables), array_values($variables), $templateHtml);
