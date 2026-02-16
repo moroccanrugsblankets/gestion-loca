@@ -233,7 +233,6 @@ function generateBilanLogementPDF($contratId) {
         if (!empty($etatLieux['bilan_logement_commentaire'])) {
             $commentaire = htmlspecialchars($etatLieux['bilan_logement_commentaire']);
             $commentaireHtml = '<div><strong><span style="font-size: 12pt;">Observations générales</span></strong><br><span style="font-size: 10pt;">' . nl2br($commentaire) . '</span></div>';
-            $commentaireHtml .= '</div>';
         }
 
         // Calculate financial summary values
@@ -287,7 +286,7 @@ function generateBilanLogementPDF($contratId) {
         $pdf->setPrintFooter(false);
 
         // Set margins
-        $pdf->SetMargins(5, 10, 5);
+        $pdf->SetMargins(5, 15, 5);
         $pdf->SetAutoPageBreak(true, 5);
 
         //Set Fonts
