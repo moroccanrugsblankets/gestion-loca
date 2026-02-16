@@ -161,7 +161,7 @@ function generateBilanLogementPDF($contratId) {
         
         $signatureHtml = '';
         if ($signatureData) {
-            $signatureHtml = '<div style="margin-top: 10px;"><p><strong>Signature de l\'agence :</strong></p>';
+            $signatureHtml = '<div><strong>Signature de l\'agence :</strong><br>';
             $signatureHtml .= '<img src="' . htmlspecialchars($signatureData) . '" alt="Signature" style="width: 80px; height: auto;">';
             $signatureHtml .= '</div>';
         }
@@ -276,8 +276,8 @@ function generateBilanLogementPDF($contratId) {
         $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
         
         // Set document information
-        $pdf->SetCreator('MY Invest Immobilier');
-        $pdf->SetAuthor('MY Invest Immobilier');
+        $pdf->SetCreator('My Invest Immobilier');
+        $pdf->SetAuthor('My Invest Immobilier');
         $pdf->SetTitle('Bilan du Logement - ' . $contrat['contrat_ref']);
         $pdf->SetSubject('Bilan du Logement');
 
