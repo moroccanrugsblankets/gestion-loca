@@ -169,7 +169,7 @@ function generateBilanLogementPDF($contratId) {
         // Build bilan rows HTML with complete table structure (without thead/tbody tags)
         // Note: This variable includes the full <table> tag with all rows, headers, and totals
         // It will replace {{bilan_rows}} in the template as a complete table element
-        $bilanRowsHtml = '<table border="1" cellspacing="0" cellpadding="2">';
+        $bilanRowsHtml = '<table border="1" cellspacing="0" cellpadding="3">';
         
         // Add header row
         $bilanRowsHtml .= '<tr style="color:#ffffff;background-color:#3498db;">';
@@ -295,7 +295,7 @@ function generateBilanLogementPDF($contratId) {
         $pdf->setPrintFooter(false);
 
         // Set margins
-        $pdf->SetMargins(5, 15, 5);
+        $pdf->SetMargins(4, 10, 4);
         $pdf->SetAutoPageBreak(true, 5);
 
         //Set Fonts
