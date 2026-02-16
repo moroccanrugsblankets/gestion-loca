@@ -212,9 +212,9 @@ function generateBilanLogementPDF($contratId) {
             $bilanRowsHtml .= '<tr>';
             $bilanRowsHtml .= '<td>' . $poste . '</td>';
             $bilanRowsHtml .= '<td>' . nl2br($commentaires) . '</td>';
-            $bilanRowsHtml .= '<td>' . $valeurDisplay . '</td>';
-            $bilanRowsHtml .= '<td>' . $soldeDebiteurDisplay . '</td>';
-            $bilanRowsHtml .= '<td>' . $soldeCrediteurDisplay . '</td>';
+            $bilanRowsHtml .= '<td style="text-align:center; vertical-align:middle;">' . $valeurDisplay . '</td>';
+            $bilanRowsHtml .= '<td style="text-align:center; vertical-align:middle;">' . $soldeDebiteurDisplay . '</td>';
+            $bilanRowsHtml .= '<td style="text-align:center; vertical-align:middle;">' . $soldeCrediteurDisplay . '</td>';
             $bilanRowsHtml .= '</tr>';
         }
         
@@ -289,8 +289,8 @@ function generateBilanLogementPDF($contratId) {
         $pdf->setPrintFooter(false);
 
         // Set margins
-        $pdf->SetMargins(10, 15, 10);
-        $pdf->SetAutoPageBreak(true, 15);
+        $pdf->SetMargins(5, 10, 5);
+        $pdf->SetAutoPageBreak(true, 5);
 
         //Set Fonts
         $pdf->SetFont('', '', 10, '', 'false');
