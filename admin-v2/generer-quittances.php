@@ -13,6 +13,54 @@ if ($contractId === 0) {
     exit;
 }
 
+/**
+ * Calculate the earliest allowed month for quittance generation
+ * Based on contract start date and maximum 3 years lookback
+ * 
+ * @param string|null $contractStartDate Contract date_prise_effet
+ * @return int Unix timestamp of the earliest allowed month start
+ */
+function calculateEarliestAllowedMonth($contractStartDate) {
+    $currentMonthStart = strtotime(date('Y-m-01'));
+    $threeYearsAgo = strtotime('-36 months', $currentMonthStart);
+    
+    $contractStartTimestamp = !empty($contractStartDate) ? strtotime($contractStartDate) : null;
+    
+    if ($contractStartTimestamp !== null) {
+        // Use the later of: contract start date or 3 years ago
+        return max($contractStartTimestamp, $threeYearsAgo);
+    }
+    
+    return $threeYearsAgo;
+}
+
+/**
+ * Get French month name from month number
+ * 
+ * @param int $month Month number (1-12)
+ * @return string French month name
+ */
+function getFrenchMonthName($month) {
+    $nomsMois = [
+        1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril',
+        5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août',
+        9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'
+    ];
+    return $nomsMois[$month] ?? '';
+}
+
+/**
+ * Format month and year in French
+ * 
+ * @param int $month Month number (1-12)
+ * @param int $year Year
+ * @return string Formatted string like "Janvier 2026"
+ */
+function formatMonthYearFr($month, $year) {
+    return getFrenchMonthName($month) . ' ' . $year;
+}
+
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mois_annees'])) {
     $moisAnnees = $_POST['mois_annees']; // Array of "YYYY-MM" strings
@@ -41,6 +89,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mois_annees'])) {
         exit;
     }
     
+    // Calculate allowed date range for validation
+    $currentYear = date('Y');
+    $currentMonth = date('n');
+    $earliestAllowed = calculateEarliestAllowedMonth($contrat['date_prise_effet']);
+    
     $locataires = fetchAll("
         SELECT * FROM locataires 
         WHERE contrat_id = ? 
@@ -62,6 +115,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mois_annees'])) {
         list($annee, $mois) = explode('-', $moisAnnee);
         $annee = (int)$annee;
         $mois = (int)$mois;
+        
+        // Validate: no future months allowed (only current month and earlier)
+        $selectedMonthStart = strtotime("$annee-$mois-01");
+        if ($annee > $currentYear || ($annee == $currentYear && $mois > $currentMonth)) {
+            $errorCount++;
+            $errors[] = "Impossible de générer une quittance pour un mois futur (" . formatMonthYearFr($mois, $annee) . ")";
+            continue;
+        }
+        
+        // Validate: month must be within allowed range
+        if ($selectedMonthStart < $earliestAllowed) {
+            $errorCount++;
+            $errors[] = "Le mois " . formatMonthYearFr($mois, $annee) . " est en dehors de la période autorisée";
+            continue;
+        }
         
         // Generate PDF
         $result = generateQuittancePDF($contractId, $mois, $annee);
@@ -233,35 +301,55 @@ foreach ($existingQuittances as $q) {
             <h5 class="mb-4"><i class="bi bi-calendar-check"></i> Sélectionner les Mois</h5>
             <p class="text-muted">Sélectionnez un ou plusieurs mois pour générer les quittances correspondantes. 
             Une quittance sera générée et envoyée par email pour chaque mois sélectionné.</p>
+            
+            <?php if (!empty($contrat['date_prise_effet'])): ?>
+                <?php
+                $contractStartTimestamp = strtotime($contrat['date_prise_effet']);
+                $contractStartMonth = date('n', $contractStartTimestamp);
+                $contractStartYear = date('Y', $contractStartTimestamp);
+                ?>
+                <div class="alert alert-info mb-3">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Période disponible :</strong> 
+                    Les quittances sont disponibles à partir de 
+                    <strong><?php echo formatMonthYearFr($contractStartMonth, $contractStartYear); ?></strong> 
+                    (date de prise d'effet du contrat) et jusqu'au mois en cours inclus.
+                    <br>
+                    La visibilité maximale est de 3 ans ou depuis le début du contrat si celui-ci a moins de 3 ans.
+                </div>
+            <?php endif; ?>
 
             <form method="POST" action="">
                 <div class="row">
                     <?php
-                    // Generate options for the last 24 months and next 3 months
+                    // Generate options based on contract date and business rules
                     // Constants for month range
-                    define('MONTHS_LOOKBACK', 24);
-                    define('MONTHS_LOOKAHEAD', -3);
+                    define('MONTHS_LOOKBACK', 36); // 3 years maximum lookback
+                    define('MONTHS_LOOKAHEAD', 0);  // No future months allowed (only current month and earlier)
                     
                     $currentYear = date('Y');
                     $currentMonth = date('n');
+                    
+                    // Calculate the earliest allowed month
+                    $earliestAllowed = calculateEarliestAllowedMonth($contrat['date_prise_effet']);
                     
                     for ($i = MONTHS_LOOKBACK; $i >= MONTHS_LOOKAHEAD; $i--) {
                         $timestamp = strtotime("-$i months");
                         $year = date('Y', $timestamp);
                         $month = date('n', $timestamp);
-                        $monthName = date('F Y', $timestamp);
                         
-                        // French month names
-                        $nomsMoisFr = [
-                            'January' => 'Janvier', 'February' => 'Février', 'March' => 'Mars',
-                            'April' => 'Avril', 'May' => 'Mai', 'June' => 'Juin',
-                            'July' => 'Juillet', 'August' => 'Août', 'September' => 'Septembre',
-                            'October' => 'Octobre', 'November' => 'Novembre', 'December' => 'Décembre'
-                        ];
-                        
-                        foreach ($nomsMoisFr as $en => $fr) {
-                            $monthName = str_replace($en, $fr, $monthName);
+                        // Skip months before the earliest allowed date
+                        $monthStartDate = strtotime("$year-$month-01");
+                        if ($monthStartDate < $earliestAllowed) {
+                            continue;
                         }
+                        
+                        // Skip future months (months after the current month)
+                        if ($year > $currentYear || ($year == $currentYear && $month > $currentMonth)) {
+                            continue;
+                        }
+                        
+                        $monthName = formatMonthYearFr($month, $year);
                         
                         $value = sprintf('%04d-%02d', $year, $month);
                         $alreadyGenerated = isset($existingMap[$value]);

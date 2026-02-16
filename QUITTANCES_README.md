@@ -14,7 +14,9 @@ Ce module permet la génération automatique de quittances de loyer au format PD
 
 ### 2. Sélection des Mois
 - Interface intuitive de sélection multiple de mois
-- Affichage des 24 derniers mois et 3 mois à venir
+- **Visibilité limitée aux 3 dernières années** ou depuis le début du contrat si celui-ci a moins de 3 ans
+- **Aucune génération de quittances pour les mois futurs** - uniquement le mois en cours et les mois antérieurs
+- Exemple : le 28 janvier, impossible de générer une quittance pour février (disponible à partir du 1er février)
 - Indication visuelle des quittances déjà générées
 - Historique complet des quittances émises
 
@@ -58,6 +60,26 @@ Cela créera:
 3. Sélectionnez un ou plusieurs mois
 4. Cliquez sur **"Générer et Envoyer les Quittances"**
 5. Les quittances sont générées et envoyées automatiquement
+
+#### Règles de Sélection des Mois
+
+Le système applique automatiquement les règles suivantes lors de la sélection des mois :
+
+1. **Période historique limitée** : Maximum 3 ans en arrière (36 mois)
+   - Si le contrat a moins de 3 ans, la période commence à la date de prise d'effet du contrat
+   - Exemple : Contrat démarré le 15 juin 2024, on ne peut pas générer de quittance pour mai 2024
+
+2. **Pas de mois futurs** : Impossible de générer une quittance pour un mois qui n'a pas encore commencé
+   - Le 28 janvier 2026 → Impossible de générer pour février 2026
+   - Le 1er février 2026 → Possible de générer pour février 2026
+   - Cette règle empêche la génération anticipée de quittances
+
+3. **Validation côté serveur** : Même si l'utilisateur contourne l'interface, le serveur refuse les demandes invalides
+
+Ces règles garantissent que :
+- Les locataires ne reçoivent que des quittances pour les périodes où ils occupaient effectivement le logement
+- Aucune quittance ne peut être générée pour des périodes futures
+- L'historique reste gérable (limité à 3 ans)
 
 ### Personnaliser le template PDF
 
