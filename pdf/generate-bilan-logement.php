@@ -232,9 +232,7 @@ function generateBilanLogementPDF($contratId) {
         $commentaireHtml = '';
         if (!empty($etatLieux['bilan_logement_commentaire'])) {
             $commentaire = htmlspecialchars($etatLieux['bilan_logement_commentaire']);
-            $commentaireHtml = '<div class="commentaire-section">';
-            $commentaireHtml .= '<h3>Observations générales</h3>';
-            $commentaireHtml .= '<p>' . nl2br($commentaire) . '</p>';
+            $commentaireHtml = '<div><strong><span style="font-size: 12pt;">Observations générales</span></strong><br><span style="font-size: 10pt;">' . nl2br($commentaire) . '</span></div>';
             $commentaireHtml .= '</div>';
         }
 
