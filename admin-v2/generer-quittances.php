@@ -90,14 +90,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
         
-        // Generate array of months between dateDebut and dateFin
+        // Generate array of months between dateDebut and dateFin using DateTime for reliability
         $moisAnnees = [];
-        $currentTimestamp = $timestampDebut;
-        while ($currentTimestamp <= $timestampFin) {
-            $year = date('Y', $currentTimestamp);
-            $month = date('m', $currentTimestamp);
-            $moisAnnees[] = "$year-$month";
-            $currentTimestamp = strtotime('+1 month', $currentTimestamp);
+        $currentDate = new DateTime($dateDebut . '-01');
+        $endDate = new DateTime($dateFin . '-01');
+        
+        while ($currentDate <= $endDate) {
+            $moisAnnees[] = $currentDate->format('Y-m');
+            $currentDate->modify('+1 month');
         }
     } elseif (isset($_POST['mois_annees'])) {
         // Legacy support for checkbox selection
@@ -487,9 +487,15 @@ foreach ($existingQuittances as $q) {
             return true;
         });
         
-        // Update date_fin min value when date_debut changes
+        // Update date_fin constraints when date_debut changes
         document.getElementById('date_debut').addEventListener('change', function() {
-            document.getElementById('date_fin').min = this.value;
+            const dateFinInput = document.getElementById('date_fin');
+            dateFinInput.min = this.value;
+            
+            // If date_fin is now invalid (before new date_debut), update it
+            if (dateFinInput.value && dateFinInput.value < this.value) {
+                dateFinInput.value = this.value;
+            }
         });
     </script>
 </body>
