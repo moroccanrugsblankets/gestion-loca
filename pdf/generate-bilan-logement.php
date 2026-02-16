@@ -161,8 +161,8 @@ function generateBilanLogementPDF($contratId) {
         
         $signatureHtml = '';
         if ($signatureData) {
-            $signatureHtml = '<div style="margin-top: 20px;"><p><strong>Signature de l\'agence :</strong></p>';
-            $signatureHtml .= '<img src="' . htmlspecialchars($signatureData) . '" alt="Signature" style="width: 130px; height: auto;">';
+            $signatureHtml = '<div style="margin-top: 10px;"><p><strong>Signature de l\'agence :</strong></p>';
+            $signatureHtml .= '<img src="' . htmlspecialchars($signatureData) . '" alt="Signature" style="width: 80px; height: auto;">';
             $signatureHtml .= '</div>';
         }
 
