@@ -173,11 +173,11 @@ function generateBilanLogementPDF($contratId) {
         
         // Add header row
         $bilanRowsHtml .= '<tr style="color:#ffffff;background-color:#3498db;">';
-        $bilanRowsHtml .= '<th style="width: 25%;">Poste</th>';
-        $bilanRowsHtml .= '<th style="width: 30%;">Commentaires</th>';
-        $bilanRowsHtml .= '<th style="width: 15%;">Valeur (€)</th>';
-        $bilanRowsHtml .= '<th style="width: 15%;">Solde Débiteur (€)</th>';
-        $bilanRowsHtml .= '<th style="width: 15%;">Solde Créditeur (€)</th>';
+        $bilanRowsHtml .= '<th style="width: 25%;text-align:center; vertical-align:middle;">Poste</th>';
+        $bilanRowsHtml .= '<th style="width: 30%;text-align:center; vertical-align:middle;">Commentaires</th>';
+        $bilanRowsHtml .= '<th style="width: 15%;text-align:center; vertical-align:middle;">Valeur (€)</th>';
+        $bilanRowsHtml .= '<th style="width: 15%;text-align:center; vertical-align:middle;">Solde Débiteur (€)</th>';
+        $bilanRowsHtml .= '<th style="width: 15%;text-align:center; vertical-align:middle;">Solde Créditeur (€)</th>';
         $bilanRowsHtml .= '</tr>';
         
         $totalValeur = 0;
@@ -293,7 +293,7 @@ function generateBilanLogementPDF($contratId) {
         $pdf->SetAutoPageBreak(true, 15);
 
         //Set Fonts
-        $pdf->SetFont('', '', 11, '', 'false');
+        $pdf->SetFont('', '', 10, '', 'false');
         
         // Add page
         $pdf->AddPage();
