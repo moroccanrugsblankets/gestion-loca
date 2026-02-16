@@ -62,11 +62,54 @@ function formatMonthYearFr($month, $year) {
 
 
 // Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mois_annees'])) {
-    $moisAnnees = $_POST['mois_annees']; // Array of "YYYY-MM" strings
-    
-    if (empty($moisAnnees)) {
-        $_SESSION['error'] = "Veuillez sélectionner au moins un mois.";
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Check if we have date range inputs
+    if (isset($_POST['date_debut']) && isset($_POST['date_fin'])) {
+        $dateDebut = $_POST['date_debut'];
+        $dateFin = $_POST['date_fin'];
+        
+        if (empty($dateDebut) || empty($dateFin)) {
+            $_SESSION['error'] = "Veuillez sélectionner une date de début et une date de fin.";
+            header('Location: generer-quittances.php?id=' . $contractId);
+            exit;
+        }
+        
+        // Convert dates to timestamps
+        $timestampDebut = strtotime($dateDebut . '-01');
+        $timestampFin = strtotime($dateFin . '-01');
+        
+        if ($timestampDebut === false || $timestampFin === false) {
+            $_SESSION['error'] = "Dates invalides.";
+            header('Location: generer-quittances.php?id=' . $contractId);
+            exit;
+        }
+        
+        if ($timestampDebut > $timestampFin) {
+            $_SESSION['error'] = "La date de début doit être antérieure ou égale à la date de fin.";
+            header('Location: generer-quittances.php?id=' . $contractId);
+            exit;
+        }
+        
+        // Generate array of months between dateDebut and dateFin
+        $moisAnnees = [];
+        $currentTimestamp = $timestampDebut;
+        while ($currentTimestamp <= $timestampFin) {
+            $year = date('Y', $currentTimestamp);
+            $month = date('m', $currentTimestamp);
+            $moisAnnees[] = "$year-$month";
+            $currentTimestamp = strtotime('+1 month', $currentTimestamp);
+        }
+    } elseif (isset($_POST['mois_annees'])) {
+        // Legacy support for checkbox selection
+        $moisAnnees = $_POST['mois_annees']; // Array of "YYYY-MM" strings
+        
+        if (empty($moisAnnees)) {
+            $_SESSION['error'] = "Veuillez sélectionner au moins un mois.";
+            header('Location: generer-quittances.php?id=' . $contractId);
+            exit;
+        }
+    } else {
+        $_SESSION['error'] = "Aucune période sélectionnée.";
         header('Location: generer-quittances.php?id=' . $contractId);
         exit;
     }
@@ -248,28 +291,9 @@ foreach ($existingQuittances as $q) {
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
-        .month-checkbox {
-            padding: 15px;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .month-checkbox:hover {
-            border-color: #667eea;
-            background: #f8f9fa;
-        }
-        .month-checkbox input[type="checkbox"]:checked + label {
-            color: #667eea;
-            font-weight: bold;
-        }
-        .already-generated {
-            background: #e8f5e9;
-            border-color: #4caf50;
-        }
-        .already-generated .badge {
-            background: #4caf50;
+        .form-control-lg {
+            font-size: 1.1rem;
+            padding: 0.75rem 1rem;
         }
     </style>
 </head>
@@ -298,9 +322,24 @@ foreach ($existingQuittances as $q) {
         <?php endif; ?>
 
         <div class="form-card">
-            <h5 class="mb-4"><i class="bi bi-calendar-check"></i> Sélectionner les Mois</h5>
-            <p class="text-muted">Sélectionnez un ou plusieurs mois pour générer les quittances correspondantes. 
-            Une quittance sera générée et envoyée par email pour chaque mois sélectionné.</p>
+            <h5 class="mb-4"><i class="bi bi-calendar-check"></i> Sélectionner la Période</h5>
+            <p class="text-muted">Sélectionnez une période en choisissant un mois de début et un mois de fin. 
+            Une quittance sera générée et envoyée par email pour chaque mois de la période sélectionnée.</p>
+            
+            <?php
+            // Calculate the earliest and latest allowed months
+            $currentYear = date('Y');
+            $currentMonth = date('n');
+            
+            // Calculate the earliest allowed month
+            $earliestAllowed = calculateEarliestAllowedMonth($contrat['date_prise_effet']);
+            $earliestYear = date('Y', $earliestAllowed);
+            $earliestMonth = date('n', $earliestAllowed);
+            
+            // Min and max dates for the input fields
+            $minDate = sprintf('%04d-%02d', $earliestYear, $earliestMonth);
+            $maxDate = sprintf('%04d-%02d', $currentYear, $currentMonth);
+            ?>
             
             <?php if (!empty($contrat['date_prise_effet'])): ?>
                 <?php
@@ -319,82 +358,47 @@ foreach ($existingQuittances as $q) {
                 </div>
             <?php endif; ?>
 
-            <form method="POST" action="">
+            <form method="POST" action="" id="quittanceForm">
                 <div class="row">
-                    <?php
-                    // Generate options based on contract date and business rules
-                    // Constants for month range
-                    define('MONTHS_LOOKBACK', 36); // 3 years maximum lookback
-                    define('MONTHS_LOOKAHEAD', 0);  // No future months allowed (only current month and earlier)
-                    
-                    $currentYear = date('Y');
-                    $currentMonth = date('n');
-                    
-                    // Calculate the earliest allowed month
-                    $earliestAllowed = calculateEarliestAllowedMonth($contrat['date_prise_effet']);
-                    
-                    for ($i = MONTHS_LOOKBACK; $i >= MONTHS_LOOKAHEAD; $i--) {
-                        $timestamp = strtotime("-$i months");
-                        $year = date('Y', $timestamp);
-                        $month = date('n', $timestamp);
-                        
-                        // Skip months before the earliest allowed date
-                        $monthStartDate = strtotime("$year-$month-01");
-                        if ($monthStartDate < $earliestAllowed) {
-                            continue;
-                        }
-                        
-                        // Skip future months (months after the current month)
-                        if ($year > $currentYear || ($year == $currentYear && $month > $currentMonth)) {
-                            continue;
-                        }
-                        
-                        $monthName = formatMonthYearFr($month, $year);
-                        
-                        $value = sprintf('%04d-%02d', $year, $month);
-                        $alreadyGenerated = isset($existingMap[$value]);
-                        
-                        $checkboxClass = $alreadyGenerated ? 'month-checkbox already-generated' : 'month-checkbox';
-                        ?>
-                        <div class="col-md-4">
-                            <div class="<?php echo $checkboxClass; ?>">
-                                <div class="form-check">
-                                    <input 
-                                        class="form-check-input" 
-                                        type="checkbox" 
-                                        name="mois_annees[]" 
-                                        value="<?php echo $value; ?>" 
-                                        id="mois_<?php echo $value; ?>">
-                                    <label class="form-check-label w-100" for="mois_<?php echo $value; ?>">
-                                        <?php echo $monthName; ?>
-                                        <?php if ($alreadyGenerated): ?>
-                                            <span class="badge bg-success float-end">Déjà générée</span>
-                                        <?php endif; ?>
-                                    </label>
-                                </div>
-                            </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="date_debut" class="form-label">
+                                <i class="bi bi-calendar-event"></i> Date de début (Depuis)
+                            </label>
+                            <input 
+                                type="month" 
+                                class="form-control form-control-lg" 
+                                id="date_debut" 
+                                name="date_debut" 
+                                min="<?php echo $minDate; ?>" 
+                                max="<?php echo $maxDate; ?>"
+                                required>
+                            <div class="form-text">Premier mois de la période</div>
                         </div>
-                        <?php
-                    }
-                    ?>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="date_fin" class="form-label">
+                                <i class="bi bi-calendar-event"></i> Date de fin (Jusqu'à)
+                            </label>
+                            <input 
+                                type="month" 
+                                class="form-control form-control-lg" 
+                                id="date_fin" 
+                                name="date_fin" 
+                                min="<?php echo $minDate; ?>" 
+                                max="<?php echo $maxDate; ?>"
+                                required>
+                            <div class="form-text">Dernier mois de la période (inclus)</div>
+                        </div>
+                    </div>
                 </div>
-
-                <div class="mt-4">
-                    <button type="button" class="btn btn-outline-primary" onclick="selectAll()">
-                        <i class="bi bi-check-all"></i> Tout sélectionner
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary" onclick="deselectAll()">
-                        <i class="bi bi-x-circle"></i> Tout désélectionner
-                    </button>
-                </div>
-
-                <hr class="my-4">
 
                 <div class="alert alert-info">
                     <i class="bi bi-info-circle"></i>
                     <strong>Information:</strong>
                     <ul class="mb-0 mt-2">
-                        <li>Une quittance PDF sera générée pour chaque mois sélectionné</li>
+                        <li>Une quittance PDF sera générée pour chaque mois de la période sélectionnée</li>
                         <li>Les quittances seront automatiquement envoyées par email aux locataires</li>
                         <li>Une copie cachée (BCC) sera envoyée aux administrateurs</li>
                         <li>Vous pouvez re-générer une quittance déjà existante (elle sera écrasée)</li>
@@ -405,7 +409,7 @@ foreach ($existingQuittances as $q) {
                     <a href="contrat-detail.php?id=<?php echo $contractId; ?>" class="btn btn-secondary">
                         <i class="bi bi-x-circle"></i> Annuler
                     </a>
-                    <button type="submit" class="btn btn-primary btn-lg" id="submitQuittancesBtn">
+                    <button type="submit" class="btn btn-primary btn-lg">
                         <i class="bi bi-send"></i> Générer et Envoyer les Quittances
                     </button>
                 </div>
@@ -457,20 +461,35 @@ foreach ($existingQuittances as $q) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function selectAll() {
-            document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
-        }
-        
-        function deselectAll() {
-            document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-        }
-        
-        // Handle form submission confirmation
-        document.getElementById('submitQuittancesBtn').addEventListener('click', function(e) {
-            e.preventDefault();
-            if(confirm('Êtes-vous sûr de vouloir générer et envoyer les quittances pour les mois sélectionnés ?')) {
-                this.form.submit();
+        // Date range validation
+        document.getElementById('quittanceForm').addEventListener('submit', function(e) {
+            const dateDebut = document.getElementById('date_debut').value;
+            const dateFin = document.getElementById('date_fin').value;
+            
+            if (!dateDebut || !dateFin) {
+                e.preventDefault();
+                alert('Veuillez sélectionner une date de début et une date de fin.');
+                return false;
             }
+            
+            if (dateDebut > dateFin) {
+                e.preventDefault();
+                alert('La date de début doit être antérieure ou égale à la date de fin.');
+                return false;
+            }
+            
+            // Confirmation dialog
+            if (!confirm('Êtes-vous sûr de vouloir générer et envoyer les quittances pour la période sélectionnée ?')) {
+                e.preventDefault();
+                return false;
+            }
+            
+            return true;
+        });
+        
+        // Update date_fin min value when date_debut changes
+        document.getElementById('date_debut').addEventListener('change', function() {
+            document.getElementById('date_fin').min = this.value;
         });
     </script>
 </body>
