@@ -13,11 +13,11 @@ Ce module permet la génération automatique de quittances de loyer au format PD
 - Un PDF par mois sélectionné
 
 ### 2. Sélection des Mois
-- Interface intuitive de sélection multiple de mois
+- **Interface de sélection par plage de dates** - Sélectionnez simplement une date de début et une date de fin
+- Génération automatique de toutes les quittances pour les mois compris dans la période sélectionnée
 - **Visibilité limitée aux 3 dernières années** ou depuis le début du contrat si celui-ci a moins de 3 ans
 - **Aucune génération de quittances pour les mois futurs** - uniquement le mois en cours et les mois antérieurs
 - Exemple : le 28 janvier, impossible de générer une quittance pour février (disponible à partir du 1er février)
-- Indication visuelle des quittances déjà générées
 - Historique complet des quittances émises
 
 ### 3. Envoi Automatique par Email
@@ -53,17 +53,19 @@ Cela créera:
 
 ## Utilisation
 
-### Générer une quittance
+### Générer des quittances
 
 1. Accédez à la page de détails d'un contrat validé
 2. Cliquez sur le bouton **"Générer une quittance"**
-3. Sélectionnez un ou plusieurs mois
+3. Sélectionnez une période en utilisant les champs de date :
+   - **Date de début (Depuis)** : Premier mois de la période
+   - **Date de fin (Jusqu'à)** : Dernier mois de la période (inclus)
 4. Cliquez sur **"Générer et Envoyer les Quittances"**
-5. Les quittances sont générées et envoyées automatiquement
+5. Les quittances sont générées et envoyées automatiquement pour tous les mois de la période
 
-#### Règles de Sélection des Mois
+#### Règles de Sélection des Périodes
 
-Le système applique automatiquement les règles suivantes lors de la sélection des mois :
+Le système applique automatiquement les règles suivantes lors de la sélection des périodes :
 
 1. **Période historique limitée** : Maximum 3 ans en arrière (36 mois)
    - Si le contrat a moins de 3 ans, la période commence à la date de prise d'effet du contrat
@@ -74,12 +76,16 @@ Le système applique automatiquement les règles suivantes lors de la sélection
    - Le 1er février 2026 → Possible de générer pour février 2026
    - Cette règle empêche la génération anticipée de quittances
 
-3. **Validation côté serveur** : Même si l'utilisateur contourne l'interface, le serveur refuse les demandes invalides
+3. **Validation de la plage de dates** : La date de début doit être antérieure ou égale à la date de fin
+   - Validation côté client (interface) et côté serveur (sécurité)
+
+4. **Validation côté serveur** : Même si l'utilisateur contourne l'interface, le serveur refuse les demandes invalides
 
 Ces règles garantissent que :
 - Les locataires ne reçoivent que des quittances pour les périodes où ils occupaient effectivement le logement
 - Aucune quittance ne peut être générée pour des périodes futures
 - L'historique reste gérable (limité à 3 ans)
+- La sélection de périodes multiples est simplifiée
 
 ### Personnaliser le template PDF
 
