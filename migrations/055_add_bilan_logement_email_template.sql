@@ -57,7 +57,7 @@ INSERT INTO email_templates (identifiant, nom, sujet, corps_html, variables_disp
     </div>
 </body>
 </html>',
-    '["locataire_nom", "adresse", "contrat_ref", "date", "commentaire", "signature"]',
+    '["locataire_nom", "adresse", "contrat_ref", "date", "commentaire", "signature", "depot_garantie", "valeur_estimative", "total_solde_debiteur", "total_solde_crediteur", "montant_a_restituer", "reste_du"]',
     'Email envoyé au locataire avec le bilan du logement en pièce jointe (PDF)',
     100
 )

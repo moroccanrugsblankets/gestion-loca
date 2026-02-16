@@ -106,6 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $stmt = $pdo->prepare("
                 SELECT c.reference_unique as contrat_ref,
                        l.adresse as logement_adresse,
+                       l.depot_garantie,
                        loc.prenom, loc.nom
                 FROM contrats c
                 LEFT JOIN logements l ON c.logement_id = l.id
@@ -120,6 +121,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             // Build locataire name, trim to handle empty fields
             $locataireNom = trim(($emailData['prenom'] ?? '') . ' ' . ($emailData['nom'] ?? ''));
             
+            // Calculate financial summary values for email
+            $depotGarantie = floatval($emailData['depot_garantie'] ?? 0);
+            
+            // Parse bilan rows to calculate totals
+            $totalValeur = 0;
+            $totalSoldeDebiteur = 0;
+            $totalSoldeCrediteur = 0;
+            
+            if (isset($_POST['bilan_rows']) && is_array($_POST['bilan_rows'])) {
+                foreach ($_POST['bilan_rows'] as $row) {
+                    if (!empty($row['valeur']) && is_numeric($row['valeur'])) {
+                        $totalValeur += floatval($row['valeur']);
+                    }
+                    
+                    $soldeDebiteur = $row['solde_debiteur'] ?? ($row['montant_du'] ?? '');
+                    if (!empty($soldeDebiteur) && is_numeric($soldeDebiteur)) {
+                        $totalSoldeDebiteur += floatval($soldeDebiteur);
+                    }
+                    
+                    $soldeCrediteur = $row['solde_crediteur'] ?? '';
+                    if (!empty($soldeCrediteur) && is_numeric($soldeCrediteur)) {
+                        $totalSoldeCrediteur += floatval($soldeCrediteur);
+                    }
+                }
+            }
+            
+            $valeurEstimative = $totalValeur;
+            $calculResultat = $depotGarantie + $totalSoldeCrediteur - $totalSoldeDebiteur;
+            $montantARestituer = $calculResultat > 0 ? $calculResultat : 0;
+            $resteDu = $calculResultat < 0 ? abs($calculResultat) : 0;
+            
             // Prepare email variables
             // Note: 'signature' variable will be automatically replaced by sendTemplatedEmail via replaceTemplateVariables
             $emailVariables = [
@@ -129,7 +161,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 'date' => date('d/m/Y'),
                 'commentaire' => !empty($_POST['bilan_logement_commentaire']) 
                     ? '<div class="info-box"><p>' . nl2br(htmlspecialchars($_POST['bilan_logement_commentaire'])) . '</p></div>' 
-                    : ''
+                    : '',
+                // Financial summary variables
+                'depot_garantie' => number_format($depotGarantie, 2, ',', ' ') . ' €',
+                'valeur_estimative' => number_format($valeurEstimative, 2, ',', ' ') . ' €',
+                'total_solde_debiteur' => number_format($totalSoldeDebiteur, 2, ',', ' ') . ' €',
+                'total_solde_crediteur' => number_format($totalSoldeCrediteur, 2, ',', ' ') . ' €',
+                'montant_a_restituer' => number_format($montantARestituer, 2, ',', ' ') . ' €',
+                'reste_du' => number_format($resteDu, 2, ',', ' ') . ' €'
             ];
             
             // Send email to each recipient
