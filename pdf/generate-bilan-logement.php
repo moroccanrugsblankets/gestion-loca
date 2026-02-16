@@ -167,6 +167,8 @@ function generateBilanLogementPDF($contratId) {
         }
 
         // Build bilan rows HTML with complete table structure (without thead/tbody tags)
+        // Note: This variable includes the full <table> tag with all rows, headers, and totals
+        // It will replace {{bilan_rows}} in the template as a complete table element
         $bilanRowsHtml = '<table border="1" cellspacing="0" cellpadding="4">';
         
         // Add header row
