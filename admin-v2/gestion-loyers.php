@@ -409,6 +409,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <?php require_once __DIR__ . '/includes/menu.php'; ?>
     
+    <div class="main-content">
     <div class="container-fluid mt-4">
         <div class="header-actions">
             <div>
@@ -647,5 +648,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
         }
     </script>
+    </div><!-- end main-content -->
 </body>
 </html>
