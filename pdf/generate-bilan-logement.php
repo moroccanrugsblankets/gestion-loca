@@ -173,11 +173,11 @@ function generateBilanLogementPDF($contratId) {
         
         // Add header row
         $bilanRowsHtml .= '<tr style="color:#ffffff;background-color:#3498db;">';
-        $bilanRowsHtml .= '<th style="width: 25%;text-align:center; vertical-align:middle;font-size:11pt;">Poste</th>';
-        $bilanRowsHtml .= '<th style="width: 30%;text-align:center; vertical-align:middle;font-size:11pt;">Commentaires</th>';
-        $bilanRowsHtml .= '<th style="width: 15%;text-align:center; vertical-align:middle;font-size:11pt;">Valeur (€)</th>';
-        $bilanRowsHtml .= '<th style="width: 15%;text-align:center; vertical-align:middle;font-size:11pt;">Solde Débiteur (€)</th>';
-        $bilanRowsHtml .= '<th style="width: 15%;text-align:center; vertical-align:middle;font-size:11pt;">Solde Créditeur (€)</th>';
+        $bilanRowsHtml .= '<th style="width: 25%;text-align:center; vertical-align:middle;font-size:11pt;font-weight:bold;">Poste</th>';
+        $bilanRowsHtml .= '<th style="width: 30%;text-align:center; vertical-align:middle;font-size:11pt;font-weight:bold;">Commentaires</th>';
+        $bilanRowsHtml .= '<th style="width: 15%;text-align:center; vertical-align:middle;font-size:11pt;font-weight:bold;">Valeur (€)</th>';
+        $bilanRowsHtml .= '<th style="width: 15%;text-align:center; vertical-align:middle;font-size:11pt;font-weight:bold;">Solde Débiteur (€)</th>';
+        $bilanRowsHtml .= '<th style="width: 15%;text-align:center; vertical-align:middle;font-size:11pt;font-weight:bold;">Solde Créditeur (€)</th>';
         $bilanRowsHtml .= '</tr>';
         
         $totalValeur = 0;
