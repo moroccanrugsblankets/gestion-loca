@@ -172,7 +172,7 @@ function generateBilanLogementPDF($contratId) {
         $bilanRowsHtml = '<table border="1" cellspacing="0" cellpadding="3">';
         
         // Add header row
-        $bilanRowsHtml .= '<tr style="color:#ffffff;background:#3498db;">';
+        $bilanRowsHtml .= '<tr style="color:#ffffff;background-color:#3498db;">';
         $bilanRowsHtml .= '<th style="width: 25%;">Poste</th>';
         $bilanRowsHtml .= '<th style="width: 30%;">Commentaires</th>';
         $bilanRowsHtml .= '<th style="width: 15%;">Valeur (€)</th>';
