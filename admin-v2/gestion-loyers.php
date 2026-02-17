@@ -23,13 +23,13 @@ require_once '../includes/mail-templates.php';
 // - Sa date de prise d'effet est NULL (pas encore définie) OU dans le passé/aujourd'hui
 define('CONTRAT_ACTIF_FILTER', "c.statut IN ('actif', 'signe', 'valide') AND (c.date_prise_effet IS NULL OR c.date_prise_effet <= CURDATE())");
 
-// Déterminer la période à afficher (12 derniers mois par défaut)
+// Déterminer la période à afficher
 $anneeActuelle = (int)date('Y');
 $moisActuel = (int)date('n');
 
 // Récupérer tous les logements en location
 $stmtLogements = $pdo->query("
-    SELECT DISTINCT l.*, c.id as contrat_id,
+    SELECT DISTINCT l.*, c.id as contrat_id, c.date_prise_effet,
            (SELECT GROUP_CONCAT(CONCAT(prenom, ' ', nom) SEPARATOR ', ')
             FROM locataires 
             WHERE contrat_id = c.id) as locataires
@@ -41,6 +41,24 @@ $stmtLogements = $pdo->query("
 ");
 $logements = $stmtLogements->fetchAll(PDO::FETCH_ASSOC);
 
+// Trouver la date de prise d'effet la plus ancienne parmi tous les contrats actifs
+$earliestDate = null;
+foreach ($logements as $logement) {
+    if (!empty($logement['date_prise_effet'])) {
+        $dateEffet = new DateTime($logement['date_prise_effet']);
+        if ($earliestDate === null || $dateEffet < $earliestDate) {
+            $earliestDate = $dateEffet;
+        }
+    }
+}
+
+// Si aucune date de prise d'effet n'est trouvée, utiliser 12 mois en arrière comme fallback
+if ($earliestDate === null) {
+    $earliestDate = new DateTime();
+    $earliestDate->modify('-11 months');
+    $earliestDate->modify('first day of this month');
+}
+
 // Nom des mois en français
 $nomsMois = [
     1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril',
@@ -48,18 +66,23 @@ $nomsMois = [
     9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'
 ];
 
-// Générer la liste des 12 derniers mois
+// Générer la liste des mois depuis la date de prise d'effet la plus ancienne jusqu'au mois actuel
 $mois = [];
-for ($i = 11; $i >= 0; $i--) {
-    $date = new DateTime();
-    $date->modify("-$i months");
-    $moisNum = (int)$date->format('n');
+$currentDate = new DateTime();
+$currentDate->modify('first day of this month'); // Normaliser au premier du mois
+
+$iterDate = clone $earliestDate;
+$iterDate->modify('first day of this month'); // Normaliser au premier du mois
+
+while ($iterDate <= $currentDate) {
+    $moisNum = (int)$iterDate->format('n');
     $mois[] = [
         'num' => $moisNum,
-        'annee' => (int)$date->format('Y'),
+        'annee' => (int)$iterDate->format('Y'),
         'nom' => $nomsMois[$moisNum],
         'nom_court' => substr($nomsMois[$moisNum], 0, 3)
     ];
+    $iterDate->modify('+1 month');
 }
 
 // Récupérer les statuts de paiement pour tous les logements et mois
@@ -298,14 +321,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         .payment-cell {
             cursor: pointer;
-            transition: all 0.2s;
+            transition: opacity 0.2s;
             min-width: 80px;
             position: relative;
         }
         
         .payment-cell:hover {
             opacity: 0.8;
-            transform: scale(1.05);
         }
         
         .payment-cell.paye {
