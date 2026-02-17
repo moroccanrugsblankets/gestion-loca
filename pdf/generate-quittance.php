@@ -263,7 +263,7 @@ function replaceQuittanceTemplateVariables($template, $contrat, $locataires, $mo
         '{{adresse_societe}}' => htmlspecialchars($adresseSociete),
         '{{tel_societe}}' => htmlspecialchars($telSociete),
         '{{email_societe}}' => htmlspecialchars($emailSociete),
-        '{{signature_societe}}' => $signatureSociete,
+        '{{signature_societe}}' => $signatureHtml,
     ];
 
     $html = str_replace(array_keys($vars), array_values($vars), $template);
