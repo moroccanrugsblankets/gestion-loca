@@ -185,7 +185,7 @@ function generateQuittancePDF($contratId, $mois, $annee) {
  * Remplacer les variables dans le template de quittance
  */
 function replaceQuittanceTemplateVariables($template, $contrat, $locataires, $mois, $annee, $reference, $dateDebut, $dateFin) {
-    global $config;
+    global $config, $pdo;
 
     // Nom des mois en français
     $nomsMois = [
