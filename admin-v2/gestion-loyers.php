@@ -17,6 +17,12 @@ require_once 'auth.php';
 require_once '../includes/db.php';
 require_once '../includes/mail-templates.php';
 
+// Filtre SQL pour les contrats actifs (utilisé dans plusieurs requêtes)
+// Un contrat est considéré actif si :
+// - Son statut est 'actif', 'signe' ou 'valide' (pas annulé, expiré ou terminé)
+// - Sa date de prise d'effet est NULL (pas encore définie) OU dans le passé/aujourd'hui
+define('CONTRAT_ACTIF_FILTER', "c.statut IN ('actif', 'signe', 'valide') AND (c.date_prise_effet IS NULL OR c.date_prise_effet <= CURDATE())");
+
 // Déterminer la période à afficher (12 derniers mois par défaut)
 $anneeActuelle = (int)date('Y');
 $moisActuel = (int)date('n');
@@ -30,7 +36,7 @@ $stmtLogements = $pdo->query("
     FROM logements l
     INNER JOIN contrats c ON c.logement_id = l.id
     WHERE l.statut = 'en_location'
-    AND c.statut = 'actif'
+    AND " . CONTRAT_ACTIF_FILTER . "
     ORDER BY l.reference
 ");
 $logements = $stmtLogements->fetchAll(PDO::FETCH_ASSOC);
@@ -141,7 +147,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $logement->execute([$logementId]);
                 $logInfo = $logement->fetch(PDO::FETCH_ASSOC);
                 
-                $contrat = $pdo->prepare("SELECT id FROM contrats WHERE logement_id = ? AND statut = 'actif' LIMIT 1");
+                // Récupérer le contrat actif pour ce logement (utilise les mêmes critères que la requête principale)
+                $contrat = $pdo->prepare("SELECT id FROM contrats c WHERE logement_id = ? AND " . CONTRAT_ACTIF_FILTER . " LIMIT 1");
                 $contrat->execute([$logementId]);
                 $contratInfo = $contrat->fetch(PDO::FETCH_ASSOC);
                 
@@ -180,7 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        (SELECT CONCAT(prenom, ' ', nom) FROM locataires WHERE contrat_id = c.id LIMIT 1) as nom_locataire
                 FROM logements l
                 INNER JOIN contrats c ON c.logement_id = l.id
-                WHERE l.id = ? AND c.statut = 'actif'
+                WHERE l.id = ? AND " . CONTRAT_ACTIF_FILTER . "
             ");
             $stmt->execute([$logementId]);
             $info = $stmt->fetch(PDO::FETCH_ASSOC);
