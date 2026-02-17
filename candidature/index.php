@@ -15,10 +15,28 @@ if (!isset($_SESSION['csrf_token'])) {
 $error = '';
 $success = '';
 
+// Récupérer le paramètre ref (md5 de la référence du logement)
+$ref_param = isset($_GET['ref']) ? $_GET['ref'] : null;
+// Valider le format MD5 (32 caractères hexadécimaux)
+if ($ref_param && !preg_match('/^[a-f0-9]{32}$/i', $ref_param)) {
+    $ref_param = null;
+}
+$selected_logement_id = null;
+
 // Récupérer la liste des logements disponibles
 try {
     $stmt = $pdo->query("SELECT id, reference, adresse, type, loyer FROM logements WHERE statut = 'disponible' ORDER BY reference");
     $logements = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Si un paramètre ref est fourni, chercher le logement correspondant
+    if ($ref_param) {
+        foreach ($logements as $logement) {
+            if (md5($logement['reference']) === $ref_param) {
+                $selected_logement_id = $logement['id'];
+                break;
+            }
+        }
+    }
 } catch (PDOException $e) {
     error_log("Erreur récupération logements: " . $e->getMessage());
     $logements = [];
@@ -279,7 +297,7 @@ try {
                                     <select class="form-select" id="logement_id" name="logement_id" required>
                                         <option value="">-- Sélectionnez un logement --</option>
                                         <?php foreach ($logements as $logement): ?>
-                                            <option value="<?php echo $logement['id']; ?>">
+                                            <option value="<?php echo $logement['id']; ?>"<?php echo ($selected_logement_id && $selected_logement_id == $logement['id']) ? ' selected' : ''; ?>>
                                                 <?php echo htmlspecialchars($logement['reference']); ?> - 
                                                 <?php echo htmlspecialchars($logement['type']); ?> - 
                                                 <?php echo htmlspecialchars($logement['adresse']); ?> - 
