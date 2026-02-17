@@ -30,7 +30,8 @@ $stmtLogements = $pdo->query("
     FROM logements l
     INNER JOIN contrats c ON c.logement_id = l.id
     WHERE l.statut = 'en_location'
-    AND c.statut = 'actif'
+    AND c.statut IN ('actif', 'signe', 'valide')
+    AND (c.date_prise_effet IS NULL OR c.date_prise_effet <= CURDATE())
     ORDER BY l.reference
 ");
 $logements = $stmtLogements->fetchAll(PDO::FETCH_ASSOC);
@@ -141,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $logement->execute([$logementId]);
                 $logInfo = $logement->fetch(PDO::FETCH_ASSOC);
                 
-                $contrat = $pdo->prepare("SELECT id FROM contrats WHERE logement_id = ? AND statut = 'actif' LIMIT 1");
+                $contrat = $pdo->prepare("SELECT id FROM contrats WHERE logement_id = ? AND statut IN ('actif', 'signe', 'valide') AND (date_prise_effet IS NULL OR date_prise_effet <= CURDATE()) LIMIT 1");
                 $contrat->execute([$logementId]);
                 $contratInfo = $contrat->fetch(PDO::FETCH_ASSOC);
                 
@@ -180,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        (SELECT CONCAT(prenom, ' ', nom) FROM locataires WHERE contrat_id = c.id LIMIT 1) as nom_locataire
                 FROM logements l
                 INNER JOIN contrats c ON c.logement_id = l.id
-                WHERE l.id = ? AND c.statut = 'actif'
+                WHERE l.id = ? AND c.statut IN ('actif', 'signe', 'valide') AND (c.date_prise_effet IS NULL OR c.date_prise_effet <= CURDATE())
             ");
             $stmt->execute([$logementId]);
             $info = $stmt->fetch(PDO::FETCH_ASSOC);
