@@ -24,6 +24,13 @@ function logDebug($message, $data = null) {
 try {
     logDebug("Début du traitement de la candidature");
     
+    // Vérifier que la connexion à la base de données est établie
+    if (!isset($pdo) || $pdo === null) {
+        logDebug("ERREUR CRITIQUE: Connexion à la base de données non établie");
+        throw new Exception('Erreur de connexion à la base de données');
+    }
+    logDebug("Connexion base de données vérifiée");
+    
     // Vérification reCAPTCHA (si activé)
     if (!empty($config['RECAPTCHA_ENABLED']) && $config['RECAPTCHA_ENABLED']) {
         if (empty($_POST['recaptcha_response'])) {
@@ -330,6 +337,16 @@ try {
     // Valider la transaction
     $pdo->commit();
     logDebug("Transaction validée");
+    
+    // Vérifier que la candidature a bien été enregistrée
+    $stmt = $pdo->prepare("SELECT id, reference_unique, statut FROM candidatures WHERE id = ?");
+    $stmt->execute([$candidature_id]);
+    $savedCandidature = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$savedCandidature) {
+        logDebug("ERREUR CRITIQUE: Candidature non trouvée après commit", ['candidature_id' => $candidature_id]);
+        throw new Exception('Erreur lors de l\'enregistrement de la candidature');
+    }
+    logDebug("Candidature vérifiée dans la base de données", $savedCandidature);
     
     // Envoyer un email de confirmation au candidat en utilisant le template de la base de données
     $candidateVariables = [
