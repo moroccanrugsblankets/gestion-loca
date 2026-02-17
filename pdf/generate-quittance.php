@@ -234,8 +234,6 @@ function replaceQuittanceTemplateVariables($template, $contrat, $locataires, $mo
             $imageData = base64_encode(file_get_contents($signatureFilePath));
             // Use MIME type from getimagesize for accurate type
             $mimeType = $imageInfo['mime'];
-            // Extract the image type from MIME (e.g., 'image/png' -> 'png')
-            $imageType = str_replace('image/', '', $mimeType);
             $signatureSociete = 'data:' . $mimeType . ';base64,' . $imageData;
         }
     }

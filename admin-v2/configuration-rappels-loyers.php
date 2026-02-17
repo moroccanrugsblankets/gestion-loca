@@ -127,6 +127,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Update cron job if it exists
         list($heure, $minute) = explode(':', $newHeureExecution);
+        // Cron format: minute hour day month weekday
+        // Note: Order differs from input (HH:MM) - cron requires minute first, then hour
         $cronExpression = "$minute $heure * * *";
         
         $stmtUpdateCron = $pdo->prepare("
