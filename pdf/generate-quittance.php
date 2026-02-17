@@ -399,10 +399,13 @@ function getDefaultQuittanceTemplate() {
 
     <div class="signature-section">
         <p>Fait à {{adresse_societe}}, le {{date_generation}}</p>
-        <p style="margin-top: 50px;">
+        <p style="margin-top: 30px;">
             <strong>{{nom_societe}}</strong><br>
             Le Bailleur
         </p>
+        <div style="margin-top: 20px;">
+            <img src="{{signature_societe}}" style="width: 150px; height: auto;" alt="Signature" />
+        </div>
     </div>
 </body>
 </html>';

@@ -3,6 +3,7 @@ require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
 require_once '../includes/functions.php';
+require_once '../pdf/generate-quittance.php';
 
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -70,6 +71,17 @@ $montantLoyer = number_format((float)$quittance['montant_loyer'], 2, ',', ' ');
 $montantCharges = number_format((float)$quittance['montant_charges'], 2, ',', ' ');
 $montantTotal = number_format((float)$quittance['montant_total'], 2, ',', ' ');
 
+// Regenerate PDF with current template to ensure template modifications are applied
+$result = generateQuittancePDF($quittance['contrat_id'], $quittance['mois'], $quittance['annee']);
+if ($result) {
+    $pdfPath = $result['filepath'];
+    error_log("PDF régénéré avec succès pour le renvoi: " . $pdfPath);
+} else {
+    // Fallback to existing PDF if regeneration fails
+    $pdfPath = $quittance['fichier_pdf'];
+    error_log("Échec de la régénération du PDF, utilisation du fichier existant: " . $pdfPath);
+}
+
 $emailsSent = 0;
 $emailsFailed = 0;
 
@@ -86,7 +98,7 @@ foreach ($locataires as $locataire) {
         'montant_charges' => $montantCharges,
         'montant_total' => $montantTotal,
         'signature' => getParameter('email_signature', '')
-    ], $quittance['fichier_pdf'], false, true);
+    ], $pdfPath, false, true);
     
     if ($emailSent) {
         $emailsSent++;
