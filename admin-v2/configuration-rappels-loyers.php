@@ -83,6 +83,7 @@ $datesEnvoi = getParameter($pdo, 'rappel_loyers_dates_envoi', [7, 9, 15]);
 $destinataires = getParameter($pdo, 'rappel_loyers_destinataires', []);
 $moduleActif = getParameter($pdo, 'rappel_loyers_actif', true);
 $inclureBouton = getParameter($pdo, 'rappel_loyers_inclure_bouton', true);
+$heureExecution = getParameter($pdo, 'rappel_loyers_heure_execution', '09:00');
 
 // Messages
 $message = '';
@@ -110,12 +111,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $newDestinataires = $_POST['destinataires'] ?? [];
         $newModuleActif = isset($_POST['module_actif']);
         $newInclureBouton = isset($_POST['inclure_bouton']);
+        $newHeureExecution = $_POST['heure_execution'] ?? '09:00';
+        
+        // Valider le format de l'heure (HH:MM)
+        if (!preg_match('/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/', $newHeureExecution)) {
+            $newHeureExecution = '09:00';
+        }
         
         // Sauvegarder les paramètres
         setParameter($pdo, 'rappel_loyers_dates_envoi', $newDatesEnvoi, 'json');
         setParameter($pdo, 'rappel_loyers_destinataires', $newDestinataires, 'json');
         setParameter($pdo, 'rappel_loyers_actif', $newModuleActif, 'boolean');
         setParameter($pdo, 'rappel_loyers_inclure_bouton', $newInclureBouton, 'boolean');
+        setParameter($pdo, 'rappel_loyers_heure_execution', $newHeureExecution, 'string');
+        
+        // Update cron job if it exists
+        list($heure, $minute) = explode(':', $newHeureExecution);
+        // Cron format: minute hour day month weekday
+        // Note: Order differs from input (HH:MM) - cron requires minute first, then hour
+        $cronExpression = "$minute $heure * * *";
+        
+        $stmtUpdateCron = $pdo->prepare("
+            UPDATE cron_jobs 
+            SET cron_expression = ? 
+            WHERE fichier = 'cron/rappel-loyers.php'
+        ");
+        $stmtUpdateCron->execute([$cronExpression]);
         
         $message = 'Configuration enregistrée avec succès !';
         $messageType = 'success';
@@ -125,6 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $destinataires = $newDestinataires;
         $moduleActif = $newModuleActif;
         $inclureBouton = $newInclureBouton;
+        $heureExecution = $newHeureExecution;
         
     } catch (Exception $e) {
         $message = 'Erreur lors de l\'enregistrement: ' . $e->getMessage();
@@ -346,6 +368,39 @@ $cronJob = $stmtCronJob->fetch(PDO::FETCH_ASSOC);
                         </div>
                     </div>
                     
+                    <!-- SECTION 2.5: Heure d'exécution -->
+                    <div class="config-section">
+                        <h3><i class="bi bi-clock"></i> Heure d'Exécution du Cron</h3>
+                        
+                        <p>Sélectionnez l'heure à laquelle le cron doit s'exécuter quotidiennement:</p>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="heure_execution" class="form-label">
+                                        <i class="bi bi-alarm"></i> Heure d'exécution
+                                    </label>
+                                    <input 
+                                        type="time" 
+                                        class="form-control form-control-lg" 
+                                        id="heure_execution" 
+                                        name="heure_execution" 
+                                        value="<?= htmlspecialchars($heureExecution) ?>"
+                                        required>
+                                    <div class="form-text">
+                                        Le cron s'exécutera chaque jour à cette heure (serveur time).
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="info-card">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Heure configurée:</strong> <?= htmlspecialchars($heureExecution) ?>
+                            <br><small class="text-muted">Le cron vérifiera si la date actuelle correspond à une date d'envoi configurée.</small>
+                        </div>
+                    </div>
+                    
                     <!-- SECTION 3: Destinataires -->
                     <div class="config-section">
                         <h3><i class="bi bi-people"></i> Administrateurs Destinataires</h3>
@@ -424,7 +479,18 @@ $cronJob = $stmtCronJob->fetch(PDO::FETCH_ASSOC);
                             <div class="mb-3">
                                 <strong>Expression cron:</strong>
                                 <div class="cron-info"><?= htmlspecialchars($cronJob['cron_expression']) ?></div>
-                                <small class="text-muted">Tous les jours à 9h00</small>
+                                <?php
+                                // Parse cron expression to show human-readable time
+                                $cronParts = explode(' ', $cronJob['cron_expression']);
+                                if (count($cronParts) >= 2) {
+                                    $minute = $cronParts[0];
+                                    $heure = $cronParts[1];
+                                    // Display as HH:MM format (hour:minute)
+                                    echo '<small class="text-muted">Tous les jours à ' . sprintf('%02d:%02d', (int)$heure, (int)$minute) . '</small>';
+                                } else {
+                                    echo '<small class="text-muted">Tous les jours à ' . htmlspecialchars($heureExecution) . '</small>';
+                                }
+                                ?>
                             </div>
                             
                             <div class="mb-3">

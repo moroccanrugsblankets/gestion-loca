@@ -26,9 +26,15 @@ function generateQuittancePDF($contratId, $mois, $annee) {
     $annee = (int)$annee;
     
     // Constants for validation
-    define('MIN_VALID_YEAR', 2000);
-    define('MAX_VALID_MONTH', 12);
-    define('MIN_VALID_MONTH', 1);
+    if (!defined('MIN_VALID_YEAR')) {
+        define('MIN_VALID_YEAR', 2000);
+    }
+    if (!defined('MAX_VALID_MONTH')) {
+        define('MAX_VALID_MONTH', 12);
+    }
+    if (!defined('MIN_VALID_MONTH')) {
+        define('MIN_VALID_MONTH', 1);
+    }
     
     if ($contratId <= 0 || $mois < MIN_VALID_MONTH || $mois > MAX_VALID_MONTH || $annee < MIN_VALID_YEAR) {
         error_log("Erreur: Paramètres invalides - Contrat: $contratId, Mois: $mois, Année: $annee");
@@ -213,6 +219,24 @@ function replaceQuittanceTemplateVariables($template, $contrat, $locataires, $mo
     $adresseSociete = $config['COMPANY_ADDRESS'] ?? '';
     $telSociete = $config['COMPANY_PHONE'] ?? '';
     $emailSociete = $config['COMPANY_EMAIL'] ?? '';
+    
+    // Récupérer la signature de la société
+    $signatureSociete = '';
+    $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_image'");
+    $stmt->execute();
+    $signatureFilePath = $stmt->fetchColumn();
+    
+    if (!empty($signatureFilePath) && file_exists($signatureFilePath)) {
+        // Validate that it's actually an image file
+        $imageInfo = @getimagesize($signatureFilePath);
+        if ($imageInfo !== false) {
+            // Convert to base64 for embedding in PDF
+            $imageData = base64_encode(file_get_contents($signatureFilePath));
+            // Use MIME type from getimagesize for accurate type
+            $mimeType = $imageInfo['mime'];
+            $signatureSociete = 'data:' . $mimeType . ';base64,' . $imageData;
+        }
+    }
 
     $vars = [
         '{{reference_quittance}}' => htmlspecialchars($reference),
@@ -234,6 +258,7 @@ function replaceQuittanceTemplateVariables($template, $contrat, $locataires, $mo
         '{{adresse_societe}}' => htmlspecialchars($adresseSociete),
         '{{tel_societe}}' => htmlspecialchars($telSociete),
         '{{email_societe}}' => htmlspecialchars($emailSociete),
+        '{{signature_societe}}' => $signatureSociete,
     ];
 
     $html = str_replace(array_keys($vars), array_values($vars), $template);
