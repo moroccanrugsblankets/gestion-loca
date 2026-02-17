@@ -220,22 +220,14 @@ function replaceQuittanceTemplateVariables($template, $contrat, $locataires, $mo
     $telSociete = $config['COMPANY_PHONE'] ?? '';
     $emailSociete = $config['COMPANY_EMAIL'] ?? '';
     
-    // Récupérer la signature de la société
-    $signatureSociete = '';
+    // Get signature if exists
     $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_image'");
     $stmt->execute();
-    $signatureFilePath = $stmt->fetchColumn();
+    $signatureData = $stmt->fetchColumn();
     
-    if (!empty($signatureFilePath) && file_exists($signatureFilePath)) {
-        // Validate that it's actually an image file
-        $imageInfo = @getimagesize($signatureFilePath);
-        if ($imageInfo !== false) {
-            // Convert to base64 for embedding in PDF
-            $imageData = base64_encode(file_get_contents($signatureFilePath));
-            // Use MIME type from getimagesize for accurate type
-            $mimeType = $imageInfo['mime'];
-            $signatureSociete = 'data:' . $mimeType . ';base64,' . $imageData;
-        }
+    $signatureSociete = '';
+    if ($signatureData) {
+        $signatureSociete = $signatureData;
     }
 
     $vars = [
