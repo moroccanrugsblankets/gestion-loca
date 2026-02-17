@@ -24,6 +24,13 @@ function logDebug($message, $data = null) {
 try {
     logDebug("Début du traitement de la candidature");
     
+    // Vérifier que la connexion à la base de données est établie
+    if (!isset($pdo) || $pdo === null) {
+        logDebug("ERREUR CRITIQUE: Connexion à la base de données non établie");
+        throw new Exception('Erreur de connexion à la base de données');
+    }
+    logDebug("Connexion base de données vérifiée");
+    
     // Vérification reCAPTCHA (si activé)
     if (!empty($config['RECAPTCHA_ENABLED']) && $config['RECAPTCHA_ENABLED']) {
         if (empty($_POST['recaptcha_response'])) {
@@ -327,9 +334,22 @@ try {
     $logSql = "INSERT INTO logs (candidature_id, action, details, ip_address) VALUES (?, ?, ?, ?)";
     executeQuery($logSql, [$candidature_id, 'Candidature soumise', "Candidature #$candidature_id - $nom $prenom - $total_uploaded documents", getClientIp()]);
     
+    // Vérification optionnelle pour diagnostic (peut être désactivée en production pour performance)
+    // Utile uniquement si vous rencontrez des problèmes de persistance de données
+    if (defined('DEBUG_MODE') && DEBUG_MODE) {
+        $stmt = $pdo->prepare("SELECT id, reference_unique, statut FROM candidatures WHERE id = ?");
+        $stmt->execute([$candidature_id]);
+        $savedCandidature = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$savedCandidature) {
+            logDebug("ERREUR CRITIQUE: Candidature non trouvée avant commit", ['candidature_id' => $candidature_id]);
+            throw new Exception('Erreur lors de l\'enregistrement de la candidature');
+        }
+        logDebug("Candidature vérifiée dans la transaction", $savedCandidature);
+    }
+    
     // Valider la transaction
     $pdo->commit();
-    logDebug("Transaction validée");
+    logDebug("Transaction validée et candidature persistée");
     
     // Envoyer un email de confirmation au candidat en utilisant le template de la base de données
     $candidateVariables = [

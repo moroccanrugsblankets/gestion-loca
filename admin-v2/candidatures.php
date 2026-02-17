@@ -34,9 +34,27 @@ $query = "SELECT c.*, l.reference as logement_ref, l.adresse
           $whereClause
           ORDER BY c.date_soumission DESC";
 
-$stmt = $pdo->prepare($query);
-$stmt->execute($params);
-$candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Verify database connection
+if (!isset($pdo) || $pdo === null) {
+    error_log("[ADMIN CANDIDATURES] ERREUR: Connexion à la base de données non établie");
+    die("Erreur: La connexion à la base de données n'est pas disponible pour le panneau d'administration. Veuillez contacter l'administrateur.");
+}
+
+try {
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($params);
+    $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Log diagnostic seulement en mode debug pour éviter de saturer les logs en production
+    if (defined('DEBUG_MODE') && DEBUG_MODE) {
+        error_log("[ADMIN CANDIDATURES] Nombre de candidatures trouvées: " . count($candidatures));
+    }
+} catch (PDOException $e) {
+    error_log("[ADMIN CANDIDATURES] Erreur SQL: " . $e->getMessage());
+    error_log("[ADMIN CANDIDATURES] Query: " . $query);
+    error_log("[ADMIN CANDIDATURES] Params: " . json_encode($params));
+    die("Erreur lors de la récupération des candidatures. Consultez le fichier error.log à la racine du projet pour plus de détails (recherchez '[ADMIN CANDIDATURES]').");
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
