@@ -219,7 +219,7 @@ function replaceQuittanceTemplateVariables($template, $contrat, $locataires, $mo
     $adresseSociete = $config['COMPANY_ADDRESS'] ?? '';
     $telSociete = $config['COMPANY_PHONE'] ?? '';
     $emailSociete = $config['COMPANY_EMAIL'] ?? '';
-    
+    /*
     // Get signature if exists
     $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_image'");
     $stmt->execute();
@@ -228,7 +228,20 @@ function replaceQuittanceTemplateVariables($template, $contrat, $locataires, $mo
     $signatureSociete = '';
     if ($signatureData) {
         $signatureSociete = $signatureData;
-    }
+    }*/
+
+    
+        // Get signature if exists
+        $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_image'");
+        $stmt->execute();
+        $signatureData = $stmt->fetchColumn();
+        
+        $signatureHtml = '';
+        if ($signatureData) {
+            $signatureHtml = '<div><strong>Signature du bailleur :</strong><br>';
+            $signatureHtml .= '<img src="' . htmlspecialchars($signatureData) . '" alt="Signature" style="width: 80px; height: auto;">';
+            $signatureHtml .= '</div>';
+        }
 
     $vars = [
         '{{reference_quittance}}' => htmlspecialchars($reference),
