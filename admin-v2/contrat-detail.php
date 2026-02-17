@@ -347,6 +347,9 @@ if ($contrat['validated_by']) {
                         <a href="../pdf/download.php?contrat_id=<?php echo $contrat['id']; ?>" class="btn btn-success">
                             <i class="bi bi-download"></i> Télécharger PDF
                         </a>
+                        <a href="gestion-loyers.php?contrat_id=<?php echo $contrat['id']; ?>" class="btn btn-warning">
+                            <i class="bi bi-cash-stack"></i> Gestion du loyer
+                        </a>
                     <?php endif; ?>
                     <?php if ($contrat['statut'] === 'valide'): ?>
                         <a href="generer-quittances.php?id=<?php echo $contrat['id']; ?>" class="btn btn-primary">
