@@ -7,7 +7,8 @@
  * 
  * Fonctionnalités:
  * - Vue synthétique avec code couleur (vert=payé, rouge=impayé, orange=attente)
- * - Affichage côte à côte des biens
+ * - Affichage côte à côte des biens (vue globale)
+ * - Filtrage par contrat spécifique (vue détaillée)
  * - Modification manuelle du statut de paiement
  * - Envoi de rappels manuels aux locataires
  */
@@ -27,19 +28,60 @@ define('CONTRAT_ACTIF_FILTER', "c.statut IN ('actif', 'signe', 'valide') AND (c.
 $anneeActuelle = (int)date('Y');
 $moisActuel = (int)date('n');
 
-// Récupérer tous les logements en location
-$stmtLogements = $pdo->query("
-    SELECT DISTINCT l.*, c.id as contrat_id, c.date_prise_effet,
+// Vérifier si un filtre par contrat est appliqué
+$contratIdFilter = isset($_GET['contrat_id']) ? (int)$_GET['contrat_id'] : null;
+$vueDetaillee = ($contratIdFilter !== null);
+
+// Si un contrat_id est spécifié, récupérer uniquement ce contrat
+// Sinon, récupérer tous les logements en location
+if ($vueDetaillee) {
+    $stmtLogements = $pdo->prepare("
+        SELECT DISTINCT l.*, c.id as contrat_id, c.date_prise_effet, c.reference_unique as contrat_reference,
+               (SELECT GROUP_CONCAT(CONCAT(prenom, ' ', nom) SEPARATOR ', ')
+                FROM locataires 
+                WHERE contrat_id = c.id) as locataires
+        FROM logements l
+        INNER JOIN contrats c ON c.logement_id = l.id
+        WHERE c.id = ?
+        AND " . CONTRAT_ACTIF_FILTER . "
+        ORDER BY l.reference
+    ");
+    $stmtLogements->execute([$contratIdFilter]);
+    $logements = $stmtLogements->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Si aucun contrat trouvé, rediriger vers la vue globale
+    if (empty($logements)) {
+        header('Location: gestion-loyers.php');
+        exit;
+    }
+} else {
+    $stmtLogements = $pdo->query("
+        SELECT DISTINCT l.*, c.id as contrat_id, c.date_prise_effet, c.reference_unique as contrat_reference,
+               (SELECT GROUP_CONCAT(CONCAT(prenom, ' ', nom) SEPARATOR ', ')
+                FROM locataires 
+                WHERE contrat_id = c.id) as locataires
+        FROM logements l
+        INNER JOIN contrats c ON c.logement_id = l.id
+        WHERE l.statut = 'en_location'
+        AND " . CONTRAT_ACTIF_FILTER . "
+        ORDER BY l.reference
+    ");
+    $logements = $stmtLogements->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Récupérer la liste de tous les contrats actifs pour le sélecteur
+$stmtTousContrats = $pdo->query("
+    SELECT c.id, c.reference_unique, l.reference as logement_ref, l.adresse,
            (SELECT GROUP_CONCAT(CONCAT(prenom, ' ', nom) SEPARATOR ', ')
             FROM locataires 
             WHERE contrat_id = c.id) as locataires
-    FROM logements l
-    INNER JOIN contrats c ON c.logement_id = l.id
+    FROM contrats c
+    INNER JOIN logements l ON c.logement_id = l.id
     WHERE l.statut = 'en_location'
     AND " . CONTRAT_ACTIF_FILTER . "
     ORDER BY l.reference
 ");
-$logements = $stmtLogements->fetchAll(PDO::FETCH_ASSOC);
+$tousContrats = $stmtTousContrats->fetchAll(PDO::FETCH_ASSOC);
 
 // Trouver la date de prise d'effet la plus ancienne parmi tous les contrats actifs
 $earliestDate = null;
@@ -65,6 +107,16 @@ $nomsMois = [
     5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août',
     9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'
 ];
+
+// Icônes pour les statuts
+$iconesStatut = [
+    'paye' => '✓',
+    'impaye' => '✗',
+    'attente' => '⏳'
+];
+
+// Constantes d'affichage
+define('MAX_ADRESSE_LENGTH', 50);
 
 // Générer la liste des mois depuis la date de prise d'effet la plus ancienne jusqu'au mois actuel
 $mois = [];
@@ -433,6 +485,84 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 11px;
             padding: 2px 6px;
         }
+        
+        /* Styles pour la vue détaillée (flexbox) */
+        .months-flex-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .month-block {
+            flex: 1 1 calc(20% - 15px);
+            min-width: 150px;
+            max-width: 200px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .month-block:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .month-block.paye {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border-color: #28a745;
+            color: white;
+        }
+        
+        .month-block.impaye {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            border-color: #dc3545;
+            color: white;
+        }
+        
+        .month-block.attente {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            border-color: #ffc107;
+            color: #333;
+        }
+        
+        .month-block .month-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .month-block .month-year {
+            font-size: 13px;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+        
+        .month-block .status-icon {
+            font-size: 48px;
+            display: block;
+            margin: 15px 0;
+        }
+        
+        .month-block .amount {
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .month-block .payment-date {
+            font-size: 12px;
+            margin-top: 5px;
+            opacity: 0.9;
+        }
+        
+        .month-block.current-month-block {
+            border: 3px solid #007bff;
+            box-shadow: 0 0 15px rgba(0, 123, 255, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -443,7 +573,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="header-actions">
             <div>
                 <h1><i class="bi bi-cash-stack"></i> Gestion des Loyers</h1>
-                <p class="text-muted">Vue synthétique de l'état des paiements mensuels</p>
+                <?php if ($vueDetaillee && !empty($logements)): ?>
+                    <h5 class="mb-2">
+                        <span class="badge bg-primary"><?= htmlspecialchars($logements[0]['reference']) ?></span>
+                        <?= htmlspecialchars($logements[0]['adresse']) ?>
+                    </h5>
+                    <p class="text-muted mb-2">
+                        <strong>Contrat:</strong> <?= htmlspecialchars($logements[0]['contrat_reference']) ?> | 
+                        <strong>Locataire(s):</strong> <?= htmlspecialchars($logements[0]['locataires'] ?: 'Non assigné') ?>
+                    </p>
+                <?php else: ?>
+                    <p class="text-muted">Vue synthétique de l'état des paiements mensuels</p>
+                <?php endif; ?>
             </div>
             <div>
                 <a href="configuration-rappels-loyers.php" class="btn btn-primary">
@@ -452,6 +593,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button class="btn btn-success" onclick="envoyerRappelManuel()">
                     <i class="bi bi-envelope"></i> Envoyer rappel maintenant
                 </button>
+            </div>
+        </div>
+        
+        <!-- Sélecteur de contrat/logement -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <form method="GET" class="row g-3 align-items-end">
+                    <div class="col-md-8">
+                        <label for="contrat_select" class="form-label">
+                            <i class="bi bi-funnel"></i> Filtrer par contrat/logement
+                        </label>
+                        <select name="contrat_id" id="contrat_select" class="form-select" onchange="this.form.submit()">
+                            <option value="">-- Vue globale (tous les logements) --</option>
+                            <?php foreach ($tousContrats as $contrat): ?>
+                                <option value="<?= $contrat['id'] ?>" <?= ($contratIdFilter == $contrat['id']) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($contrat['logement_ref']) ?> - 
+                                    <?= htmlspecialchars(substr($contrat['adresse'], 0, MAX_ADRESSE_LENGTH)) ?> 
+                                    (<?= htmlspecialchars($contrat['locataires'] ?: 'Sans locataire') ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-funnel-fill"></i> Appliquer
+                        </button>
+                    </div>
+                    <div class="col-md-2">
+                        <a href="gestion-loyers.php" class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-x-circle"></i> Réinitialiser
+                        </a>
+                    </div>
+                </form>
             </div>
         </div>
         
@@ -517,7 +691,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="alert alert-info">
                 <i class="bi bi-info-circle"></i> Aucun bien en location actuellement.
             </div>
+        <?php elseif ($vueDetaillee): ?>
+            <!-- Vue détaillée avec flexbox pour un seul contrat -->
+            <div class="months-flex-container">
+                <?php 
+                $logement = $logements[0]; // Un seul logement en vue détaillée
+                $montantTotal = $logement['loyer'] + $logement['charges'];
+                foreach ($mois as $m): 
+                    $statut = getStatutPaiement($logement['id'], $m['num'], $m['annee']);
+                    $statutClass = $statut ? $statut['statut_paiement'] : 'attente';
+                    $icon = $iconesStatut[$statutClass];
+                    $isCurrentMonth = ($m['num'] == $moisActuel && $m['annee'] == $anneeActuelle);
+                    $datePaiement = $statut && $statut['date_paiement'] ? date('d/m/Y', strtotime($statut['date_paiement'])) : '';
+                ?>
+                    <div class="month-block <?= $statutClass ?> <?= $isCurrentMonth ? 'current-month-block' : '' ?>" 
+                         onclick="changerStatut(<?= $logement['id'] ?>, <?= $m['num'] ?>, <?= $m['annee'] ?>, '<?= $statutClass ?>')">
+                        <div class="month-name"><?= htmlspecialchars($nomsMois[$m['num']]) ?></div>
+                        <div class="month-year"><?= $m['annee'] ?></div>
+                        <div class="status-icon"><?= $icon ?></div>
+                        <div class="amount"><?= number_format($montantTotal, 2, ',', ' ') ?>€</div>
+                        <?php if ($datePaiement): ?>
+                            <div class="payment-date">Payé le <?= $datePaiement ?></div>
+                        <?php endif; ?>
+                        <?php if ($statutClass === 'impaye'): ?>
+                            <button class="btn btn-sm btn-outline-light mt-2" 
+                                    onclick="event.stopPropagation(); envoyerRappelLocataire(<?= $logement['id'] ?>, <?= $m['num'] ?>, <?= $m['annee'] ?>)">
+                                <i class="bi bi-envelope"></i> Rappel
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
         <?php else: ?>
+            <!-- Vue globale avec tableau pour tous les logements -->
             <div class="table-container">
                 <table class="payment-table">
                     <thead>
@@ -544,11 +750,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 foreach ($mois as $m): 
                                     $statut = getStatutPaiement($logement['id'], $m['num'], $m['annee']);
                                     $statutClass = $statut ? $statut['statut_paiement'] : 'attente';
-                                    $icon = [
-                                        'paye' => '✓',
-                                        'impaye' => '✗',
-                                        'attente' => '⏳'
-                                    ][$statutClass];
+                                    $icon = $iconesStatut[$statutClass];
                                     
                                     // Ne pas créer automatiquement - attendre l'interaction utilisateur
                                 ?>

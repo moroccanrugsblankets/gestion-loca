@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aperçu - Module Gestion des Loyers</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        .preview-section {
+            background: white;
+            padding: 30px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .months-flex-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .month-block {
+            flex: 1 1 calc(20% - 15px);
+            min-width: 150px;
+            max-width: 200px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .month-block:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .month-block.paye {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border-color: #28a745;
+            color: white;
+        }
+        .month-block.impaye {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            border-color: #dc3545;
+            color: white;
+        }
+        .month-block.attente {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            border-color: #ffc107;
+            color: #333;
+        }
+        .month-block .month-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .month-block .month-year {
+            font-size: 13px;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+        .month-block .status-icon {
+            font-size: 48px;
+            display: block;
+            margin: 15px 0;
+        }
+        .month-block .amount {
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .month-block .payment-date {
+            font-size: 12px;
+            margin-top: 5px;
+            opacity: 0.9;
+        }
+        .month-block.current-month-block {
+            border: 3px solid #007bff;
+            box-shadow: 0 0 15px rgba(0, 123, 255, 0.3);
+        }
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            text-align: center;
+        }
+        .stat-card.total { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .stat-card.paye { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); }
+        .stat-card.impaye { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); }
+        .stat-card.attente { background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+        }
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+        .screenshot {
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            background: #f8f9fa;
+            margin: 20px 0;
+        }
+        .code-example {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4"><i class="bi bi-cash-stack text-warning"></i> Aperçu du Module de Gestion des Loyers</h1>
+        
+        <!-- Section 1: En-tête avec filtre -->
+        <div class="preview-section">
+            <h2 class="h4 mb-3">1. En-tête et sélecteur de contrat</h2>
+            
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <h3 class="h5"><i class="bi bi-cash-stack"></i> Gestion des Loyers</h3>
+                    <h5 class="mb-2">
+                        <span class="badge bg-primary">APT-001</span>
+                        15 Rue de la République, 69001 Lyon
+                    </h5>
+                    <p class="text-muted mb-2">
+                        <strong>Contrat:</strong> CONT-20240115-A1B2C3D4 | 
+                        <strong>Locataire(s):</strong> Jean Dupont, Marie Martin
+                    </p>
+                </div>
+                <div>
+                    <button class="btn btn-primary">
+                        <i class="bi bi-gear"></i> Configuration
+                    </button>
+                    <button class="btn btn-success">
+                        <i class="bi bi-envelope"></i> Envoyer rappel
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-8">
+                            <label for="contrat_select" class="form-label">
+                                <i class="bi bi-funnel"></i> Filtrer par contrat/logement
+                            </label>
+                            <select id="contrat_select" class="form-select">
+                                <option value="">-- Vue globale (tous les logements) --</option>
+                                <option value="1" selected>APT-001 - 15 Rue de la République, 69001 Lyon (Jean Dupont, Marie Martin)</option>
+                                <option value="2">APT-002 - 28 Avenue du Parc, 69002 Lyon (Sophie Bernard)</option>
+                                <option value="3">APT-003 - 42 Boulevard Carnot, 69003 Lyon (Pierre Leroy)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-primary w-100">
+                                <i class="bi bi-funnel-fill"></i> Appliquer
+                            </button>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-outline-secondary w-100">
+                                <i class="bi bi-x-circle"></i> Réinitialiser
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section 2: Statistiques -->
+        <div class="preview-section">
+            <h2 class="h4 mb-3">2. Statistiques du mois en cours</h2>
+            
+            <div class="stats-summary">
+                <div class="stat-card total">
+                    <div class="stat-value">1</div>
+                    <div class="stat-label">Bien sélectionné</div>
+                </div>
+                <div class="stat-card paye">
+                    <div class="stat-value">1</div>
+                    <div class="stat-label">Loyer payé ce mois</div>
+                </div>
+                <div class="stat-card impaye">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">Loyers impayés</div>
+                </div>
+                <div class="stat-card attente">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">En attente</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section 3: Blocs mensuels en flexbox -->
+        <div class="preview-section">
+            <h2 class="h4 mb-3">3. Affichage des loyers mensuels (Vue détaillée - Flexbox)</h2>
+            
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> Les blocs s'adaptent automatiquement à la largeur de l'écran. Cliquez sur un bloc pour changer son statut.
+            </div>
+            
+            <div class="months-flex-container">
+                <!-- Novembre 2025 - Payé -->
+                <div class="month-block paye">
+                    <div class="month-name">Novembre</div>
+                    <div class="month-year">2025</div>
+                    <div class="status-icon">✓</div>
+                    <div class="amount">850,00 €</div>
+                    <div class="payment-date">Payé le 01/11/2025</div>
+                </div>
+                
+                <!-- Décembre 2025 - Payé -->
+                <div class="month-block paye">
+                    <div class="month-name">Décembre</div>
+                    <div class="month-year">2025</div>
+                    <div class="status-icon">✓</div>
+                    <div class="amount">850,00 €</div>
+                    <div class="payment-date">Payé le 01/12/2025</div>
+                </div>
+                
+                <!-- Janvier 2026 - Payé -->
+                <div class="month-block paye">
+                    <div class="month-name">Janvier</div>
+                    <div class="month-year">2026</div>
+                    <div class="status-icon">✓</div>
+                    <div class="amount">850,00 €</div>
+                    <div class="payment-date">Payé le 02/01/2026</div>
+                </div>
+                
+                <!-- Février 2026 - Mois actuel - Payé -->
+                <div class="month-block paye current-month-block">
+                    <div class="month-name">Février</div>
+                    <div class="month-year">2026</div>
+                    <div class="status-icon">✓</div>
+                    <div class="amount">850,00 €</div>
+                    <div class="payment-date">Payé le 03/02/2026</div>
+                </div>
+                
+                <!-- Mars 2026 - Impayé (exemple) -->
+                <div class="month-block impaye">
+                    <div class="month-name">Mars</div>
+                    <div class="month-year">2026</div>
+                    <div class="status-icon">✗</div>
+                    <div class="amount">850,00 €</div>
+                    <button class="btn btn-sm btn-outline-light mt-2">
+                        <i class="bi bi-envelope"></i> Rappel
+                    </button>
+                </div>
+                
+                <!-- Avril 2026 - Attente -->
+                <div class="month-block attente">
+                    <div class="month-name">Avril</div>
+                    <div class="month-year">2026</div>
+                    <div class="status-icon">⏳</div>
+                    <div class="amount">850,00 €</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section 4: Boutons d'accès -->
+        <div class="preview-section">
+            <h2 class="h4 mb-3">4. Boutons d'accès dans les différentes pages</h2>
+            
+            <h3 class="h6 mt-4 mb-3">A. Dans la liste des logements (logements.php)</h3>
+            <div class="code-example">
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary" title="Modifier">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-outline-info" title="Définir les valeurs par défaut">
+                        <i class="bi bi-gear"></i>
+                    </button>
+                    <button class="btn btn-outline-success" title="Définir l'inventaire">
+                        <i class="bi bi-box-seam"></i>
+                    </button>
+                    <button class="btn btn-outline-warning" title="Gestion du loyer">
+                        <i class="bi bi-cash-stack"></i>
+                    </button>
+                    <button class="btn btn-outline-danger" title="Supprimer">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <h3 class="h6 mt-4 mb-3">B. Dans la liste des contrats (contrats.php)</h3>
+            <div class="code-example">
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary" title="Voir détails">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-outline-success" title="Télécharger PDF">
+                        <i class="bi bi-download"></i>
+                    </button>
+                    <button class="btn btn-outline-info" title="Bilan de logement">
+                        <i class="bi bi-clipboard-check"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary" title="Quittances">
+                        <i class="bi bi-receipt"></i>
+                    </button>
+                    <button class="btn btn-outline-warning" title="Gestion du loyer">
+                        <i class="bi bi-cash-stack"></i>
+                    </button>
+                    <button class="btn btn-outline-danger" title="Supprimer">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <h3 class="h6 mt-4 mb-3">C. Dans le détail d'un contrat (contrat-detail.php)</h3>
+            <div class="code-example">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Retour
+                    </button>
+                    <button class="btn btn-success">
+                        <i class="bi bi-download"></i> Télécharger PDF
+                    </button>
+                    <button class="btn btn-warning">
+                        <i class="bi bi-cash-stack"></i> Gestion du loyer
+                    </button>
+                    <button class="btn btn-primary">
+                        <i class="bi bi-receipt"></i> Générer une quittance
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section 5: Légende -->
+        <div class="preview-section">
+            <h2 class="h4 mb-3">5. Légende des statuts</h2>
+            
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card border-success">
+                        <div class="card-body text-center">
+                            <div style="font-size: 48px; color: #28a745;">✓</div>
+                            <h5 class="card-title text-success">Payé</h5>
+                            <p class="card-text">Le loyer a été reçu et enregistré</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-danger">
+                        <div class="card-body text-center">
+                            <div style="font-size: 48px; color: #dc3545;">✗</div>
+                            <h5 class="card-title text-danger">Impayé</h5>
+                            <p class="card-text">Le loyer n'a pas été reçu</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-warning">
+                        <div class="card-body text-center">
+                            <div style="font-size: 48px; color: #ffc107;">⏳</div>
+                            <h5 class="card-title text-warning">En attente</h5>
+                            <p class="card-text">Statut non encore défini</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section 6: Workflow -->
+        <div class="preview-section">
+            <h2 class="h4 mb-3">6. Workflow utilisateur</h2>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Scénario 1 : Depuis la liste des logements</h5>
+                    <ol>
+                        <li>Affichage de la liste des logements</li>
+                        <li>Clic sur <button class="btn btn-sm btn-outline-warning"><i class="bi bi-cash-stack"></i></button></li>
+                        <li>Redirection vers <code>gestion-loyers.php?contrat_id=X</code></li>
+                        <li>Affichage en vue détaillée (flexbox)</li>
+                        <li>Possibilité de changer de logement via le sélecteur</li>
+                    </ol>
+                </div>
+                <div class="col-md-6">
+                    <h5>Scénario 2 : Depuis la liste des contrats</h5>
+                    <ol>
+                        <li>Affichage de la liste des contrats</li>
+                        <li>Clic sur <button class="btn btn-sm btn-outline-warning"><i class="bi bi-cash-stack"></i></button></li>
+                        <li>Redirection vers <code>gestion-loyers.php?contrat_id=X</code></li>
+                        <li>Affichage en vue détaillée (flexbox)</li>
+                        <li>Navigation facile entre contrats</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section 7: Avantages -->
+        <div class="preview-section">
+            <h2 class="h4 mb-3">7. Avantages de l'implémentation</h2>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card bg-light mb-3">
+                        <div class="card-header"><i class="bi bi-check-circle text-success"></i> Architecture</div>
+                        <div class="card-body">
+                            <ul>
+                                <li>Modulaire et extensible</li>
+                                <li>Pas de modification des tables</li>
+                                <li>Compatible avec l'existant</li>
+                                <li>Basé sur contrat_id</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card bg-light mb-3">
+                        <div class="card-header"><i class="bi bi-check-circle text-success"></i> Interface</div>
+                        <div class="card-body">
+                            <ul>
+                                <li>Flexbox responsive</li>
+                                <li>Codes couleur intuitifs</li>
+                                <li>Navigation fluide</li>
+                                <li>Accès direct depuis 3 pages</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section 8: Extensions futures -->
+        <div class="preview-section">
+            <h2 class="h4 mb-3">8. Extensions futures possibles</h2>
+            
+            <div class="alert alert-info">
+                <h5><i class="bi bi-lightbulb"></i> Évolutions prévues</h5>
+                <ul class="mb-0">
+                    <li><strong>Tri avancé :</strong> Par année, par statut, par montant</li>
+                    <li><strong>Génération PDF :</strong> Export des loyers pour un contrat ou une période</li>
+                    <li><strong>Statistiques :</strong> Graphiques d'évolution des paiements</li>
+                    <li><strong>Notifications :</strong> Alertes automatiques pour impayés</li>
+                    <li><strong>Historique :</strong> Consultation des anciens contrats</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

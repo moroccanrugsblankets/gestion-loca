@@ -287,6 +287,9 @@ $stats = [
                                         <a href="quittances.php?contrat_id=<?php echo $contrat['id']; ?>" class="btn btn-outline-secondary" title="Quittances">
                                             <i class="bi bi-receipt"></i>
                                         </a>
+                                        <a href="gestion-loyers.php?contrat_id=<?php echo $contrat['id']; ?>" class="btn btn-outline-warning" title="Gestion du loyer">
+                                            <i class="bi bi-cash-stack"></i>
+                                        </a>
                                     <?php endif; ?>
                                     <?php if ($contrat['statut'] === 'en_attente'): ?>
                                         <button class="btn btn-outline-warning" title="Renvoyer le lien" onclick="resendLink(<?php echo $contrat['id']; ?>)">

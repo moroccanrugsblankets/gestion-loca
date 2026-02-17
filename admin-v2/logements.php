@@ -194,14 +194,20 @@ if ($statut_filter && isset($statut_ui_to_db_map[$statut_filter])) {
 }
 
 // Build query - explicitly select columns we need
-$sql = "SELECT id, reference, adresse, type, surface, loyer, charges, 
-        depot_garantie, parking, statut, date_disponibilite, created_at, updated_at,
-        COALESCE(default_cles_appartement, 2) as default_cles_appartement,
-        COALESCE(default_cles_boite_lettres, 1) as default_cles_boite_lettres,
-        default_etat_piece_principale,
-        default_etat_cuisine,
-        default_etat_salle_eau
-        FROM logements WHERE 1=1";
+$sql = "SELECT l.id, l.reference, l.adresse, l.type, l.surface, l.loyer, l.charges, 
+        l.depot_garantie, l.parking, l.statut, l.date_disponibilite, l.created_at, l.updated_at,
+        COALESCE(l.default_cles_appartement, 2) as default_cles_appartement,
+        COALESCE(l.default_cles_boite_lettres, 1) as default_cles_boite_lettres,
+        l.default_etat_piece_principale,
+        l.default_etat_cuisine,
+        l.default_etat_salle_eau,
+        (SELECT c.id FROM contrats c 
+         WHERE c.logement_id = l.id 
+         AND c.statut IN ('actif', 'signe', 'valide')
+         AND (c.date_prise_effet IS NULL OR c.date_prise_effet <= CURDATE())
+         ORDER BY c.date_creation DESC 
+         LIMIT 1) as dernier_contrat_id
+        FROM logements l WHERE 1=1";
 $params = [];
 
 if ($statut_db) {
@@ -465,6 +471,13 @@ $stats = [
                                        title="Définir l'inventaire">
                                         <i class="bi bi-box-seam"></i>
                                     </a>
+                                    <?php if ($logement['dernier_contrat_id']): ?>
+                                        <a href="gestion-loyers.php?contrat_id=<?php echo $logement['dernier_contrat_id']; ?>" 
+                                           class="btn btn-outline-warning btn-sm"
+                                           title="Gestion du loyer">
+                                            <i class="bi bi-cash-stack"></i>
+                                        </a>
+                                    <?php endif; ?>
                                     <button class="btn btn-outline-danger delete-btn"
                                             data-id="<?php echo $logement['id']; ?>"
                                             data-reference="<?php echo htmlspecialchars($logement['reference']); ?>"
