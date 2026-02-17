@@ -77,8 +77,7 @@ $stmtTousContrats = $pdo->query("
             WHERE contrat_id = c.id) as locataires
     FROM contrats c
     INNER JOIN logements l ON c.logement_id = l.id
-    WHERE l.statut = 'en_location'
-    AND " . CONTRAT_ACTIF_FILTER . "
+    WHERE " . CONTRAT_ACTIF_FILTER . "
     ORDER BY l.reference
 ");
 $tousContrats = $stmtTousContrats->fetchAll(PDO::FETCH_ASSOC);
