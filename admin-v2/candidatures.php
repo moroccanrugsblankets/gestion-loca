@@ -37,7 +37,7 @@ $query = "SELECT c.*, l.reference as logement_ref, l.adresse
 // Verify database connection
 if (!isset($pdo) || $pdo === null) {
     error_log("[ADMIN CANDIDATURES] ERREUR: Connexion à la base de données non établie");
-    die("Erreur de connexion à la base de données. Veuillez contacter l'administrateur.");
+    die("Erreur: La connexion à la base de données n'est pas disponible pour le panneau d'administration. Veuillez contacter l'administrateur.");
 }
 
 try {
@@ -49,7 +49,7 @@ try {
     error_log("[ADMIN CANDIDATURES] Erreur SQL: " . $e->getMessage());
     error_log("[ADMIN CANDIDATURES] Query: " . $query);
     error_log("[ADMIN CANDIDATURES] Params: " . json_encode($params));
-    die("Erreur lors de la récupération des candidatures. Détails logués.");
+    die("Erreur lors de la récupération des candidatures. Consultez le fichier error.log à la racine du projet pour plus de détails (recherchez '[ADMIN CANDIDATURES]').");
 }
 ?>
 <!DOCTYPE html>

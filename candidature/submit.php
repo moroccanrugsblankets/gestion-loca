@@ -334,19 +334,19 @@ try {
     $logSql = "INSERT INTO logs (candidature_id, action, details, ip_address) VALUES (?, ?, ?, ?)";
     executeQuery($logSql, [$candidature_id, 'Candidature soumise', "Candidature #$candidature_id - $nom $prenom - $total_uploaded documents", getClientIp()]);
     
-    // Valider la transaction
-    $pdo->commit();
-    logDebug("Transaction validée");
-    
-    // Vérifier que la candidature a bien été enregistrée
+    // Vérifier que la candidature sera bien enregistrée (avant commit, dans la transaction)
     $stmt = $pdo->prepare("SELECT id, reference_unique, statut FROM candidatures WHERE id = ?");
     $stmt->execute([$candidature_id]);
     $savedCandidature = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$savedCandidature) {
-        logDebug("ERREUR CRITIQUE: Candidature non trouvée après commit", ['candidature_id' => $candidature_id]);
+        logDebug("ERREUR CRITIQUE: Candidature non trouvée avant commit", ['candidature_id' => $candidature_id]);
         throw new Exception('Erreur lors de l\'enregistrement de la candidature');
     }
-    logDebug("Candidature vérifiée dans la base de données", $savedCandidature);
+    logDebug("Candidature vérifiée dans la transaction", $savedCandidature);
+    
+    // Valider la transaction
+    $pdo->commit();
+    logDebug("Transaction validée et candidature persistée");
     
     // Envoyer un email de confirmation au candidat en utilisant le template de la base de données
     $candidateVariables = [
