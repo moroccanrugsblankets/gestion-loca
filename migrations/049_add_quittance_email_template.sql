@@ -1,5 +1,8 @@
 -- Migration 049: Ajout du template email pour les quittances
 -- Ajoute un template email pour l'envoi des quittances de loyer
+-- Note: Fixed in 2026-02-17 - Applied derived table workaround for MySQL 1093 error
+--       This ensures compatibility with all MySQL/MariaDB versions and prevents
+--       failures on fresh installations. Does not affect already-executed migrations.
 
 INSERT INTO email_templates (
     identifiant, 
