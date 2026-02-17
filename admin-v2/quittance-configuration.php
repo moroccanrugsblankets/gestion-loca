@@ -188,6 +188,7 @@ if (empty($currentTemplate)) {
                     <span class="variable-badge" onclick="copyToClipboard('{{adresse_societe}}', event)" title="Adresse de la société">{{adresse_societe}}</span>
                     <span class="variable-badge" onclick="copyToClipboard('{{tel_societe}}', event)" title="Téléphone de la société">{{tel_societe}}</span>
                     <span class="variable-badge" onclick="copyToClipboard('{{email_societe}}', event)" title="Email de la société">{{email_societe}}</span>
+                    <span class="variable-badge" onclick="copyToClipboard('{{signature_societe}}', event)" title="Signature de la société (image base64)">{{signature_societe}}</span>
                 </div>
             </div>
         </div>
@@ -276,6 +277,9 @@ if (empty($currentTemplate)) {
                             <pre><code>&lt;p&gt;Locataire : {{locataires_noms}}&lt;/p&gt;
 &lt;p&gt;Montant total : {{montant_total}} €&lt;/p&gt;
 &lt;p&gt;Période : {{periode}}&lt;/p&gt;</code></pre>
+                            <p class="mt-3"><strong>Pour afficher la signature de la société :</strong></p>
+                            <pre><code>&lt;img src="{{signature_societe}}" style="width: 150px; height: auto;" alt="Signature" /&gt;</code></pre>
+                            <p><small class="text-muted">Note: La signature doit être configurée dans Configuration des Contrats.</small></p>
                         </div>
                     </div>
                 </div>
