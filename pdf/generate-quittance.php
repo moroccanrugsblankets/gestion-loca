@@ -227,10 +227,17 @@ function replaceQuittanceTemplateVariables($template, $contrat, $locataires, $mo
     $signatureFilePath = $stmt->fetchColumn();
     
     if (!empty($signatureFilePath) && file_exists($signatureFilePath)) {
-        // Convert to base64 for embedding in PDF
-        $imageData = base64_encode(file_get_contents($signatureFilePath));
-        $imageType = pathinfo($signatureFilePath, PATHINFO_EXTENSION);
-        $signatureSociete = 'data:image/' . $imageType . ';base64,' . $imageData;
+        // Validate that it's actually an image file
+        $imageInfo = @getimagesize($signatureFilePath);
+        if ($imageInfo !== false) {
+            // Convert to base64 for embedding in PDF
+            $imageData = base64_encode(file_get_contents($signatureFilePath));
+            // Use MIME type from getimagesize for accurate type
+            $mimeType = $imageInfo['mime'];
+            // Extract the image type from MIME (e.g., 'image/png' -> 'png')
+            $imageType = str_replace('image/', '', $mimeType);
+            $signatureSociete = 'data:' . $mimeType . ';base64,' . $imageData;
+        }
     }
 
     $vars = [

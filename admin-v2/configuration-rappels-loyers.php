@@ -483,7 +483,8 @@ $cronJob = $stmtCronJob->fetch(PDO::FETCH_ASSOC);
                                 if (count($cronParts) >= 2) {
                                     $minute = $cronParts[0];
                                     $heure = $cronParts[1];
-                                    echo '<small class="text-muted">Tous les jours à ' . sprintf('%02d:%02d', $heure, $minute) . '</small>';
+                                    // Display as HH:MM format (hour:minute)
+                                    echo '<small class="text-muted">Tous les jours à ' . sprintf('%02d:%02d', (int)$heure, (int)$minute) . '</small>';
                                 } else {
                                     echo '<small class="text-muted">Tous les jours à ' . htmlspecialchars($heureExecution) . '</small>';
                                 }
