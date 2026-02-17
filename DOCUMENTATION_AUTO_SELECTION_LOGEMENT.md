@@ -2,7 +2,7 @@
 
 ## Description
 
-Cette fonctionnalité permet d'automatiquement pré-sélectionner un logement spécifique dans le formulaire de candidature en utilisant un paramètre URL crypté.
+Cette fonctionnalité permet d'automatiquement pré-sélectionner un logement spécifique dans le formulaire de candidature en utilisant un paramètre URL haché.
 
 ## Fonctionnement
 
