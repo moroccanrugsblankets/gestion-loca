@@ -102,16 +102,16 @@ if ($emailsSent > 0) {
     $stmt->execute([$quittance_id]);
     
     // Log the action
-    if (isset($_SESSION['admin_id'])) {
-        $stmt = $pdo->prepare("
-            INSERT INTO logs (admin_id, action, details, date_action)
-            VALUES (?, 'renvoi_quittance', ?, NOW())
-        ");
-        $stmt->execute([
-            $_SESSION['admin_id'],
-            "Renvoi de la quittance " . $quittance['reference_unique'] . " à " . $emailsSent . " locataire(s)"
-        ]);
-    }
+    $stmt = $pdo->prepare("
+        INSERT INTO logs (type_entite, entite_id, action, details, created_at)
+        VALUES (?, ?, ?, ?, NOW())
+    ");
+    $stmt->execute([
+        'autre',
+        $quittance_id,
+        'renvoi_quittance',
+        "Renvoi de la quittance " . $quittance['reference_unique'] . " à " . $emailsSent . " locataire(s)"
+    ]);
 }
 
 // Display success/error messages

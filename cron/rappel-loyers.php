@@ -385,6 +385,142 @@ function envoyerRappel($pdo, $destinataires, $statusInfo, $mois, $annee) {
     }
 }
 
+/**
+ * Envoie le rappel aux locataires pour loyers impayés
+ */
+function envoyerRappelLocataires($pdo, $mois, $annee) {
+    global $config;
+    
+    try {
+        // Récupérer le template pour locataires
+        $stmt = $pdo->prepare("SELECT * FROM email_templates WHERE identifiant = 'rappel_loyer_impaye_locataire'");
+        $stmt->execute();
+        $template = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$template) {
+            logMessage("Template email 'rappel_loyer_impaye_locataire' introuvable", true);
+            return false;
+        }
+        
+        // Récupérer les logements avec loyer impayé ou en attente
+        $stmt = $pdo->prepare("
+            SELECT 
+                l.id as logement_id,
+                l.reference,
+                l.adresse,
+                l.loyer,
+                l.charges,
+                lt.statut_paiement,
+                c.id as contrat_id
+            FROM logements l
+            INNER JOIN contrats c ON c.logement_id = l.id
+            LEFT JOIN loyers_tracking lt ON lt.logement_id = l.id AND lt.mois = ? AND lt.annee = ?
+            WHERE l.statut = 'en_location'
+            AND c.statut = 'actif'
+            AND (lt.statut_paiement IN ('impaye', 'attente') OR lt.statut_paiement IS NULL)
+        ");
+        $stmt->execute([$mois, $annee]);
+        $logements = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        if (empty($logements)) {
+            logMessage("Aucun logement avec loyer impayé trouvé");
+            return true;
+        }
+        
+        logMessage("Trouvé " . count($logements) . " logement(s) avec loyer impayé");
+        
+        $nomsMois = [
+            1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril',
+            5 => 'Mai', 6 => 'Juin', 7 => 'Juillet', 8 => 'Août',
+            9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'
+        ];
+        
+        $periode = $nomsMois[$mois] . ' ' . $annee;
+        $signature = getParameter($pdo, 'email_signature', '');
+        
+        $envoyesOk = 0;
+        $envoyesErreur = 0;
+        
+        // Pour chaque logement, envoyer l'email à chaque locataire
+        foreach ($logements as $logement) {
+            // Récupérer les locataires du contrat
+            $stmtLocataires = $pdo->prepare("
+                SELECT email, nom, prenom
+                FROM locataires
+                WHERE contrat_id = ?
+                AND email IS NOT NULL AND email != ''
+            ");
+            $stmtLocataires->execute([$logement['contrat_id']]);
+            $locataires = $stmtLocataires->fetchAll(PDO::FETCH_ASSOC);
+            
+            if (empty($locataires)) {
+                logMessage("Aucun locataire avec email trouvé pour logement " . $logement['reference']);
+                continue;
+            }
+            
+            $montantTotal = number_format($logement['loyer'] + $logement['charges'], 2, ',', ' ');
+            
+            // Envoyer à chaque locataire
+            foreach ($locataires as $locataire) {
+                if (!filter_var($locataire['email'], FILTER_VALIDATE_EMAIL)) {
+                    logMessage("Email invalide pour locataire: " . $locataire['email'], true);
+                    $envoyesErreur++;
+                    continue;
+                }
+                
+                try {
+                    // Préparer les variables
+                    $variables = [
+                        'locataire_nom' => $locataire['nom'],
+                        'locataire_prenom' => $locataire['prenom'],
+                        'periode' => $periode,
+                        'adresse' => $logement['adresse'],
+                        'montant_total' => $montantTotal,
+                        'signature' => $signature
+                    ];
+                    
+                    // Remplacer les variables dans le template
+                    $corps = $template['corps_html'];
+                    $sujet = $template['sujet'];
+                    
+                    foreach ($variables as $key => $value) {
+                        $corps = str_replace('{{' . $key . '}}', $value, $corps);
+                        $sujet = str_replace('{{' . $key . '}}', $value, $sujet);
+                    }
+                    
+                    // Envoyer l'email
+                    $result = sendEmail(
+                        $locataire['email'],
+                        $sujet,
+                        $corps,
+                        $config['MAIL_FROM'],
+                        $config['MAIL_FROM_NAME']
+                    );
+                    
+                    if ($result) {
+                        logMessage("Rappel envoyé à locataire: " . $locataire['prenom'] . " " . $locataire['nom'] . " (" . $locataire['email'] . ")");
+                        $envoyesOk++;
+                    } else {
+                        logMessage("Échec envoi rappel à locataire: " . $locataire['email'], true);
+                        $envoyesErreur++;
+                    }
+                } catch (Exception $e) {
+                    logMessage("Erreur envoi à locataire " . $locataire['email'] . ": " . $e->getMessage(), true);
+                    $envoyesErreur++;
+                }
+            }
+        }
+        
+        logMessage("Rappels locataires: $envoyesOk réussi(s), $envoyesErreur échec(s)");
+        
+        return $envoyesOk > 0;
+        
+    } catch (Exception $e) {
+        logMessage("Erreur envoi rappels locataires: " . $e->getMessage(), true);
+        return false;
+    }
+}
+
 // =====================================================
 // SCRIPT PRINCIPAL
 // =====================================================
@@ -446,13 +582,29 @@ try {
         logMessage("  - Impayés: {$statusInfo['nb_impayes']}");
     }
     
-    // 7. Envoyer le rappel
+    // 7. Envoyer le rappel aux administrateurs
     $resultat = envoyerRappel($pdo, $destinataires, $statusInfo, $mois, $annee);
     
     if ($resultat) {
-        logMessage("✅ Rappel envoyé avec succès");
+        logMessage("✅ Rappel envoyé avec succès aux administrateurs");
+    } else {
+        logMessage("❌ Échec de l'envoi du rappel aux administrateurs", true);
+    }
+    
+    // 8. Si des impayés sont détectés, envoyer aussi un rappel aux locataires concernés
+    if (!$statusInfo['tous_payes']) {
+        logMessage("Envoi des rappels aux locataires pour loyers impayés...");
+        $resultatLocataires = envoyerRappelLocataires($pdo, $mois, $annee);
         
-        // 8. Mettre à jour le statut des rappels dans la base
+        if ($resultatLocataires) {
+            logMessage("✅ Rappels envoyés avec succès aux locataires");
+        } else {
+            logMessage("⚠️ Aucun rappel locataire envoyé ou erreur lors de l'envoi");
+        }
+    }
+    
+    if ($resultat) {
+        // 9. Mettre à jour le statut des rappels dans la base
         try {
             $stmt = $pdo->prepare("
                 UPDATE loyers_tracking 
