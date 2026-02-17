@@ -44,7 +44,11 @@ try {
     $stmt = $pdo->prepare($query);
     $stmt->execute($params);
     $candidatures = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    error_log("[ADMIN CANDIDATURES] Nombre de candidatures trouvées: " . count($candidatures));
+    
+    // Log diagnostic seulement en mode debug pour éviter de saturer les logs en production
+    if (defined('DEBUG_MODE') && DEBUG_MODE) {
+        error_log("[ADMIN CANDIDATURES] Nombre de candidatures trouvées: " . count($candidatures));
+    }
 } catch (PDOException $e) {
     error_log("[ADMIN CANDIDATURES] Erreur SQL: " . $e->getMessage());
     error_log("[ADMIN CANDIDATURES] Query: " . $query);

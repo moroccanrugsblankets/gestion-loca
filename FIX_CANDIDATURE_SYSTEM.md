@@ -131,7 +131,30 @@ Script de diagnostic complet qui vérifie:
 - ✅ Permissions du dossier uploads
 - ✅ Table `logements` et disponibilité
 
-## Comment Diagnostiquer
+## How Diagnostiquer
+
+### Étape 0: Activer le Mode Debug (Si Nécessaire)
+
+Pour obtenir des logs détaillés, activez temporairement le mode debug dans `includes/config.php`:
+
+```php
+// Debug mode (IMPORTANT: Set to true only in development environments)
+if (!defined('DEBUG_MODE')) {
+    define('DEBUG_MODE', true); // Changez à true pour diagnostic
+}
+```
+
+Ou créez/modifiez `includes/config.local.php`:
+
+```php
+return [
+    // Activer le mode debug temporairement pour diagnostic
+    'DEBUG_MODE' => true,
+    // ... autres configurations
+];
+```
+
+**⚠️ IMPORTANT:** N'oubliez pas de désactiver DEBUG_MODE après avoir résolu le problème!
 
 ### Étape 1: Exécuter le Script de Test
 ```bash
