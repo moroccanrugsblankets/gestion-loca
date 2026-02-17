@@ -1,5 +1,8 @@
 -- Migration 049: Ajout du template email pour les quittances
 -- Ajoute un template email pour l'envoi des quittances de loyer
+-- Note: Fixed in 2026-02-17 - Applied derived table workaround for MySQL 1093 error
+--       This ensures compatibility with all MySQL/MariaDB versions and prevents
+--       failures on fresh installations. Does not affect already-executed migrations.
 
 INSERT INTO email_templates (
     identifiant, 
@@ -72,5 +75,5 @@ INSERT INTO email_templates (
     '["locataire_nom", "locataire_prenom", "adresse", "periode", "montant_loyer", "montant_charges", "montant_total", "signature"]',
     'Template pour l''envoi des quittances de loyer aux locataires',
     1,
-    (SELECT COALESCE(MAX(ordre), 0) + 1 FROM email_templates e)
+    (SELECT ordre FROM (SELECT COALESCE(MAX(ordre), 0) + 1 AS ordre FROM email_templates) AS temp)
 ) ON DUPLICATE KEY UPDATE identifiant=identifiant;
