@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demonstration: Fix du problème de saut du tableau</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .description {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .example {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .example h2 {
+            margin-top: 0;
+            font-size: 18px;
+        }
+        
+        .example.before h2 {
+            color: #dc3545;
+        }
+        
+        .example.after h2 {
+            color: #28a745;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 12px 8px;
+            text-align: center;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        .property-cell {
+            text-align: left;
+            font-weight: 600;
+            background-color: #f8f9fa;
+        }
+        
+        /* BEFORE: Avec transform scale qui cause le saut */
+        .payment-cell-before {
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 80px;
+            position: relative;
+        }
+        
+        .payment-cell-before:hover {
+            opacity: 0.8;
+            transform: scale(1.05); /* ❌ Problème ici */
+        }
+        
+        /* AFTER: Sans transform, seulement opacity */
+        .payment-cell-after {
+            cursor: pointer;
+            transition: opacity 0.2s;
+            min-width: 80px;
+            position: relative;
+        }
+        
+        .payment-cell-after:hover {
+            opacity: 0.8; /* ✅ Pas de saut */
+        }
+        
+        .paye {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .impaye {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .attente {
+            background-color: #ffc107;
+            color: #333;
+        }
+        
+        .status-icon {
+            font-size: 20px;
+            display: block;
+        }
+        
+        .amount {
+            font-size: 11px;
+            margin-top: 4px;
+            opacity: 0.9;
+        }
+        
+        .note {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 4px;
+        }
+        
+        .code-block {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        
+        .code-block.removed {
+            border-left: 4px solid #dc3545;
+        }
+        
+        .code-block.added {
+            border-left: 4px solid #28a745;
+        }
+        
+        .highlight-remove {
+            background-color: #ffe6e6;
+            color: #dc3545;
+        }
+        
+        .highlight-add {
+            background-color: #e6ffe6;
+            color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Fix: Problème de saut du tableau lors du hover</h1>
+        
+        <div class="description">
+            <h3>Problème identifié:</h3>
+            <p>Lorsque l'utilisateur passe la souris sur une cellule de mois pour changer le statut, le tableau "saute" à cause de l'effet CSS <code>transform: scale(1.05)</code>.</p>
+            
+            <h3>Solution:</h3>
+            <p>Supprimer la transformation de scale et ne garder que l'effet d'opacité pour le feedback visuel.</p>
+        </div>
+        
+        <div class="comparison">
+            <div class="example before">
+                <h2>❌ AVANT (avec problème de saut)</h2>
+                <p><strong>Passez la souris sur les cellules colorées ⬇️</strong></p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="property-cell">Bien</th>
+                            <th>Janvier<br><small>2026</small></th>
+                            <th>Février<br><small>2026</small></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="property-cell">
+                                <strong>LOG-001</strong><br>
+                                <small>10 Rue Example</small>
+                            </td>
+                            <td class="payment-cell-before paye">
+                                <span class="status-icon">✓</span>
+                                <div class="amount">750€</div>
+                            </td>
+                            <td class="payment-cell-before attente">
+                                <span class="status-icon">⏳</span>
+                                <div class="amount">750€</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="property-cell">
+                                <strong>LOG-002</strong><br>
+                                <small>20 Avenue Test</small>
+                            </td>
+                            <td class="payment-cell-before paye">
+                                <span class="status-icon">✓</span>
+                                <div class="amount">900€</div>
+                            </td>
+                            <td class="payment-cell-before impaye">
+                                <span class="status-icon">✗</span>
+                                <div class="amount">900€</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="code-block removed">
+                    <div>.payment-cell {</div>
+                    <div>    cursor: pointer;</div>
+                    <div>    transition: <span class="highlight-remove">all</span> 0.2s;</div>
+                    <div>}</div>
+                    <div></div>
+                    <div>.payment-cell:hover {</div>
+                    <div>    opacity: 0.8;</div>
+                    <div>    <span class="highlight-remove">transform: scale(1.05);</span> /* ❌ Cause le saut */</div>
+                    <div>}</div>
+                </div>
+            </div>
+            
+            <div class="example after">
+                <h2>✅ APRÈS (problème résolu)</h2>
+                <p><strong>Passez la souris sur les cellules colorées ⬇️</strong></p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="property-cell">Bien</th>
+                            <th>Janvier<br><small>2026</small></th>
+                            <th>Février<br><small>2026</small></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="property-cell">
+                                <strong>LOG-001</strong><br>
+                                <small>10 Rue Example</small>
+                            </td>
+                            <td class="payment-cell-after paye">
+                                <span class="status-icon">✓</span>
+                                <div class="amount">750€</div>
+                            </td>
+                            <td class="payment-cell-after attente">
+                                <span class="status-icon">⏳</span>
+                                <div class="amount">750€</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="property-cell">
+                                <strong>LOG-002</strong><br>
+                                <small>20 Avenue Test</small>
+                            </td>
+                            <td class="payment-cell-after paye">
+                                <span class="status-icon">✓</span>
+                                <div class="amount">900€</div>
+                            </td>
+                            <td class="payment-cell-after impaye">
+                                <span class="status-icon">✗</span>
+                                <div class="amount">900€</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="code-block added">
+                    <div>.payment-cell {</div>
+                    <div>    cursor: pointer;</div>
+                    <div>    transition: <span class="highlight-add">opacity</span> 0.2s;</div>
+                    <div>}</div>
+                    <div></div>
+                    <div>.payment-cell:hover {</div>
+                    <div>    opacity: 0.8; /* ✅ Pas de saut */</div>
+                    <div>}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="note">
+            <h4>📝 Note d'implémentation</h4>
+            <p><strong>Changements CSS effectués:</strong></p>
+            <ul>
+                <li>Supprimé: <code>transform: scale(1.05)</code> qui causait le déplacement des cellules adjacentes</li>
+                <li>Modifié: <code>transition: all 0.2s</code> → <code>transition: opacity 0.2s</code> pour éviter des transitions non désirées</li>
+                <li>Conservé: L'effet d'opacité <code>opacity: 0.8</code> pour le feedback visuel au survol</li>
+            </ul>
+            <p><strong>Résultat:</strong> Le tableau reste stable lors du survol, offrant une meilleure expérience utilisateur.</p>
+        </div>
+    </div>
+</body>
+</html>
