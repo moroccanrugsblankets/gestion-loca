@@ -72,5 +72,5 @@ INSERT INTO email_templates (
     '["locataire_nom", "locataire_prenom", "adresse", "periode", "montant_loyer", "montant_charges", "montant_total", "signature"]',
     'Template pour l''envoi des quittances de loyer aux locataires',
     1,
-    (SELECT COALESCE(MAX(ordre), 0) + 1 FROM email_templates e)
+    (SELECT ordre FROM (SELECT COALESCE(MAX(ordre), 0) + 1 AS ordre FROM email_templates) AS temp)
 ) ON DUPLICATE KEY UPDATE identifiant=identifiant;
