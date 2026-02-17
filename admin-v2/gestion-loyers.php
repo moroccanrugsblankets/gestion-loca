@@ -108,6 +108,16 @@ $nomsMois = [
     9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre'
 ];
 
+// Icônes pour les statuts
+$iconesStatut = [
+    'paye' => '✓',
+    'impaye' => '✗',
+    'attente' => '⏳'
+];
+
+// Constantes d'affichage
+define('MAX_ADRESSE_LENGTH', 50);
+
 // Générer la liste des mois depuis la date de prise d'effet la plus ancienne jusqu'au mois actuel
 $mois = [];
 $currentDate = new DateTime();
@@ -599,7 +609,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?php foreach ($tousContrats as $contrat): ?>
                                 <option value="<?= $contrat['id'] ?>" <?= ($contratIdFilter == $contrat['id']) ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($contrat['logement_ref']) ?> - 
-                                    <?= htmlspecialchars(substr($contrat['adresse'], 0, 50)) ?> 
+                                    <?= htmlspecialchars(substr($contrat['adresse'], 0, MAX_ADRESSE_LENGTH)) ?> 
                                     (<?= htmlspecialchars($contrat['locataires'] ?: 'Sans locataire') ?>)
                                 </option>
                             <?php endforeach; ?>
@@ -690,11 +700,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 foreach ($mois as $m): 
                     $statut = getStatutPaiement($logement['id'], $m['num'], $m['annee']);
                     $statutClass = $statut ? $statut['statut_paiement'] : 'attente';
-                    $icon = [
-                        'paye' => '✓',
-                        'impaye' => '✗',
-                        'attente' => '⏳'
-                    ][$statutClass];
+                    $icon = $iconesStatut[$statutClass];
                     $isCurrentMonth = ($m['num'] == $moisActuel && $m['annee'] == $anneeActuelle);
                     $datePaiement = $statut && $statut['date_paiement'] ? date('d/m/Y', strtotime($statut['date_paiement'])) : '';
                 ?>
@@ -744,11 +750,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 foreach ($mois as $m): 
                                     $statut = getStatutPaiement($logement['id'], $m['num'], $m['annee']);
                                     $statutClass = $statut ? $statut['statut_paiement'] : 'attente';
-                                    $icon = [
-                                        'paye' => '✓',
-                                        'impaye' => '✗',
-                                        'attente' => '⏳'
-                                    ][$statutClass];
+                                    $icon = $iconesStatut[$statutClass];
                                     
                                     // Ne pas créer automatiquement - attendre l'interaction utilisateur
                                 ?>
