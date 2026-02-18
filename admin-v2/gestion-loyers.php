@@ -20,9 +20,9 @@ require_once '../includes/mail-templates.php';
 
 // Filtre SQL pour les contrats actifs (utilisé dans plusieurs requêtes)
 // Un contrat est considéré actif si :
-// - Son statut est 'actif', 'signe' ou 'valide' (pas annulé, expiré ou terminé)
-// - Sa date de prise d'effet est NULL (pas encore définie) OU dans le passé/aujourd'hui
-define('CONTRAT_ACTIF_FILTER', "c.statut IN ('actif', 'signe', 'valide') AND (c.date_prise_effet IS NULL OR c.date_prise_effet <= CURDATE())");
+// - Son statut est 'valide' (contrat validé uniquement, selon cahier des charges section 8)
+// - Sa date de prise d'effet est dans le passé ou aujourd'hui (contrat déjà en cours)
+define('CONTRAT_ACTIF_FILTER', "c.statut = 'valide' AND c.date_prise_effet IS NOT NULL AND c.date_prise_effet <= CURDATE()");
 
 // Déterminer la période à afficher
 $anneeActuelle = (int)date('Y');
@@ -815,30 +815,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         
         <?php
-        // Calculer les statistiques correctement
+        // Calculer les statistiques selon le cahier des charges
+        // Section 4: Vue globale doit agréger tous les mois de tous les logements
         $totalBiens = count($logements);
-        $nbPayeCeMois = 0;      // Loyers payés pour le mois actuel
-        $nbImpaye = 0;          // Loyers impayés (tous les mois)
-        $nbAttente = 0;         // Loyers en attente (tous les mois)
+        $nbPaye = 0;      // Total de tous les loyers payés (tous les mois, tous les logements)
+        $nbImpaye = 0;    // Total de tous les loyers impayés (tous les mois, tous les logements)
+        $nbAttente = 0;   // Total de tous les loyers en attente (normalement = nombre de logements, car seul le mois en cours devrait être en attente)
         
-        // Pour chaque logement, vérifier le statut du mois actuel
+        // Pour chaque logement, analyser tous les mois
         foreach ($logements as $logement) {
-            $statut = getStatutPaiement($logement['id'], $moisActuel, $anneeActuelle);
-            if ($statut) {
-                switch ($statut['statut_paiement']) {
-                    case 'paye': 
-                        $nbPayeCeMois++; 
-                        break;
-                    case 'impaye': 
-                        $nbImpaye++; 
-                        break;
-                    default: 
-                        $nbAttente++; 
-                        break;
+            foreach ($mois as $m) {
+                $statut = getStatutPaiement($logement['id'], $m['num'], $m['annee']);
+                $isMoisCourant = ($m['num'] == $moisActuel && $m['annee'] == $anneeActuelle);
+                
+                if ($statut) {
+                    // Un enregistrement existe dans loyers_tracking
+                    switch ($statut['statut_paiement']) {
+                        case 'paye': 
+                            $nbPaye++; 
+                            break;
+                        case 'impaye': 
+                            $nbImpaye++; 
+                            break;
+                        case 'attente': 
+                            $nbAttente++; 
+                            break;
+                    }
+                } else {
+                    // Aucun enregistrement dans loyers_tracking
+                    // Cela devrait uniquement arriver pour le mois en cours
+                    // Les mois passés devraient avoir été créés ou ne pas être affichés
+                    if ($isMoisCourant) {
+                        // Mois courant sans enregistrement = en attente
+                        $nbAttente++;
+                    } else {
+                        // Mois passé sans enregistrement = traité comme impayé pour cohérence
+                        // (normalement ne devrait pas arriver si le contrat existe depuis ce mois)
+                        $nbImpaye++;
+                    }
                 }
-            } else {
-                // Si aucun enregistrement pour le mois actuel, considérer comme "en attente"
-                $nbAttente++;
             }
         }
         ?>
@@ -849,8 +864,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="stat-label">Biens en location</div>
             </div>
             <div class="stat-card paye">
-                <div class="stat-value"><?= $nbPayeCeMois ?></div>
-                <div class="stat-label">Loyers payés ce mois</div>
+                <div class="stat-value"><?= $nbPaye ?></div>
+                <div class="stat-label">Loyers payés</div>
             </div>
             <div class="stat-card impaye">
                 <div class="stat-value"><?= $nbImpaye ?></div>
