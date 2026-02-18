@@ -55,21 +55,30 @@ if ($vueDetaillee) {
         exit;
     }
 } else {
+    // Récupérer tous les logements avec leur dernier contrat actif
+    // Selon cahier des charges section 1: afficher le dernier contrat validé pour chaque logement
     $stmtLogements = $pdo->query("
-        SELECT DISTINCT l.*, c.id as contrat_id, c.date_prise_effet, c.reference_unique as contrat_reference,
+        SELECT l.*, c.id as contrat_id, c.date_prise_effet, c.reference_unique as contrat_reference,
                (SELECT GROUP_CONCAT(CONCAT(prenom, ' ', nom) SEPARATOR ', ')
                 FROM locataires 
                 WHERE contrat_id = c.id) as locataires
         FROM logements l
         INNER JOIN contrats c ON c.logement_id = l.id
+        INNER JOIN (
+            -- Sous-requête pour obtenir le dernier contrat valide pour chaque logement
+            SELECT logement_id, MAX(id) as max_contrat_id
+            FROM contrats
+            WHERE " . CONTRAT_ACTIF_FILTER . "
+            GROUP BY logement_id
+        ) derniers_contrats ON c.id = derniers_contrats.max_contrat_id AND c.logement_id = derniers_contrats.logement_id
         WHERE l.statut = 'en_location'
-        AND " . CONTRAT_ACTIF_FILTER . "
         ORDER BY l.reference
     ");
     $logements = $stmtLogements->fetchAll(PDO::FETCH_ASSOC);
 }
 
 // Récupérer la liste de tous les contrats actifs pour le sélecteur
+// Afficher uniquement le dernier contrat valide pour chaque logement
 $stmtTousContrats = $pdo->query("
     SELECT c.id, c.reference_unique, l.reference as logement_ref, l.adresse,
            (SELECT GROUP_CONCAT(CONCAT(prenom, ' ', nom) SEPARATOR ', ')
@@ -77,7 +86,13 @@ $stmtTousContrats = $pdo->query("
             WHERE contrat_id = c.id) as locataires
     FROM contrats c
     INNER JOIN logements l ON c.logement_id = l.id
-    WHERE " . CONTRAT_ACTIF_FILTER . "
+    INNER JOIN (
+        -- Sous-requête pour obtenir le dernier contrat valide pour chaque logement
+        SELECT logement_id, MAX(id) as max_contrat_id
+        FROM contrats
+        WHERE " . CONTRAT_ACTIF_FILTER . "
+        GROUP BY logement_id
+    ) derniers_contrats ON c.id = derniers_contrats.max_contrat_id AND c.logement_id = derniers_contrats.logement_id
     ORDER BY l.reference
 ");
 $tousContrats = $stmtTousContrats->fetchAll(PDO::FETCH_ASSOC);
