@@ -20,9 +20,9 @@ require_once '../includes/mail-templates.php';
 
 // Filtre SQL pour les contrats actifs (utilisé dans plusieurs requêtes)
 // Un contrat est considéré actif si :
-// - Son statut est 'actif', 'signe' ou 'valide' (pas annulé, expiré ou terminé)
-// - Sa date de prise d'effet est NULL (pas encore définie) OU dans le passé/aujourd'hui
-define('CONTRAT_ACTIF_FILTER', "c.statut IN ('actif', 'signe', 'valide') AND (c.date_prise_effet IS NULL OR c.date_prise_effet <= CURDATE())");
+// - Son statut est 'valide' (contrat validé uniquement, selon cahier des charges section 8)
+// - Sa date de prise d'effet est dans le passé ou aujourd'hui (contrat déjà en cours)
+define('CONTRAT_ACTIF_FILTER', "c.statut = 'valide' AND c.date_prise_effet IS NOT NULL AND c.date_prise_effet <= CURDATE()");
 
 // Déterminer la période à afficher
 $anneeActuelle = (int)date('Y');
