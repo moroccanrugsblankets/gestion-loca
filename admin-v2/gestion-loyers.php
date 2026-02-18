@@ -820,13 +820,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $totalBiens = count($logements);
         $nbPaye = 0;      // Total de tous les loyers payés (tous les mois, tous les logements)
         $nbImpaye = 0;    // Total de tous les loyers impayés (tous les mois, tous les logements)
-        $nbAttente = 0;   // Total de tous les loyers en attente (devrait être = nombre de logements car seul le mois en cours est en attente)
+        $nbAttente = 0;   // Total de tous les loyers en attente (normalement = nombre de logements, car seul le mois en cours devrait être en attente)
         
         // Pour chaque logement, analyser tous les mois
         foreach ($logements as $logement) {
             foreach ($mois as $m) {
                 $statut = getStatutPaiement($logement['id'], $m['num'], $m['annee']);
+                $isMoisCourant = ($m['num'] == $moisActuel && $m['annee'] == $anneeActuelle);
+                
                 if ($statut) {
+                    // Un enregistrement existe dans loyers_tracking
                     switch ($statut['statut_paiement']) {
                         case 'paye': 
                             $nbPaye++; 
@@ -839,9 +842,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             break;
                     }
                 } else {
-                    // Si aucun enregistrement, considérer comme "en attente"
-                    // Cela devrait être uniquement pour le mois en cours
-                    $nbAttente++;
+                    // Aucun enregistrement dans loyers_tracking
+                    // Cela devrait uniquement arriver pour le mois en cours
+                    // Les mois passés devraient avoir été créés ou ne pas être affichés
+                    if ($isMoisCourant) {
+                        // Mois courant sans enregistrement = en attente
+                        $nbAttente++;
+                    } else {
+                        // Mois passé sans enregistrement = traité comme impayé pour cohérence
+                        // (normalement ne devrait pas arriver si le contrat existe depuis ce mois)
+                        $nbImpaye++;
+                    }
                 }
             }
         }
