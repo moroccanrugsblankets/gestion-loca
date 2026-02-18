@@ -70,7 +70,7 @@ if ($vueDetaillee) {
             FROM contrats
             WHERE " . CONTRAT_ACTIF_FILTER . "
             GROUP BY logement_id
-        ) derniers_contrats ON c.id = derniers_contrats.max_contrat_id AND c.logement_id = derniers_contrats.logement_id
+        ) derniers_contrats ON c.id = derniers_contrats.max_contrat_id
         WHERE l.statut = 'en_location'
         ORDER BY l.reference
     ");
@@ -92,7 +92,7 @@ $stmtTousContrats = $pdo->query("
         FROM contrats
         WHERE " . CONTRAT_ACTIF_FILTER . "
         GROUP BY logement_id
-    ) derniers_contrats ON c.id = derniers_contrats.max_contrat_id AND c.logement_id = derniers_contrats.logement_id
+    ) derniers_contrats ON c.id = derniers_contrats.max_contrat_id
     ORDER BY l.reference
 ");
 $tousContrats = $stmtTousContrats->fetchAll(PDO::FETCH_ASSOC);

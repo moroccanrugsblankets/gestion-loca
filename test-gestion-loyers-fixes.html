@@ -131,8 +131,8 @@ INNER JOIN contrats c ON c.logement_id = l.id
 INNER JOIN (
     SELECT logement_id, MAX(id) as max_contrat_id
     FROM contrats
-    WHERE c.statut = 'valide' 
-    AND c.date_prise_effet <= CURDATE()
+    WHERE statut = 'valide' 
+    AND date_prise_effet <= CURDATE()
     GROUP BY logement_id
 ) derniers_contrats ON c.id = derniers_contrats.max_contrat_id
 WHERE l.statut = 'en_location'
