@@ -67,7 +67,7 @@ if ($vueDetaillee) {
         INNER JOIN (
             -- Sous-requête pour obtenir le dernier contrat valide pour chaque logement
             SELECT logement_id, MAX(id) as max_contrat_id
-            FROM contrats
+            FROM contrats c
             WHERE " . CONTRAT_ACTIF_FILTER . "
             GROUP BY logement_id
         ) derniers_contrats ON c.id = derniers_contrats.max_contrat_id
@@ -89,7 +89,7 @@ $stmtTousContrats = $pdo->query("
     INNER JOIN (
         -- Sous-requête pour obtenir le dernier contrat valide pour chaque logement
         SELECT logement_id, MAX(id) as max_contrat_id
-        FROM contrats
+        FROM contrats c
         WHERE " . CONTRAT_ACTIF_FILTER . "
         GROUP BY logement_id
     ) derniers_contrats ON c.id = derniers_contrats.max_contrat_id
