@@ -137,6 +137,9 @@ while ($iterDate <= $currentDate) {
 }
 
 // Appliquer la règle: mettre à jour automatiquement les mois précédents en "impaye" s'ils sont en "attente"
+// Note: Cette fonction inclut une pré-vérification pour éviter les UPDATE inutiles.
+// Après le premier chargement du mois, la fonction retournera 0 sans exécuter d'UPDATE.
+// Pour une optimisation maximale, envisager de déplacer cette logique vers un cron job quotidien.
 updatePreviousMonthsToImpaye($pdo);
 
 // Récupérer les statuts de paiement pour tous les logements et mois
