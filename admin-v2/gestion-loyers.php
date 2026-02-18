@@ -136,6 +136,9 @@ while ($iterDate <= $currentDate) {
     $iterDate->modify('+1 month');
 }
 
+// Appliquer la règle: mettre à jour automatiquement les mois précédents en "impaye" s'ils sont en "attente"
+updatePreviousMonthsToImpaye($pdo);
+
 // Récupérer les statuts de paiement pour tous les logements et mois
 $statutsPaiement = [];
 if (!empty($logements)) {
@@ -165,6 +168,40 @@ function getStatutPaiement($logementId, $mois, $annee) {
 }
 
 /**
+ * Détermine le statut global d'un logement basé sur tous ses mois
+ * Retourne: 'paye' (vert), 'impaye' (rouge), ou 'attente' (orange)
+ */
+function getStatutGlobalLogement($logementId, $mois) {
+    $hasImpaye = false;
+    $hasAttente = false;
+    $hasPaye = false;
+    
+    foreach ($mois as $m) {
+        $statut = getStatutPaiement($logementId, $m['num'], $m['annee']);
+        $statutPaiement = $statut ? $statut['statut_paiement'] : 'attente';
+        
+        if ($statutPaiement === 'impaye') {
+            $hasImpaye = true;
+        } elseif ($statutPaiement === 'attente') {
+            $hasAttente = true;
+        } elseif ($statutPaiement === 'paye') {
+            $hasPaye = true;
+        }
+    }
+    
+    // Rouge si au moins une non payée
+    if ($hasImpaye) {
+        return 'impaye';
+    }
+    // Orange si seulement en attente (pas d'impayé)
+    if ($hasAttente) {
+        return 'attente';
+    }
+    // Vert si tout est payé
+    return 'paye';
+}
+
+/**
  * Créer automatiquement une entrée de tracking pour un logement/mois
  */
 function creerEntryTracking($pdo, $logementId, $contratId, $mois, $annee, $montantAttendu) {
@@ -178,6 +215,35 @@ function creerEntryTracking($pdo, $logementId, $contratId, $mois, $annee, $monta
         return $stmt->execute([$logementId, $contratId, $mois, $annee, $montantAttendu]);
     } catch (Exception $e) {
         return false;
+    }
+}
+
+/**
+ * Mettre à jour automatiquement les mois précédents en "impaye" s'ils sont toujours en "attente"
+ * Règle: Tous les mois antérieurs au mois actuel doivent être soit "paye" soit "impaye", pas "attente"
+ */
+function updatePreviousMonthsToImpaye($pdo) {
+    try {
+        // Mettre à jour tous les enregistrements dont la période est antérieure au mois actuel
+        // et qui sont encore en statut "attente" pour les passer en "impaye"
+        $currentYear = (int)date('Y');
+        $currentMonth = (int)date('n');
+        
+        $stmt = $pdo->prepare("
+            UPDATE loyers_tracking
+            SET statut_paiement = 'impaye',
+                updated_at = NOW()
+            WHERE statut_paiement = 'attente'
+            AND (
+                annee < ? 
+                OR (annee = ? AND mois < ?)
+            )
+        ");
+        $stmt->execute([$currentYear, $currentYear, $currentMonth]);
+        return $stmt->rowCount();
+    } catch (Exception $e) {
+        error_log("Erreur lors de la mise à jour des mois précédents: " . $e->getMessage());
+        return 0;
     }
 }
 
@@ -562,6 +628,91 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border: 3px solid #007bff;
             box-shadow: 0 0 15px rgba(0, 123, 255, 0.3);
         }
+        
+        /* Styles pour la grille de statut des logements */
+        .properties-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .property-card {
+            border: 3px solid;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+        
+        .property-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+        
+        .property-card.status-paye {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border-color: #28a745;
+            color: white;
+        }
+        
+        .property-card.status-impaye {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            border-color: #dc3545;
+            color: white;
+        }
+        
+        .property-card.status-attente {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            border-color: #ffc107;
+            color: #333;
+        }
+        
+        .property-card .property-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        .property-card .property-reference {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .property-card .property-address {
+            font-size: 13px;
+            margin-bottom: 8px;
+            opacity: 0.95;
+        }
+        
+        .property-card .property-tenants {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+        
+        .property-card .property-status-text {
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            display: inline-block;
+        }
+        
+        .property-card.status-paye .property-status-text {
+            background-color: rgba(255,255,255,0.2);
+        }
+        
+        .property-card.status-impaye .property-status-text {
+            background-color: rgba(255,255,255,0.2);
+        }
+        
+        .property-card.status-attente .property-status-text {
+            background-color: rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
@@ -629,21 +780,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         
         <?php
-        // Calculer les statistiques pour le mois en cours
+        // Calculer les statistiques correctement
         $totalBiens = count($logements);
-        $nbPaye = 0;
-        $nbImpaye = 0;
-        $nbAttente = 0;
+        $nbPayeCeMois = 0;      // Loyers payés pour le mois actuel
+        $nbImpaye = 0;          // Loyers impayés (tous les mois)
+        $nbAttente = 0;         // Loyers en attente (tous les mois)
         
+        // Pour chaque logement, vérifier le statut du mois actuel
         foreach ($logements as $logement) {
             $statut = getStatutPaiement($logement['id'], $moisActuel, $anneeActuelle);
             if ($statut) {
                 switch ($statut['statut_paiement']) {
-                    case 'paye': $nbPaye++; break;
-                    case 'impaye': $nbImpaye++; break;
-                    default: $nbAttente++; break;
+                    case 'paye': 
+                        $nbPayeCeMois++; 
+                        break;
+                    case 'impaye': 
+                        $nbImpaye++; 
+                        break;
+                    default: 
+                        $nbAttente++; 
+                        break;
                 }
             } else {
+                // Si aucun enregistrement pour le mois actuel, considérer comme "en attente"
                 $nbAttente++;
             }
         }
@@ -655,7 +814,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="stat-label">Biens en location</div>
             </div>
             <div class="stat-card paye">
-                <div class="stat-value"><?= $nbPaye ?></div>
+                <div class="stat-value"><?= $nbPayeCeMois ?></div>
                 <div class="stat-label">Loyers payés ce mois</div>
             </div>
             <div class="stat-card impaye">
@@ -667,6 +826,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="stat-label">En attente</div>
             </div>
         </div>
+        
+        <?php if (!$vueDetaillee && !empty($logements)): ?>
+        <!-- Grille de statut des logements (vue globale uniquement) -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-grid-3x3-gap"></i> État des Logements</h5>
+            </div>
+            <div class="card-body">
+                <div class="properties-grid">
+                    <?php foreach ($logements as $logement): 
+                        $statutGlobal = getStatutGlobalLogement($logement['id'], $mois);
+                        $statusIcon = $iconesStatut[$statutGlobal];
+                        
+                        $statusText = [
+                            'paye' => 'Tous les loyers payés',
+                            'impaye' => 'Au moins un loyer impayé',
+                            'attente' => 'Loyers en attente'
+                        ];
+                    ?>
+                        <div class="property-card status-<?= $statutGlobal ?>" 
+                             onclick="window.location.href='?contrat_id=<?= $logement['contrat_id'] ?>'">
+                            <div class="property-icon"><?= $statusIcon ?></div>
+                            <div class="property-reference"><?= htmlspecialchars($logement['reference']) ?></div>
+                            <div class="property-address"><?= htmlspecialchars($logement['adresse']) ?></div>
+                            <div class="property-tenants">
+                                <?= htmlspecialchars($logement['locataires'] ?: 'Sans locataire') ?>
+                            </div>
+                            <div class="property-status-text"><?= $statusText[$statutGlobal] ?></div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
         
         <div class="legend">
             <div class="legend-item">
