@@ -169,7 +169,15 @@ function getStatutPaiement($logementId, $mois, $annee) {
 
 /**
  * Détermine le statut global d'un logement basé sur tous ses mois
- * Retourne: 'paye' (vert), 'impaye' (rouge), ou 'attente' (orange)
+ * 
+ * @param int $logementId L'identifiant du logement
+ * @param array $mois Tableau des mois à analyser (chaque élément contient 'num' et 'annee')
+ * @return string Le statut global: 'paye' (vert), 'impaye' (rouge), ou 'attente' (orange)
+ * 
+ * Logique:
+ * - Retourne 'impaye' si au moins un mois est impayé (priorité la plus haute)
+ * - Retourne 'attente' si aucun impayé mais au moins un mois en attente
+ * - Retourne 'paye' si tous les mois sont payés
  */
 function getStatutGlobalLogement($logementId, $mois) {
     $hasImpaye = false;
@@ -220,15 +228,39 @@ function creerEntryTracking($pdo, $logementId, $contratId, $mois, $annee, $monta
 
 /**
  * Mettre à jour automatiquement les mois précédents en "impaye" s'ils sont toujours en "attente"
- * Règle: Tous les mois antérieurs au mois actuel doivent être soit "paye" soit "impaye", pas "attente"
+ * 
+ * Règle métier: Tous les mois antérieurs au mois actuel doivent être soit "paye" soit "impaye", pas "attente"
+ * 
+ * @param PDO $pdo Connexion à la base de données
+ * @return int Nombre de lignes mises à jour
+ * 
+ * Optimisation: Vérifie d'abord s'il y a des mois à mettre à jour avant d'exécuter l'UPDATE
  */
 function updatePreviousMonthsToImpaye($pdo) {
     try {
-        // Mettre à jour tous les enregistrements dont la période est antérieure au mois actuel
-        // et qui sont encore en statut "attente" pour les passer en "impaye"
         $currentYear = (int)date('Y');
         $currentMonth = (int)date('n');
         
+        // D'abord vérifier s'il y a des enregistrements à mettre à jour
+        $checkStmt = $pdo->prepare("
+            SELECT COUNT(*) as count
+            FROM loyers_tracking
+            WHERE statut_paiement = 'attente'
+            AND (
+                annee < ? 
+                OR (annee = ? AND mois < ?)
+            )
+        ");
+        $checkStmt->execute([$currentYear, $currentYear, $currentMonth]);
+        $count = $checkStmt->fetch(PDO::FETCH_ASSOC)['count'];
+        
+        // Si aucun enregistrement à mettre à jour, ne rien faire
+        if ($count == 0) {
+            return 0;
+        }
+        
+        // Mettre à jour tous les enregistrements dont la période est antérieure au mois actuel
+        // et qui sont encore en statut "attente" pour les passer en "impaye"
         $stmt = $pdo->prepare("
             UPDATE loyers_tracking
             SET statut_paiement = 'impaye',
