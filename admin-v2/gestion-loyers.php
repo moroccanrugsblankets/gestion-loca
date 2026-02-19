@@ -57,6 +57,8 @@ if ($vueDetaillee) {
 } else {
     // Récupérer tous les logements avec leur dernier contrat actif
     // Selon cahier des charges section 1: afficher le dernier contrat validé pour chaque logement
+    // Note: On ne filtre PAS par statut du logement car un logement peut être marqué "disponible" 
+    // alors qu'il a encore un contrat actif (par exemple si le locataire va partir bientôt)
     $stmtLogements = $pdo->query("
         SELECT l.*, 
        c.id AS contrat_id, 
@@ -76,7 +78,6 @@ INNER JOIN (
 ) derniers_contrats 
         ON c.logement_id = derniers_contrats.logement_id
        AND c.date_prise_effet = derniers_contrats.max_date
-WHERE l.statut = 'en_location'
 ORDER BY l.reference;
     ");
     $logements = $stmtLogements->fetchAll(PDO::FETCH_ASSOC);
@@ -207,9 +208,24 @@ function getStatutGlobalLogement($logementId, $mois) {
     $hasAttente = false;
     $hasPaye = false;
     
+    $currentYear = (int)date('Y');
+    $currentMonth = (int)date('n');
+    
     foreach ($mois as $m) {
         $statut = getStatutPaiement($logementId, $m['num'], $m['annee']);
-        $statutPaiement = $statut ? $statut['statut_paiement'] : 'attente';
+        
+        // Si aucun enregistrement, déterminer le statut par défaut selon la date
+        if (!$statut) {
+            // Mois passés : impayé par défaut
+            if ($m['annee'] < $currentYear || ($m['annee'] == $currentYear && $m['num'] < $currentMonth)) {
+                $statutPaiement = 'impaye';
+            } else {
+                // Mois courant : en attente par défaut
+                $statutPaiement = 'attente';
+            }
+        } else {
+            $statutPaiement = $statut['statut_paiement'];
+        }
         
         if ($statutPaiement === 'impaye') {
             $hasImpaye = true;
@@ -961,7 +977,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $montantTotal = $logement['loyer'] + $logement['charges'];
                 foreach ($mois as $m): 
                     $statut = getStatutPaiement($logement['id'], $m['num'], $m['annee']);
-                    $statutClass = $statut ? $statut['statut_paiement'] : 'attente';
+                    
+                    // Si aucun enregistrement, déterminer le statut par défaut selon la date
+                    if (!$statut) {
+                        // Mois passés : impayé par défaut
+                        if ($m['annee'] < $anneeActuelle || ($m['annee'] == $anneeActuelle && $m['num'] < $moisActuel)) {
+                            $statutClass = 'impaye';
+                        } else {
+                            // Mois courant : en attente par défaut
+                            $statutClass = 'attente';
+                        }
+                    } else {
+                        $statutClass = $statut['statut_paiement'];
+                    }
+                    
                     $icon = $iconesStatut[$statutClass];
                     $isCurrentMonth = ($m['num'] == $moisActuel && $m['annee'] == $anneeActuelle);
                     $datePaiement = $statut && $statut['date_paiement'] ? date('d/m/Y', strtotime($statut['date_paiement'])) : '';
@@ -1011,7 +1040,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 $montantTotal = $logement['loyer'] + $logement['charges'];
                                 foreach ($mois as $m): 
                                     $statut = getStatutPaiement($logement['id'], $m['num'], $m['annee']);
-                                    $statutClass = $statut ? $statut['statut_paiement'] : 'attente';
+                                    
+                                    // Si aucun enregistrement, déterminer le statut par défaut selon la date
+                                    if (!$statut) {
+                                        // Mois passés : impayé par défaut
+                                        if ($m['annee'] < $anneeActuelle || ($m['annee'] == $anneeActuelle && $m['num'] < $moisActuel)) {
+                                            $statutClass = 'impaye';
+                                        } else {
+                                            // Mois courant : en attente par défaut
+                                            $statutClass = 'attente';
+                                        }
+                                    } else {
+                                        $statutClass = $statut['statut_paiement'];
+                                    }
+                                    
                                     $icon = $iconesStatut[$statutClass];
                                     
                                     // Ne pas créer automatiquement - attendre l'interaction utilisateur
