@@ -1017,57 +1017,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 <?php endforeach; ?>
             </div>
-        <?php else: ?>
-            <!-- Vue globale avec tableau pour tous les logements -->
-            <div class="table-container">
-                <table class="payment-table">
-                    <thead>
-                        <tr>
-                            <th class="property-cell">Bien / Locataire</th>
-                            <?php foreach ($mois as $m): ?>
-                                <th class="<?= ($m['num'] == $moisActuel && $m['annee'] == $anneeActuelle) ? 'current-month' : '' ?>">
-                                    <?= htmlspecialchars($nomsMois[$m['num']]) ?><br>
-                                    <small><?= $m['annee'] ?></small>
-                                </th>
-                            <?php endforeach; ?>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($logements as $logement): ?>
-                            <tr>
-                                <td class="property-cell">
-                                    <strong><?= htmlspecialchars($logement['reference']) ?></strong><br>
-                                    <small class="text-muted"><?= htmlspecialchars($logement['locataires'] ?: 'Non assigné') ?></small><br>
-                                    <small><?= htmlspecialchars(substr($logement['adresse'], 0, 40)) ?></small>
-                                </td>
-                                <?php 
-                                $montantTotal = $logement['loyer'] + $logement['charges'];
-                                foreach ($mois as $m): 
-                                    $statut = getStatutPaiement($logement['id'], $m['num'], $m['annee']);
-                                    $statutClass = determinerStatutPaiement($m['num'], $m['annee'], $statut);
-                                    $icon = $iconesStatut[$statutClass];
-                                    
-                                    // Ne pas créer automatiquement - attendre l'interaction utilisateur
-                                ?>
-                                    <td class="payment-cell <?= $statutClass ?>" 
-                                        onclick="changerStatut(<?= $logement['id'] ?>, <?= $m['num'] ?>, <?= $m['annee'] ?>, '<?= $statutClass ?>')">
-                                        <span class="status-icon"><?= $icon ?></span>
-                                        <div class="amount"><?= number_format($montantTotal, 0, ',', ' ') ?>€</div>
-                                        <?php if ($statutClass === 'impaye'): ?>
-                                            <div class="action-buttons">
-                                                <button class="btn btn-sm btn-outline-light" 
-                                                        onclick="event.stopPropagation(); envoyerRappelLocataire(<?= $logement['id'] ?>, <?= $m['num'] ?>, <?= $m['annee'] ?>)">
-                                                    <i class="bi bi-envelope"></i>
-                                                </button>
-                                            </div>
-                                        <?php endif; ?>
-                                    </td>
-                                <?php endforeach; ?>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
         <?php endif; ?>
     </div>
     
