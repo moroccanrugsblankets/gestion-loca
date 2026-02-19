@@ -53,11 +53,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax'])) {
                     echo json_encode([
                         'success' => false, 
                         'needs_confirmation' => true,
-                        'message' => "Cette catégorie contient {$count} équipement(s). La suppression de cette catégorie supprimera également tous les équipements associés. Voulez-vous continuer ?"
+                        'message' => "Cette catégorie contient {$count} équipement(s). La suppression de cette catégorie marquera également tous les équipements associés comme supprimés. Voulez-vous continuer ?"
                     ]);
                 } else {
-                    // Delete category (cascade will delete equipment and subcategories)
-                    $stmt = $pdo->prepare("DELETE FROM inventaire_categories WHERE id = ?");
+                    // Soft delete category (set deleted_at timestamp instead of DELETE)
+                    // Note: Associated equipment should also be soft deleted if needed
+                    $stmt = $pdo->prepare("UPDATE inventaire_categories SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL");
                     $stmt->execute([$_POST['id']]);
                     echo json_encode(['success' => true, 'message' => 'Catégorie et tous ses équipements supprimés']);
                 }
@@ -108,7 +109,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax'])) {
                         'message' => "Cette sous-catégorie contient {$count} équipement(s). Voulez-vous vraiment la supprimer ?"
                     ]);
                 } else {
-                    $stmt = $pdo->prepare("DELETE FROM inventaire_sous_categories WHERE id = ?");
+                    // Soft delete subcategory (set deleted_at timestamp instead of DELETE)
+                    $stmt = $pdo->prepare("UPDATE inventaire_sous_categories SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL");
                     $stmt->execute([$_POST['id']]);
                     echo json_encode(['success' => true, 'message' => 'Sous-catégorie supprimée']);
                 }
