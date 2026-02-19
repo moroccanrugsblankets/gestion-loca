@@ -57,10 +57,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax'])) {
                     ]);
                 } else {
                     // Soft delete category (set deleted_at timestamp instead of DELETE)
-                    // Note: Associated equipment should also be soft deleted if needed
                     $stmt = $pdo->prepare("UPDATE inventaire_categories SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL");
                     $stmt->execute([$_POST['id']]);
-                    echo json_encode(['success' => true, 'message' => 'Catégorie et tous ses équipements supprimés']);
+                    
+                    // Also soft delete all associated equipment for consistency
+                    $stmt = $pdo->prepare("UPDATE inventaire_equipements SET deleted_at = NOW() WHERE categorie_id = ? AND deleted_at IS NULL");
+                    $stmt->execute([$_POST['id']]);
+                    
+                    echo json_encode(['success' => true, 'message' => 'Catégorie et équipements associés supprimés']);
                 }
                 break;
                 
