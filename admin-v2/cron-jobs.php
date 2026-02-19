@@ -22,15 +22,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $file_path = __DIR__ . '/../' . $job['fichier'];
             
             if (file_exists($file_path)) {
-                // Execute the cron job
-                ob_start();
+                // Execute the cron job as a subprocess to avoid exit() terminating the parent script
                 $start_time = microtime(true);
+                $outputLines = [];
+                $returnCode = 0;
+                exec(PHP_BINARY . ' ' . escapeshellarg($file_path) . ' 2>&1', $outputLines, $returnCode);
+                $output = implode("\n", $outputLines);
+                $execution_time = round(microtime(true) - $start_time, 2);
                 
-                try {
-                    include $file_path;
-                    $output = ob_get_clean();
-                    $execution_time = round(microtime(true) - $start_time, 2);
-                    
+                if ($returnCode === 0) {
                     // Update job with success
                     $stmt = $pdo->prepare("
                         UPDATE cron_jobs 
@@ -42,9 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $stmt->execute([substr($log, 0, 5000), $job_id]);
                     
                     $_SESSION['success'] = "Tâche exécutée avec succès en {$execution_time}s";
-                } catch (Exception $e) {
-                    $output = ob_get_clean();
-                    
+                } else {
                     // Update job with error
                     $stmt = $pdo->prepare("
                         UPDATE cron_jobs 
@@ -52,10 +50,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             log_derniere_execution = ?
                         WHERE id = ?
                     ");
-                    $log = "Erreur lors de l'exécution manuelle:\n" . $e->getMessage() . "\n\n" . $output;
+                    $log = "Erreur lors de l'exécution manuelle (code retour: {$returnCode}):\n\n" . $output;
                     $stmt->execute([substr($log, 0, 5000), $job_id]);
                     
-                    $_SESSION['error'] = "Erreur lors de l'exécution: " . $e->getMessage();
+                    $_SESSION['error'] = "Erreur lors de l'exécution (code retour: {$returnCode})";
                 }
             } else {
                 $_SESSION['error'] = "Fichier de tâche introuvable: " . $job['fichier'];
