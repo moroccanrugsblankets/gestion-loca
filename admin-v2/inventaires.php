@@ -14,6 +14,7 @@ $stmt = $pdo->query("
     LEFT JOIN contrats c ON inv.contrat_id = c.id
     LEFT JOIN candidatures cand ON c.candidature_id = cand.id
     LEFT JOIN logements l ON inv.logement_id = l.id
+    WHERE inv.deleted_at IS NULL
     ORDER BY inv.date_inventaire DESC
 ");
 $inventaires = $stmt->fetchAll(PDO::FETCH_ASSOC);
