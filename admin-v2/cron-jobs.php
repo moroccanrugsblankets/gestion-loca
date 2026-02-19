@@ -26,7 +26,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $start_time = microtime(true);
                 $outputLines = [];
                 $returnCode = 0;
-                exec(PHP_BINARY . ' ' . escapeshellarg($file_path) . ' 2>&1', $outputLines, $returnCode);
+                // Use PHP CLI binary (PHP_BINARY may point to php-fpm in FPM environments)
+                $phpExt = (DIRECTORY_SEPARATOR === '\\') ? 'php.exe' : 'php';
+                $phpCli = PHP_BINDIR . DIRECTORY_SEPARATOR . $phpExt;
+                if (!is_executable($phpCli)) {
+                    // Only fall back to PHP_BINARY if it is not a fpm/cgi binary
+                    if (stripos(PHP_BINARY, 'fpm') === false && stripos(PHP_BINARY, 'cgi') === false) {
+                        $phpCli = PHP_BINARY;
+                    } else {
+                        $phpCli = 'php'; // last resort: use system PATH
+                    }
+                }
+                exec($phpCli . ' ' . escapeshellarg($file_path) . ' 2>&1', $outputLines, $returnCode);
                 $output = implode("\n", $outputLines);
                 $execution_time = round(microtime(true) - $start_time, 2);
                 
