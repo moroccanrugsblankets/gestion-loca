@@ -26,7 +26,7 @@ try {
     // Remove comments and empty lines for cleaner execution
     $statements = array_filter(
         array_map('trim', explode(';', $migration059)),
-        fn($s) => !empty($s) && !str_starts_with($s, '--')
+        fn($s) => !empty($s) && strpos($s, '--') !== 0
     );
     
     foreach ($statements as $statement) {
@@ -65,7 +65,7 @@ try {
     
     $statements = array_filter(
         array_map('trim', explode(';', $migration060)),
-        fn($s) => !empty($s) && !str_starts_with($s, '--')
+        fn($s) => !empty($s) && strpos($s, '--') !== 0
     );
     
     foreach ($statements as $statement) {
