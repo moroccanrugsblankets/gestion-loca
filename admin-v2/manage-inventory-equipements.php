@@ -106,7 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         break;
                     }
                     
-                    $stmt = $pdo->prepare("DELETE FROM inventaire_equipements WHERE id = ? AND logement_id = ?");
+                    // Soft delete equipment (set deleted_at timestamp instead of DELETE)
+                    $stmt = $pdo->prepare("UPDATE inventaire_equipements SET deleted_at = NOW() WHERE id = ? AND logement_id = ? AND deleted_at IS NULL");
                     $stmt->execute([$_POST['equipement_id'], $logement_id]);
                     $_SESSION['success'] = "Équipement supprimé";
                 } catch (PDOException $e) {

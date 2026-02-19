@@ -8,7 +8,7 @@ $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $role_filter = isset($_GET['role']) ? $_GET['role'] : '';
 
 // Build query
-$sql = "SELECT * FROM administrateurs WHERE 1=1";
+$sql = "SELECT * FROM administrateurs WHERE deleted_at IS NULL";
 $params = [];
 
 if ($search) {
@@ -33,9 +33,9 @@ $administrateurs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Get statistics
 $stats = [
-    'total' => $pdo->query("SELECT COUNT(*) FROM administrateurs")->fetchColumn(),
-    'actifs' => $pdo->query("SELECT COUNT(*) FROM administrateurs WHERE actif = TRUE")->fetchColumn(),
-    'inactifs' => $pdo->query("SELECT COUNT(*) FROM administrateurs WHERE actif = FALSE")->fetchColumn()
+    'total' => $pdo->query("SELECT COUNT(*) FROM administrateurs WHERE deleted_at IS NULL")->fetchColumn(),
+    'actifs' => $pdo->query("SELECT COUNT(*) FROM administrateurs WHERE actif = TRUE AND deleted_at IS NULL")->fetchColumn(),
+    'inactifs' => $pdo->query("SELECT COUNT(*) FROM administrateurs WHERE actif = FALSE AND deleted_at IS NULL")->fetchColumn()
 ];
 ?>
 <!DOCTYPE html>

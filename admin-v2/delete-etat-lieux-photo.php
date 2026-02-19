@@ -26,7 +26,7 @@ if ($photo_id < 1) {
 
 try {
     // Get photo details
-    $stmt = $pdo->prepare("SELECT * FROM etat_lieux_photos WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT * FROM etat_lieux_photos WHERE id = ? AND deleted_at IS NULL");
     $stmt->execute([$photo_id]);
     $photo = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -36,14 +36,9 @@ try {
         exit;
     }
     
-    // Delete file from filesystem
-    $filepath = __DIR__ . '/../' . $photo['chemin_fichier'];
-    if (file_exists($filepath)) {
-        @unlink($filepath);
-    }
-    
-    // Delete from database
-    $stmt = $pdo->prepare("DELETE FROM etat_lieux_photos WHERE id = ?");
+    // Soft delete from database (set deleted_at timestamp instead of DELETE)
+    // Photo file is preserved (not deleted from filesystem) as per requirements
+    $stmt = $pdo->prepare("UPDATE etat_lieux_photos SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL");
     $stmt->execute([$photo_id]);
     
     echo json_encode(['success' => true]);

@@ -80,7 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
                 
             case 'delete':
-                $stmt = $pdo->prepare("DELETE FROM logements WHERE id = ?");
+                // Soft delete logement (set deleted_at timestamp instead of DELETE)
+                $stmt = $pdo->prepare("UPDATE logements SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL");
                 $stmt->execute([$_POST['logement_id']]);
                 $_SESSION['success'] = "Logement supprimé";
                 break;

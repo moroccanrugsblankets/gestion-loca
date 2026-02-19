@@ -28,14 +28,14 @@ try {
             }
             
             // Check if username already exists
-            $stmt = $pdo->prepare("SELECT id FROM administrateurs WHERE username = ?");
+            $stmt = $pdo->prepare("SELECT id FROM administrateurs WHERE username = ? AND deleted_at IS NULL");
             $stmt->execute([$username]);
             if ($stmt->fetch()) {
                 throw new Exception("Ce nom d'utilisateur existe déjà");
             }
             
             // Check if email already exists
-            $stmt = $pdo->prepare("SELECT id FROM administrateurs WHERE email = ?");
+            $stmt = $pdo->prepare("SELECT id FROM administrateurs WHERE email = ? AND deleted_at IS NULL");
             $stmt->execute([$email]);
             if ($stmt->fetch()) {
                 throw new Exception("Cette adresse email est déjà utilisée");
@@ -70,14 +70,14 @@ try {
             }
             
             // Check if username already exists (excluding current user)
-            $stmt = $pdo->prepare("SELECT id FROM administrateurs WHERE username = ? AND id != ?");
+            $stmt = $pdo->prepare("SELECT id FROM administrateurs WHERE username = ? AND id != ? AND deleted_at IS NULL");
             $stmt->execute([$username, $id]);
             if ($stmt->fetch()) {
                 throw new Exception("Ce nom d'utilisateur existe déjà");
             }
             
             // Check if email already exists (excluding current user)
-            $stmt = $pdo->prepare("SELECT id FROM administrateurs WHERE email = ? AND id != ?");
+            $stmt = $pdo->prepare("SELECT id FROM administrateurs WHERE email = ? AND id != ? AND deleted_at IS NULL");
             $stmt->execute([$email, $id]);
             if ($stmt->fetch()) {
                 throw new Exception("Cette adresse email est déjà utilisée");
@@ -113,8 +113,8 @@ try {
                 throw new Exception("ID invalide");
             }
             
-            // Get admin info before deletion
-            $stmt = $pdo->prepare("SELECT username FROM administrateurs WHERE id = ?");
+            // Get admin info before soft deletion
+            $stmt = $pdo->prepare("SELECT username FROM administrateurs WHERE id = ? AND deleted_at IS NULL");
             $stmt->execute([$id]);
             $admin = $stmt->fetch(PDO::FETCH_ASSOC);
             
@@ -123,11 +123,11 @@ try {
             }
             
             // Prevent deleting the last admin
-            $stmt = $pdo->query("SELECT COUNT(*) FROM administrateurs WHERE role = 'admin' AND actif = TRUE");
+            $stmt = $pdo->query("SELECT COUNT(*) FROM administrateurs WHERE role = 'admin' AND actif = TRUE AND deleted_at IS NULL");
             $adminCount = $stmt->fetchColumn();
             
             if ($adminCount <= 1) {
-                $stmt = $pdo->prepare("SELECT role, actif FROM administrateurs WHERE id = ?");
+                $stmt = $pdo->prepare("SELECT role, actif FROM administrateurs WHERE id = ? AND deleted_at IS NULL");
                 $stmt->execute([$id]);
                 $adminToDelete = $stmt->fetch(PDO::FETCH_ASSOC);
                 
@@ -136,8 +136,8 @@ try {
                 }
             }
             
-            // Delete admin
-            $stmt = $pdo->prepare("DELETE FROM administrateurs WHERE id = ?");
+            // Soft delete admin (set deleted_at timestamp instead of DELETE)
+            $stmt = $pdo->prepare("UPDATE administrateurs SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL");
             $stmt->execute([$id]);
             
             $_SESSION['success'] = "Administrateur '{$admin['username']}' supprimé avec succès";

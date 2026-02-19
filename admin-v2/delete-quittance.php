@@ -18,12 +18,12 @@ if (!$quittance_id) {
     exit;
 }
 
-// Get quittance details before deletion
+// Get quittance details before soft deletion
 $stmt = $pdo->prepare("
     SELECT q.*, c.reference_unique as contrat_ref
     FROM quittances q
     INNER JOIN contrats c ON q.contrat_id = c.id
-    WHERE q.id = ?
+    WHERE q.id = ? AND q.deleted_at IS NULL
 ");
 $stmt->execute([$quittance_id]);
 $quittance = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -38,11 +38,12 @@ try {
     // Start transaction
     $pdo->beginTransaction();
     
-    // Delete quittance from database
-    $stmt = $pdo->prepare("DELETE FROM quittances WHERE id = ?");
+    // Soft delete quittance (set deleted_at timestamp instead of DELETE)
+    // PDF file is preserved (not deleted) as per requirements
+    $stmt = $pdo->prepare("UPDATE quittances SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL");
     $stmt->execute([$quittance_id]);
     
-    // Log the deletion
+    // Log the soft deletion
     if (isset($_SESSION['admin_id'])) {
         $stmt = $pdo->prepare("
             INSERT INTO logs (admin_id, action, details, date_action)
@@ -50,21 +51,15 @@ try {
         ");
         $stmt->execute([
             $_SESSION['admin_id'],
-            "Suppression de la quittance " . $quittance['reference_unique'] . " (Contrat: " . $quittance['contrat_ref'] . ")"
+            "Suppression (soft delete) de la quittance " . $quittance['reference_unique'] . " (Contrat: " . $quittance['contrat_ref'] . ")"
         ]);
     }
     
     // Commit transaction
     $pdo->commit();
     
-    // Delete PDF file after successful database deletion
-    if ($quittance['fichier_pdf'] && file_exists($quittance['fichier_pdf'])) {
-        if (@unlink($quittance['fichier_pdf'])) {
-            error_log("PDF de quittance supprimé: " . $quittance['fichier_pdf']);
-        } else {
-            error_log("Erreur lors de la suppression du PDF: " . $quittance['fichier_pdf']);
-        }
-    }
+    // NOTE: PDF file is preserved (not deleted) to maintain audit trail
+    // File path: $quittance['fichier_pdf']
     
     $_SESSION['success'] = "Quittance " . $quittance['reference_unique'] . " supprimée avec succès";
     header('Location: quittances.php');

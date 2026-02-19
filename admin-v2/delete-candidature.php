@@ -18,12 +18,12 @@ if (!$candidature_id) {
     exit;
 }
 
-// Get candidature details before deletion
+// Get candidature details before soft deletion
 $stmt = $pdo->prepare("
     SELECT c.*, l.reference as logement_ref
     FROM candidatures c
     LEFT JOIN logements l ON c.logement_id = l.id
-    WHERE c.id = ?
+    WHERE c.id = ? AND c.deleted_at IS NULL
 ");
 $stmt->execute([$candidature_id]);
 $candidature = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -38,32 +38,20 @@ try {
     // Start transaction
     $pdo->beginTransaction();
     
-    // Get candidature documents before deletion
-    $stmt = $pdo->prepare("SELECT chemin_fichier FROM candidature_documents WHERE candidature_id = ?");
-    $stmt->execute([$candidature_id]);
-    $documents = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Delete associated documents from candidature_documents table
-    $stmt = $pdo->prepare("DELETE FROM candidature_documents WHERE candidature_id = ?");
+    // Soft delete associated documents from candidature_documents table
+    // Note: Files are NOT physically deleted, only marked as deleted
+    $stmt = $pdo->prepare("UPDATE candidature_documents SET deleted_at = NOW() WHERE candidature_id = ? AND deleted_at IS NULL");
     $stmt->execute([$candidature_id]);
     
-    // Delete candidature
-    $stmt = $pdo->prepare("DELETE FROM candidatures WHERE id = ?");
+    // Soft delete candidature (set deleted_at timestamp instead of DELETE)
+    $stmt = $pdo->prepare("UPDATE candidatures SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL");
     $stmt->execute([$candidature_id]);
     
     // Commit transaction
     $pdo->commit();
     
-    // Delete document files after successful database deletion
-    // This is done after commit to avoid leaving database in inconsistent state
-    // Failed file deletions are logged but don't affect the transaction
-    foreach ($documents as $document) {
-        if ($document['chemin_fichier'] && file_exists($document['chemin_fichier'])) {
-            if (!@unlink($document['chemin_fichier'])) {
-                error_log("Avertissement: Impossible de supprimer le fichier: " . $document['chemin_fichier']);
-            }
-        }
-    }
+    // NOTE: Document files are preserved (not deleted) as per requirements
+    // This allows for data recovery and audit trail
     
     $candidature_ref = $candidature['reference_unique'] ?? "#{$candidature_id}";
     $_SESSION['success'] = "Candidature {$candidature_ref} supprimée avec succès";

@@ -36,7 +36,7 @@ $sql = "
     FROM quittances q
     INNER JOIN contrats c ON q.contrat_id = c.id
     LEFT JOIN logements l ON c.logement_id = l.id
-    WHERE 1=1
+    WHERE q.deleted_at IS NULL
 ";
 $params = [];
 
@@ -71,9 +71,9 @@ $quittances = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Get statistics
 $stats = [
-    'total' => $pdo->query("SELECT COUNT(*) FROM quittances")->fetchColumn(),
-    'envoyees' => $pdo->query("SELECT COUNT(*) FROM quittances WHERE email_envoye = 1")->fetchColumn(),
-    'non_envoyees' => $pdo->query("SELECT COUNT(*) FROM quittances WHERE email_envoye = 0")->fetchColumn()
+    'total' => $pdo->query("SELECT COUNT(*) FROM quittances WHERE deleted_at IS NULL")->fetchColumn(),
+    'envoyees' => $pdo->query("SELECT COUNT(*) FROM quittances WHERE email_envoye = 1 AND deleted_at IS NULL")->fetchColumn(),
+    'non_envoyees' => $pdo->query("SELECT COUNT(*) FROM quittances WHERE email_envoye = 0 AND deleted_at IS NULL")->fetchColumn()
 ];
 
 // Month names for display

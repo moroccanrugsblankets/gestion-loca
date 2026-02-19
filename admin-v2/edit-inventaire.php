@@ -319,14 +319,15 @@ foreach ($existing_tenants as $tenant) {
 
 // Remove duplicates if any found
 if (!empty($duplicate_ids_to_remove)) {
-    error_log("Removing " . count($duplicate_ids_to_remove) . " duplicate tenant records for inventaire_id=$inventaire_id");
+    error_log("Soft deleting " . count($duplicate_ids_to_remove) . " duplicate tenant records for inventaire_id=$inventaire_id");
     $placeholders = implode(',', array_fill(0, count($duplicate_ids_to_remove), '?'));
-    $deleteStmt = $pdo->prepare("DELETE FROM inventaire_locataires WHERE id IN ($placeholders) AND inventaire_id = ?");
+    // Soft delete duplicates (set deleted_at timestamp instead of DELETE)
+    $deleteStmt = $pdo->prepare("UPDATE inventaire_locataires SET deleted_at = NOW() WHERE id IN ($placeholders) AND inventaire_id = ? AND deleted_at IS NULL");
     $params = array_merge($duplicate_ids_to_remove, [$inventaire_id]);
     $deleteStmt->execute($params);
     
-    // Reload tenants after cleanup
-    $stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? ORDER BY id ASC");
+    // Reload tenants after cleanup (exclude soft-deleted)
+    $stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? AND deleted_at IS NULL ORDER BY id ASC");
     $stmt->execute([$inventaire_id]);
     $existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
     error_log("After cleanup: " . count($existing_tenants) . " unique tenant(s) remain for inventaire_id=$inventaire_id");
