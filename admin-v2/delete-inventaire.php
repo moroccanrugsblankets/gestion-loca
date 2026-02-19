@@ -14,8 +14,8 @@ $inventaire_id = (int)$_POST['inventaire_id'];
 try {
     $pdo->beginTransaction();
     
-    // Get inventaire to delete photos
-    $stmt = $pdo->prepare("SELECT * FROM inventaires WHERE id = ?");
+    // Get inventaire details
+    $stmt = $pdo->prepare("SELECT * FROM inventaires WHERE id = ? AND deleted_at IS NULL");
     $stmt->execute([$inventaire_id]);
     $inventaire = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -25,20 +25,12 @@ try {
         exit;
     }
     
-    // Delete photos from filesystem
-    $stmt = $pdo->prepare("SELECT fichier FROM inventaire_photos WHERE inventaire_id = ?");
-    $stmt->execute([$inventaire_id]);
-    $photos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // NOTE: Photos are preserved (not deleted from filesystem) as per requirements
+    // Only marking as deleted in database for soft delete functionality
     
-    foreach ($photos as $photo) {
-        $filepath = __DIR__ . '/../uploads/inventaires/' . basename($photo['fichier']);
-        if (file_exists($filepath)) {
-            unlink($filepath);
-        }
-    }
-    
-    // Delete from database (cascade will handle inventaire_photos and inventaire_locataires)
-    $stmt = $pdo->prepare("DELETE FROM inventaires WHERE id = ?");
+    // Soft delete from database (set deleted_at timestamp instead of DELETE)
+    // Note: If inventaire_photos table has deleted_at, it should also be soft deleted
+    $stmt = $pdo->prepare("UPDATE inventaires SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL");
     $stmt->execute([$inventaire_id]);
     
     $pdo->commit();

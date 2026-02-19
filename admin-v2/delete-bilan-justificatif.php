@@ -26,7 +26,7 @@ if ($etat_lieux_id < 1 || empty($file_id)) {
 }
 
 // Verify état des lieux exists
-$stmt = $pdo->prepare("SELECT id, bilan_logement_justificatifs FROM etats_lieux WHERE id = ?");
+$stmt = $pdo->prepare("SELECT id, bilan_logement_justificatifs FROM etats_lieux WHERE id = ? AND deleted_at IS NULL");
 $stmt->execute([$etat_lieux_id]);
 $etat = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -61,13 +61,10 @@ try {
         exit;
     }
     
-    // Delete physical file
-    $filepath = __DIR__ . '/../' . $fileToDelete['path'];
-    if (file_exists($filepath)) {
-        unlink($filepath);
-    }
+    // NOTE: Physical file is preserved (not deleted) as per requirements
+    // Only removing from the justificatifs JSON array
     
-    // Update database
+    // Update database to remove file reference from JSON
     $stmt = $pdo->prepare("
         UPDATE etats_lieux 
         SET bilan_logement_justificatifs = ?,

@@ -29,7 +29,7 @@ try {
     $pdo->beginTransaction();
     
     // Get état des lieux details for logging
-    $stmt = $pdo->prepare("SELECT * FROM etats_lieux WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT * FROM etats_lieux WHERE id = ? AND deleted_at IS NULL");
     $stmt->execute([$id]);
     $etat = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -37,27 +37,20 @@ try {
         throw new Exception("État des lieux non trouvé");
     }
     
-    // Delete associated photos from filesystem if they exist
-    $stmt = $pdo->prepare("SELECT chemin_fichier FROM etat_lieux_photos WHERE etat_lieux_id = ?");
+    // Soft delete associated photos (mark as deleted, don't remove files)
+    // Photos are preserved for audit trail and potential data recovery
+    $stmt = $pdo->prepare("UPDATE etat_lieux_photos SET deleted_at = NOW() WHERE etat_lieux_id = ? AND deleted_at IS NULL");
     $stmt->execute([$id]);
-    $photos = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    foreach ($photos as $photo) {
-        $filepath = __DIR__ . '/../' . $photo['chemin_fichier'];
-        if (file_exists($filepath)) {
-            @unlink($filepath);
-        }
-    }
-    
-    // Delete the état des lieux (cascade will handle related records)
-    $stmt = $pdo->prepare("DELETE FROM etats_lieux WHERE id = ?");
+    // Soft delete the état des lieux (set deleted_at timestamp instead of DELETE)
+    $stmt = $pdo->prepare("UPDATE etats_lieux SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL");
     $stmt->execute([$id]);
     
     // Commit transaction
     $pdo->commit();
     
-    // Log the deletion
-    error_log("État des lieux deleted - ID: $id, Type: {$etat['type']}, Contrat ID: {$etat['contrat_id']}, User: " . ($_SESSION['username'] ?? 'unknown'));
+    // Log the soft deletion
+    error_log("État des lieux soft deleted - ID: $id, Type: {$etat['type']}, Contrat ID: {$etat['contrat_id']}, User: " . ($_SESSION['username'] ?? 'unknown'));
     
     $_SESSION['success'] = "État des lieux supprimé avec succès";
     

@@ -18,12 +18,12 @@ if (!$contrat_id) {
     exit;
 }
 
-// Get contract details before deletion
+// Get contract details before soft deletion
 $stmt = $pdo->prepare("
     SELECT c.*, l.reference as logement_ref
     FROM contrats c
     LEFT JOIN logements l ON c.logement_id = l.id
-    WHERE c.id = ?
+    WHERE c.id = ? AND c.deleted_at IS NULL
 ");
 $stmt->execute([$contrat_id]);
 $contrat = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -38,42 +38,25 @@ try {
     // Start transaction
     $pdo->beginTransaction();
     
-    // Get locataire documents BEFORE deleting the contract (cascade will delete locataires)
-    $stmt = $pdo->prepare("SELECT piece_identite_recto, piece_identite_verso FROM locataires WHERE contrat_id = ?");
-    $stmt->execute([$contrat_id]);
-    $locataires = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Log the deletion action before deleting
+    // Log the soft deletion action
     $stmt = $pdo->prepare("
         INSERT INTO logs (type_entite, entite_id, action, details, ip_address, created_at)
-        VALUES ('contrat', ?, 'Contrat supprimé', ?, ?, NOW())
+        VALUES ('contrat', ?, 'Contrat supprimé (soft delete)', ?, ?, NOW())
     ");
     $stmt->execute([
         $contrat_id,
-        "Contrat {$contrat['reference_unique']} supprimé pour logement {$contrat['logement_ref']}",
+        "Contrat {$contrat['reference_unique']} soft deleted pour logement {$contrat['logement_ref']}",
         $_SERVER['REMOTE_ADDR']
     ]);
     
-    // Delete associated locataires (will cascade delete via foreign key)
-    // Delete contract
-    $stmt = $pdo->prepare("DELETE FROM contrats WHERE id = ?");
+    // Soft delete contract (set deleted_at timestamp instead of DELETE)
+    // Associated locataires are preserved with the contract
+    // PDF files and identity documents are preserved for audit trail
+    $stmt = $pdo->prepare("UPDATE contrats SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL");
     $stmt->execute([$contrat_id]);
     
-    // Delete PDF files if they exist
-    $pdf_path = dirname(__DIR__) . '/pdf/contrats/bail-' . $contrat['reference_unique'] . '.pdf';
-    if (file_exists($pdf_path)) {
-        unlink($pdf_path);
-    }
-    
-    // Delete locataire identity documents that were retrieved earlier
-    foreach ($locataires as $locataire) {
-        if ($locataire['piece_identite_recto'] && file_exists($locataire['piece_identite_recto'])) {
-            unlink($locataire['piece_identite_recto']);
-        }
-        if ($locataire['piece_identite_verso'] && file_exists($locataire['piece_identite_verso'])) {
-            unlink($locataire['piece_identite_verso']);
-        }
-    }
+    // NOTE: PDF files and identity documents are preserved (not deleted) as per requirements
+    // This maintains data integrity and allows for audit trails and potential recovery
     
     // If contract was linked to a candidature, reset its status
     if ($contrat['candidature_id']) {
