@@ -26,6 +26,7 @@
 // Configuration
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/mail-templates.php';
 
 // Log file
@@ -42,40 +43,6 @@ function logMessage($message, $isError = false) {
     
     echo $logEntry;
     file_put_contents($logFile, $logEntry, FILE_APPEND);
-}
-
-/**
- * Récupère un paramètre de configuration
- */
-function getParameter($pdo, $key, $default = null) {
-    try {
-        $stmt = $pdo->prepare("SELECT valeur, type FROM parametres WHERE cle = ?");
-        $stmt->execute([$key]);
-        $param = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$param) {
-            return $default;
-        }
-        
-        $value = $param['valeur'];
-        
-        // Conversion selon le type
-        switch ($param['type']) {
-            case 'json':
-                return json_decode($value, true);
-            case 'boolean':
-                return filter_var($value, FILTER_VALIDATE_BOOLEAN);
-            case 'integer':
-                return (int)$value;
-            case 'float':
-                return (float)$value;
-            default:
-                return $value;
-        }
-    } catch (Exception $e) {
-        logMessage("Erreur lecture paramètre $key: " . $e->getMessage(), true);
-        return $default;
-    }
 }
 
 /**
@@ -319,7 +286,7 @@ function envoyerRappel($pdo, $destinataires, $statusInfo, $mois, $annee) {
         }
         
         // Vérifier si on doit inclure le bouton
-        $inclureBouton = getParameter($pdo, 'rappel_loyers_inclure_bouton', true);
+        $inclureBouton = getParameter('rappel_loyers_inclure_bouton', true);
         
         $boutonHtml = '';
         if ($inclureBouton) {
@@ -332,7 +299,7 @@ function envoyerRappel($pdo, $destinataires, $statusInfo, $mois, $annee) {
         }
         
         // Récupérer la signature email
-        $signature = getParameter($pdo, 'email_signature', '');
+        $signature = getParameter('email_signature', '');
         
         // Remplacer les variables
         $corps = $template['corps_html'];
@@ -436,7 +403,7 @@ function envoyerRappelLocataires($pdo, $mois, $annee) {
         ];
         
         $periode = $nomsMois[$mois] . ' ' . $annee;
-        $signature = getParameter($pdo, 'email_signature', '');
+        $signature = getParameter('email_signature', '');
         
         $envoyesOk = 0;
         $envoyesErreur = 0;
@@ -529,7 +496,7 @@ try {
     logMessage("===== DÉMARRAGE DU SCRIPT DE RAPPEL LOYERS =====");
     
     // 1. Vérifier si le module est actif
-    $moduleActif = getParameter($pdo, 'rappel_loyers_actif', false);
+    $moduleActif = getParameter('rappel_loyers_actif', false);
     
     if (!$moduleActif) {
         logMessage("Module de rappel désactivé dans la configuration");
@@ -537,7 +504,7 @@ try {
     }
     
     // 2. Vérifier si c'est un jour de rappel
-    $joursRappel = getParameter($pdo, 'rappel_loyers_dates_envoi', [7, 9, 15]);
+    $joursRappel = getParameter('rappel_loyers_dates_envoi', [7, 9, 15]);
     $jourActuel = (int)date('j');
     
     if (!in_array($jourActuel, $joursRappel)) {
@@ -548,7 +515,7 @@ try {
     logMessage("Jour de rappel détecté: $jourActuel");
     
     // 3. Récupérer les destinataires
-    $destinataires = getParameter($pdo, 'rappel_loyers_destinataires', []);
+    $destinataires = getParameter('rappel_loyers_destinataires', []);
     
     // Fallback sur ADMIN_EMAIL si aucun destinataire configuré
     if (empty($destinataires)) {
