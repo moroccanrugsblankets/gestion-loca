@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide Visuel - Corrections Gestion Loyers (19 Fév 2026)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 3px solid #667eea;
+        }
+        .header h1 {
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .badge-custom {
+            padding: 10px 20px;
+            font-size: 14px;
+            border-radius: 20px;
+        }
+        .problem-section {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 10px;
+        }
+        .solution-section {
+            background: #d1ecf1;
+            border-left: 5px solid #17a2b8;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 10px;
+        }
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 30px 0;
+        }
+        .before-box, .after-box {
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .before-box {
+            background: #fee;
+            border: 3px solid #dc3545;
+        }
+        .after-box {
+            background: #efe;
+            border: 3px solid #28a745;
+        }
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .housing-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 10px 0;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 5px solid #667eea;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 5px;
+        }
+        .status-paye {
+            background: #28a745;
+            color: white;
+        }
+        .status-impaye {
+            background: #dc3545;
+            color: white;
+        }
+        .status-attente {
+            background: #ffc107;
+            color: #333;
+        }
+        .month-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .month-cell {
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        .month-cell:hover {
+            transform: translateY(-5px);
+        }
+        .highlight-box {
+            background: #fff9e6;
+            border: 2px dashed #ffc107;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .icon-large {
+            font-size: 48px;
+            margin: 20px 0;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .feature-list li:before {
+            content: "✓ ";
+            color: #28a745;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="header">
+            <h1><i class="bi bi-wrench-adjustable-circle"></i> Corrections Gestion des Loyers</h1>
+            <p class="lead">Correctifs du 19 février 2026</p>
+            <span class="badge badge-custom bg-success">✓ TERMINÉ</span>
+            <span class="badge badge-custom bg-info">2 Problèmes Résolus</span>
+        </div>
+
+        <!-- Problème 1 -->
+        <section class="mb-5">
+            <h2><i class="bi bi-1-circle-fill text-danger"></i> Problème 1: Logements Manquants</h2>
+            
+            <div class="problem-section">
+                <h4>❌ Situation Avant</h4>
+                <p><strong>Symptôme:</strong> Un seul logement s'affichait dans "État des Logements" alors qu'il y avait 2 contrats valides.</p>
+                <div class="housing-card">
+                    <h5>RP-01 - 123 Rue Example</h5>
+                    <small class="text-muted">Statut logement: en_location</small><br>
+                    <span class="status-badge status-paye">✓ Affiché</span>
+                </div>
+                <div class="housing-card" style="opacity: 0.3;">
+                    <h5>RP-05 - 456 Avenue Test</h5>
+                    <small class="text-muted">Statut logement: disponible (mais contrat actif!)</small><br>
+                    <span class="status-badge status-impaye">✗ Non affiché</span>
+                </div>
+            </div>
+
+            <div class="solution-section">
+                <h4>✅ Solution Appliquée</h4>
+                <p><strong>Cause identifiée:</strong> Le filtre <code>WHERE l.statut = 'en_location'</code> excluait les logements marqués "disponible" même s'ils avaient un contrat actif.</p>
+                
+                <div class="comparison-grid">
+                    <div class="before-box">
+                        <h5>❌ Code Avant</h5>
+                        <div class="code-block">
+WHERE l.statut = 'en_location'
+ORDER BY l.reference;
+                        </div>
+                        <p class="text-danger"><small>Filtre trop restrictif!</small></p>
+                    </div>
+                    <div class="after-box">
+                        <h5>✅ Code Après</h5>
+                        <div class="code-block">
+-- Pas de filtre sur le statut!
+ORDER BY l.reference;
+                        </div>
+                        <p class="text-success"><small>Tous les logements avec contrat actif sont affichés</small></p>
+                    </div>
+                </div>
+
+                <div class="highlight-box">
+                    <p><strong><i class="bi bi-lightbulb"></i> Explication:</strong></p>
+                    <p>Un logement peut être marqué "disponible" alors qu'il a encore un contrat actif. Par exemple:</p>
+                    <ul>
+                        <li>Le locataire a donné son préavis et va partir dans 2 mois</li>
+                        <li>Le logement est déjà proposé à la location (statut "disponible")</li>
+                        <li>Mais le contrat actuel est toujours valide!</li>
+                    </ul>
+                    <p class="mb-0">Le seul filtre pertinent est donc le <strong>contrat actif</strong>, pas le statut du logement.</p>
+                </div>
+            </div>
+
+            <div class="after-box mt-3">
+                <h4>🎯 Résultat Final</h4>
+                <div class="housing-card">
+                    <h5>RP-01 - 123 Rue Example</h5>
+                    <small class="text-muted">Statut logement: en_location</small><br>
+                    <span class="status-badge status-paye">✓ Affiché</span>
+                </div>
+                <div class="housing-card">
+                    <h5>RP-05 - 456 Avenue Test</h5>
+                    <small class="text-muted">Statut logement: disponible</small><br>
+                    <span class="status-badge status-paye">✓ Maintenant affiché!</span>
+                </div>
+                <p class="text-success text-center mt-3 mb-0"><strong>Tous les logements avec contrats actifs sont affichés ✓</strong></p>
+            </div>
+        </section>
+
+        <!-- Problème 2 -->
+        <section class="mb-5">
+            <h2><i class="bi bi-2-circle-fill text-danger"></i> Problème 2: Statut des Mois Précédents</h2>
+            
+            <div class="problem-section">
+                <h4>❌ Situation Avant</h4>
+                <p><strong>Symptôme:</strong> Les mois précédents apparaissaient en "attente" (orange) au lieu de "impayé" (rouge).</p>
+                
+                <h5 class="mt-4">Grille des Mois - RP-01 (AVANT)</h5>
+                <div class="month-grid">
+                    <div class="month-cell status-attente">
+                        <div>Décembre 2025</div>
+                        <div class="icon-large">⏳</div>
+                        <small>Attente</small>
+                    </div>
+                    <div class="month-cell status-attente">
+                        <div>Janvier 2026</div>
+                        <div class="icon-large">⏳</div>
+                        <small>Attente</small>
+                    </div>
+                    <div class="month-cell status-attente">
+                        <div>Février 2026</div>
+                        <div class="icon-large">⏳</div>
+                        <small>Attente</small>
+                    </div>
+                </div>
+                <p class="text-danger"><strong>Problème:</strong> Les mois passés (Déc, Jan) devraient être rouges (impayés), pas oranges!</p>
+            </div>
+
+            <div class="solution-section">
+                <h4>✅ Solution Appliquée</h4>
+                <p><strong>Nouvelle fonction helper:</strong> <code>determinerStatutPaiement()</code></p>
+                
+                <div class="code-block">
+function determinerStatutPaiement($mois, $annee, $statut) {
+    // Si un enregistrement existe, utiliser son statut
+    if ($statut) {
+        return $statut['statut_paiement'];
+    }
+    
+    // Sinon, logique par défaut:
+    $currentYear = (int)date('Y');
+    $currentMonth = (int)date('n');
+    
+    // Mois passés → impayé
+    if ($annee < $currentYear || 
+        ($annee == $currentYear && $mois < $currentMonth)) {
+        return 'impaye';
+    }
+    
+    // Mois courant → attente
+    return 'attente';
+}
+                </div>
+
+                <div class="highlight-box mt-4">
+                    <h5><i class="bi bi-gear"></i> Logique Métier</h5>
+                    <ul class="feature-list">
+                        <li>Si un enregistrement existe en base → utilise son statut</li>
+                        <li>Sinon, si mois passé → <strong>impayé</strong> par défaut</li>
+                        <li>Sinon, si mois courant → <strong>attente</strong> par défaut</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="after-box mt-3">
+                <h4>🎯 Résultat Final</h4>
+                <h5>Grille des Mois - RP-01 (APRÈS)</h5>
+                <div class="month-grid">
+                    <div class="month-cell status-impaye">
+                        <div>Décembre 2025</div>
+                        <div class="icon-large">✗</div>
+                        <small>Impayé</small>
+                    </div>
+                    <div class="month-cell status-impaye">
+                        <div>Janvier 2026</div>
+                        <div class="icon-large">✗</div>
+                        <small>Impayé</small>
+                    </div>
+                    <div class="month-cell status-attente">
+                        <div>Février 2026</div>
+                        <div class="icon-large">⏳</div>
+                        <small>Attente</small>
+                    </div>
+                </div>
+                <p class="text-success text-center mt-3 mb-0"><strong>Mois passés en rouge, mois courant en orange ✓</strong></p>
+            </div>
+        </section>
+
+        <!-- Code Quality -->
+        <section class="mb-5">
+            <h2><i class="bi bi-code-square text-info"></i> Améliorations du Code</h2>
+            
+            <div class="solution-section">
+                <h4>🧹 Refactoring: Élimination de la Duplication</h4>
+                
+                <div class="comparison-grid">
+                    <div class="before-box">
+                        <h5>❌ Avant: Code Dupliqué</h5>
+                        <p>La même logique était répétée à 3 endroits:</p>
+                        <ol>
+                            <li>Fonction <code>getStatutGlobalLogement()</code></li>
+                            <li>Vue détaillée (flexbox)</li>
+                            <li>Vue globale (tableau)</li>
+                        </ol>
+                        <p class="text-danger"><small>= 44 lignes de code dupliqué!</small></p>
+                    </div>
+                    <div class="after-box">
+                        <h5>✅ Après: Fonction Centralisée</h5>
+                        <p>Une seule fonction réutilisée partout:</p>
+                        <div class="code-block">
+$statut = getStatutPaiement(...);
+$classe = determinerStatutPaiement(
+    $m['num'], 
+    $m['annee'], 
+    $statut
+);
+                        </div>
+                        <p class="text-success"><small>Code maintenable et cohérent!</small></p>
+                    </div>
+                </div>
+
+                <div class="highlight-box mt-4">
+                    <h5><i class="bi bi-check-circle"></i> Bénéfices</h5>
+                    <ul class="feature-list">
+                        <li>Réduction de 44 lignes de code</li>
+                        <li>Une seule source de vérité</li>
+                        <li>Plus facile à maintenir</li>
+                        <li>Plus facile à tester</li>
+                        <li>Garantit la cohérence</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Summary -->
+        <section class="mb-5">
+            <h2><i class="bi bi-check-circle-fill text-success"></i> Résumé des Corrections</h2>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="after-box">
+                        <h4>✅ Fichiers Modifiés</h4>
+                        <ul>
+                            <li><code>admin-v2/gestion-loyers.php</code></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="after-box">
+                        <h4>✅ Commits Effectués</h4>
+                        <ol>
+                            <li>Fixes principaux</li>
+                            <li>Refactoring</li>
+                            <li>Documentation</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <div class="after-box mt-4">
+                <h4>🎯 Validation Complète</h4>
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="icon-large text-success">✓</div>
+                        <strong>Syntaxe PHP</strong>
+                        <p class="mb-0"><small>php -l validé</small></p>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="icon-large text-success">✓</div>
+                        <strong>Code Review</strong>
+                        <p class="mb-0"><small>Commentaires adressés</small></p>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="icon-large text-success">✓</div>
+                        <strong>Sécurité</strong>
+                        <p class="mb-0"><small>CodeQL passé</small></p>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="icon-large text-success">✓</div>
+                        <strong>Logique</strong>
+                        <p class="mb-0"><small>Métier respectée</small></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Color Legend -->
+        <section class="mb-5">
+            <h2><i class="bi bi-palette text-info"></i> Légende des Couleurs</h2>
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <div class="month-cell status-paye">
+                        <div class="icon-large">✓</div>
+                        <h5>Vert = Payé</h5>
+                        <p class="mb-0">Tous les loyers à jour</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="month-cell status-impaye">
+                        <div class="icon-large">✗</div>
+                        <h5>Rouge = Impayé</h5>
+                        <p class="mb-0">Au moins un loyer non payé</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="month-cell status-attente">
+                        <div class="icon-large">⏳</div>
+                        <h5>Orange = Attente</h5>
+                        <p class="mb-0">En attente de paiement</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="alert alert-success text-center" role="alert">
+            <h3 class="alert-heading"><i class="bi bi-trophy-fill"></i> Mission Accomplie!</h3>
+            <hr>
+            <p class="mb-0">
+                <strong>Tous les problèmes ont été résolus avec succès.</strong><br>
+                Le module de gestion des loyers affiche maintenant correctement tous les logements<br>
+                avec leurs statuts appropriés selon la date.
+            </p>
+        </div>
+
+        <footer class="text-center mt-5 text-muted">
+            <small>
+                <i class="bi bi-calendar3"></i> 19 Février 2026 | 
+                <i class="bi bi-github"></i> PR: copilot/fix-logement-status-filter
+            </small>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
