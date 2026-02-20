@@ -564,17 +564,8 @@ try {
         logMessage("❌ Échec de l'envoi du rappel aux administrateurs", true);
     }
     
-    // 8. Si des impayés sont détectés, envoyer aussi un rappel aux locataires concernés
-    if (!$statusInfo['tous_payes']) {
-        logMessage("Envoi des rappels aux locataires pour loyers impayés...");
-        $resultatLocataires = envoyerRappelLocataires($pdo, $mois, $annee);
-        
-        if ($resultatLocataires) {
-            logMessage("✅ Rappels envoyés avec succès aux locataires");
-        } else {
-            logMessage("⚠️ Aucun rappel locataire envoyé ou erreur lors de l'envoi");
-        }
-    }
+    // Note: Les rappels aux locataires sont envoyés uniquement via le bouton manuel
+    // dans l'interface de gestion des loyers (admin-v2/gestion-loyers.php)
     
     if ($resultat) {
         // 9. Mettre à jour le statut des rappels dans la base
