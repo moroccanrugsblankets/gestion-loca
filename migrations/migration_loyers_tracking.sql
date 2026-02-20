@@ -5,8 +5,6 @@
 --              et la configuration des rappels automatiques
 -- =====================================================
 
-USE bail_signature;
-
 -- =====================================================
 -- TABLE: loyers_tracking
 -- Suivi mensuel de l'état des paiements de loyers par bien
