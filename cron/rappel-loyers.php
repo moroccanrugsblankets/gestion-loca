@@ -32,17 +32,21 @@ require_once __DIR__ . '/../includes/mail-templates.php';
 // Log file
 $logFile = __DIR__ . '/rappel-loyers-log.txt';
 
+// Collector for DB log storage
+$cronLogs = [];
+
 /**
  * Log un message avec timestamp
  */
 function logMessage($message, $isError = false) {
-    global $logFile;
+    global $logFile, $cronLogs;
     $timestamp = date('Y-m-d H:i:s');
     $prefix = $isError ? '[ERROR]' : '[INFO]';
     $logEntry = "[$timestamp] $prefix $message\n";
     
     echo $logEntry;
     file_put_contents($logFile, $logEntry, FILE_APPEND);
+    $cronLogs[] = $logEntry;
 }
 
 /**
@@ -328,9 +332,7 @@ function envoyerRappel($pdo, $destinataires, $statusInfo, $mois, $annee) {
                 $result = sendEmail(
                     $destinataire,
                     $sujet,
-                    $corps,
-                    $config['MAIL_FROM'],
-                    $config['MAIL_FROM_NAME']
+                    $corps
                 );
                 
                 if ($result) {
@@ -465,9 +467,7 @@ function envoyerRappelLocataires($pdo, $mois, $annee) {
                     $result = sendEmail(
                         $locataire['email'],
                         $sujet,
-                        $corps,
-                        $config['MAIL_FROM'],
-                        $config['MAIL_FROM_NAME']
+                        $corps
                     );
                     
                     if ($result) {
@@ -494,18 +494,48 @@ function envoyerRappelLocataires($pdo, $mois, $annee) {
     }
 }
 
+/**
+ * Met à jour le statut du cron job dans la table cron_jobs
+ */
+function mettreAJourCronJob($pdo, $statut, $log = '') {
+    try {
+        if ($statut === 'running') {
+            $stmt = $pdo->prepare("
+                UPDATE cron_jobs 
+                SET statut_derniere_execution = 'running', derniere_execution = NOW()
+                WHERE fichier = 'cron/rappel-loyers.php'
+            ");
+            $stmt->execute();
+        } else {
+            $stmt = $pdo->prepare("
+                UPDATE cron_jobs 
+                SET statut_derniere_execution = ?,
+                    log_derniere_execution = ?
+                WHERE fichier = 'cron/rappel-loyers.php'
+            ");
+            $stmt->execute([$statut, substr($log, 0, 5000)]);
+        }
+    } catch (Exception $e) {
+        error_log("Erreur mise à jour cron_jobs: " . $e->getMessage());
+    }
+}
+
 // =====================================================
 // SCRIPT PRINCIPAL
 // =====================================================
 
 try {
     logMessage("===== DÉMARRAGE DU SCRIPT DE RAPPEL LOYERS =====");
-    
+
+    // Marquer le cron comme en cours d'exécution
+    mettreAJourCronJob($pdo, 'running');
+
     // 1. Vérifier si le module est actif
     $moduleActif = getParameter('rappel_loyers_actif', false);
     
     if (!$moduleActif) {
         logMessage("Module de rappel désactivé dans la configuration");
+        mettreAJourCronJob($pdo, 'success', implode('', $cronLogs));
         exit(0);
     }
     
@@ -515,12 +545,13 @@ try {
     
     if (!in_array($jourActuel, $joursRappel)) {
         logMessage("Pas un jour de rappel configuré (jour actuel: $jourActuel, jours configurés: " . implode(', ', $joursRappel) . ")");
+        mettreAJourCronJob($pdo, 'success', implode('', $cronLogs));
         exit(0);
     }
     
     logMessage("Jour de rappel détecté: $jourActuel");
     
-    // 3. Récupérer les destinataires
+    // 3. Récupérer les destinataires (strictement les administrateurs configurés)
     $destinataires = getParameter('rappel_loyers_destinataires', []);
     
     // Fallback sur ADMIN_EMAIL si aucun destinataire configuré
@@ -530,11 +561,12 @@ try {
             logMessage("Aucun destinataire configuré, utilisation de ADMIN_EMAIL: " . $config['ADMIN_EMAIL']);
         } else {
             logMessage("Aucun destinataire configuré et ADMIN_EMAIL vide", true);
+            mettreAJourCronJob($pdo, 'error', implode('', $cronLogs));
             exit(1);
         }
     }
     
-    logMessage("Destinataires: " . implode(', ', $destinataires));
+    logMessage("Destinataires (administrateurs): " . implode(', ', $destinataires));
     
     // 4. Déterminer le mois et l'année à vérifier (mois en cours)
     $mois = (int)date('n');
@@ -555,7 +587,7 @@ try {
         logMessage("  - Impayés: {$statusInfo['nb_impayes']}");
     }
     
-    // 7. Envoyer le rappel aux administrateurs
+    // 7. Envoyer le rappel aux administrateurs uniquement
     $resultat = envoyerRappel($pdo, $destinataires, $statusInfo, $mois, $annee);
     
     if ($resultat) {
@@ -583,15 +615,20 @@ try {
             logMessage("Erreur mise à jour statut rappels: " . $e->getMessage(), true);
         }
         
+        mettreAJourCronJob($pdo, 'success', implode('', $cronLogs));
         exit(0);
     } else {
         logMessage("❌ Échec de l'envoi du rappel", true);
+        mettreAJourCronJob($pdo, 'error', implode('', $cronLogs));
         exit(1);
     }
     
 } catch (Exception $e) {
     logMessage("ERREUR FATALE: " . $e->getMessage(), true);
     logMessage("Stack trace: " . $e->getTraceAsString(), true);
+    try {
+        mettreAJourCronJob($pdo, 'error', implode('', $cronLogs));
+    } catch (Exception $ignored) {}
     exit(1);
 }
 

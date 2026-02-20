@@ -149,6 +149,11 @@ $pending_responses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // Get current delay parameters (for display purposes only)
 $delaiValeur = (int)getParameter('delai_reponse_valeur', 4);
 $delaiUnite = getParameter('delai_reponse_unite', 'jours');
+
+// Get rappel-loyers configuration for display
+$rappelLoyersDates = getParameter('rappel_loyers_dates_envoi', [7, 9, 15]);
+$rappelLoyersActif = getParameter('rappel_loyers_actif', false);
+$rappelLoyersDestinataires = getParameter('rappel_loyers_destinataires', []);
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -498,6 +503,28 @@ $delaiUnite = getParameter('delai_reponse_unite', 'jours');
                             </div>
                         </div>
                     </div>
+
+                    <?php if ($job['fichier'] === 'cron/rappel-loyers.php'): ?>
+                        <div class="mt-3 p-3 bg-light border rounded">
+                            <strong><i class="bi bi-calendar-check"></i> Configuration des rappels de loyers:</strong>
+                            <div class="mt-2">
+                                <span class="badge <?php echo $rappelLoyersActif ? 'bg-success' : 'bg-secondary'; ?> me-2">
+                                    <?php echo $rappelLoyersActif ? 'Module actif' : 'Module inactif'; ?>
+                                </span>
+                                <?php if (!empty($rappelLoyersDates)): ?>
+                                    <small class="text-muted">Envoi les jours : <strong><?php echo implode(', ', $rappelLoyersDates); ?></strong> du mois</small>
+                                <?php endif; ?>
+                                <?php if (!empty($rappelLoyersDestinataires)): ?>
+                                    <br><small class="text-muted">Destinataires : <?php echo htmlspecialchars(implode(', ', $rappelLoyersDestinataires)); ?></small>
+                                <?php else: ?>
+                                    <br><small class="text-warning"><i class="bi bi-exclamation-triangle"></i> Aucun destinataire configuré (fallback sur ADMIN_EMAIL)</small>
+                                <?php endif; ?>
+                                <br><a href="configuration-rappels-loyers.php" class="btn btn-sm btn-outline-primary mt-2">
+                                    <i class="bi bi-gear"></i> Configurer les rappels
+                                </a>
+                            </div>
+                        </div>
+                    <?php endif; ?>
 
                     <?php if ($job['log_derniere_execution']): ?>
                         <div class="mt-3">
