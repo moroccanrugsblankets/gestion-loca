@@ -8,22 +8,32 @@ require_once 'auth.php';
 require_once '../includes/db.php';
 
 $contrat_id = isset($_GET['contrat_id']) ? (int)$_GET['contrat_id'] : 0;
+$entree_id = isset($_GET['entree']) ? (int)$_GET['entree'] : 0;
+$sortie_id = isset($_GET['sortie']) ? (int)$_GET['sortie'] : 0;
 
-if (!$contrat_id) {
+if ($entree_id && $sortie_id) {
+    // Direct inventory IDs provided (from contrat-detail.php)
+    $stmt = $pdo->prepare("SELECT * FROM inventaires WHERE id = ? AND type = 'entree' LIMIT 1");
+    $stmt->execute([$entree_id]);
+    $inv_entree = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    $stmt = $pdo->prepare("SELECT * FROM inventaires WHERE id = ? AND type = 'sortie' LIMIT 1");
+    $stmt->execute([$sortie_id]);
+    $inv_sortie = $stmt->fetch(PDO::FETCH_ASSOC);
+} elseif ($contrat_id) {
+    // Lookup by contract ID
+    $stmt = $pdo->prepare("SELECT * FROM inventaires WHERE contrat_id = ? AND type = 'entree' ORDER BY date_inventaire DESC LIMIT 1");
+    $stmt->execute([$contrat_id]);
+    $inv_entree = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    $stmt = $pdo->prepare("SELECT * FROM inventaires WHERE contrat_id = ? AND type = 'sortie' ORDER BY date_inventaire DESC LIMIT 1");
+    $stmt->execute([$contrat_id]);
+    $inv_sortie = $stmt->fetch(PDO::FETCH_ASSOC);
+} else {
     $_SESSION['error'] = "Contrat non spécifié";
     header('Location: inventaires.php');
     exit;
 }
-
-// Get entry inventory
-$stmt = $pdo->prepare("SELECT * FROM inventaires WHERE contrat_id = ? AND type = 'entree' ORDER BY date_inventaire DESC LIMIT 1");
-$stmt->execute([$contrat_id]);
-$inv_entree = $stmt->fetch(PDO::FETCH_ASSOC);
-
-// Get exit inventory
-$stmt = $pdo->prepare("SELECT * FROM inventaires WHERE contrat_id = ? AND type = 'sortie' ORDER BY date_inventaire DESC LIMIT 1");
-$stmt->execute([$contrat_id]);
-$inv_sortie = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$inv_entree || !$inv_sortie) {
     $_SESSION['error'] = "Les deux inventaires (entrée et sortie) doivent exister pour effectuer une comparaison";
