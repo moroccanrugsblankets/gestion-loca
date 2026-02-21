@@ -176,8 +176,8 @@ function getTenantsByContract($contratId) {
  * @return int|false
  */
 function createTenant($contratId, $ordre, $data) {
-    $sql = "INSERT INTO locataires (contrat_id, ordre, nom, prenom, date_naissance, email) 
-            VALUES (?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO locataires (contrat_id, ordre, nom, prenom, date_naissance, email, telephone) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)";
     
     if (executeQuery($sql, [
         $contratId,
@@ -185,7 +185,8 @@ function createTenant($contratId, $ordre, $data) {
         $data['nom'],
         $data['prenom'],
         $data['date_naissance'],
-        $data['email']
+        $data['email'],
+        $data['telephone'] ?? null
     ])) {
         return getLastInsertId();
     }

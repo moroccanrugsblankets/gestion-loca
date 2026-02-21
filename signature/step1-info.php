@@ -75,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $prenom = cleanInput($_POST['prenom'] ?? '');
         $dateNaissance = cleanInput($_POST['date_naissance'] ?? '');
         $email = cleanInput($_POST['email'] ?? '');
+        $telephone = cleanInput($_POST['telephone'] ?? '');
         
         // Validation
         if (empty($nom) || empty($prenom) || empty($dateNaissance) || empty($email)) {
@@ -87,7 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'nom' => $nom,
                 'prenom' => $prenom,
                 'date_naissance' => $dateNaissance,
-                'email' => $email
+                'email' => $email,
+                'telephone' => $telephone
             ]);
             
             if ($locataireId) {
@@ -176,6 +178,12 @@ $csrfToken = generateCsrfToken();
                                 <label for="email" class="form-label">Email *</label>
                                 <input type="email" class="form-control" id="email" name="email" 
                                        value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="telephone" class="form-label">N° de téléphone</label>
+                                <input type="tel" class="form-control" id="telephone" name="telephone" 
+                                       value="<?= htmlspecialchars($_POST['telephone'] ?? '') ?>">
                             </div>
 
                             <div class="d-grid gap-2">

@@ -113,7 +113,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     'logement' => $contrat['reference'] . ' - ' . $contrat['adresse'],
                     'date_prise_effet' => date('d/m/Y', strtotime($contrat['date_prise_effet'])),
                     'depot_garantie' => number_format($contrat['depot_garantie'], 2, ',', ' '),
-                    'lien_telecharger' => BASE_URL . '/pdf/download.php?contrat_id=' . $contractId
+                    'lien_telecharger' => BASE_URL . '/pdf/download.php?contrat_id=' . $contractId,
+                    'lien_procedure_depart' => BASE_URL . '/signature/procedure-depart.php?token=' . urlencode($contrat['reference_unique'])
                 ], null, true);
             }
         }
@@ -511,7 +512,12 @@ if ($contrat['validated_by']) {
                     <div class="tenant-card">
                         <div class="row">
                             <div class="col-md-6">
-                                <h6>Locataire <?php echo $locataire['ordre']; ?></h6>
+                                <h6>Locataire <?php echo $locataire['ordre']; ?>
+                                    <a href="edit-locataire.php?id=<?php echo $locataire['id']; ?>" 
+                                       class="btn btn-sm btn-outline-primary ms-2">
+                                        <i class="bi bi-pencil"></i> Modifier
+                                    </a>
+                                </h6>
                                 <div class="info-row">
                                     <div class="info-label">Nom</div>
                                     <div class="info-value"><?php echo htmlspecialchars($locataire['nom']); ?></div>
