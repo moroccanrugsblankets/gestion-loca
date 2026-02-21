@@ -251,7 +251,8 @@ $stmt = $pdo->prepare("
            c.id as contrat_id,
            c.reference_unique as contrat_ref,
            l.id as logement_id,
-           l.adresse as logement_adresse
+           l.adresse as logement_adresse,
+           l.depot_garantie
     FROM contrats c
     LEFT JOIN logements l ON c.logement_id = l.id
     WHERE c.id = ?
@@ -618,6 +619,34 @@ if ($etat) {
                     </div>
                 </div>
                 
+                <!-- Récapitulatif Financier -->
+                <div class="mb-4">
+                    <h6 class="mb-3"><i class="bi bi-calculator"></i> Récapitulatif Financier</h6>
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr class="table-light">
+                                    <th>Dépôt de garantie</th>
+                                    <td id="recapDepotGarantie"><?php echo number_format(floatval($contrat['depot_garantie'] ?? 0), 2, ',', ' '); ?> €</td>
+                                    <th>Valeur estimative</th>
+                                    <td id="recapValeurEstimative">0,00 €</td>
+                                    <th>Solde Débiteur</th>
+                                    <td id="recapSoldeDebiteur">0,00 €</td>
+                                    <th>Solde Créditeur</th>
+                                    <td id="recapSoldeCrediteur">0,00 €</td>
+                                </tr>
+                                <tr>
+                                    <th>Montant à restituer</th>
+                                    <td id="recapMontantRestituer" class="text-success fw-bold">0,00 €</td>
+                                    <th>Reste dû</th>
+                                    <td id="recapResteDu" class="text-danger fw-bold">0,00 €</td>
+                                    <td colspan="4" id="recapMessage" class="text-muted fst-italic"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
                 <!-- Justificatifs Upload -->
                 <div class="mb-4">
                     <h6 class="mb-3">Justificatifs (Factures, devis, photos)</h6>
@@ -775,6 +804,7 @@ if ($etat) {
         const BILAN_MAX_FILE_SIZE = <?php echo $config['BILAN_MAX_FILE_SIZE']; ?>;
         const BILAN_ALLOWED_TYPES = <?php echo json_encode($config['BILAN_ALLOWED_TYPES']); ?>;
         const BILAN_SECTIONS_DATA = <?php echo json_encode($bilanSectionsData); ?>;
+        const DEPOT_GARANTIE = <?php echo floatval($contrat['depot_garantie'] ?? 0); ?>;
         
         // Import data from exit inventory (état de sortie)
         function importFromExitInventory() {
@@ -1071,6 +1101,24 @@ if ($etat) {
             document.getElementById('totalValeur').textContent = totalValeur.toFixed(2) + ' €';
             document.getElementById('totalSoldeDebiteur').textContent = totalSoldeDebiteur.toFixed(2) + ' €';
             document.getElementById('totalSoldeCrediteur').textContent = totalSoldeCrediteur.toFixed(2) + ' €';
+
+            // Update Récapitulatif Financier
+            const formatNum = n => n.toFixed(2).replace('.', ',') + ' €';
+            document.getElementById('recapValeurEstimative').textContent = formatNum(totalValeur);
+            document.getElementById('recapSoldeDebiteur').textContent = formatNum(totalSoldeDebiteur);
+            document.getElementById('recapSoldeCrediteur').textContent = formatNum(totalSoldeCrediteur);
+            const calcResultat = DEPOT_GARANTIE + totalSoldeCrediteur - totalSoldeDebiteur;
+            const montantRestituer = calcResultat > 0 ? calcResultat : 0;
+            const resteDu = calcResultat < 0 ? Math.abs(calcResultat) : 0;
+            document.getElementById('recapMontantRestituer').textContent = formatNum(montantRestituer);
+            document.getElementById('recapResteDu').textContent = formatNum(resteDu);
+            if (montantRestituer > 0) {
+                document.getElementById('recapMessage').textContent = 'Vous recevrez prochainement la somme de ' + formatNum(montantRestituer) + '.';
+            } else if (resteDu > 0) {
+                document.getElementById('recapMessage').textContent = 'Un solde de ' + formatNum(resteDu) + ' reste dû.';
+            } else {
+                document.getElementById('recapMessage').textContent = '';
+            }
         }
         
         // Validate bilan fields - No mandatory fields, no coloring
