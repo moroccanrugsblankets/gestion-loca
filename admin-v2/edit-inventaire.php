@@ -292,8 +292,17 @@ foreach ($equipements_data as $item) {
     }
 }
 
-// Get existing tenants for this inventaire
-$stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? ORDER BY id ASC");
+// Get existing tenants for this inventaire - JOIN with locataires to always show up-to-date names
+$stmt = $pdo->prepare("
+    SELECT il.*,
+           COALESCE(l.nom, il.nom) as nom,
+           COALESCE(l.prenom, il.prenom) as prenom,
+           COALESCE(l.email, il.email) as email
+    FROM inventaire_locataires il
+    LEFT JOIN locataires l ON il.locataire_id = l.id
+    WHERE il.inventaire_id = ?
+    ORDER BY il.id ASC
+");
 $stmt->execute([$inventaire_id]);
 $existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -326,8 +335,17 @@ if (!empty($duplicate_ids_to_remove)) {
     $params = array_merge($duplicate_ids_to_remove, [$inventaire_id]);
     $deleteStmt->execute($params);
     
-    // Reload tenants after cleanup (exclude soft-deleted)
-    $stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? AND deleted_at IS NULL ORDER BY id ASC");
+    // Reload tenants after cleanup (exclude soft-deleted) - JOIN with locataires for fresh names
+    $stmt = $pdo->prepare("
+        SELECT il.*,
+               COALESCE(l.nom, il.nom) as nom,
+               COALESCE(l.prenom, il.prenom) as prenom,
+               COALESCE(l.email, il.email) as email
+        FROM inventaire_locataires il
+        LEFT JOIN locataires l ON il.locataire_id = l.id
+        WHERE il.inventaire_id = ? AND il.deleted_at IS NULL
+        ORDER BY il.id ASC
+    ");
     $stmt->execute([$inventaire_id]);
     $existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
     error_log("After cleanup: " . count($existing_tenants) . " unique tenant(s) remain for inventaire_id=$inventaire_id");
@@ -382,8 +400,17 @@ if (empty($existing_tenants) && !empty($inventaire['contrat_id'])) {
         }
     }
     
-    // Reload tenants
-    $stmt = $pdo->prepare("SELECT * FROM inventaire_locataires WHERE inventaire_id = ? ORDER BY id ASC");
+    // Reload tenants - JOIN with locataires for fresh names
+    $stmt = $pdo->prepare("
+        SELECT il.*,
+               COALESCE(l.nom, il.nom) as nom,
+               COALESCE(l.prenom, il.prenom) as prenom,
+               COALESCE(l.email, il.email) as email
+        FROM inventaire_locataires il
+        LEFT JOIN locataires l ON il.locataire_id = l.id
+        WHERE il.inventaire_id = ?
+        ORDER BY il.id ASC
+    ");
     $stmt->execute([$inventaire_id]);
     $existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }

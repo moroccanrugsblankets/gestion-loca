@@ -231,8 +231,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// Get existing tenants for this état des lieux
-$stmt = $pdo->prepare("SELECT * FROM etat_lieux_locataires WHERE etat_lieux_id = ? ORDER BY ordre ASC");
+// Get existing tenants for this état des lieux - JOIN with locataires to always show up-to-date names
+$stmt = $pdo->prepare("
+    SELECT ell.*,
+           COALESCE(l.nom, ell.nom) as nom,
+           COALESCE(l.prenom, ell.prenom) as prenom,
+           COALESCE(l.email, ell.email) as email
+    FROM etat_lieux_locataires ell
+    LEFT JOIN locataires l ON ell.locataire_id = l.id
+    WHERE ell.etat_lieux_id = ?
+    ORDER BY ell.ordre ASC
+");
 $stmt->execute([$id]);
 $existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -260,8 +269,17 @@ if (empty($existing_tenants) && !empty($etat['contrat_id'])) {
         ]);
     }
     
-    // Reload tenants
-    $stmt = $pdo->prepare("SELECT * FROM etat_lieux_locataires WHERE etat_lieux_id = ? ORDER BY ordre ASC");
+    // Reload tenants - JOIN with locataires to always show up-to-date names
+    $stmt = $pdo->prepare("
+        SELECT ell.*,
+               COALESCE(l.nom, ell.nom) as nom,
+               COALESCE(l.prenom, ell.prenom) as prenom,
+               COALESCE(l.email, ell.email) as email
+        FROM etat_lieux_locataires ell
+        LEFT JOIN locataires l ON ell.locataire_id = l.id
+        WHERE ell.etat_lieux_id = ?
+        ORDER BY ell.ordre ASC
+    ");
     $stmt->execute([$id]);
     $existing_tenants = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }

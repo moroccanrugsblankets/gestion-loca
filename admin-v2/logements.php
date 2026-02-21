@@ -10,8 +10,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'add':
                 try {
                     $stmt = $pdo->prepare("
-                        INSERT INTO logements (reference, adresse, type, surface, loyer, charges, depot_garantie, parking, statut, date_disponibilite, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'disponible', ?, NOW())
+                        INSERT INTO logements (reference, adresse, type, surface, loyer, charges, depot_garantie, parking, statut, date_disponibilite, lien_externe, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'disponible', ?, ?, NOW())
                     ");
                     $stmt->execute([
                         $_POST['reference'],
@@ -22,7 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_POST['charges'],
                         $_POST['depot_garantie'],
                         $_POST['parking'],
-                        !empty($_POST['date_disponibilite']) ? $_POST['date_disponibilite'] : null
+                        !empty($_POST['date_disponibilite']) ? $_POST['date_disponibilite'] : null,
+                        !empty($_POST['lien_externe']) ? trim($_POST['lien_externe']) : null
                     ]);
                     $_SESSION['success'] = "Logement ajouté avec succès";
                 } catch (PDOException $e) {
@@ -51,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt = $pdo->prepare("
                         UPDATE logements SET 
                             reference = ?, adresse = ?, type = ?, surface = ?,
-                            loyer = ?, charges = ?, depot_garantie = ?, parking = ?, statut = ?, date_disponibilite = ?
+                            loyer = ?, charges = ?, depot_garantie = ?, parking = ?, statut = ?, date_disponibilite = ?, lien_externe = ?
                         WHERE id = ?
                     ");
                     $stmt->execute([
@@ -65,6 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_POST['parking'],
                         $dbStatut,
                         !empty($_POST['date_disponibilite']) ? $_POST['date_disponibilite'] : null,
+                        !empty($_POST['lien_externe']) ? trim($_POST['lien_externe']) : null,
                         $_POST['logement_id']
                     ]);
                     $_SESSION['success'] = "Logement modifié avec succès";
@@ -197,6 +199,7 @@ if ($statut_filter && isset($statut_ui_to_db_map[$statut_filter])) {
 // Build query - explicitly select columns we need
 $sql = "SELECT l.id, l.reference, l.adresse, l.type, l.surface, l.loyer, l.charges, 
         l.depot_garantie, l.parking, l.statut, l.date_disponibilite, l.created_at, l.updated_at,
+        l.lien_externe,
         COALESCE(l.default_cles_appartement, 2) as default_cles_appartement,
         COALESCE(l.default_cles_boite_lettres, 1) as default_cles_boite_lettres,
         l.default_etat_piece_principale,
@@ -450,6 +453,7 @@ $stats = [
                                             data-parking="<?php echo htmlspecialchars($logement['parking']); ?>"
                                             data-statut="<?php echo htmlspecialchars($logement['statut_ui']); ?>"
                                             data-date-disponibilite="<?php echo htmlspecialchars($logement['date_disponibilite'] ?? ''); ?>"
+                                            data-lien-externe="<?php echo htmlspecialchars($logement['lien_externe'] ?? ''); ?>"
                                             data-bs-toggle="modal" 
                                             data-bs-target="#editLogementModal">
                                         <i class="bi bi-pencil"></i>
@@ -477,6 +481,15 @@ $stats = [
                                            class="btn btn-outline-warning btn-sm"
                                            title="Gestion du loyer">
                                             <i class="bi bi-cash-stack"></i>
+                                        </a>
+                                    <?php endif; ?>
+                                    <?php if (!empty($logement['lien_externe'])): ?>
+                                        <a href="<?php echo htmlspecialchars($logement['lien_externe']); ?>"
+                                           class="btn btn-outline-secondary btn-sm"
+                                           target="_blank"
+                                           rel="noopener noreferrer"
+                                           title="Voir l'annonce">
+                                            <i class="bi bi-box-arrow-up-right"></i>
                                         </a>
                                     <?php endif; ?>
                                     <button class="btn btn-outline-danger delete-btn"
@@ -558,6 +571,10 @@ $stats = [
                             <div class="col-md-6">
                                 <label class="form-label">Date de disponibilité</label>
                                 <input type="date" name="date_disponibilite" class="form-control">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Lien externe (annonce sur un autre site)</label>
+                                <input type="url" name="lien_externe" class="form-control" placeholder="https://...">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Total mensuel (calculé automatiquement)</label>
@@ -642,6 +659,10 @@ $stats = [
                             <div class="col-md-6">
                                 <label class="form-label">Date de disponibilité</label>
                                 <input type="date" name="date_disponibilite" id="edit_date_disponibilite" class="form-control">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Lien externe (annonce sur un autre site)</label>
+                                <input type="url" name="lien_externe" id="edit_lien_externe" class="form-control" placeholder="https://...">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Total mensuel (calculé automatiquement)</label>
@@ -828,6 +849,7 @@ $stats = [
                 document.getElementById('edit_parking').value = this.dataset.parking;
                 document.getElementById('edit_statut').value = this.dataset.statut;
                 document.getElementById('edit_date_disponibilite').value = this.dataset.dateDisponibilite || '';
+                document.getElementById('edit_lien_externe').value = this.dataset.lienExterne || '';
                 
                 // Calculate totals for edit form
                 calculateTotals('edit');
