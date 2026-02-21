@@ -38,11 +38,6 @@ try {
     // Start transaction
     $pdo->beginTransaction();
     
-    // Soft delete associated documents from candidature_documents table
-    // Note: Files are NOT physically deleted, only marked as deleted
-    $stmt = $pdo->prepare("UPDATE candidature_documents SET deleted_at = NOW() WHERE candidature_id = ? AND deleted_at IS NULL");
-    $stmt->execute([$candidature_id]);
-    
     // Soft delete candidature (set deleted_at timestamp instead of DELETE)
     $stmt = $pdo->prepare("UPDATE candidatures SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL");
     $stmt->execute([$candidature_id]);

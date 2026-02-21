@@ -26,6 +26,7 @@ if ($filter_search) {
     $params[] = $searchTerm;
 }
 
+$where[] = "c.deleted_at IS NULL";
 $whereClause = $where ? "WHERE " . implode(" AND ", $where) : "";
 
 $query = "SELECT c.*, l.reference as logement_ref, l.adresse 
