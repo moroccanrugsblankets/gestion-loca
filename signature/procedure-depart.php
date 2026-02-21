@@ -61,30 +61,20 @@ if (!$error && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $logement = $contrat['logement_ref'] . ' - ' . $contrat['logement_adresse'];
         $dateDemande = date('d/m/Y');
 
-        // Send confirmation email to the tenant
+        // Send confirmation email to the tenant with admin BCC (admins hidden via BCC)
         if ($tenant && !empty($tenant['email'])) {
-            sendTemplatedEmail(
-                'procedure_depart_client',
-                $tenant['email'],
-                [
-                    'nom' => $tenant['nom'],
-                    'prenom' => $tenant['prenom'],
-                    'logement' => $logement,
-                    'reference' => $contrat['reference_unique'],
-                    'date_demande' => $dateDemande
-                ]
-            );
+            $tenantName = htmlspecialchars($tenant['prenom'] . ' ' . $tenant['nom']);
+            $tenantSubject = 'Confirmation de votre demande de procédure de départ';
+            $tenantBody = '<p>Bonjour ' . htmlspecialchars($tenant['prenom']) . ',</p>'
+                . '<p>Nous avons bien reçu votre demande de procédure de départ pour le logement :</p>'
+                . '<p><strong>' . htmlspecialchars($logement) . '</strong><br>'
+                . 'Référence contrat : ' . htmlspecialchars($contrat['reference_unique']) . '<br>'
+                . 'Date de la demande : ' . $dateDemande . '</p>'
+                . '<p>Notre équipe prendra contact avec vous prochainement pour organiser :</p>'
+                . '<ul><li>L\'état des lieux de sortie</li><li>La restitution des clés</li><li>Le remboursement du dépôt de garantie</li></ul>'
+                . '<p>Cordialement,<br>My Invest Immobilier</p>';
+            sendEmail($tenant['email'], $tenantSubject, $tenantBody, null, true, false, null, null, true /* addAdminBcc */);
         }
-
-        // Notify admins of the departure request
-        $adminSubject = 'Demande de procédure de départ - ' . $logement;
-        $adminBody = '<p>Une demande de procédure de départ a été initiée.</p>'
-            . '<p><strong>Logement :</strong> ' . htmlspecialchars($logement) . '</p>'
-            . '<p><strong>Référence contrat :</strong> ' . htmlspecialchars($contrat['reference_unique']) . '</p>'
-            . '<p><strong>Locataire :</strong> ' . ($tenant ? htmlspecialchars($tenant['prenom'] . ' ' . $tenant['nom']) : 'Inconnu') . '</p>'
-            . '<p><strong>Date de la demande :</strong> ' . $dateDemande . '</p>';
-
-        sendEmailToAdmins($adminSubject, $adminBody);
 
         $success = true;
     }

@@ -383,9 +383,9 @@ try {
         'lien_admin' => $config['SITE_URL'] . '/admin-v2/candidature-detail.php?id=' . $candidature_id
     ];
     
-    // Envoyer avec les fichiers en pièces jointes et le candidat en reply-to
+    // Envoyer avec les fichiers en pièces jointes
     // Le body est vide car on utilise le template via $adminVariables
-    $adminEmailResult = sendEmailToAdmins('Nouvelle candidature reçue - ' . $reference_unique, '', $uploaded_files, true, $email, $nom . ' ' . $prenom, $adminVariables);
+    $adminEmailResult = sendEmailToAdmins('Nouvelle candidature reçue - ' . $reference_unique, '', $uploaded_files, true, null, null, $adminVariables);
     if ($adminEmailResult['success']) {
         logDebug("Notification admin envoyée", ['sent_to' => $adminEmailResult['sent_to']]);
         // Log warning if partial success
