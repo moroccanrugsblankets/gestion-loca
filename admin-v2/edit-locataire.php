@@ -46,26 +46,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $error = 'Adresse email invalide.';
         } else {
-            $stmt = $pdo->prepare("
-                UPDATE locataires SET nom = ?, prenom = ?, date_naissance = ?, email = ?, telephone = ?
-                WHERE id = ?
-            ");
-            $stmt->execute([$nom, $prenom, $dateNaissance, $email, $telephone ?: null, $locataireId]);
+            try {
+                $pdo->beginTransaction();
 
-            // Log the action
-            $stmt2 = $pdo->prepare("
-                INSERT INTO logs (type_entite, entite_id, action, details, ip_address, created_at)
-                VALUES ('locataire', ?, 'modification_locataire', ?, ?, NOW())
-            ");
-            $stmt2->execute([
-                $locataireId,
-                "Données modifiées par l'administrateur",
-                $_SERVER['REMOTE_ADDR'] ?? 'unknown'
-            ]);
+                $stmt = $pdo->prepare("
+                    UPDATE locataires SET nom = ?, prenom = ?, date_naissance = ?, email = ?, telephone = ?
+                    WHERE id = ?
+                ");
+                $stmt->execute([$nom, $prenom, $dateNaissance, $email, $telephone ?: null, $locataireId]);
 
-            $_SESSION['success'] = "Données du locataire mises à jour avec succès.";
-            header('Location: contrat-detail.php?id=' . $locataire['contrat_id']);
-            exit;
+                // Cascade update to etat_lieux_locataires and inventaire_locataires
+                $pdo->prepare("UPDATE etat_lieux_locataires SET nom = ?, prenom = ?, email = ? WHERE locataire_id = ?")
+                    ->execute([$nom, $prenom, $email, $locataireId]);
+                $pdo->prepare("UPDATE inventaire_locataires SET nom = ?, prenom = ?, email = ? WHERE locataire_id = ? AND deleted_at IS NULL")
+                    ->execute([$nom, $prenom, $email, $locataireId]);
+
+                // Log the action
+                $stmt2 = $pdo->prepare("
+                    INSERT INTO logs (type_entite, entite_id, action, details, ip_address, created_at)
+                    VALUES ('locataire', ?, 'modification_locataire', ?, ?, NOW())
+                ");
+                $stmt2->execute([
+                    $locataireId,
+                    "Données modifiées par l'administrateur",
+                    $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+                ]);
+
+                $pdo->commit();
+
+                $_SESSION['success'] = "Données du locataire mises à jour avec succès.";
+                header('Location: contrat-detail.php?id=' . $locataire['contrat_id']);
+                exit;
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                $error = "Erreur lors de la mise à jour du locataire.";
+                error_log("Erreur edit-locataire: " . $e->getMessage());
+            }
         }
     }
 }
