@@ -16,6 +16,7 @@
 require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
+require_once '../includes/functions.php';
 require_once '../includes/mail-templates.php';
 
 // Filtre SQL pour les contrats actifs (utilisé dans plusieurs requêtes)
@@ -412,7 +413,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare("
                 SELECT l.*, c.id as contrat_id,
                        (SELECT email FROM locataires WHERE contrat_id = c.id LIMIT 1) as email_locataire,
-                       (SELECT CONCAT(prenom, ' ', nom) FROM locataires WHERE contrat_id = c.id LIMIT 1) as nom_locataire
+                       (SELECT nom FROM locataires WHERE contrat_id = c.id LIMIT 1) as nom_locataire,
+                       (SELECT prenom FROM locataires WHERE contrat_id = c.id LIMIT 1) as prenom_locataire
                 FROM logements l
                 INNER JOIN contrats c ON c.logement_id = l.id
                 WHERE l.id = ? AND " . CONTRAT_ACTIF_FILTER . "
@@ -424,31 +426,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception('Locataire introuvable ou email manquant');
             }
             
-            // Préparer l'email de rappel
+            // Préparer les variables pour le template
             $moisNom = $nomsMois[$mois];
             $montantTotal = $info['loyer'] + $info['charges'];
             
-            $sujet = "Rappel de paiement - Loyer de $moisNom $annee";
-            $corps = "
-            <h2>Rappel de paiement</h2>
-            <p>Bonjour " . htmlspecialchars($info['nom_locataire']) . ",</p>
-            <p>Nous vous rappelons que le loyer du mois de <strong>$moisNom $annee</strong> n'a pas encore été enregistré pour le bien situé au:</p>
-            <p><strong>" . htmlspecialchars($info['adresse']) . "</strong><br>
-            Référence: " . htmlspecialchars($info['reference']) . "</p>
-            <p><strong>Montant dû: " . number_format($montantTotal, 2, ',', ' ') . " €</strong><br>
-            (Loyer: " . number_format($info['loyer'], 2, ',', ' ') . " € + Charges: " . number_format($info['charges'], 2, ',', ' ') . " €)</p>
-            <p>Merci de régulariser votre situation dans les meilleurs délais.</p>
-            <p>Cordialement,<br>
-            <strong>My Invest Immobilier</strong></p>
-            ";
-            
-            // Envoyer l'email
-            $result = sendEmail(
+            // Envoyer l'email via le template (avec copie automatique à l'administrateur en BCC)
+            $result = sendTemplatedEmail(
+                'rappel_loyer_impaye_locataire',
                 $info['email_locataire'],
-                $sujet,
-                $corps,
-                $config['MAIL_FROM'],
-                $config['MAIL_FROM_NAME']
+                [
+                    'locataire_nom' => $info['nom_locataire'],
+                    'locataire_prenom' => $info['prenom_locataire'],
+                    'periode' => $moisNom . ' ' . $annee,
+                    'adresse' => $info['adresse'],
+                    'montant_total' => number_format($montantTotal, 2, ',', ' ')
+                ],
+                null,
+                false,
+                true  // addAdminBcc: copie automatique à l'administrateur
             );
             
             if ($result) {
@@ -1023,11 +1018,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function changerStatut(logementId, mois, annee, statutActuel) {
-            // Cycle entre les statuts: attente -> paye -> impaye -> attente
+            // Cycle entre les statuts
+            // Pour 'impaye', on passe directement à 'paye' afin d'éviter
+            // que la page recalcule immédiatement 'attente' -> 'impaye' pour les mois passés.
             const cycle = {
                 'attente': 'paye',
                 'paye': 'impaye',
-                'impaye': 'attente'
+                'impaye': 'paye'
             };
             
             const nouveauStatut = cycle[statutActuel] || 'attente';
