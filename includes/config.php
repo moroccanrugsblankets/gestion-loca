@@ -71,7 +71,7 @@ $config = [
     'COMPANY_PHONE' => '+33 (0)4 XX XX XX XX',
     
     // Emails administrateurs pour les notifications
-    'ADMIN_EMAIL' => 'location@myinvest-immobilier.com', // Email principal pour notifications admin
+    'ADMIN_EMAIL' => '', // Email principal pour notifications admin (utiliser les Adresses Administrateurs)
     'ADMIN_EMAIL_SECONDARY' => '', // Email secondaire (optionnel)
     'ADMIN_EMAIL_BCC' => 'contact@myinvest-immobilier.com', // Email en copie cachée (BCC)
     

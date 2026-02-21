@@ -984,7 +984,7 @@ function getAdminEmail() {
     global $config;
     
     // Use only config value
-    return $config['ADMIN_EMAIL'] ?? 'location@myinvest-immobilier.com';
+    return $config['ADMIN_EMAIL'] ?? '';
 }
 
 /**

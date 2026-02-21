@@ -879,7 +879,87 @@ if ($contrat['validated_by']) {
                 Tous les logements utilisent le même modèle d'inventaire.
             </div>
             
-            <!-- Bilan du Logement Section -->
+            <!-- État des lieux Section -->
+            <?php
+            $stmtEdl = $pdo->prepare("SELECT * FROM etats_lieux WHERE contrat_id = ? ORDER BY type, date_etat DESC");
+            $stmtEdl->execute([$contrat['id']]);
+            $etats_lieux_list = $stmtEdl->fetchAll(PDO::FETCH_ASSOC);
+            $edl_entree = null;
+            $edl_sortie = null;
+            foreach ($etats_lieux_list as $edl) {
+                if ($edl['type'] === 'entree' && !$edl_entree) $edl_entree = $edl;
+                elseif ($edl['type'] === 'sortie' && !$edl_sortie) $edl_sortie = $edl;
+            }
+            ?>
+            <h6 class="mt-4"><i class="bi bi-house-check"></i> État des lieux</h6>
+            <?php $edlBadgeClass = ['brouillon'=>'secondary','finalise'=>'info','envoye'=>'success']; ?>
+            <div class="row mt-2">
+                <!-- EDL Entrée -->
+                <div class="col-md-6 mb-3">
+                    <div class="card <?php echo $edl_entree ? 'border-success' : 'border-secondary'; ?>">
+                        <div class="card-header <?php echo $edl_entree ? 'bg-success text-white' : 'bg-secondary text-white'; ?>">
+                            <h6 class="mb-0"><i class="bi bi-box-arrow-in-right"></i> État des lieux d'Entrée</h6>
+                        </div>
+                        <div class="card-body">
+                            <?php if ($edl_entree): ?>
+                                <p class="mb-2">
+                                    <strong>Référence:</strong> <?php echo htmlspecialchars($edl_entree['reference_unique'] ?? 'N/A'); ?><br>
+                                    <strong>Date:</strong> <?php echo date('d/m/Y', strtotime($edl_entree['date_etat'])); ?><br>
+                                    <strong>Statut:</strong>
+                                    <?php $s = $edl_entree['statut'] ?? 'brouillon'; ?>
+                                    <span class="badge bg-<?php echo $edlBadgeClass[$s] ?? 'secondary'; ?>"><?php echo htmlspecialchars(ucfirst($s)); ?></span>
+                                </p>
+                                <div class="btn-group w-100" role="group">
+                                    <a href="edit-etat-lieux.php?id=<?php echo $edl_entree['id']; ?>" class="btn btn-sm btn-primary"><i class="bi bi-pencil"></i> Modifier</a>
+                                    <a href="download-etat-lieux.php?id=<?php echo $edl_entree['id']; ?>" class="btn btn-sm btn-info" target="_blank"><i class="bi bi-file-pdf"></i> PDF</a>
+                                </div>
+                            <?php else: ?>
+                                <p class="text-muted mb-3">Aucun état des lieux d'entrée créé.</p>
+                                <a href="create-etat-lieux.php?contrat_id=<?php echo $contractId; ?>&type=entree" class="btn btn-sm btn-success w-100">
+                                    <i class="bi bi-plus-circle"></i> Créer l'état des lieux d'entrée
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                <!-- EDL Sortie -->
+                <div class="col-md-6 mb-3">
+                    <div class="card <?php echo $edl_sortie ? 'border-danger' : 'border-secondary'; ?>">
+                        <div class="card-header <?php echo $edl_sortie ? 'bg-danger text-white' : 'bg-secondary text-white'; ?>">
+                            <h6 class="mb-0"><i class="bi bi-box-arrow-right"></i> État des lieux de Sortie</h6>
+                        </div>
+                        <div class="card-body">
+                            <?php if ($edl_sortie): ?>
+                                <p class="mb-2">
+                                    <strong>Référence:</strong> <?php echo htmlspecialchars($edl_sortie['reference_unique'] ?? 'N/A'); ?><br>
+                                    <strong>Date:</strong> <?php echo date('d/m/Y', strtotime($edl_sortie['date_etat'])); ?><br>
+                                    <strong>Statut:</strong>
+                                    <?php $s2 = $edl_sortie['statut'] ?? 'brouillon'; ?>
+                                    <span class="badge bg-<?php echo $edlBadgeClass[$s2] ?? 'secondary'; ?>"><?php echo htmlspecialchars(ucfirst($s2)); ?></span>
+                                </p>
+                                <div class="btn-group w-100" role="group">
+                                    <a href="edit-etat-lieux.php?id=<?php echo $edl_sortie['id']; ?>" class="btn btn-sm btn-primary"><i class="bi bi-pencil"></i> Modifier</a>
+                                    <a href="download-etat-lieux.php?id=<?php echo $edl_sortie['id']; ?>" class="btn btn-sm btn-info" target="_blank"><i class="bi bi-file-pdf"></i> PDF</a>
+                                    <?php if ($edl_entree): ?>
+                                    <a href="compare-etat-lieux.php?contrat_id=<?php echo $contractId; ?>" class="btn btn-sm btn-warning"><i class="bi bi-arrow-left-right"></i> Comparer</a>
+                                    <?php endif; ?>
+                                </div>
+                            <?php else: ?>
+                                <p class="text-muted mb-3">Aucun état des lieux de sortie créé.</p>
+                                <?php if ($edl_entree): ?>
+                                <a href="create-etat-lieux.php?contrat_id=<?php echo $contractId; ?>&type=sortie" class="btn btn-sm btn-danger w-100">
+                                    <i class="bi bi-plus-circle"></i> Créer l'état des lieux de sortie
+                                </a>
+                                <?php else: ?>
+                                <p class="text-muted small">Créez d'abord l'état des lieux d'entrée</p>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
             <div class="row mt-4">
                 <div class="col-12">
                     <div class="card border-warning">
