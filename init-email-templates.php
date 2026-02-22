@@ -634,8 +634,8 @@ $templates = [
                 <li>Confirmer la réception et organiser la remise des clés</li>
             </ol>
             
-            <p style="text-align: center;">
-                <a href="{{lien_admin}}" style="display: inline-block; padding: 12px 30px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">Voir le contrat</a>
+            <p style="text-align: center; margin: 30px 0;">
+                <a href="{{lien_admin}}" style="display: inline-block; padding: 14px 35px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold;">👁 Voir le détail du contrat</a>
             </p>
         </div>
         <div style="text-align: center; padding: 20px; font-size: 12px; color: #666;">
