@@ -22,9 +22,9 @@ if (!$contrat) {
     die('Contrat non trouvé. Le lien est invalide.');
 }
 
-// Vérifier que le contrat est signé
-if ($contrat['statut'] !== 'signe') {
-    die('Ce contrat n\'est pas encore signé ou n\'est plus valide.');
+// Vérifier que le contrat est signé ou validé
+if ($contrat['statut'] !== 'signe' && $contrat['statut'] !== 'valide') {
+    die('Ce lien n\'est pas disponible. Le contrat doit être signé ou validé.');
 }
 
 $error = '';

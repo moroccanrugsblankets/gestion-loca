@@ -362,7 +362,7 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                             <select name="logement_id" class="form-select" required>
                                 <option value="">-- Sélectionner un logement --</option>
                                 <?php
-                                // Get all logements with their last validated contract and tenant information
+                                // Get only logements that have a validated contract
                                 $stmt = $pdo->query("
                                     SELECT l.id, l.reference, l.type, l.adresse,
                                            (
@@ -374,6 +374,9 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                                                LIMIT 1
                                            ) as nom_locataire
                                     FROM logements l
+                                    WHERE EXISTS (
+                                        SELECT 1 FROM contrats c WHERE c.logement_id = l.id AND c.statut = 'valide'
+                                    )
                                     ORDER BY l.reference
                                 ");
                                 while ($logement = $stmt->fetch(PDO::FETCH_ASSOC)) {
