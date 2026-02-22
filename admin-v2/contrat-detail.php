@@ -844,7 +844,7 @@ if ($contrat['validated_by']) {
         <!-- Inventaire Section -->
         <?php if ($contrat['statut'] === 'valide'): ?>
         <div class="detail-card mt-4">
-            <h5><i class="bi bi-clipboard-check"></i> Inventaire et État des lieux</h5>
+            <h5><i class="bi bi-clipboard-check"></i> Inventaire</h5>
             <?php
             // Fetch inventaires for this contract
             $stmt = $pdo->prepare("
@@ -960,6 +960,10 @@ if ($contrat['validated_by']) {
                 <strong>Information:</strong> L'inventaire utilise désormais un formulaire standardisé conforme au cahier des charges. 
                 Tous les logements utilisent le même modèle d'inventaire.
             </div>
+        </div>
+		
+        <div class="detail-card mt-4">
+            <h5><i class="bi bi-clipboard-check"></i> Bilan du Logement</h5>
 
 
             <div class="row mt-4">
