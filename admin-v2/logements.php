@@ -184,11 +184,6 @@ $statut_ui_to_db_map = [
     'Indisponible' => 'indisponible'
 ];
 
-// Default to showing only "Disponible" properties if no filter is explicitly set
-// Check if this is a fresh page load (no statut or search parameters)
-if (!isset($_GET['statut']) && !isset($_GET['search'])) {
-    $statut_filter = 'Disponible';
-}
 
 // Convert UI status to database status for query
 $statut_db = '';
