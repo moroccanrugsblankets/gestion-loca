@@ -103,8 +103,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $adminInfo = fetchOne("SELECT nom, prenom FROM administrateurs WHERE id = ?", [$adminId]);
         $adminName = $adminInfo ? $adminInfo['prenom'] . ' ' . $adminInfo['nom'] : 'Administrateur';
         
+        // Generate a unique token for the assurance/visale upload link
+        $tokenAssurance = bin2hex(random_bytes(32));
+        $pdo->prepare("UPDATE contrats SET token_assurance = ? WHERE id = ?")->execute([$tokenAssurance, $contractId]);
+
         // Send email to all tenants with admin notification in Cc (isAdminEmail parameter enables Cc to admins)
         if (!empty($locataires)) {
+            $lienAssurance = BASE_URL . '/envoyer-assurance.php?token=' . $tokenAssurance;
             foreach ($locataires as $locataire) {
                 sendTemplatedEmail('contrat_valide_client', $locataire['email'], [
                     'nom' => $locataire['nom'],
@@ -116,6 +121,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     'lien_telecharger' => BASE_URL . '/pdf/download.php?contrat_id=' . $contractId,
                     'lien_procedure_depart' => BASE_URL . '/signature/procedure-depart.php?token=' . urlencode($contrat['reference_unique'])
                 ], null, true);
+
+                // Send assurance/visale request email (client email, admins in BCC)
+                sendTemplatedEmail('demande_assurance_visale', $locataire['email'], [
+                    'nom' => $locataire['nom'],
+                    'prenom' => $locataire['prenom'],
+                    'reference' => $contrat['reference_unique'],
+                    'lien_upload' => $lienAssurance
+                ], null, false, true); // isAdminEmail=false (client email), addAdminBcc=true
             }
         }
         
@@ -716,7 +729,8 @@ if ($contrat['validated_by']) {
             
             // Check if contract has justificatif de paiement
             $hasContractJustificatif = !empty($contrat['justificatif_paiement']);
-            $hasAnyDocuments = $hasDocuments || $hasContractJustificatif;
+            $hasContractAssurance = !empty($contrat['assurance_habitation']);
+            $hasAnyDocuments = $hasDocuments || $hasContractJustificatif || $hasContractAssurance;
             
             if (!$hasAnyDocuments): ?>
                 <p class="text-muted">Aucun document envoyé pour le moment.</p>
@@ -732,6 +746,28 @@ if ($contrat['validated_by']) {
                         <div class="row mt-2">
                             <?php
                             renderDocumentCard($contrat['justificatif_paiement'], 'Justificatif de virement du dépôt de garantie', 'receipt');
+                            ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($hasContractAssurance): ?>
+                    <div class="mb-4">
+                        <h6><i class="bi bi-shield-check"></i> Assurance habitation &amp; Visale</h6>
+                        <?php if (!empty($contrat['date_envoi_assurance'])): ?>
+                            <p class="text-muted small mb-2">
+                                Envoyé le <?php echo date('d/m/Y à H:i', strtotime($contrat['date_envoi_assurance'])); ?>
+                            </p>
+                        <?php endif; ?>
+                        <?php if (!empty($contrat['numero_visale'])): ?>
+                            <p class="mb-2"><strong>Numéro Visale :</strong> <?php echo htmlspecialchars($contrat['numero_visale']); ?></p>
+                        <?php endif; ?>
+                        <div class="row mt-2">
+                            <?php
+                            renderDocumentCard($contrat['assurance_habitation'], 'Attestation d\'assurance habitation', 'shield-check');
+                            if (!empty($contrat['visa_certifie'])) {
+                                renderDocumentCard($contrat['visa_certifie'], 'Visa certifié Visale', 'patch-check');
+                            }
                             ?>
                         </div>
                     </div>
