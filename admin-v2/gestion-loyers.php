@@ -164,6 +164,17 @@ while ($iterDate <= $currentDate) {
 // Pour une optimisation maximale, envisager de déplacer cette logique vers un cron job quotidien.
 updatePreviousMonthsToImpaye($pdo);
 
+// Créer automatiquement les entrées de tracking pour le mois courant avec statut "attente"
+// Cela garantit que le mois courant est toujours affiché comme "En attente" par défaut
+if (!empty($logements)) {
+    foreach ($logements as $logement) {
+        if (!empty($logement['contrat_id'])) {
+            $montantTotal = $logement['loyer'] + $logement['charges'];
+            creerEntryTracking($pdo, $logement['id'], $logement['contrat_id'], $moisActuel, $anneeActuelle, $montantTotal);
+        }
+    }
+}
+
 // Récupérer les statuts de paiement pour tous les logements et mois
 $statutsPaiement = [];
 if (!empty($logements)) {
@@ -463,8 +474,102 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Envoi de rappel manuel aux administrateurs
         if (isset($_POST['action']) && $_POST['action'] === 'envoyer_rappel_administrateurs') {
-            // Inclure le script de rappel pour exécuter la logique
-            require_once __DIR__ . '/../cron/rappel-loyers.php';
+            $moisCourant = (int)date('n');
+            $anneeCourante = (int)date('Y');
+            
+            // Récupérer les destinataires configurés
+            $destinataires = getParameter('rappel_loyers_destinataires', []);
+            if (empty($destinataires)) {
+                $adminEmail = getAdminEmail();
+                if (!empty($adminEmail)) {
+                    $destinataires = [$adminEmail];
+                }
+            }
+            
+            if (empty($destinataires)) {
+                throw new Exception('Aucun administrateur configuré pour recevoir les rappels');
+            }
+            
+            // Récupérer les statuts de paiement du mois courant
+            $stmtStatus = $pdo->prepare("
+                SELECT 
+                    l.reference, l.adresse, l.loyer, l.charges,
+                    COALESCE(lt.statut_paiement, 'attente') as statut_paiement,
+                    (SELECT GROUP_CONCAT(CONCAT(prenom, ' ', nom) SEPARATOR ', ')
+                     FROM locataires loc WHERE loc.contrat_id = c.id) as locataires
+                FROM logements l
+                INNER JOIN contrats c ON c.logement_id = l.id
+                INNER JOIN (
+                    SELECT logement_id, MAX(date_prise_effet) AS max_date
+                    FROM contrats WHERE " . CONTRAT_ACTIF_FILTER . " GROUP BY logement_id
+                ) dc ON c.logement_id = dc.logement_id AND c.date_prise_effet = dc.max_date
+                LEFT JOIN loyers_tracking lt ON lt.logement_id = l.id AND lt.mois = ? AND lt.annee = ?
+                ORDER BY l.reference
+            ");
+            $stmtStatus->execute([$moisCourant, $anneeCourante]);
+            $biens = $stmtStatus->fetchAll(PDO::FETCH_ASSOC);
+            
+            $nbPayes = 0; $nbImpayes = 0; $nbAttente = 0;
+            $lignes = [];
+            foreach ($biens as $bien) {
+                $montant = $bien['loyer'] + $bien['charges'];
+                $s = $bien['statut_paiement'];
+                if ($s === 'paye') { $nbPayes++; $icon = '✅'; $label = 'Payé'; $bg = '#28a745'; }
+                elseif ($s === 'impaye') { $nbImpayes++; $icon = '❌'; $label = 'Impayé'; $bg = '#dc3545'; }
+                else { $nbAttente++; $icon = '⏳'; $label = 'En attente'; $bg = '#ffc107'; }
+                $lignes[] = '<tr><td style="padding:8px;border:1px solid #dee2e6"><strong>' . htmlspecialchars($bien['reference']) . '</strong></td>'
+                    . '<td style="padding:8px;border:1px solid #dee2e6">' . htmlspecialchars($bien['locataires'] ?: 'Non assigné') . '</td>'
+                    . '<td style="padding:8px;border:1px solid #dee2e6">' . htmlspecialchars(substr($bien['adresse'], 0, MAX_ADRESSE_LENGTH)) . '</td>'
+                    . '<td style="padding:8px;border:1px solid #dee2e6;text-align:right">' . number_format($montant, 2, ',', ' ') . ' €</td>'
+                    . '<td style="padding:8px;border:1px solid #dee2e6;text-align:center;background-color:' . $bg . ';color:white;font-weight:bold">' . $icon . ' ' . $label . '</td></tr>';
+            }
+            
+            $tousPayes = ($nbImpayes === 0 && $nbAttente === 0);
+            $templateId = $tousPayes ? 'confirmation_loyers_payes' : 'rappel_loyers_impaye';
+            
+            $moisNom = $nomsMois[$moisCourant];
+            $boutonHtml = '';
+            if (getParameter('rappel_loyers_inclure_bouton', true)) {
+                $urlInterface = rtrim($config['SITE_URL'], '/') . '/admin-v2/gestion-loyers.php';
+                $boutonHtml = '<div style="text-align:center"><a href="' . htmlspecialchars($urlInterface) . '" style="display:inline-block;padding:12px 30px;background:#007bff;color:white;text-decoration:none;border-radius:5px;margin:20px 0">📊 Accéder à l\'interface de gestion</a></div>';
+            }
+            
+            $resume = '<p><strong>Récapitulatif pour ' . $moisNom . ' ' . $anneeCourante . ':</strong></p><ul>'
+                . '<li>Total biens en location: <strong>' . count($biens) . '</strong></li>'
+                . '<li style="color:#28a745">✅ Loyers payés: <strong>' . $nbPayes . '</strong></li>'
+                . '<li style="color:#dc3545">❌ Loyers impayés: <strong>' . $nbImpayes . '</strong></li>'
+                . '<li style="color:#ffc107">⏳ En attente: <strong>' . $nbAttente . '</strong></li></ul>';
+            
+            $tableHtml = '<table style="width:100%;border-collapse:collapse;margin-top:20px"><thead><tr style="background-color:#f8f9fa">'
+                . '<th style="padding:10px;border:1px solid #dee2e6">Référence</th>'
+                . '<th style="padding:10px;border:1px solid #dee2e6">Locataire(s)</th>'
+                . '<th style="padding:10px;border:1px solid #dee2e6">Adresse</th>'
+                . '<th style="padding:10px;border:1px solid #dee2e6;text-align:right">Montant</th>'
+                . '<th style="padding:10px;border:1px solid #dee2e6;text-align:center">Statut</th>'
+                . '</tr></thead><tbody>' . implode('', $lignes) . '</tbody></table>';
+            
+            $statusMessage = $resume . ($tousPayes
+                ? '<p style="color:#28a745;font-size:16px;font-weight:bold">🎉 Excellente nouvelle ! Tous les loyers sont à jour.</p>'
+                : '<p style="color:#dc3545;font-size:16px;font-weight:bold">⚠️ Attention ! Il reste des loyers impayés ou en attente.</p>')
+                . $tableHtml;
+            
+            $envoyesOk = 0;
+            foreach ($destinataires as $dest) {
+                if (filter_var($dest, FILTER_VALIDATE_EMAIL)) {
+                    $result = sendTemplatedEmail($templateId, $dest, [
+                        'status_paiements' => $statusMessage,
+                        'bouton_interface' => $boutonHtml,
+                        'signature' => getParameter('email_signature', '')
+                    ]);
+                    if ($result) $envoyesOk++;
+                }
+            }
+            
+            if ($envoyesOk > 0) {
+                echo json_encode(['success' => true, 'message' => 'Rappel envoyé aux administrateurs']);
+            } else {
+                throw new Exception('Échec de l\'envoi du rappel aux administrateurs');
+            }
             exit;
         }
         

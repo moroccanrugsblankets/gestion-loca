@@ -83,6 +83,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             
                             // Envoyer l'email de notification aux administrateurs
                             sendTemplatedEmail('notification_justificatif_paiement_admin', getAdminEmail(), $adminVariables, null, true);
+                            
+                            // Envoyer un email de confirmation à chaque locataire
+                            foreach ($locataires as $locataire) {
+                                if (!empty($locataire['email'])) {
+                                    $locataireVariables = [
+                                        'nom' => $locataire['nom'],
+                                        'prenom' => $locataire['prenom'],
+                                        'reference' => $contrat['reference_unique']
+                                    ];
+                                    sendTemplatedEmail('confirmation_justificatif_paiement_locataire', $locataire['email'], $locataireVariables);
+                                }
+                            }
                         }
                         
                         $success = true;
