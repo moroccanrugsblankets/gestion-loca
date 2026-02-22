@@ -13,7 +13,8 @@ $sql = "
            l.reference as logement_ref, 
            l.adresse as logement_adresse,
            l.type as logement_type,
-           (SELECT COUNT(*) FROM locataires WHERE contrat_id = c.id) as nb_locataires_signed
+           (SELECT COUNT(*) FROM locataires WHERE contrat_id = c.id) as nb_locataires_signed,
+           (SELECT GROUP_CONCAT(CONCAT(prenom, ' ', nom) ORDER BY ordre SEPARATOR ', ') FROM locataires WHERE contrat_id = c.id) as noms_locataires
     FROM contrats c
     LEFT JOIN logements l ON c.logement_id = l.id
     WHERE 1=1
@@ -238,9 +239,13 @@ $stats = [
                                 <br><small class="text-muted"><?php echo htmlspecialchars($contrat['logement_adresse']); ?></small>
                             </td>
                             <td>
-                                <span class="badge bg-info">
-                                    <?php echo $contrat['nb_locataires']; ?> locataire(s)
-                                </span>
+                                <?php if ($contrat['noms_locataires']): ?>
+                                    <span><?php echo htmlspecialchars($contrat['noms_locataires']); ?></span>
+                                <?php else: ?>
+                                    <span class="badge bg-info">
+                                        <?php echo $contrat['nb_locataires']; ?> locataire(s)
+                                    </span>
+                                <?php endif; ?>
                                 <br><small class="text-muted"><?php echo $contrat['nb_locataires_signed']; ?> signé(s)</small>
                             </td>
                             <td><small><?php echo date('d/m/Y', strtotime($contrat['date_creation'])); ?></small></td>

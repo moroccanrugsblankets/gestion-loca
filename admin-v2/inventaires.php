@@ -361,12 +361,12 @@ $comparable_contracts = array_filter($contracts_with_both, function($status) {
                             <select name="logement_id" class="form-select" required>
                                 <option value="">Sélectionner un logement...</option>
                                 <?php
-                                // Get all logements with their last validated contract reference
+                                // Get logements that have at least one validated contract
                                 $stmt = $pdo->query("
                                     SELECT l.id, l.reference, l.type, l.adresse,
                                            c.reference_unique as contrat_ref
                                     FROM logements l
-                                    LEFT JOIN (
+                                    INNER JOIN (
                                         SELECT c1.logement_id, c1.reference_unique
                                         FROM contrats c1
                                         INNER JOIN (
