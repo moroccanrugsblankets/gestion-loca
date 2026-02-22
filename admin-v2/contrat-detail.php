@@ -772,7 +772,7 @@ if ($contrat['validated_by']) {
                 elseif ($edl['type'] === 'sortie' && !$edl_sortie) $edl_sortie = $edl;
             }
             ?>
-            <h6 class="mt-4"><i class="bi bi-house-check"></i> État des lieux</h6>
+            <h5><i class="bi bi-house-check"></i> État des lieux</h5>
             <?php $edlBadgeClass = ['brouillon'=>'secondary','finalise'=>'info','envoye'=>'success']; ?>
             <div class="row mt-2">
                 <!-- EDL Entrée -->
