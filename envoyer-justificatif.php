@@ -62,29 +62,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         // Récupérer les informations des locataires
                         $locataires = getTenantsByContract($contrat['id']);
                         
+                        // Préparer la liste des locataires (pour l'email admin)
+                        $locatairesNoms = array_map(function($loc) {
+                            return $loc['prenom'] . ' ' . $loc['nom'];
+                        }, $locataires);
+                        $locatairesStr = !empty($locatairesNoms) ? implode(', ', $locatairesNoms) : 'N/A';
+                        
+                        // Construire le lien admin vers le contrat
+                        $lienAdmin = $config['SITE_URL'] . '/admin-v2/contrat-detail.php?id=' . $contrat['id'];
+                        
+                        // Préparer les variables pour l'email admin
+                        $adminVariables = [
+                            'reference' => $contrat['reference_unique'],
+                            'logement' => $contrat['adresse'],
+                            'locataires' => $locatairesStr,
+                            'date_envoi' => date('d/m/Y à H:i'),
+                            'lien_admin' => $lienAdmin
+                        ];
+                        
+                        // Envoyer l'email de notification aux administrateurs (toujours envoyé)
+                        sendTemplatedEmail('notification_justificatif_paiement_admin', getAdminEmail(), $adminVariables, null, true);
+                        
+                        // Envoyer un email de confirmation à chaque locataire
                         if (!empty($locataires)) {
-                            // Préparer la liste des locataires
-                            $locatairesNoms = array_map(function($loc) {
-                                return $loc['prenom'] . ' ' . $loc['nom'];
-                            }, $locataires);
-                            $locatairesStr = implode(', ', $locatairesNoms);
-                            
-                            // Construire le lien admin vers le contrat
-                            $lienAdmin = $config['SITE_URL'] . '/admin-v2/contrat-detail.php?id=' . $contrat['id'];
-                            
-                            // Préparer les variables pour l'email admin
-                            $adminVariables = [
-                                'reference' => $contrat['reference_unique'],
-                                'logement' => $contrat['adresse'],
-                                'locataires' => $locatairesStr,
-                                'date_envoi' => date('d/m/Y à H:i'),
-                                'lien_admin' => $lienAdmin
-                            ];
-                            
-                            // Envoyer l'email de notification aux administrateurs
-                            sendTemplatedEmail('notification_justificatif_paiement_admin', getAdminEmail(), $adminVariables, null, true);
-                            
-                            // Envoyer un email de confirmation à chaque locataire
                             foreach ($locataires as $locataire) {
                                 if (!empty($locataire['email'])) {
                                     $locataireVariables = [
