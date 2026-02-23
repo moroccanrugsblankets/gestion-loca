@@ -96,8 +96,8 @@ if ($send_email) {
             'commentaire' => $commentaire ? '<p style="margin: 15px 0;"><strong>Note :</strong> ' . nl2br(htmlspecialchars($commentaire)) . '</p>' : ''
         ];
         
-        // Send templated email
-        $emailSent = sendTemplatedEmail($templateId, $to, $variables, null, false);
+        // Send templated email (with admin BCC so admins receive a hidden copy)
+        $emailSent = sendTemplatedEmail($templateId, $to, $variables, null, false, true);
         
         if ($emailSent) {
             // Log email sent

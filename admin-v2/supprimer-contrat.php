@@ -55,6 +55,12 @@ try {
     $stmt = $pdo->prepare("UPDATE contrats SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL");
     $stmt->execute([$contrat_id]);
     
+    // Soft delete related records linked to this contract
+    $pdo->prepare("UPDATE etats_lieux SET deleted_at = NOW() WHERE contrat_id = ? AND deleted_at IS NULL")->execute([$contrat_id]);
+    $pdo->prepare("UPDATE inventaires SET deleted_at = NOW() WHERE contrat_id = ? AND deleted_at IS NULL")->execute([$contrat_id]);
+    $pdo->prepare("UPDATE quittances SET deleted_at = NOW() WHERE contrat_id = ? AND deleted_at IS NULL")->execute([$contrat_id]);
+    $pdo->prepare("UPDATE loyers_tracking SET deleted_at = NOW() WHERE contrat_id = ? AND deleted_at IS NULL")->execute([$contrat_id]);
+    
     // NOTE: PDF files and identity documents are preserved (not deleted) as per requirements
     // This maintains data integrity and allows for audit trails and potential recovery
     
