@@ -128,6 +128,34 @@ Nous restons à votre disposition pour toute question.";
 }
 
 /**
+ * Enregistre un email dans la table email_logs
+ * @param string $to Email du destinataire
+ * @param string $subject Sujet de l'email
+ * @param string $body Corps de l'email
+ * @param string $statut 'success' ou 'error'
+ * @param string|null $messageErreur Message d'erreur (si statut = 'error')
+ * @param string|null $templateId Identifiant du template utilisé
+ * @param string|null $contexte Contexte (ex: 'contrat_id=5')
+ * @param string|null $pieceJointe Nom de la pièce jointe
+ */
+function logEmail($to, $subject, $body, $statut = 'success', $messageErreur = null, $templateId = null, $contexte = null, $pieceJointe = null) {
+    global $pdo;
+    if (!$pdo) {
+        return;
+    }
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO email_logs (destinataire, sujet, corps_html, statut, message_erreur, template_id, contexte, piece_jointe)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->execute([$to, $subject, $body, $statut, $messageErreur, $templateId, $contexte, $pieceJointe]);
+    } catch (Exception $e) {
+        // Silently fail – logging should never break email sending
+        error_log("Erreur lors de l'enregistrement du log email: " . $e->getMessage());
+    }
+}
+
+/**
  * Envoyer un email avec PHPMailer
  * @param string $to Email du destinataire
  * @param string $subject Sujet de l'email
@@ -138,9 +166,10 @@ Nous restons à votre disposition pour toute question.";
  * @param string|null $replyTo Email de réponse personnalisé (optionnel)
  * @param string|null $replyToName Nom pour l'email de réponse (optionnel)
  * @param bool $addAdminBcc Si true, ajoute les administrateurs en copie cachée (BCC) - pour emails clients avec copie admin invisible
+ * @param array $logContext Contexte additionnel pour les logs ['template_id' => ..., 'contexte' => ...]
  * @return bool True si l'email a été envoyé avec succès
  */
-function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true, $isAdminEmail = false, $replyTo = null, $replyToName = null, $addAdminBcc = false) {
+function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true, $isAdminEmail = false, $replyTo = null, $replyToName = null, $addAdminBcc = false, $logContext = []) {
     global $config, $pdo;
     
     // Validate SMTP configuration if SMTP auth is enabled
@@ -285,8 +314,28 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
         // Logger le succès seulement si vraiment envoyé
         if ($result) {
             error_log("Email envoyé avec succès à: $to - Sujet: $subject");
+            // Enregistrer dans les logs email
+            $pieceJointeNom = null;
+            if ($attachmentPath) {
+                if (is_array($attachmentPath)) {
+                    $noms = [];
+                    foreach ($attachmentPath as $att) {
+                        $noms[] = is_array($att) ? ($att['name'] ?? basename($att['path'] ?? '')) : basename($att);
+                    }
+                    $pieceJointeNom = implode(', ', array_filter($noms));
+                } else {
+                    $pieceJointeNom = basename($attachmentPath);
+                }
+            }
+            logEmail($to, $subject, $finalBody, 'success', null,
+                $logContext['template_id'] ?? null,
+                $logContext['contexte'] ?? null,
+                $pieceJointeNom ?: null);
         } else {
             error_log("Échec de l'envoi d'email à: $to - Sujet: $subject (mail->send() returned false)");
+            logEmail($to, $subject, $finalBody, 'error', 'mail->send() returned false',
+                $logContext['template_id'] ?? null,
+                $logContext['contexte'] ?? null);
         }
         
         return $result;
@@ -297,6 +346,10 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
             error_log("Erreur PHPMailer lors de l'envoi à $to: {$mail->ErrorInfo}");
         }
         error_log("Exception lors de l'envoi d'email à $to: " . $e->getMessage());
+        $errMsg = ($mail instanceof PHPMailer) ? $mail->ErrorInfo : $e->getMessage();
+        logEmail($to, $subject, $body, 'error', $errMsg,
+            $logContext['template_id'] ?? null,
+            $logContext['contexte'] ?? null);
         
         // En cas d'échec SMTP, ne PAS essayer le fallback si les credentials ne sont pas configurés
         // Le fallback mail() retourne toujours true même si l'email n'est pas envoyé

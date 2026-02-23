@@ -796,7 +796,7 @@ function sendTemplatedEmail($templateId, $to, $variables = [], $attachmentPath =
     $body = replaceTemplateVariables($template['corps_html'], $variables);
     
     // Send email using the existing sendEmail function
-    return sendEmail($to, $subject, $body, $attachmentPath, true, $isAdminEmail, null, null, $addAdminBcc);
+    return sendEmail($to, $subject, $body, $attachmentPath, true, $isAdminEmail, null, null, $addAdminBcc, ['template_id' => $templateId]);
 }
 
 /**

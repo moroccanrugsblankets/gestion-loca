@@ -167,6 +167,11 @@ $active_menu = $page_to_menu_map[$current_page] ?? $current_page;
             </a>
         </li>
         <li class="nav-item">
+            <a class="nav-link <?php echo $active_menu === 'email-tracker.php' ? 'active' : ''; ?>" href="email-tracker.php">
+                <i class="bi bi-envelope-check"></i> Suivi des Emails
+            </a>
+        </li>
+        <li class="nav-item">
             <a class="nav-link <?php echo $active_menu === 'parametres.php' ? 'active' : ''; ?>" href="parametres.php">
                 <i class="bi bi-gear"></i> Paramètres
             </a>
