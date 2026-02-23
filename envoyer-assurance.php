@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ])) {
                             logAction($contrat['id'], 'assurance_visale_recu', 'Documents assurance/Visale uploadés');
 
-                            // Notify admins
+                            // Notify admins and send tenant confirmation
                             $locataires = getTenantsByContract($contrat['id']);
                             if (!empty($locataires)) {
                                 $locatairesNoms = array_map(function($loc) {
@@ -110,6 +110,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 ];
 
                                 sendTemplatedEmail('notification_assurance_visale_admin', getAdminEmail(), $adminVariables, null, true);
+
+                                // Send confirmation email to each tenant
+                                foreach ($locataires as $locataire) {
+                                    if (!empty($locataire['email'])) {
+                                        sendTemplatedEmail('confirmation_assurance_visale_locataire', $locataire['email'], [
+                                            'nom' => $locataire['nom'],
+                                            'prenom' => $locataire['prenom'],
+                                            'reference' => $contrat['reference_unique']
+                                        ]);
+                                    }
+                                }
                             }
 
                             $success = true;

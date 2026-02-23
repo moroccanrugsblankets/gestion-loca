@@ -89,14 +89,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 equipements_data = ?,
                 observations_generales = ?,
                 lieu_signature = ?,
+                date_inventaire = ?,
                 updated_at = NOW()
             WHERE id = ?
         ");
         
+        $date_inventaire_input = $_POST['date_inventaire'] ?? $inventaire['date_inventaire'];
+        $d = DateTime::createFromFormat('Y-m-d', $date_inventaire_input);
+        $date_inventaire_val = ($d && $d->format('Y-m-d') === $date_inventaire_input) ? $date_inventaire_input : $inventaire['date_inventaire'];
+
         $stmt->execute([
             json_encode($equipements_data, JSON_UNESCAPED_UNICODE),
             $_POST['observations_generales'] ?? null,
             $_POST['lieu_signature'] ?? null,
+            $date_inventaire_val,
             $inventaire_id
         ]);
         
@@ -746,6 +752,11 @@ $isEntreeInventory = ($inventaire['type'] === 'entree');
                         <input type="text" name="lieu_signature" id="lieu_signature" class="form-control" 
                                value="<?php echo htmlspecialchars($inventaire['lieu_signature'] ?? ''); ?>" 
                                placeholder="Ex: Paris">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="date_inventaire" class="form-label">Date de l'inventaire</label>
+                        <input type="date" name="date_inventaire" id="date_inventaire" class="form-control"
+                               value="<?php echo htmlspecialchars($inventaire['date_inventaire'] ?? date('Y-m-d')); ?>">
                     </div>
                 </div>
                 
