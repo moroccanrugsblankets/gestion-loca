@@ -37,13 +37,17 @@ if (isset($_GET['action']) && $_GET['action'] === 'download_attachment' && isset
         echo 'Pièce jointe introuvable.';
         exit;
     }
-    // The stored path is relative to the project root (e.g. /pdf/quittances/file.pdf)
     // Handle comma-separated multiple files: serve the first one
-    $relativePath = explode(', ', $row['piece_jointe'])[0];
-    // Normalize to forward slashes, then strip leading slash
-    $relativePath = str_replace('\\', '/', ltrim($relativePath, '/\\'));
+    $storedPath = explode(', ', $row['piece_jointe'])[0];
+    // Normalize path separators
+    $normalized = str_replace('\\', '/', $storedPath);
     $projectRoot = realpath(dirname(__DIR__));
+    // Try as relative path first (strip leading slash), then as absolute path for backwards compatibility
+    $relativePath = ltrim($normalized, '/');
     $absolutePath = realpath($projectRoot . '/' . $relativePath);
+    if (!$absolutePath || !is_file($absolutePath)) {
+        $absolutePath = realpath($normalized) ?: null;
+    }
     // Security: ensure the resolved path is inside the project directory
     if (!$absolutePath || strpos($absolutePath, $projectRoot . DIRECTORY_SEPARATOR) !== 0 || !is_file($absolutePath)) {
         http_response_code(404);
@@ -53,8 +57,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'download_attachment' && isset
     $filename = basename($absolutePath);
     // Strip any characters that could cause header injection
     $safeFilename = preg_replace('/[^\w\-.]/', '_', $filename);
-    header('Content-Type: application/octet-stream');
-    header('Content-Disposition: attachment; filename="' . $safeFilename . '"');
+    // Detect MIME type for inline viewing (e.g. PDFs display in browser)
+    $detected = mime_content_type($absolutePath);
+    $mimeType = $detected ?: 'application/octet-stream';
+    header('Content-Type: ' . $mimeType);
+    header('Content-Disposition: inline; filename="' . $safeFilename . '"');
     header('Content-Length: ' . filesize($absolutePath));
     readfile($absolutePath);
     exit;
@@ -329,6 +336,7 @@ $templatesList = $templatesStmt->fetchAll(PDO::FETCH_COLUMN);
                                     <?php if ($email['piece_jointe']): ?>
                                         <a href="email-tracker.php?action=download_attachment&id=<?= $email['id'] ?>"
                                            title="<?= htmlspecialchars(basename($email['piece_jointe'])) ?>"
+                                           target="_blank"
                                            class="text-decoration-none">
                                             <i class="bi bi-paperclip"></i>
                                             <span class="d-none d-xl-inline"><?= htmlspecialchars(basename($email['piece_jointe'])) ?></span>
@@ -491,7 +499,7 @@ function voirEmail(id) {
             if (e.piece_jointe) {
                 const files = e.piece_jointe.split(', ');
                 const fileNames = files.map(f => f.replace(/\\/g, '/').split('/').pop()).join(', ');
-                pjSpan.innerHTML = '<a href="email-tracker.php?action=download_attachment&id=' + e.id + '" class="ms-1">' +
+                pjSpan.innerHTML = '<a href="email-tracker.php?action=download_attachment&id=' + e.id + '" class="ms-1" target="_blank">' +
                     '<i class="bi bi-file-earmark-arrow-down"></i> ' + fileNames + '</a>';
                 pjRow.classList.remove('d-none');
             } else {
