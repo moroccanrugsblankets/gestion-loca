@@ -781,9 +781,10 @@ function replaceTemplateVariables($template, $data) {
  * @param string|null $attachmentPath Optional attachment path
  * @param bool $isAdminEmail Whether this is an admin email (for CC to secondary admin)
  * @param bool $addAdminBcc Whether to add admins in BCC (for client emails where admins need invisible copy)
+ * @param array $logContext Additional log context ['contexte' => 'contrat_id=5', ...]
  * @return bool Success status
  */
-function sendTemplatedEmail($templateId, $to, $variables = [], $attachmentPath = null, $isAdminEmail = false, $addAdminBcc = false) {
+function sendTemplatedEmail($templateId, $to, $variables = [], $attachmentPath = null, $isAdminEmail = false, $addAdminBcc = false, $logContext = []) {
     $template = getEmailTemplate($templateId);
     
     if (!$template) {
@@ -796,7 +797,7 @@ function sendTemplatedEmail($templateId, $to, $variables = [], $attachmentPath =
     $body = replaceTemplateVariables($template['corps_html'], $variables);
     
     // Send email using the existing sendEmail function
-    return sendEmail($to, $subject, $body, $attachmentPath, true, $isAdminEmail, null, null, $addAdminBcc, ['template_id' => $templateId]);
+    return sendEmail($to, $subject, $body, $attachmentPath, true, $isAdminEmail, null, null, $addAdminBcc, array_merge(['template_id' => $templateId], $logContext));
 }
 
 /**

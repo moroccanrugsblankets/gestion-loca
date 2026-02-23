@@ -206,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'montant_charges' => $montantCharges,
                 'montant_total' => $montantTotal,
                 'signature' => getParameter('email_signature', '')
-            ], $result['filepath'], false, true); // false = not admin email, true = add admin BCC
+            ], $result['filepath'], false, true, ['contexte' => 'quittance_id=' . $result['quittance_id']]); // false = not admin email, true = add admin BCC
             
             if (!$emailSent) {
                 error_log("Erreur envoi email quittance à " . $locataire['email']);

@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
         
         // Envoyer l'email d'invitation avec le template de la base de données
-        $emailSent = sendTemplatedEmail('contrat_signature', $email_principal, $variables, null, true);
+        $emailSent = sendTemplatedEmail('contrat_signature', $email_principal, $variables, null, true, false, ['contexte' => 'contrat_id=' . $contrat_id]);
         
         if (!$emailSent) {
             error_log("Erreur lors de l'envoi de l'email de signature à $email_principal");

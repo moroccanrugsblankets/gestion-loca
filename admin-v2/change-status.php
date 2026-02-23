@@ -97,7 +97,7 @@ if ($send_email) {
         ];
         
         // Send templated email (with admin BCC so admins receive a hidden copy)
-        $emailSent = sendTemplatedEmail($templateId, $to, $variables, null, false, true);
+        $emailSent = sendTemplatedEmail($templateId, $to, $variables, null, false, true, ['contexte' => 'candidature_id=' . $candidature_id]);
         
         if ($emailSent) {
             // Log email sent

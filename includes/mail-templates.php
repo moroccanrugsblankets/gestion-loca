@@ -315,16 +315,30 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
         if ($result) {
             error_log("Email envoyé avec succès à: $to - Sujet: $subject");
             // Enregistrer dans les logs email
+            // Store relative path from project root so the tracker can serve the file
+            $projectRoot = realpath(dirname(__DIR__));
             $pieceJointeNom = null;
             if ($attachmentPath) {
+                $toRelative = function($absPath) use ($projectRoot) {
+                    $resolved = realpath($absPath) ?: $absPath;
+                    if ($projectRoot && strpos($resolved, $projectRoot . DIRECTORY_SEPARATOR) === 0) {
+                        return DIRECTORY_SEPARATOR . str_replace(DIRECTORY_SEPARATOR, '/', substr($resolved, strlen($projectRoot) + 1));
+                    }
+                    return DIRECTORY_SEPARATOR . str_replace(DIRECTORY_SEPARATOR, '/', basename($resolved));
+                };
                 if (is_array($attachmentPath)) {
                     $noms = [];
                     foreach ($attachmentPath as $att) {
-                        $noms[] = is_array($att) ? ($att['name'] ?? basename($att['path'] ?? '')) : basename($att);
+                        if (is_array($att)) {
+                            $path = $att['path'] ?? '';
+                            $noms[] = $path ? $toRelative($path) : ($att['name'] ?? '');
+                        } else {
+                            $noms[] = $toRelative($att);
+                        }
                     }
                     $pieceJointeNom = implode(', ', array_filter($noms));
                 } else {
-                    $pieceJointeNom = basename($attachmentPath);
+                    $pieceJointeNom = $toRelative($attachmentPath);
                 }
             }
             logEmail($to, $subject, $finalBody, 'success', null,
