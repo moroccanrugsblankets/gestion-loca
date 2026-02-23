@@ -111,14 +111,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                                 sendTemplatedEmail('notification_assurance_visale_admin', getAdminEmail(), $adminVariables, null, true);
 
-                                // Send confirmation email to each tenant
+                                // Send confirmation email to each tenant (with admin BCC)
                                 foreach ($locataires as $locataire) {
                                     if (!empty($locataire['email'])) {
                                         sendTemplatedEmail('confirmation_assurance_visale_locataire', $locataire['email'], [
                                             'nom' => $locataire['nom'],
                                             'prenom' => $locataire['prenom'],
                                             'reference' => $contrat['reference_unique']
-                                        ]);
+                                        ], null, false, true);
                                     }
                                 }
                             }

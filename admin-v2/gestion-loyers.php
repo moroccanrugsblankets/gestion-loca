@@ -450,7 +450,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'locataire_prenom' => $info['prenom_locataire'],
                     'periode' => $moisNom . ' ' . $annee,
                     'adresse' => $info['adresse'],
-                    'montant_total' => number_format($montantTotal, 2, ',', ' ')
+                    'montant_total' => number_format($montantTotal, 2, ',', ' '),
+                    'signature' => getParameter('email_signature', '')
                 ],
                 null,
                 false,
