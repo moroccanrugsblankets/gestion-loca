@@ -220,6 +220,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         header('Location: contrat-detail.php?id=' . $contractId);
         exit;
     }
+    elseif ($_POST['action'] === 'update_dates') {
+        // Update contract dates
+        $date_prise_effet = trim($_POST['date_prise_effet'] ?? '');
+        $date_fin_prevue = trim($_POST['date_fin_prevue'] ?? '');
+
+        $updateFields = ['updated_at = NOW()'];
+        $params = [];
+
+        if (!empty($date_prise_effet)) {
+            $d = DateTime::createFromFormat('Y-m-d', $date_prise_effet);
+            if ($d && $d->format('Y-m-d') === $date_prise_effet) {
+                $updateFields[] = 'date_prise_effet = ?';
+                $params[] = $date_prise_effet;
+            }
+        } else {
+            $updateFields[] = 'date_prise_effet = NULL';
+        }
+
+        if (!empty($date_fin_prevue)) {
+            $d = DateTime::createFromFormat('Y-m-d', $date_fin_prevue);
+            if ($d && $d->format('Y-m-d') === $date_fin_prevue) {
+                $updateFields[] = 'date_fin_prevue = ?';
+                $params[] = $date_fin_prevue;
+            }
+        } else {
+            $updateFields[] = 'date_fin_prevue = NULL';
+        }
+
+        $params[] = $contractId;
+        $stmt = $pdo->prepare("UPDATE contrats SET " . implode(', ', $updateFields) . " WHERE id = ?");
+        $stmt->execute($params);
+
+        $_SESSION['success'] = "Dates du contrat mises à jour avec succès.";
+        header('Location: contrat-detail.php?id=' . $contractId);
+        exit;
+    }
 }
 
 // Get contract details
@@ -1084,6 +1120,31 @@ if ($contrat['validated_by']) {
             </div>
         </div>
         <?php endif; ?>
+
+        <!-- Date Editing Section -->
+        <div class="detail-card">
+            <h5><i class="bi bi-calendar-date"></i> Modifier les dates du contrat</h5>
+            <form method="POST" action="">
+                <input type="hidden" name="action" value="update_dates">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="date_prise_effet" class="form-label">Date de prise d'effet (date du contrat)</label>
+                        <input type="date" class="form-control" id="date_prise_effet" name="date_prise_effet"
+                               value="<?php echo htmlspecialchars($contrat['date_prise_effet'] ?? ''); ?>">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="date_fin_prevue" class="form-label">Date de fin prévue</label>
+                        <input type="date" class="form-control" id="date_fin_prevue" name="date_fin_prevue"
+                               value="<?php echo htmlspecialchars($contrat['date_fin_prevue'] ?? ''); ?>">
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Enregistrer les dates
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

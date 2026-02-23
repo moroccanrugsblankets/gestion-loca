@@ -777,6 +777,55 @@ $templates = [
 </html>',
         'variables_disponibles' => '["reference", "logement", "locataires", "date_envoi", "lien_admin"]',
         'description' => 'Notification envoyée aux administrateurs quand un locataire dépose ses documents assurance habitation et Visale'
+    ],
+    [
+        'identifiant' => 'confirmation_assurance_visale_locataire',
+        'nom' => 'Confirmation réception documents assurance/Visale - Locataire',
+        'sujet' => 'My Invest Immobilier - Confirmation de réception de vos documents',
+        'corps_html' => '<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%); color: white; padding: 30px 20px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; }
+        .success-box { background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 style="margin: 0;">Documents reçus</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">My Invest Immobilier</p>
+        </div>
+        <div class="content">
+            <p>Bonjour {{prenom}} {{nom}},</p>
+
+            <div class="success-box">
+                <strong>✅ Confirmation :</strong> Nous avons bien reçu vos documents d\'assurance habitation et/ou Visale pour le contrat <strong>{{reference}}</strong>.
+            </div>
+
+            <p>Notre équipe va procéder à la vérification de vos documents dans les meilleurs délais. Vous serez contacté(e) prochainement pour organiser l\'entrée dans les lieux.</p>
+
+            <p>Si vous avez des questions, n\'hésitez pas à nous contacter.</p>
+
+            <p>Cordialement,</p>
+
+            {{signature}}
+        </div>
+        <div class="footer">
+            <p>My Invest Immobilier - Gestion locative professionnelle<br>
+            © 2026 My Invest Immobilier - Tous droits réservés</p>
+        </div>
+    </div>
+</body>
+</html>',
+        'variables_disponibles' => '["nom", "prenom", "reference"]',
+        'description' => 'Email de confirmation envoyé au locataire après réception de ses documents assurance habitation et Visale'
     ]
 ];
 
