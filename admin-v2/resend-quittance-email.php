@@ -98,7 +98,7 @@ foreach ($locataires as $locataire) {
         'montant_charges' => $montantCharges,
         'montant_total' => $montantTotal,
         'signature' => getParameter('email_signature', '')
-    ], $pdfPath, false, true);
+    ], $pdfPath, false, true, ['contexte' => 'quittance_id=' . $quittance_id]);
     
     if ($emailSent) {
         $emailsSent++;

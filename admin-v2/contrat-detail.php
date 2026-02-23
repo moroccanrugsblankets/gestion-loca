@@ -120,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     'depot_garantie' => number_format($contrat['depot_garantie'], 2, ',', ' '),
                     'lien_telecharger' => BASE_URL . '/pdf/download.php?contrat_id=' . $contractId,
                     'lien_procedure_depart' => BASE_URL . '/signature/procedure-depart.php?token=' . urlencode($contrat['reference_unique'])
-                ], null, true);
+                ], null, true, false, ['contexte' => 'contrat_id=' . $contractId]);
 
                 // Send assurance/visale request email (client email, admins in BCC)
                 sendTemplatedEmail('demande_assurance_visale', $locataire['email'], [
@@ -128,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     'prenom' => $locataire['prenom'],
                     'reference' => $contrat['reference_unique'],
                     'lien_upload' => $lienAssurance
-                ], null, false, true); // isAdminEmail=false (client email), addAdminBcc=true
+                ], null, false, true, ['contexte' => 'contrat_id=' . $contractId]); // isAdminEmail=false (client email), addAdminBcc=true
             }
         }
         
@@ -213,7 +213,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 'reference' => $contrat['reference_contrat'],
                 'logement' => $contrat['reference'] . ' - ' . $contrat['adresse'],
                 'motif_annulation' => $motif
-            ], null, true);
+            ], null, true, false, ['contexte' => 'contrat_id=' . $contractId]);
         }
         
         $_SESSION['success'] = "Contrat annulé. Le client a été notifié.";

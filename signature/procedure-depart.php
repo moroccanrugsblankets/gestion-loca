@@ -63,17 +63,34 @@ if (!$error && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Send confirmation email to the tenant with admin BCC (admins hidden via BCC)
         if ($tenant && !empty($tenant['email'])) {
-            $tenantName = htmlspecialchars($tenant['prenom'] . ' ' . $tenant['nom']);
-            $tenantSubject = 'Confirmation de votre demande de procédure de départ';
-            $tenantBody = '<p>Bonjour ' . htmlspecialchars($tenant['prenom']) . ',</p>'
-                . '<p>Nous avons bien reçu votre demande de procédure de départ pour le logement :</p>'
-                . '<p><strong>' . htmlspecialchars($logement) . '</strong><br>'
-                . 'Référence contrat : ' . htmlspecialchars($contrat['reference_unique']) . '<br>'
-                . 'Date de la demande : ' . $dateDemande . '</p>'
-                . '<p>Notre équipe prendra contact avec vous prochainement pour organiser :</p>'
-                . '<ul><li>L\'état des lieux de sortie</li><li>La restitution des clés</li><li>Le remboursement du dépôt de garantie</li></ul>'
-                . '<p>Cordialement,<br>My Invest Immobilier</p>';
-            sendEmail($tenant['email'], $tenantSubject, $tenantBody, null, true, false, null, null, true /* addAdminBcc */);
+            $templateSent = sendTemplatedEmail(
+                'procedure_depart_client',
+                $tenant['email'],
+                [
+                    'prenom'       => $tenant['prenom'],
+                    'nom'          => $tenant['nom'],
+                    'logement'     => $logement,
+                    'reference'    => $contrat['reference_unique'],
+                    'date_demande' => $dateDemande,
+                ],
+                null,
+                false,
+                true, // addAdminBcc
+                ['contexte' => 'contrat_id=' . $contratId]
+            );
+            // Fallback to basic email if template not found
+            if ($templateSent === false) {
+                $tenantSubject = 'Confirmation de votre demande de procédure de départ';
+                $tenantBody = '<p>Bonjour ' . htmlspecialchars($tenant['prenom']) . ',</p>'
+                    . '<p>Nous avons bien reçu votre demande de procédure de départ pour le logement :</p>'
+                    . '<p><strong>' . htmlspecialchars($logement) . '</strong><br>'
+                    . 'Référence contrat : ' . htmlspecialchars($contrat['reference_unique']) . '<br>'
+                    . 'Date de la demande : ' . $dateDemande . '</p>'
+                    . '<p>Notre équipe prendra contact avec vous prochainement pour organiser :</p>'
+                    . '<ul><li>L\'état des lieux de sortie</li><li>La restitution des clés</li><li>Le remboursement du dépôt de garantie</li></ul>'
+                    . '<p>Cordialement,<br>My Invest Immobilier</p>';
+                sendEmail($tenant['email'], $tenantSubject, $tenantBody, null, true, false, null, null, true, ['contexte' => 'contrat_id=' . $contratId]);
+            }
         }
 
         $success = true;

@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     
                     // Send email to tenant using template with admin in BCC (copy)
                     // Parameters: templateId, toEmail, variables, attachment, isAdminEmail=false, addAdminBcc=true
-                    $emailSent = sendTemplatedEmail($templateId, $tenant['email'], $emailVariables, $pdfPath, false, true);
+                    $emailSent = sendTemplatedEmail($templateId, $tenant['email'], $emailVariables, $pdfPath, false, true, ['contexte' => 'etat_lieux_id=' . $id]);
                     
                     if ($emailSent) {
                         $emailsSent[] = $tenant['email'];

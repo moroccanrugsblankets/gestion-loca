@@ -26,6 +26,40 @@ if (isset($_GET['action']) && $_GET['action'] === 'view_email' && isset($_GET['i
     exit;
 }
 
+// Télécharger une pièce jointe d'un email loggé
+if (isset($_GET['action']) && $_GET['action'] === 'download_attachment' && isset($_GET['id'])) {
+    $id = (int)$_GET['id'];
+    $stmt = $pdo->prepare("SELECT piece_jointe FROM email_logs WHERE id = ?");
+    $stmt->execute([$id]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$row || empty($row['piece_jointe'])) {
+        http_response_code(404);
+        echo 'Pièce jointe introuvable.';
+        exit;
+    }
+    // The stored path is relative to the project root (e.g. /pdf/quittances/file.pdf)
+    // Handle comma-separated multiple files: serve the first one
+    $relativePath = explode(', ', $row['piece_jointe'])[0];
+    // Normalize to forward slashes, then strip leading slash
+    $relativePath = str_replace('\\', '/', ltrim($relativePath, '/\\'));
+    $projectRoot = realpath(dirname(__DIR__));
+    $absolutePath = realpath($projectRoot . '/' . $relativePath);
+    // Security: ensure the resolved path is inside the project directory
+    if (!$absolutePath || strpos($absolutePath, $projectRoot . DIRECTORY_SEPARATOR) !== 0 || !is_file($absolutePath)) {
+        http_response_code(404);
+        echo 'Fichier introuvable.';
+        exit;
+    }
+    $filename = basename($absolutePath);
+    // Strip any characters that could cause header injection
+    $safeFilename = preg_replace('/[^\w\-.]/', '_', $filename);
+    header('Content-Type: application/octet-stream');
+    header('Content-Disposition: attachment; filename="' . $safeFilename . '"');
+    header('Content-Length: ' . filesize($absolutePath));
+    readfile($absolutePath);
+    exit;
+}
+
 // ─── Paramètres de recherche / filtres ────────────────────────────────────────
 
 $search       = trim($_GET['search'] ?? '');
@@ -293,7 +327,12 @@ $templatesList = $templatesStmt->fetchAll(PDO::FETCH_COLUMN);
                                 </td>
                                 <td class="small">
                                     <?php if ($email['piece_jointe']): ?>
-                                        <i class="bi bi-paperclip" title="<?= htmlspecialchars($email['piece_jointe']) ?>"></i>
+                                        <a href="email-tracker.php?action=download_attachment&id=<?= $email['id'] ?>"
+                                           title="<?= htmlspecialchars(basename($email['piece_jointe'])) ?>"
+                                           class="text-decoration-none">
+                                            <i class="bi bi-paperclip"></i>
+                                            <span class="d-none d-xl-inline"><?= htmlspecialchars(basename($email['piece_jointe'])) ?></span>
+                                        </a>
                                     <?php endif; ?>
                                 </td>
                                 <td>
@@ -399,8 +438,12 @@ $templatesList = $templatesStmt->fetchAll(PDO::FETCH_COLUMN);
                     </div>
                 </div>
                 <div id="modalErreurRow" class="alert alert-danger mb-2" style="display:none"></div>
+                <div id="modalPieceJointeRow" class="mb-2 d-none">
+                    <strong><i class="bi bi-paperclip"></i> Pièce(s) jointe(s) :</strong>
+                    <span id="modalPieceJointe"></span>
+                </div>
                 <hr>
-                <div class="email-preview-body" id="modalCorps"></div>
+                <iframe id="modalCorps" class="email-preview-body w-100" style="border:1px solid #dee2e6; border-radius:4px; min-height:400px;" srcdoc="" sandbox="allow-same-origin"></iframe>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
@@ -410,7 +453,6 @@ $templatesList = $templatesStmt->fetchAll(PDO::FETCH_COLUMN);
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.5/dist/purify.min.js"></script>
 <script>
 function voirEmail(id) {
     fetch('email-tracker.php?action=view_email&id=' + id)
@@ -443,10 +485,24 @@ function voirEmail(id) {
                 errRow.style.display = 'none';
             }
 
-            // Sanitize HTML to prevent XSS before rendering email body
-            const safeHtml = DOMPurify.sanitize(e.corps_html || '');
-            document.getElementById('modalCorps').innerHTML =
-                safeHtml || '<em class="text-muted">Aucun contenu disponible.</em>';
+            // Afficher la pièce jointe avec lien de téléchargement
+            const pjRow = document.getElementById('modalPieceJointeRow');
+            const pjSpan = document.getElementById('modalPieceJointe');
+            if (e.piece_jointe) {
+                const files = e.piece_jointe.split(', ');
+                const fileNames = files.map(f => f.replace(/\\/g, '/').split('/').pop()).join(', ');
+                pjSpan.innerHTML = '<a href="email-tracker.php?action=download_attachment&id=' + e.id + '" class="ms-1">' +
+                    '<i class="bi bi-file-earmark-arrow-down"></i> ' + fileNames + '</a>';
+                pjRow.classList.remove('d-none');
+            } else {
+                pjRow.classList.add('d-none');
+            }
+
+            // Afficher le corps de l'email dans un iframe pour préserver les styles
+            const iframe = document.getElementById('modalCorps');
+            const htmlContent = e.corps_html || '<em style="color:#6c757d">Aucun contenu disponible.</em>';
+            iframe.srcdoc = htmlContent;
+
             new bootstrap.Modal(document.getElementById('emailModal')).show();
         })
         .catch(() => alert('Erreur de communication avec le serveur'));

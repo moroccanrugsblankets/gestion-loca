@@ -125,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
         
         // Envoyer l'email d'invitation avec le template de la base de données
-        $emailSent = sendTemplatedEmail('contrat_signature', $candidature_info['email'], $variables, null, true);
+        $emailSent = sendTemplatedEmail('contrat_signature', $candidature_info['email'], $variables, null, true, false, ['contexte' => 'contrat_id=' . $contrat_id]);
         
         if ($emailSent) {
             // Log email sending success

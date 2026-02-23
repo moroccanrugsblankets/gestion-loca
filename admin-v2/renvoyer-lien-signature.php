@@ -87,7 +87,7 @@ try {
     ];
     
     // Envoyer l'email d'invitation avec le template de la base de données
-    $emailSent = sendTemplatedEmail('contrat_signature', $contrat['email'], $variables, null, true);
+    $emailSent = sendTemplatedEmail('contrat_signature', $contrat['email'], $variables, null, true, false, ['contexte' => 'contrat_id=' . $contrat_id]);
     
     if ($emailSent) {
         // Log the action
