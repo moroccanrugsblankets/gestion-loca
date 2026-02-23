@@ -185,6 +185,7 @@ if (!empty($logements)) {
         SELECT logement_id, mois, annee, statut_paiement, montant_attendu, date_paiement, notes
         FROM loyers_tracking
         WHERE logement_id IN ($placeholders)
+        AND deleted_at IS NULL
     ");
     $stmtStatuts->execute($logementIds);
     
@@ -282,11 +283,17 @@ function getStatutGlobalLogement($logementId, $mois) {
  */
 function creerEntryTracking($pdo, $logementId, $contratId, $mois, $annee, $montantAttendu) {
     try {
+        // Pour le mois en cours: si le contrat a changé (nouveau contrat pour le même logement),
+        // réinitialiser le statut à "attente" car l'ancien statut appartient à l'ancien contrat.
+        // Si le contrat est le même, conserver le statut existant (ne pas écraser les modifications admin).
         $stmt = $pdo->prepare("
             INSERT INTO loyers_tracking 
             (logement_id, contrat_id, mois, annee, montant_attendu, statut_paiement)
             VALUES (?, ?, ?, ?, ?, 'attente')
-            ON DUPLICATE KEY UPDATE logement_id = logement_id
+            ON DUPLICATE KEY UPDATE
+                statut_paiement = IF(contrat_id != VALUES(contrat_id), 'attente', statut_paiement),
+                contrat_id = VALUES(contrat_id),
+                montant_attendu = VALUES(montant_attendu)
         ");
         return $stmt->execute([$logementId, $contratId, $mois, $annee, $montantAttendu]);
     } catch (Exception $e) {
@@ -314,6 +321,7 @@ function updatePreviousMonthsToImpaye($pdo) {
             SELECT COUNT(*) as count
             FROM loyers_tracking
             WHERE statut_paiement = 'attente'
+            AND deleted_at IS NULL
             AND (
                 annee < ? 
                 OR (annee = ? AND mois < ?)
@@ -334,6 +342,7 @@ function updatePreviousMonthsToImpaye($pdo) {
             SET statut_paiement = 'impaye',
                 updated_at = NOW()
             WHERE statut_paiement = 'attente'
+            AND deleted_at IS NULL
             AND (
                 annee < ? 
                 OR (annee = ? AND mois < ?)
