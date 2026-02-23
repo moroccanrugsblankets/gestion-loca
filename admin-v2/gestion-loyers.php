@@ -417,6 +417,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Envoi de rappel manuel au locataire
         if (isset($_POST['action']) && $_POST['action'] === 'envoyer_rappel_locataire') {
             $logementId = (int)$_POST['logement_id'];
+            $contratId = (int)$_POST['contrat_id'];
             $mois = (int)$_POST['mois'];
             $annee = (int)$_POST['annee'];
             
@@ -428,9 +429,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        (SELECT prenom FROM locataires WHERE contrat_id = c.id LIMIT 1) as prenom_locataire
                 FROM logements l
                 INNER JOIN contrats c ON c.logement_id = l.id
-                WHERE l.id = ? AND " . CONTRAT_ACTIF_FILTER . "
+                WHERE l.id = ? AND c.id = ? AND " . CONTRAT_ACTIF_FILTER . "
             ");
-            $stmt->execute([$logementId]);
+            $stmt->execute([$logementId, $contratId]);
             $info = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if (!$info || !$info['email_locataire']) {
@@ -1111,7 +1112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php endif; ?>
                         <?php if ($statutClass === 'impaye'): ?>
                             <button class="btn btn-sm btn-outline-light mt-2" 
-                                    onclick="event.stopPropagation(); envoyerRappelLocataire(<?= $logement['id'] ?>, <?= $m['num'] ?>, <?= $m['annee'] ?>)">
+                                    onclick="event.stopPropagation(); envoyerRappelLocataire(<?= $logement['id'] ?>, <?= $logement['contrat_id'] ?>, <?= $m['num'] ?>, <?= $m['annee'] ?>)">
                                 <i class="bi bi-envelope"></i> Rappel
                             </button>
                         <?php endif; ?>
@@ -1164,7 +1165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
         }
         
-        function envoyerRappelLocataire(logementId, mois, annee) {
+        function envoyerRappelLocataire(logementId, contratId, mois, annee) {
             if (!confirm('Envoyer un rappel de paiement au locataire pour ce mois ?')) {
                 return;
             }
@@ -1177,6 +1178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 body: new URLSearchParams({
                     action: 'envoyer_rappel_locataire',
                     logement_id: logementId,
+                    contrat_id: contratId,
                     mois: mois,
                     annee: annee
                 })
