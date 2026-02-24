@@ -53,6 +53,7 @@ if (empty($locataires)) {
 
 $logement = $contrat['logement_ref'] . ' - ' . $contrat['logement_adresse'];
 $dateReception = date('d/m/Y');
+$dateFinPrevue = !empty($contrat['date_fin_prevue']) ? date('d/m/Y', strtotime($contrat['date_fin_prevue'])) : 'Non définie';
 $emailsSent = 0;
 $emailsFailed = 0;
 
@@ -66,6 +67,7 @@ foreach ($locataires as $locataire) {
             'logement'       => $logement,
             'reference'      => $contrat['reference_unique'],
             'date_reception' => $dateReception,
+            'date_fin_prevue' => $dateFinPrevue,
             'signature'      => getParameter('email_signature', ''),
         ],
         null,
