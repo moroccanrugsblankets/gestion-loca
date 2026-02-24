@@ -334,12 +334,13 @@ $templatesList = $templatesStmt->fetchAll(PDO::FETCH_COLUMN);
                                 </td>
                                 <td class="small">
                                     <?php if ($email['piece_jointe']): ?>
-                                        <a href="email-tracker.php?action=download_attachment&id=<?= $email['id'] ?>"
-                                           title="<?= htmlspecialchars(basename($email['piece_jointe'])) ?>"
+                                        <?php $firstFile = str_replace('\\', '/', explode(', ', $email['piece_jointe'])[0]); ?>
+                                        <a href="<?= htmlspecialchars($firstFile) ?>"
+                                           title="<?= htmlspecialchars(basename($firstFile)) ?>"
                                            target="_blank"
                                            class="text-decoration-none">
                                             <i class="bi bi-paperclip"></i>
-                                            <span class="d-none d-xl-inline"><?= htmlspecialchars(basename($email['piece_jointe'])) ?></span>
+                                            <span class="d-none d-xl-inline"><?= htmlspecialchars(basename($firstFile)) ?></span>
                                         </a>
                                     <?php endif; ?>
                                 </td>
@@ -498,9 +499,22 @@ function voirEmail(id) {
             const pjSpan = document.getElementById('modalPieceJointe');
             if (e.piece_jointe) {
                 const files = e.piece_jointe.split(', ');
-                const fileNames = files.map(f => f.replace(/\\/g, '/').split('/').pop()).join(', ');
-                pjSpan.innerHTML = '<a href="email-tracker.php?action=download_attachment&id=' + e.id + '" class="ms-1" target="_blank">' +
-                    '<i class="bi bi-file-earmark-arrow-down"></i> ' + fileNames + '</a>';
+                pjSpan.innerHTML = '';
+                files.forEach((f, i) => {
+                    const filePath = f.replace(/\\/g, '/');
+                    const fname = filePath.split('/').pop();
+                    if (i > 0) pjSpan.appendChild(document.createTextNode(' '));
+                    const a = document.createElement('a');
+                    a.href = filePath;
+                    a.className = 'ms-1';
+                    a.target = '_blank';
+                    a.rel = 'noopener';
+                    const icon = document.createElement('i');
+                    icon.className = 'bi bi-file-earmark-arrow-down';
+                    a.appendChild(icon);
+                    a.appendChild(document.createTextNode(' ' + fname));
+                    pjSpan.appendChild(a);
+                });
                 pjRow.classList.remove('d-none');
             } else {
                 pjRow.classList.add('d-none');
