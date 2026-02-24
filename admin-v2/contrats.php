@@ -17,7 +17,7 @@ $sql = "
            (SELECT GROUP_CONCAT(CONCAT(prenom, ' ', nom) ORDER BY ordre SEPARATOR ', ') FROM locataires WHERE contrat_id = c.id) as noms_locataires
     FROM contrats c
     LEFT JOIN logements l ON c.logement_id = l.id
-    WHERE 1=1
+    WHERE c.statut != 'fin'
 ";
 $params = [];
 
@@ -295,6 +295,24 @@ $stats = [
                                         <a href="gestion-loyers.php?contrat_id=<?php echo $contrat['id']; ?>" class="btn btn-outline-warning" title="Gestion du loyer">
                                             <i class="bi bi-cash-stack"></i>
                                         </a>
+                                    <?php endif; ?>
+                                    <?php if ($contrat['statut'] === 'valide' && !empty($contrat['date_demande_depart'])): ?>
+                                        <form method="POST" action="envoyer-confirmation-depart.php" class="d-inline">
+                                            <input type="hidden" name="contrat_id" value="<?php echo $contrat['id']; ?>">
+                                            <button type="submit" class="btn btn-outline-info"
+                                                    onclick="return confirm('Envoyer la confirmation de réception du courrier AR24 au locataire ?')"
+                                                    title="Confirmer réception courrier AR24">
+                                                <i class="bi bi-envelope-check"></i>
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="fin-contrat.php" class="d-inline">
+                                            <input type="hidden" name="contrat_id" value="<?php echo $contrat['id']; ?>">
+                                            <button type="submit" class="btn btn-outline-dark"
+                                                    onclick="return confirm('Confirmer la fin du contrat suite à la remise des clés ?\n\nLe contrat sera clôturé et le logement remis en disponibilité.')"
+                                                    title="Fin de contrat (remise des clés)">
+                                                <i class="bi bi-door-closed"></i>
+                                            </button>
+                                        </form>
                                     <?php endif; ?>
                                     <?php if ($contrat['statut'] === 'en_attente'): ?>
                                         <button class="btn btn-outline-warning" title="Renvoyer le lien" onclick="resendLink(<?php echo $contrat['id']; ?>)">
