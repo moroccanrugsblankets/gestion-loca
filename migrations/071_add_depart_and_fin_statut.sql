@@ -3,7 +3,7 @@
 
 -- 1. Ajouter la colonne date_demande_depart à la table contrats
 ALTER TABLE contrats
-    ADD COLUMN IF NOT EXISTS date_demande_depart TIMESTAMP NULL DEFAULT NULL
+    ADD COLUMN date_demande_depart TIMESTAMP NULL DEFAULT NULL
         COMMENT 'Date à laquelle le locataire a confirmé sa demande de départ';
 
 -- 2. Ajouter le statut 'fin' à l'ENUM (remise des clés / contrat clôturé)
@@ -50,7 +50,8 @@ INSERT INTO email_templates (
         <div class="info-box">
             <strong>Logement :</strong> {{logement}}<br>
             <strong>Référence contrat :</strong> {{reference}}<br>
-            <strong>Date de réception :</strong> {{date_reception}}
+            <strong>Date de réception :</strong> {{date_reception}}<br>
+            <strong>Date de fin prévue :</strong> {{date_fin_prevue}}
         </div>
         <p>Votre demande est bien enregistrée. Notre équipe prendra contact avec vous prochainement pour organiser :</p>
         <ul>
@@ -68,7 +69,7 @@ INSERT INTO email_templates (
     </div>
 </body>
 </html>',
-    '["nom", "prenom", "logement", "reference", "date_reception", "signature"]',
+    '["nom", "prenom", "logement", "reference", "date_reception", "date_fin_prevue", "signature"]',
     'Email de confirmation envoyé au locataire pour confirmer la réception de son courrier AR24',
     1,
     (SELECT ordre FROM (SELECT COALESCE(MAX(ordre), 0) + 1 AS ordre FROM email_templates) AS temp),
