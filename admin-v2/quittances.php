@@ -298,8 +298,15 @@ $nomsMois = [
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <?php if ($quittance['fichier_pdf'] && file_exists($quittance['fichier_pdf'])): ?>
-                                        <a href="<?php echo htmlspecialchars($quittance['fichier_pdf']); ?>" class="btn btn-outline-success" title="Télécharger PDF" target="_blank">
+                                    <?php 
+                                    $quittancePdfFsPath = $quittance['fichier_pdf'];
+                                    // If not an absolute path, try to locate the file in the known pdf/quittances/ directory
+                                    if ($quittancePdfFsPath && $quittancePdfFsPath[0] !== '/' && !file_exists($quittancePdfFsPath)) {
+                                        $quittancePdfFsPath = dirname(__DIR__) . '/pdf/quittances/' . basename($quittancePdfFsPath);
+                                    }
+                                    ?>
+                                    <?php if ($quittance['fichier_pdf'] && file_exists($quittancePdfFsPath)): ?>
+                                        <a href="<?php echo htmlspecialchars($config['SITE_URL'] . '/pdf/quittances/' . basename($quittance['fichier_pdf'])); ?>" class="btn btn-outline-success" title="Télécharger PDF" target="_blank">
                                             <i class="bi bi-download"></i>
                                         </a>
                                     <?php endif; ?>

@@ -208,8 +208,15 @@ $nomsMois = [
                     <div class="info-row">
                         <div class="info-label">Fichier PDF</div>
                         <div>
-                            <?php if (file_exists($quittance['fichier_pdf'])): ?>
-                                <a href="<?php echo htmlspecialchars($quittance['fichier_pdf']); ?>" target="_blank" class="btn btn-sm btn-success">
+                            <?php 
+                            $editPdfFsPath = $quittance['fichier_pdf'];
+                            // If not an absolute path, try to locate the file in the known pdf/quittances/ directory
+                            if ($editPdfFsPath && $editPdfFsPath[0] !== '/' && !file_exists($editPdfFsPath)) {
+                                $editPdfFsPath = dirname(__DIR__) . '/pdf/quittances/' . basename($editPdfFsPath);
+                            }
+                            ?>
+                            <?php if (file_exists($editPdfFsPath)): ?>
+                                <a href="<?php echo htmlspecialchars($config['SITE_URL'] . '/pdf/quittances/' . basename($quittance['fichier_pdf'])); ?>" target="_blank" class="btn btn-sm btn-success">
                                     <i class="bi bi-download"></i> Télécharger
                                 </a>
                             <?php else: ?>

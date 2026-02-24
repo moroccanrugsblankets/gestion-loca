@@ -309,9 +309,13 @@ function generateBilanLogementPDF($contratId) {
 
         // Generate filename
         $filename = 'bilan_logement_' . $contrat['contrat_ref'] . '_' . date('Ymd') . '.pdf';
-        $filepath = sys_get_temp_dir() . '/' . $filename;
+        $pdfDir = dirname(__DIR__) . '/pdf/bilans/';
+        if (!is_dir($pdfDir)) {
+            mkdir($pdfDir, 0755, true);
+        }
+        $filepath = $pdfDir . $filename;
 
-        // Save PDF to temp file
+        // Save PDF to permanent storage
         $pdf->Output($filepath, 'F');
 
         error_log("PDF generated successfully: $filepath");
