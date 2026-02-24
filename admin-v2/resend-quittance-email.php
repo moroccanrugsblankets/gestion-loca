@@ -137,5 +137,10 @@ if ($emailsFailed > 0) {
     $_SESSION['warning'] = "$emailsFailed email(s) n'ont pas pu être envoyés";
 }
 
-header('Location: quittances.php');
+// Redirect back to the contract's quittances page if contrat_id is available
+$redirect = 'quittances.php';
+if (!empty($quittance['contrat_id'])) {
+    $redirect = 'quittances.php?contrat_id=' . (int)$quittance['contrat_id'];
+}
+header('Location: ' . $redirect);
 exit;

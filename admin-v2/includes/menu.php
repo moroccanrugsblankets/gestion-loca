@@ -37,6 +37,7 @@ $page_to_menu_map = [
     'quittance-configuration.php' => 'contrats.php',
     'quittances.php' => 'contrats.php',
     'edit-quittance.php' => 'contrats.php',
+    'contrats-clotures.php' => 'contrats.php',
     'create-etat-lieux.php' => 'etats-lieux.php',
     'etat-lieux-configuration.php' => 'etats-lieux.php',
     'edit-etat-lieux.php' => 'etats-lieux.php',
@@ -101,6 +102,11 @@ $active_menu = $page_to_menu_map[$current_page] ?? $current_page;
             </a>
             <?php if ($active_menu === 'contrats.php'): ?>
             <ul class="nav flex-column ms-3">
+                <li class="nav-item">
+                    <a class="nav-link <?php echo $current_page === 'contrats-clotures.php' ? 'active' : ''; ?>" href="contrats-clotures.php" style="padding: 8px 20px; font-size: 0.9rem;">
+                        <i class="bi bi-archive"></i> Contrats clôturés
+                    </a>
+                </li>
                 <li class="nav-item">
                     <a class="nav-link <?php echo $current_page === 'contrat-configuration.php' ? 'active' : ''; ?>" href="contrat-configuration.php" style="padding: 8px 20px; font-size: 0.9rem;">
                         <i class="bi bi-gear"></i> Configuration Contrats

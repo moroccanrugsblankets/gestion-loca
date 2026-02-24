@@ -47,6 +47,9 @@ if (!$error && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmtTenant->execute([$contratId]);
         $tenant = $stmtTenant->fetch(PDO::FETCH_ASSOC);
 
+        // Store departure request date on the contract
+        $pdo->prepare("UPDATE contrats SET date_demande_depart = NOW() WHERE id = ?")->execute([$contratId]);
+
         // Log the departure request
         $stmtLog = $pdo->prepare("
             INSERT INTO logs (type_entite, entite_id, action, details, ip_address, created_at)

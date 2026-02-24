@@ -440,7 +440,8 @@ if ($contrat['validated_by']) {
                                     'en_verification' => 'En vérification',
                                     'valide' => 'Validé',
                                     'expire' => 'Expiré',
-                                    'annule' => 'Annulé'
+                                    'annule' => 'Annulé',
+                                    'fin' => 'Clôturé (remise des clés)'
                                 ];
                                 echo $statut_labels[$contrat['statut']] ?? $contrat['statut'];
                                 ?>
@@ -1112,6 +1113,56 @@ if ($contrat['validated_by']) {
                                 </div>
                                 <button type="submit" class="btn btn-danger w-100">
                                     <i class="bi bi-x-circle"></i> Annuler le Contrat
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Departure confirmation & End of contract actions -->
+        <?php if ($contrat['statut'] === 'valide' && !empty($contrat['date_demande_depart'])): ?>
+        <div class="detail-card mt-4">
+            <h5><i class="bi bi-door-open"></i> Procédure de Départ</h5>
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                Le locataire a initié la procédure de départ le
+                <strong><?php echo date('d/m/Y à H:i', strtotime($contrat['date_demande_depart'])); ?></strong>.
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-6 mb-3">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0"><i class="bi bi-envelope-check"></i> Confirmation Réception AR24</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-3">Envoyer au locataire la confirmation que nous avons bien reçu son courrier envoyé via AR24.</p>
+                            <form method="POST" action="envoyer-confirmation-depart.php"
+                                  onsubmit="return confirm('Envoyer la confirmation de réception du courrier AR24 au locataire ?')">
+                                <input type="hidden" name="contrat_id" value="<?php echo $contractId; ?>">
+                                <input type="hidden" name="source" value="detail">
+                                <button type="submit" class="btn btn-info w-100">
+                                    <i class="bi bi-envelope-check"></i> Envoyer confirmation AR24
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card border-dark">
+                        <div class="card-header bg-dark text-white">
+                            <h6 class="mb-0"><i class="bi bi-door-closed"></i> Fin de Contrat</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-3">Clôturer le contrat une fois que le locataire a remis les clés du logement.</p>
+                            <form method="POST" action="fin-contrat.php"
+                                  onsubmit="return confirm('Confirmer la fin du contrat suite à la remise des clés ?\n\nLe contrat sera clôturé et le logement remis en disponibilité.')">
+                                <input type="hidden" name="contrat_id" value="<?php echo $contractId; ?>">
+                                <input type="hidden" name="source" value="detail">
+                                <button type="submit" class="btn btn-dark w-100">
+                                    <i class="bi bi-door-closed"></i> Fin de contrat (remise des clés)
                                 </button>
                             </form>
                         </div>
