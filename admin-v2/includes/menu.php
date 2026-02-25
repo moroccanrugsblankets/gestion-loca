@@ -38,6 +38,8 @@ $page_to_menu_map = [
     'quittances.php' => 'contrats.php',
     'edit-quittance.php' => 'contrats.php',
     'contrats-clotures.php' => 'contrats.php',
+    'contrats-supprimes.php' => 'contrats.php',
+    'restaurer-contrat.php' => 'contrats.php',
     'create-etat-lieux.php' => 'etats-lieux.php',
     'etat-lieux-configuration.php' => 'etats-lieux.php',
     'edit-etat-lieux.php' => 'etats-lieux.php',
@@ -105,6 +107,11 @@ $active_menu = $page_to_menu_map[$current_page] ?? $current_page;
                 <li class="nav-item">
                     <a class="nav-link <?php echo $current_page === 'contrats-clotures.php' ? 'active' : ''; ?>" href="contrats-clotures.php" style="padding: 8px 20px; font-size: 0.9rem;">
                         <i class="bi bi-archive"></i> Contrats clôturés
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?php echo $current_page === 'contrats-supprimes.php' ? 'active' : ''; ?>" href="contrats-supprimes.php" style="padding: 8px 20px; font-size: 0.9rem;">
+                        <i class="bi bi-trash"></i> Contrats supprimés
                     </a>
                 </li>
                 <li class="nav-item">

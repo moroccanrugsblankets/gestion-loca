@@ -17,7 +17,7 @@ $sql = "
            (SELECT GROUP_CONCAT(CONCAT(prenom, ' ', nom) ORDER BY ordre SEPARATOR ', ') FROM locataires WHERE contrat_id = c.id) as noms_locataires
     FROM contrats c
     LEFT JOIN logements l ON c.logement_id = l.id
-    WHERE c.statut != 'fin'
+    WHERE c.statut != 'fin' AND c.deleted_at IS NULL
 ";
 $params = [];
 
@@ -305,14 +305,11 @@ $stats = [
                                                 <i class="bi bi-envelope-check"></i>
                                             </button>
                                         </form>
-                                        <form method="POST" action="fin-contrat.php" class="d-inline">
-                                            <input type="hidden" name="contrat_id" value="<?php echo $contrat['id']; ?>">
-                                            <button type="submit" class="btn btn-outline-dark"
-                                                    onclick="return confirm('Confirmer la fin du contrat suite à la remise des clés ?\n\nLe contrat sera clôturé et le logement remis en disponibilité.')"
-                                                    title="Fin de contrat (remise des clés)">
-                                                <i class="bi bi-door-closed"></i>
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-outline-dark"
+                                                onclick="openFinContratModal(<?php echo $contrat['id']; ?>, '<?php echo htmlspecialchars($contrat['reference_unique'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($contrat['date_fin_prevue'] ?? '', ENT_QUOTES); ?>')"
+                                                title="Fin de contrat (remise des clés)">
+                                            <i class="bi bi-door-closed"></i>
+                                        </button>
                                     <?php endif; ?>
                                     <?php if ($contrat['statut'] === 'en_attente'): ?>
                                         <button class="btn btn-outline-warning" title="Renvoyer le lien" onclick="resendLink(<?php echo $contrat['id']; ?>)">
@@ -374,6 +371,15 @@ $stats = [
             var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
             deleteModal.show();
         }
+
+        function openFinContratModal(contractId, reference, dateFin) {
+            document.getElementById('finContratId').value = contractId;
+            document.getElementById('finContratRef').textContent = reference;
+            var dateInput = document.getElementById('finContratDateFin');
+            dateInput.value = dateFin || '';
+            var finModal = new bootstrap.Modal(document.getElementById('finContratModal'));
+            finModal.show();
+        }
     </script>
 
     <!-- Delete Confirmation Modal -->
@@ -403,6 +409,33 @@ $stats = [
                         <button type="submit" class="btn btn-danger">Supprimer</button>
                     </form>
                 </div>
+            </div>
+        </div>
+    </div>
+    <!-- Fin de Contrat Modal -->
+    <div class="modal fade" id="finContratModal" tabindex="-1" aria-labelledby="finContratModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title" id="finContratModalLabel"><i class="bi bi-door-closed"></i> Fin de contrat</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="fin-contrat.php">
+                    <div class="modal-body">
+                        <p>Confirmer la fin du contrat <strong id="finContratRef"></strong> suite à la remise des clés ?</p>
+                        <div class="mb-3">
+                            <label for="finContratDateFin" class="form-label fw-semibold">Date de fin prévue <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="finContratDateFin" name="date_fin_prevue" required>
+                            <div class="form-text">Indiquez la date prévue de fin de contrat (remise des clés).</div>
+                        </div>
+                        <p class="text-muted mb-0">Le contrat sera clôturé et le logement remis en disponibilité.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <input type="hidden" name="contrat_id" id="finContratId">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-dark"><i class="bi bi-door-closed"></i> Clôturer le contrat</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
