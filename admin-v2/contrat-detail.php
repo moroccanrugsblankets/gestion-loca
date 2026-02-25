@@ -1132,7 +1132,7 @@ if ($contrat['validated_by']) {
                 <strong><?php echo date('d/m/Y à H:i', strtotime($contrat['date_demande_depart'])); ?></strong>.
             </div>
             <div class="row mt-3">
-                <div class="col-md-6 mb-3">
+                <div class="col-md-12 mb-3">
                     <div class="card border-info">
                         <div class="card-header bg-info text-white">
                             <h6 class="mb-0"><i class="bi bi-envelope-check"></i> Confirmation Réception AR24</h6>
@@ -1146,7 +1146,16 @@ if ($contrat['validated_by']) {
                         </div>
                     </div>
                 </div>
-                <div class="col-md-6 mb-3">
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Departure confirmation & End of contract actions -->
+        <?php if ($contrat['statut'] === 'valide' && !empty($contrat['date_demande_depart'])): ?>
+        <div class="detail-card mt-4">
+            <h5><i class="bi bi-door-open"></i> Cloôture du contrat</h5>
+            <div class="row mt-3">
+                <div class="col-md-12 mb-3">
                     <div class="card border-dark">
                         <div class="card-header bg-dark text-white">
                             <h6 class="mb-0"><i class="bi bi-door-closed"></i> Fin de Contrat</h6>
