@@ -131,8 +131,8 @@ $csrfToken = generateCsrfToken();
                         <div class="card-body text-center p-5">
                             <div class="mb-3" style="font-size: 4rem;">✅</div>
                             <h3 class="text-success">Demande enregistrée</h3>
-                            <p class="mt-3">Votre demande de procédure de départ a bien été enregistrée. Un email de confirmation vous a été envoyé.</p>
-                            <p>Notre équipe prendra contact avec vous prochainement pour organiser l'état des lieux de sortie et la restitution des clés.</p>
+                            <p class="mt-3">Nous venons de vous adresser un e-mail vous informant de la procédure à suivre pour votre départ du logement.</p>
+                            <p>Merci de bien vouloir en prendre connaissance.</p>
                         </div>
                     </div>
                 <?php else: ?>
@@ -142,12 +142,7 @@ $csrfToken = generateCsrfToken();
                             <div class="alert alert-info">
                                 <strong><?= htmlspecialchars($contrat['logement_ref'] . ' - ' . $contrat['logement_adresse']) ?></strong>
                             </div>
-                            <p>En confirmant, notre équipe sera notifiée et vous recevrez un email de confirmation. Nous prendrons contact avec vous pour organiser :</p>
-                            <ul>
-                                <li>L'état des lieux de sortie</li>
-                                <li>La restitution des clés</li>
-                                <li>Le remboursement du dépôt de garantie</li>
-                            </ul>
+                            <p>En confirmant, vous lancerez la procédure de départ.</p>
 
                             <form method="POST">
                                 <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
