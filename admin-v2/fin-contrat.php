@@ -14,6 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $contrat_id = isset($_POST['contrat_id']) ? (int)$_POST['contrat_id'] : 0;
+$date_fin_prevue = isset($_POST['date_fin_prevue']) && $_POST['date_fin_prevue'] ? $_POST['date_fin_prevue'] : null;
 
 if (!$contrat_id) {
     $_SESSION['error'] = "ID de contrat invalide";
@@ -37,9 +38,9 @@ if (!$contrat) {
     exit;
 }
 
-// Update the contract status to 'fin'
-$stmt = $pdo->prepare("UPDATE contrats SET statut = 'fin', updated_at = NOW() WHERE id = ?");
-$stmt->execute([$contrat_id]);
+// Update the contract status to 'fin' and save date_fin_prevue
+$stmt = $pdo->prepare("UPDATE contrats SET statut = 'fin', date_fin_prevue = ?, updated_at = NOW() WHERE id = ?");
+$stmt->execute([$date_fin_prevue, $contrat_id]);
 
 // Mark the logement as available again
 if ($contrat['logement_id']) {

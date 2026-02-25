@@ -6,7 +6,7 @@ require_once '../includes/db.php';
 // Get filters
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
-// Build query – only contracts with statut = 'fin'
+// Build query – only soft-deleted contracts (deleted_at IS NOT NULL)
 $sql = "
     SELECT c.*,
            l.reference as logement_ref,
@@ -16,7 +16,7 @@ $sql = "
            (SELECT GROUP_CONCAT(CONCAT(prenom, ' ', nom) ORDER BY ordre SEPARATOR ', ') FROM locataires WHERE contrat_id = c.id) as noms_locataires
     FROM contrats c
     LEFT JOIN logements l ON c.logement_id = l.id
-    WHERE c.statut = 'fin' AND c.deleted_at IS NULL
+    WHERE c.deleted_at IS NOT NULL
 ";
 $params = [];
 
@@ -28,20 +28,20 @@ if ($search) {
     $params[] = $search_param;
 }
 
-$sql .= " ORDER BY c.updated_at DESC";
+$sql .= " ORDER BY c.deleted_at DESC";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $contrats = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$total = $pdo->query("SELECT COUNT(*) FROM contrats WHERE statut = 'fin' AND deleted_at IS NULL")->fetchColumn();
+$total = $pdo->query("SELECT COUNT(*) FROM contrats WHERE deleted_at IS NOT NULL")->fetchColumn();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contrats Clôturés - Admin MyInvest</title>
+    <title>Contrats Supprimés - Admin MyInvest</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <?php require_once __DIR__ . '/includes/sidebar-styles.php'; ?>
@@ -63,7 +63,7 @@ $total = $pdo->query("SELECT COUNT(*) FROM contrats WHERE statut = 'fin' AND del
         .stats-card .number {
             font-size: 2rem;
             font-weight: bold;
-            color: #343a40;
+            color: #dc3545;
         }
         .table-card {
             background: white;
@@ -71,7 +71,7 @@ $total = $pdo->query("SELECT COUNT(*) FROM contrats WHERE statut = 'fin' AND del
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .status-fin { background: #343a40; color: #fff; padding: 5px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: 500; }
+        .status-supprime { background: #f8d7da; color: #721c24; padding: 5px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: 500; }
     </style>
 </head>
 <body>
@@ -81,7 +81,7 @@ $total = $pdo->query("SELECT COUNT(*) FROM contrats WHERE statut = 'fin' AND del
     <div class="main-content">
         <div class="header">
             <div class="d-flex justify-content-between align-items-center">
-                <h4><i class="bi bi-archive"></i> Contrats Clôturés</h4>
+                <h4><i class="bi bi-trash"></i> Contrats Supprimés</h4>
                 <a href="contrats.php" class="btn btn-secondary">
                     <i class="bi bi-arrow-left"></i> Contrats actifs
                 </a>
@@ -108,10 +108,10 @@ $total = $pdo->query("SELECT COUNT(*) FROM contrats WHERE statut = 'fin' AND del
                 <div class="stats-card">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <div class="text-muted small">Contrats Clôturés</div>
+                            <div class="text-muted small">Contrats Supprimés</div>
                             <div class="number"><?php echo $total; ?></div>
                         </div>
-                        <i class="bi bi-archive" style="font-size: 2rem; color: #343a40;"></i>
+                        <i class="bi bi-trash" style="font-size: 2rem; color: #dc3545;"></i>
                     </div>
                 </div>
             </div>
@@ -129,7 +129,7 @@ $total = $pdo->query("SELECT COUNT(*) FROM contrats WHERE statut = 'fin' AND del
                     </button>
                 </div>
                 <div class="col-md-2">
-                    <a href="contrats-clotures.php" class="btn btn-secondary w-100">
+                    <a href="contrats-supprimes.php" class="btn btn-secondary w-100">
                         <i class="bi bi-x-circle"></i> Réinitialiser
                     </a>
                 </div>
@@ -146,7 +146,7 @@ $total = $pdo->query("SELECT COUNT(*) FROM contrats WHERE statut = 'fin' AND del
                             <th>Logement</th>
                             <th>Locataires</th>
                             <th>Date Création</th>
-                            <th>Date Clôture</th>
+                            <th>Date Suppression</th>
                             <th>Statut</th>
                             <th>Actions</th>
                         </tr>
@@ -167,24 +167,18 @@ $total = $pdo->query("SELECT COUNT(*) FROM contrats WHERE statut = 'fin' AND del
                                 <?php endif; ?>
                             </td>
                             <td><small><?php echo date('d/m/Y', strtotime($contrat['date_creation'])); ?></small></td>
-                            <td><small><?php echo $contrat['updated_at'] ? date('d/m/Y', strtotime($contrat['updated_at'])) : '-'; ?></small></td>
+                            <td><small><?php echo $contrat['deleted_at'] ? date('d/m/Y', strtotime($contrat['deleted_at'])) : '-'; ?></small></td>
                             <td>
-                                <span class="status-fin">
-                                    <i class="bi bi-archive"></i> Clôturé
+                                <span class="status-supprime">
+                                    <i class="bi bi-trash"></i> Supprimé
                                 </span>
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="contrat-detail.php?id=<?php echo $contrat['id']; ?>" class="btn btn-outline-primary" title="Voir détails">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                    <a href="../pdf/download.php?contrat_id=<?php echo $contrat['id']; ?>" class="btn btn-outline-success" title="Télécharger PDF">
-                                        <i class="bi bi-download"></i>
-                                    </a>
                                     <form method="POST" action="restaurer-contrat.php" class="d-inline">
                                         <input type="hidden" name="contrat_id" value="<?php echo $contrat['id']; ?>">
-                                        <input type="hidden" name="source" value="clotures">
-                                        <button type="submit" class="btn btn-outline-warning"
+                                        <input type="hidden" name="source" value="supprimes">
+                                        <button type="submit" class="btn btn-outline-success"
                                                 onclick="return confirm('Restaurer ce contrat et le remettre dans les contrats actifs ?')"
                                                 title="Restaurer le contrat">
                                             <i class="bi bi-arrow-counterclockwise"></i> Restaurer
@@ -198,7 +192,7 @@ $total = $pdo->query("SELECT COUNT(*) FROM contrats WHERE statut = 'fin' AND del
                         <tr>
                             <td colspan="7" class="text-center py-5 text-muted">
                                 <i class="bi bi-inbox" style="font-size: 48px;"></i>
-                                <p class="mt-3">Aucun contrat clôturé</p>
+                                <p class="mt-3">Aucun contrat supprimé</p>
                             </td>
                         </tr>
                         <?php endif; ?>
