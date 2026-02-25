@@ -1139,14 +1139,10 @@ if ($contrat['validated_by']) {
                         </div>
                         <div class="card-body">
                             <p class="mb-3">Envoyer au locataire la confirmation que nous avons bien reçu son courrier envoyé via AR24.</p>
-                            <form method="POST" action="envoyer-confirmation-depart.php"
-                                  onsubmit="return confirm('Envoyer la confirmation de réception du courrier AR24 au locataire ?')">
-                                <input type="hidden" name="contrat_id" value="<?php echo $contractId; ?>">
-                                <input type="hidden" name="source" value="detail">
-                                <button type="submit" class="btn btn-info w-100">
-                                    <i class="bi bi-envelope-check"></i> Envoyer confirmation AR24
-                                </button>
-                            </form>
+                            <button type="button" class="btn btn-info w-100"
+                                    onclick="openAR24Modal(<?php echo $contractId; ?>, 'detail', '<?php echo htmlspecialchars($contrat['date_fin_prevue'] ?? '', ENT_QUOTES); ?>')">
+                                <i class="bi bi-envelope-check"></i> Envoyer confirmation AR24
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1199,5 +1195,43 @@ if ($contrat['validated_by']) {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- AR24 Confirmation Modal -->
+    <div class="modal fade" id="ar24Modal" tabindex="-1" aria-labelledby="ar24ModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="ar24ModalLabel"><i class="bi bi-envelope-check"></i> Confirmation Réception AR24</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="envoyer-confirmation-depart.php">
+                    <div class="modal-body">
+                        <p>Envoyer au locataire la confirmation de réception du courrier AR24.</p>
+                        <div class="mb-3">
+                            <label for="ar24DateFin" class="form-label fw-semibold">Date de fin prévue du contrat</label>
+                            <input type="date" class="form-control" id="ar24DateFin" name="date_fin_prevue">
+                            <div class="form-text">Optionnel. Si renseignée, met à jour la date de fin du contrat avant l'envoi.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <input type="hidden" name="contrat_id" id="ar24ContratId">
+                        <input type="hidden" name="source" id="ar24Source" value="detail">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-info text-white"><i class="bi bi-envelope-check"></i> Envoyer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openAR24Modal(contratId, source, dateFin) {
+            document.getElementById('ar24ContratId').value = contratId;
+            document.getElementById('ar24Source').value = source || 'detail';
+            document.getElementById('ar24DateFin').value = dateFin || '';
+            var modal = new bootstrap.Modal(document.getElementById('ar24Modal'));
+            modal.show();
+        }
+    </script>
 </body>
 </html>

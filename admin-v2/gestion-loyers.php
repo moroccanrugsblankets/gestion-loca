@@ -158,12 +158,6 @@ while ($iterDate <= $currentDate) {
     $iterDate->modify('+1 month');
 }
 
-// Appliquer la règle: mettre à jour automatiquement les mois précédents en "impaye" s'ils sont en "attente"
-// Note: Cette fonction inclut une pré-vérification pour éviter les UPDATE inutiles.
-// Après le premier chargement du mois, la fonction retournera 0 sans exécuter d'UPDATE.
-// Pour une optimisation maximale, envisager de déplacer cette logique vers un cron job quotidien.
-updatePreviousMonthsToImpaye($pdo);
-
 // Créer automatiquement les entrées de tracking pour le mois courant avec statut "attente"
 // Cela garantit que le mois courant est toujours affiché comme "En attente" par défaut
 if (!empty($logements)) {
@@ -174,6 +168,13 @@ if (!empty($logements)) {
         }
     }
 }
+
+// Appliquer la règle: mettre à jour automatiquement les mois en "impaye" s'ils sont en "attente"
+// - Mois antérieurs au mois actuel → toujours impayé
+// - Mois courant → impayé si on est après le 5 du mois
+// Note: Les entrées du mois courant doivent être créées d'abord (ci-dessus) pour que
+// la mise à jour fonctionne dès le premier chargement.
+updatePreviousMonthsToImpaye($pdo);
 
 // Récupérer les statuts de paiement pour tous les logements et mois
 $statutsPaiement = [];
@@ -302,9 +303,12 @@ function creerEntryTracking($pdo, $logementId, $contratId, $mois, $annee, $monta
 }
 
 /**
- * Mettre à jour automatiquement les mois précédents en "impaye" s'ils sont toujours en "attente"
+ * Mettre à jour automatiquement les mois en "impaye" s'ils sont toujours en "attente"
  * 
- * Règle métier: Tous les mois antérieurs au mois actuel doivent être soit "paye" soit "impaye", pas "attente"
+ * Règle métier:
+ * - Tous les mois antérieurs au mois actuel doivent être soit "paye" soit "impaye", pas "attente"
+ * - Le mois courant est en "attente" du 1er au 5 du mois ; au-delà du 5, s'il est encore en
+ *   "attente" (non payé), il passe automatiquement en "impaye"
  * 
  * @param PDO $pdo Connexion à la base de données
  * @return int Nombre de lignes mises à jour
@@ -315,28 +319,9 @@ function updatePreviousMonthsToImpaye($pdo) {
     try {
         $currentYear = (int)date('Y');
         $currentMonth = (int)date('n');
+        $currentDay = (int)date('j');
         
-        // D'abord vérifier s'il y a des enregistrements à mettre à jour
-        $checkStmt = $pdo->prepare("
-            SELECT COUNT(*) as count
-            FROM loyers_tracking
-            WHERE statut_paiement = 'attente'
-            AND deleted_at IS NULL
-            AND (
-                annee < ? 
-                OR (annee = ? AND mois < ?)
-            )
-        ");
-        $checkStmt->execute([$currentYear, $currentYear, $currentMonth]);
-        $count = $checkStmt->fetch(PDO::FETCH_ASSOC)['count'];
-        
-        // Si aucun enregistrement à mettre à jour, ne rien faire
-        if ($count == 0) {
-            return 0;
-        }
-        
-        // Mettre à jour tous les enregistrements dont la période est antérieure au mois actuel
-        // et qui sont encore en statut "attente" pour les passer en "impaye"
+        // Mettre à jour les mois strictement antérieurs au mois actuel
         $stmt = $pdo->prepare("
             UPDATE loyers_tracking
             SET statut_paiement = 'impaye',
@@ -349,7 +334,23 @@ function updatePreviousMonthsToImpaye($pdo) {
             )
         ");
         $stmt->execute([$currentYear, $currentYear, $currentMonth]);
-        return $stmt->rowCount();
+        $updated = $stmt->rowCount();
+        
+        // Si on est après le 5 du mois, le mois courant en "attente" passe en "impaye"
+        if ($currentDay > 5) {
+            $stmt2 = $pdo->prepare("
+                UPDATE loyers_tracking
+                SET statut_paiement = 'impaye',
+                    updated_at = NOW()
+                WHERE statut_paiement = 'attente'
+                AND deleted_at IS NULL
+                AND annee = ? AND mois = ?
+            ");
+            $stmt2->execute([$currentYear, $currentMonth]);
+            $updated += $stmt2->rowCount();
+        }
+        
+        return $updated;
     } catch (Exception $e) {
         error_log("Erreur lors de la mise à jour des mois précédents: " . $e->getMessage());
         return 0;

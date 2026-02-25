@@ -297,14 +297,11 @@ $stats = [
                                         </a>
                                     <?php endif; ?>
                                     <?php if ($contrat['statut'] === 'valide' && !empty($contrat['date_demande_depart'])): ?>
-                                        <form method="POST" action="envoyer-confirmation-depart.php" class="d-inline">
-                                            <input type="hidden" name="contrat_id" value="<?php echo $contrat['id']; ?>">
-                                            <button type="submit" class="btn btn-outline-info"
-                                                    onclick="return confirm('Envoyer la confirmation de réception du courrier AR24 au locataire ?')"
-                                                    title="Confirmer réception courrier AR24">
-                                                <i class="bi bi-envelope-check"></i>
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-outline-info"
+                                                onclick="openAR24Modal(<?php echo $contrat['id']; ?>, '', '<?php echo htmlspecialchars($contrat['date_fin_prevue'] ?? '', ENT_QUOTES); ?>')"
+                                                title="Confirmer réception courrier AR24">
+                                            <i class="bi bi-envelope-check"></i>
+                                        </button>
                                         <button type="button" class="btn btn-outline-dark"
                                                 onclick="openFinContratModal(<?php echo $contrat['id']; ?>, '<?php echo htmlspecialchars($contrat['reference_unique'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($contrat['date_fin_prevue'] ?? '', ENT_QUOTES); ?>')"
                                                 title="Fin de contrat (remise des clés)">
@@ -380,6 +377,13 @@ $stats = [
             var finModal = new bootstrap.Modal(document.getElementById('finContratModal'));
             finModal.show();
         }
+
+        function openAR24Modal(contratId, source, dateFin) {
+            document.getElementById('ar24ContratId').value = contratId;
+            document.getElementById('ar24DateFin').value = dateFin || '';
+            var modal = new bootstrap.Modal(document.getElementById('ar24Modal'));
+            modal.show();
+        }
     </script>
 
     <!-- Delete Confirmation Modal -->
@@ -434,6 +438,32 @@ $stats = [
                         <input type="hidden" name="contrat_id" id="finContratId">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
                         <button type="submit" class="btn btn-dark"><i class="bi bi-door-closed"></i> Clôturer le contrat</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- AR24 Confirmation Modal -->
+    <div class="modal fade" id="ar24Modal" tabindex="-1" aria-labelledby="ar24ModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="ar24ModalLabel"><i class="bi bi-envelope-check"></i> Confirmation Réception AR24</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="envoyer-confirmation-depart.php">
+                    <div class="modal-body">
+                        <p>Envoyer au locataire la confirmation de réception du courrier AR24.</p>
+                        <div class="mb-3">
+                            <label for="ar24DateFin" class="form-label fw-semibold">Date de fin prévue du contrat</label>
+                            <input type="date" class="form-control" id="ar24DateFin" name="date_fin_prevue">
+                            <div class="form-text">Optionnel. Si renseignée, met à jour la date de fin du contrat avant l'envoi.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <input type="hidden" name="contrat_id" id="ar24ContratId">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-info text-white"><i class="bi bi-envelope-check"></i> Envoyer</button>
                     </div>
                 </form>
             </div>

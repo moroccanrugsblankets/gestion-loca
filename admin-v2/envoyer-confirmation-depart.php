@@ -14,11 +14,21 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $contrat_id = isset($_POST['contrat_id']) ? (int)$_POST['contrat_id'] : 0;
+$date_fin_prevue_input = isset($_POST['date_fin_prevue']) ? trim($_POST['date_fin_prevue']) : '';
 
 if (!$contrat_id) {
     $_SESSION['error'] = "ID de contrat invalide";
     header('Location: contrats.php');
     exit;
+}
+
+// If a new date_fin_prevue was submitted via the modal, update it first
+if (!empty($date_fin_prevue_input)) {
+    $d = DateTime::createFromFormat('Y-m-d', $date_fin_prevue_input);
+    if ($d && $d->format('Y-m-d') === $date_fin_prevue_input) {
+        $pdo->prepare("UPDATE contrats SET date_fin_prevue = ?, updated_at = NOW() WHERE id = ?")
+            ->execute([$date_fin_prevue_input, $contrat_id]);
+    }
 }
 
 // Get contract + logement details
