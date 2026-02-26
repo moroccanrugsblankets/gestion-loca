@@ -74,14 +74,19 @@ function estLoyerPaye($pdo, $logementId, $mois, $annee) {
  */
 function creerEntriesTrackingMoisCourant($pdo, $mois, $annee) {
     try {
-        // Récupérer tous les logements avec contrat actif (valide et en cours)
+        // Récupérer tous les logements avec leur dernier contrat actif (valide et en cours)
         $stmt = $pdo->query("
-            SELECT DISTINCT l.id, l.loyer, l.charges, c.id as contrat_id
+            SELECT l.id, l.loyer, l.charges, c.id as contrat_id
             FROM logements l
             INNER JOIN contrats c ON c.logement_id = l.id
-            WHERE c.statut = 'valide'
-            AND c.date_prise_effet IS NOT NULL
-            AND c.date_prise_effet <= CURDATE()
+            INNER JOIN (
+                SELECT logement_id, MAX(id) AS max_contrat_id
+                FROM contrats
+                WHERE statut = 'valide'
+                AND date_prise_effet IS NOT NULL
+                AND date_prise_effet <= CURDATE()
+                GROUP BY logement_id
+            ) lc ON c.logement_id = lc.logement_id AND c.id = lc.max_contrat_id
         ");
         $logements = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
@@ -165,13 +170,13 @@ function genererMessageStatut($pdo, $mois, $annee) {
             FROM logements l
             INNER JOIN contrats c ON c.logement_id = l.id
             INNER JOIN (
-                SELECT logement_id, MAX(date_prise_effet) AS max_date
+                SELECT logement_id, MAX(id) AS max_contrat_id
                 FROM contrats
                 WHERE statut = 'valide'
                 AND date_prise_effet IS NOT NULL AND date_prise_effet <= CURDATE()
                 GROUP BY logement_id
-            ) dc ON c.logement_id = dc.logement_id AND c.date_prise_effet = dc.max_date
-            LEFT JOIN loyers_tracking lt ON lt.logement_id = l.id AND lt.deleted_at IS NULL
+            ) dc ON c.id = dc.max_contrat_id
+            LEFT JOIN loyers_tracking lt ON lt.logement_id = l.id AND lt.contrat_id = c.id AND lt.deleted_at IS NULL
             GROUP BY l.id, l.reference, l.adresse, l.loyer, l.charges
             ORDER BY l.reference
         ");
@@ -397,7 +402,7 @@ function envoyerRappelLocataires($pdo, $mois, $annee) {
             return false;
         }
         
-        // Récupérer les logements avec loyer impayé ou en attente (contrat valide et en cours)
+        // Récupérer les logements avec loyer impayé ou en attente (dernier contrat actif seulement)
         $stmt = $pdo->prepare("
             SELECT 
                 l.id as logement_id,
@@ -409,12 +414,16 @@ function envoyerRappelLocataires($pdo, $mois, $annee) {
                 c.id as contrat_id
             FROM logements l
             INNER JOIN contrats c ON c.logement_id = l.id
-            LEFT JOIN loyers_tracking lt ON lt.logement_id = l.id AND lt.mois = ? AND lt.annee = ?
-            WHERE c.statut = 'valide'
-            AND c.date_prise_effet IS NOT NULL
-            AND c.date_prise_effet <= CURDATE()
-            AND (lt.statut_paiement IN ('impaye', 'attente') OR lt.statut_paiement IS NULL)
-            GROUP BY l.id, l.reference, l.adresse, l.loyer, l.charges, lt.statut_paiement, c.id
+            INNER JOIN (
+                SELECT logement_id, MAX(id) AS max_contrat_id
+                FROM contrats
+                WHERE statut = 'valide'
+                AND date_prise_effet IS NOT NULL
+                AND date_prise_effet <= CURDATE()
+                GROUP BY logement_id
+            ) lc ON c.logement_id = lc.logement_id AND c.id = lc.max_contrat_id
+            LEFT JOIN loyers_tracking lt ON lt.logement_id = l.id AND lt.contrat_id = c.id AND lt.mois = ? AND lt.annee = ?
+            WHERE (lt.statut_paiement IN ('impaye', 'attente') OR lt.statut_paiement IS NULL)
         ");
         $stmt->execute([$mois, $annee]);
         $logements = $stmt->fetchAll(PDO::FETCH_ASSOC);

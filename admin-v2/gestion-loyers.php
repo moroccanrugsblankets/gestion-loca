@@ -72,13 +72,12 @@ FROM logements l
 INNER JOIN contrats c 
         ON c.logement_id = l.id
 INNER JOIN (
-    -- Sous-requête pour obtenir le dernier contrat valide par date
-    SELECT logement_id, MAX(date_prise_effet) AS max_date
-    FROM contrats c WHERE " . CONTRAT_ACTIF_FILTER . "
+    -- Sous-requête pour obtenir le dernier contrat valide par id
+    SELECT logement_id, MAX(id) AS max_contrat_id
+    FROM contrats WHERE " . CONTRAT_ACTIF_FILTER . "
     GROUP BY logement_id
 ) derniers_contrats 
-        ON c.logement_id = derniers_contrats.logement_id
-       AND c.date_prise_effet = derniers_contrats.max_date
+        ON c.id = derniers_contrats.max_contrat_id
 ORDER BY l.reference;
     ");
     $logements = $stmtLogements->fetchAll(PDO::FETCH_ASSOC);
@@ -524,10 +523,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 FROM logements l
                 INNER JOIN contrats c ON c.logement_id = l.id
                 INNER JOIN (
-                    SELECT logement_id, MAX(date_prise_effet) AS max_date
-                    FROM contrats c WHERE " . CONTRAT_ACTIF_FILTER . " GROUP BY logement_id
-                ) dc ON c.logement_id = dc.logement_id AND c.date_prise_effet = dc.max_date
-                LEFT JOIN loyers_tracking lt ON lt.logement_id = l.id AND lt.deleted_at IS NULL
+                    SELECT logement_id, MAX(id) AS max_contrat_id
+                    FROM contrats WHERE " . CONTRAT_ACTIF_FILTER . " GROUP BY logement_id
+                ) dc ON c.id = dc.max_contrat_id
+                LEFT JOIN loyers_tracking lt ON lt.logement_id = l.id AND lt.contrat_id = c.id AND lt.deleted_at IS NULL
                 GROUP BY l.id, l.reference, c.id
                 ORDER BY l.reference
             ");
