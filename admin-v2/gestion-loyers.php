@@ -241,6 +241,7 @@ function getStatutPaiement($logementId, $mois, $annee) {
  * 
  * @param int $logementId L'identifiant du logement
  * @param array $mois Tableau des mois à analyser (chaque élément contient 'num' et 'annee')
+ * @param string|null $datePriseEffet Date de prise d'effet du contrat (format Y-m-d), pour ignorer les mois antérieurs
  * @return string Le statut global: 'paye' (vert), 'impaye' (rouge), ou 'attente' (orange)
  * 
  * Logique:
@@ -248,12 +249,26 @@ function getStatutPaiement($logementId, $mois, $annee) {
  * - Retourne 'attente' si aucun impayé mais au moins un mois en attente
  * - Retourne 'paye' si tous les mois sont payés
  */
-function getStatutGlobalLogement($logementId, $mois) {
+function getStatutGlobalLogement($logementId, $mois, $datePriseEffet = null) {
     $hasImpaye = false;
     $hasAttente = false;
     $hasPaye = false;
     
+    // Déterminer le premier mois du contrat pour ignorer les mois antérieurs
+    $contractStartYear = null;
+    $contractStartMonth = null;
+    if ($datePriseEffet !== null) {
+        $d = new DateTime($datePriseEffet);
+        $contractStartYear = (int)$d->format('Y');
+        $contractStartMonth = (int)$d->format('n');
+    }
+    
     foreach ($mois as $m) {
+        // Ignorer les mois antérieurs à la date de prise d'effet du contrat
+        if ($contractStartYear !== null && ($m['annee'] < $contractStartYear || ($m['annee'] == $contractStartYear && $m['num'] < $contractStartMonth))) {
+            continue;
+        }
+        
         $statut = getStatutPaiement($logementId, $m['num'], $m['annee']);
         $statutPaiement = determinerStatutPaiement($m['num'], $m['annee'], $statut);
         
@@ -1064,7 +1079,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="card-body">
                 <div class="properties-grid">
                     <?php foreach ($logements as $logement): 
-                        $statutGlobal = getStatutGlobalLogement($logement['id'], $mois);
+                        $statutGlobal = getStatutGlobalLogement($logement['id'], $mois, $logement['date_prise_effet'] ?? null);
                         $statusIcon = $iconesStatut[$statutGlobal];
                         
                         $statusText = [
