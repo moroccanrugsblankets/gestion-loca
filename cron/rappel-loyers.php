@@ -217,21 +217,17 @@ function genererMessageStatut($pdo, $mois, $annee) {
             
             $detailImpaye = '';
             if ($bien['nb_mois_impayes'] > 0) {
-                $detailImpaye = sprintf(' (%d mois, %.2f €)', $bien['nb_mois_impayes'], $montantImpaye);
+                $detailImpaye = ' (' . number_format($montantImpaye, 2, ',', ' ') . ' €)';
             }
             
             $listeBiens[] = sprintf(
                 '<tr>
                     <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>%s</strong></td>
                     <td style="padding: 10px; border: 1px solid #dee2e6;">%s</td>
-                    <td style="padding: 10px; border: 1px solid #dee2e6;">%s</td>
-                    <td style="padding: 10px; border: 1px solid #dee2e6; text-align: right; color: #dc3545; font-weight: bold;">%s</td>
                     <td style="padding: 10px; border: 1px solid #dee2e6; text-align: center; background-color: %s; color: white; font-weight: bold;">%s %s%s</td>
                 </tr>',
                 htmlspecialchars($bien['reference']),
                 htmlspecialchars($locataires),
-                htmlspecialchars(substr($bien['adresse'], 0, 50)),
-                $bien['nb_mois_impayes'] > 0 ? number_format($montantImpaye, 2, ',', ' ') . ' €' : '-',
                 $statusColor,
                 $statusIcon,
                 $statusText,
@@ -250,7 +246,7 @@ function genererMessageStatut($pdo, $mois, $annee) {
         $tousPayes = ($nbImpayes === 0 && $nbAttente === 0);
         
         $resume = sprintf(
-            '<p><strong>Récapitulatif général (tous les mois) au %s %d :</strong></p>
+            '<p><strong>Récapitulatif général (tous les mois) :</strong></p>
             <ul>
                 <li>Total de biens en location: <strong>%d</strong></li>
                 <li style="color: #28a745;">✅ Biens à jour: <strong>%d</strong></li>
@@ -258,8 +254,6 @@ function genererMessageStatut($pdo, $mois, $annee) {
                 <li style="color: #ffc107;">⏳ Biens en attente: <strong>%d</strong></li>
                 %s
             </ul>',
-            $moisNom,
-            $annee,
             $nbTotal,
             $nbPayes,
             $nbImpayes,
@@ -278,8 +272,6 @@ function genererMessageStatut($pdo, $mois, $annee) {
                 <tr style="background-color: #f8f9fa;">
                     <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Référence</th>
                     <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Locataire(s)</th>
-                    <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Adresse</th>
-                    <th style="padding: 10px; border: 1px solid #dee2e6; text-align: right;">Montant impayé</th>
                     <th style="padding: 10px; border: 1px solid #dee2e6; text-align: center;">Statut global</th>
                 </tr>
             </thead>
