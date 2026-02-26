@@ -2,13 +2,29 @@
 require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
+require_once '../includes/functions.php';
 
 // Constants for file upload limits
 define('MAX_SIGNATURE_SIZE', 2 * 1024 * 1024); // 2 MB
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    if ($_POST['action'] === 'update_template') {
+    if ($_POST['action'] === 'update_jours_avant_impaye') {
+        $jours = max(1, (int)$_POST['jours_avant_impaye']);
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM parametres WHERE cle = 'jours_avant_impaye'");
+        $stmt->execute();
+        if ($stmt->fetchColumn() > 0) {
+            $stmt = $pdo->prepare("UPDATE parametres SET valeur = ?, updated_at = NOW() WHERE cle = 'jours_avant_impaye'");
+            $stmt->execute([$jours]);
+        } else {
+            $stmt = $pdo->prepare("INSERT INTO parametres (cle, valeur, type, groupe, description) VALUES ('jours_avant_impaye', ?, 'integer', 'loyers', 'Nombre de jours du mois après lequel un loyer en attente passe automatiquement en impayé')");
+            $stmt->execute([$jours]);
+        }
+        $_SESSION['success'] = "Paramètre mis à jour avec succès";
+        header('Location: contrat-configuration.php');
+        exit;
+    }
+    elseif ($_POST['action'] === 'update_template') {
         // Check if parametres table exists and has contrat_template_html
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM parametres WHERE cle = 'contrat_template_html'");
         $stmt->execute();
@@ -221,6 +237,10 @@ $template = $stmt->fetchColumn();
 if (!$template) {
     $template = getDefaultContractTemplate();
 }
+
+// Get jours_avant_impaye parameter
+$joursAvantImpaye = (int)getParameter('jours_avant_impaye', 5);
+if ($joursAvantImpaye < 1) $joursAvantImpaye = 1;
 
 // Get signature settings
 $stmt = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'signature_societe_image'");
@@ -456,6 +476,41 @@ HTML;
             </div>
             <?php unset($_SESSION['error']); ?>
         <?php endif; ?>
+
+        <!-- Paramètres de gestion des loyers -->
+        <div class="config-card">
+            <h5 class="mb-3"><i class="bi bi-calendar-check"></i> Paramètres de Gestion des Loyers</h5>
+            <p class="text-muted">
+                Configurez les règles automatiques de gestion des statuts de paiement.
+            </p>
+            <form method="POST" action="">
+                <input type="hidden" name="action" value="update_jours_avant_impaye">
+                <div class="row align-items-end">
+                    <div class="col-md-6">
+                        <label for="jours_avant_impaye" class="form-label">
+                            <strong>Nombre de jours avant passage en "Impayé"</strong>
+                        </label>
+                        <input
+                            type="number"
+                            class="form-control"
+                            id="jours_avant_impaye"
+                            name="jours_avant_impaye"
+                            min="1"
+                            max="31"
+                            value="<?= htmlspecialchars($joursAvantImpaye) ?>"
+                            required>
+                        <small class="form-text text-muted">
+                            Nombre de jours dans le mois après lequel un loyer dont le statut est "En attente" passe automatiquement en "Impayé". Par défaut : 5.
+                        </small>
+                    </div>
+                    <div class="col-md-6">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Enregistrer
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
 
         <!-- Signature Configuration Card -->
         <div class="config-card">
