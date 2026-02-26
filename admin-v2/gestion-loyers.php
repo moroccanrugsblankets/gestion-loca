@@ -18,6 +18,7 @@ require_once 'auth.php';
 require_once '../includes/db.php';
 require_once '../includes/functions.php';
 require_once '../includes/mail-templates.php';
+require_once '../includes/rappel-loyers-functions.php';
 
 // Filtre SQL pour les contrats actifs (utilisé dans plusieurs requêtes)
 // Un contrat est considéré actif si :
@@ -520,84 +521,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception('Aucun administrateur configuré pour recevoir les rappels');
             }
             
-            // Récupérer les statuts de paiement agrégés sur tous les mois
-            $stmtStatus = $pdo->query("
-                SELECT 
-                    l.reference,
-                    (SELECT GROUP_CONCAT(CONCAT(loc.prenom, ' ', loc.nom) SEPARATOR ', ')
-                     FROM locataires loc WHERE loc.contrat_id = c.id) as locataires,
-                    COALESCE(SUM(CASE WHEN lt.statut_paiement = 'impaye' THEN lt.montant_attendu ELSE 0 END), 0) as montant_total_impaye,
-                    COUNT(CASE WHEN lt.statut_paiement = 'impaye' THEN 1 END) as nb_mois_impayes,
-                    COUNT(CASE WHEN lt.statut_paiement = 'attente' THEN 1 END) as nb_mois_attente,
-                    COUNT(CASE WHEN lt.statut_paiement = 'paye' THEN 1 END) as nb_mois_payes,
-                    CASE
-                        WHEN COUNT(lt.id) = 0 THEN 'attente'
-                        WHEN COUNT(CASE WHEN lt.statut_paiement = 'impaye' THEN 1 END) > 0 THEN 'impaye'
-                        WHEN COUNT(CASE WHEN lt.statut_paiement = 'attente' THEN 1 END) > 0 THEN 'attente'
-                        ELSE 'paye'
-                    END as statut_global
-                FROM logements l
-                INNER JOIN contrats c ON c.logement_id = l.id
-                INNER JOIN (
-                    SELECT logement_id, MAX(id) AS max_contrat_id
-                    FROM contrats c WHERE " . CONTRAT_ACTIF_FILTER . " GROUP BY logement_id
-                ) dc ON c.id = dc.max_contrat_id
-                LEFT JOIN loyers_tracking lt ON lt.logement_id = l.id AND lt.contrat_id = c.id AND lt.deleted_at IS NULL
-                GROUP BY l.id, l.reference, c.id
-                ORDER BY l.reference
-            ");
-            $biens = $stmtStatus->fetchAll(PDO::FETCH_ASSOC);
-            
-            $nbPayes = 0; $nbImpayes = 0; $nbAttente = 0;
-            $montantTotalImpaye = 0;
-            $lignes = [];
-            foreach ($biens as $bien) {
-                $s = $bien['statut_global'];
-                if ($s === 'paye') { $nbPayes++; $icon = '✅'; $label = 'Payé'; $bg = '#28a745'; }
-                elseif ($s === 'impaye') { $nbImpayes++; $icon = '❌'; $label = 'Impayé'; $bg = '#dc3545'; $montantTotalImpaye += $bien['montant_total_impaye']; }
-                else { $nbAttente++; $icon = '⏳'; $label = 'En attente'; $bg = '#ffc107'; }
-                $statutAffiche = $icon . ' ' . $label;
-                if ($s === 'impaye' && $bien['montant_total_impaye'] > 0) {
-                    $statutAffiche .= ' (' . number_format($bien['montant_total_impaye'], 2, ',', ' ') . ' €)';
-                }
-                $lignes[] = '<tr><td style="padding:8px;border:1px solid #dee2e6"><strong>' . htmlspecialchars($bien['reference']) . '</strong></td>'
-                    . '<td style="padding:8px;border:1px solid #dee2e6">' . htmlspecialchars($bien['locataires'] ?: 'Non assigné') . '</td>'
-                    . '<td style="padding:8px;border:1px solid #dee2e6;text-align:center;background-color:' . $bg . ';color:white;font-weight:bold">' . $statutAffiche . '</td></tr>';
-            }
-            
-            $tousPayes = ($nbImpayes === 0 && $nbAttente === 0);
+            // Générer le message de statut via la fonction centralisée (même résultat que le cron)
+            $statusInfo = genererMessageStatutLoyers($pdo, $moisCourant, $anneeCourante);
+            $tousPayes = $statusInfo['tous_payes'];
             $templateId = $tousPayes ? 'confirmation_loyers_payes' : 'rappel_loyers_impaye';
             
             $boutonHtml = '';
             if (getParameter('rappel_loyers_inclure_bouton', true)) {
                 $urlInterface = rtrim($config['SITE_URL'], '/') . '/admin-v2/gestion-loyers.php';
-                $boutonHtml = '<div style="text-align:center"><a href="' . htmlspecialchars($urlInterface) . '" style="display:inline-block;padding:12px 30px;background:#007bff;color:white;text-decoration:none;border-radius:5px;margin:20px 0">📊 Accéder à l\'interface de gestion</a></div>';
+                $boutonHtml = '<div style="text-align: center;">
+                    <a href="' . htmlspecialchars($urlInterface) . '" class="btn" style="display: inline-block; padding: 12px 30px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">
+                        📊 Accéder à l\'interface de gestion
+                    </a>
+                </div>';
             }
-            
-            $resume = '<p><strong>Récapitulatif général (tous les mois) :</strong></p><ul>'
-                . '<li>Total biens en location: <strong>' . count($biens) . '</strong></li>'
-                . '<li style="color:#28a745">✅ Biens à jour: <strong>' . $nbPayes . '</strong></li>'
-                . '<li style="color:#dc3545">❌ Biens avec loyers impayés: <strong>' . $nbImpayes . '</strong></li>'
-                . '<li style="color:#ffc107">⏳ Biens en attente: <strong>' . $nbAttente . '</strong></li>'
-                . ($montantTotalImpaye > 0 ? '<li style="color:#dc3545"><strong>Total impayés: ' . number_format($montantTotalImpaye, 2, ',', ' ') . ' €</strong></li>' : '')
-                . '</ul>';
-            
-            $tableHtml = '<table style="width:100%;border-collapse:collapse;margin-top:20px"><thead><tr style="background-color:#f8f9fa">'
-                . '<th style="padding:10px;border:1px solid #dee2e6">Référence</th>'
-                . '<th style="padding:10px;border:1px solid #dee2e6">Locataire(s)</th>'
-                . '<th style="padding:10px;border:1px solid #dee2e6;text-align:center">Statut</th>'
-                . '</tr></thead><tbody>' . implode('', $lignes) . '</tbody></table>';
-            
-            $statusMessage = $resume . ($tousPayes
-                ? '<p style="color:#28a745;font-size:16px;font-weight:bold">🎉 Excellente nouvelle ! Tous les loyers sont à jour.</p>'
-                : '<p style="color:#dc3545;font-size:16px;font-weight:bold">⚠️ Attention ! Il reste des loyers impayés ou en attente.</p>')
-                . $tableHtml;
             
             $envoyesOk = 0;
             foreach ($destinataires as $dest) {
                 if (filter_var($dest, FILTER_VALIDATE_EMAIL)) {
                     $result = sendTemplatedEmail($templateId, $dest, [
-                        'status_paiements' => $statusMessage,
+                        'status_paiements' => $statusInfo['message'],
                         'bouton_interface' => $boutonHtml,
                         'signature' => getParameter('email_signature', '')
                     ]);
