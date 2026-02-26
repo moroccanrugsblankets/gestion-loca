@@ -163,6 +163,7 @@ function genererMessageStatut($pdo, $mois, $annee) {
                 COUNT(CASE WHEN lt.statut_paiement = 'attente' THEN 1 END) as nb_mois_attente,
                 COUNT(CASE WHEN lt.statut_paiement = 'paye' THEN 1 END) as nb_mois_payes,
                 CASE
+                    WHEN COUNT(lt.id) = 0 THEN 'attente'
                     WHEN COUNT(CASE WHEN lt.statut_paiement = 'impaye' THEN 1 END) > 0 THEN 'impaye'
                     WHEN COUNT(CASE WHEN lt.statut_paiement = 'attente' THEN 1 END) > 0 THEN 'attente'
                     ELSE 'paye'
