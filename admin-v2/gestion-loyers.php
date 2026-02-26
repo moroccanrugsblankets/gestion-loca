@@ -74,7 +74,7 @@ INNER JOIN contrats c
 INNER JOIN (
     -- Sous-requête pour obtenir le dernier contrat valide par id
     SELECT logement_id, MAX(id) AS max_contrat_id
-    FROM contrats WHERE " . CONTRAT_ACTIF_FILTER . "
+    FROM contrats c WHERE " . CONTRAT_ACTIF_FILTER . "
     GROUP BY logement_id
 ) derniers_contrats 
         ON c.id = derniers_contrats.max_contrat_id
@@ -516,6 +516,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     COUNT(CASE WHEN lt.statut_paiement = 'attente' THEN 1 END) as nb_mois_attente,
                     COUNT(CASE WHEN lt.statut_paiement = 'paye' THEN 1 END) as nb_mois_payes,
                     CASE
+                        WHEN COUNT(lt.id) = 0 THEN 'attente'
                         WHEN COUNT(CASE WHEN lt.statut_paiement = 'impaye' THEN 1 END) > 0 THEN 'impaye'
                         WHEN COUNT(CASE WHEN lt.statut_paiement = 'attente' THEN 1 END) > 0 THEN 'attente'
                         ELSE 'paye'
@@ -524,7 +525,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 INNER JOIN contrats c ON c.logement_id = l.id
                 INNER JOIN (
                     SELECT logement_id, MAX(id) AS max_contrat_id
-                    FROM contrats WHERE " . CONTRAT_ACTIF_FILTER . " GROUP BY logement_id
+                    FROM contrats c WHERE " . CONTRAT_ACTIF_FILTER . " GROUP BY logement_id
                 ) dc ON c.id = dc.max_contrat_id
                 LEFT JOIN loyers_tracking lt ON lt.logement_id = l.id AND lt.contrat_id = c.id AND lt.deleted_at IS NULL
                 GROUP BY l.id, l.reference, c.id
