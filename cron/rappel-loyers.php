@@ -467,6 +467,19 @@ function envoyerRappelLocataires($pdo, $mois, $annee) {
             
             $montantTotal = number_format($logement['loyer'] + $logement['charges'], 2, ',', ' ');
             
+            // Calculer le montant total de tous les mois impayés pour ce logement
+            $stmtMontantImpaye = $pdo->prepare("
+                SELECT COALESCE(SUM(montant_attendu), 0) as total_impaye
+                FROM loyers_tracking
+                WHERE logement_id = ? AND contrat_id = ?
+                AND statut_paiement = 'impaye' AND deleted_at IS NULL
+            ");
+            $stmtMontantImpaye->execute([$logement['logement_id'], $logement['contrat_id']]);
+            $totalImpaye = (float)($stmtMontantImpaye->fetchColumn() ?: 0);
+            if ($totalImpaye > 0) {
+                $montantTotal = number_format($totalImpaye, 2, ',', ' ');
+            }
+            
             // Envoyer à chaque locataire
             foreach ($locataires as $locataire) {
                 if (!filter_var($locataire['email'], FILTER_VALIDATE_EMAIL)) {
