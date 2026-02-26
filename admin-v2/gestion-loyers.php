@@ -1050,7 +1050,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         ?>
-        
+
+        <?php /*
         <div class="stats-summary">
             <div class="stat-card total">
                 <div class="stat-value"><?= $totalBiens ?></div>
@@ -1069,6 +1070,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="stat-label">En attente</div>
             </div>
         </div>
+        */ ?>
         
         <?php if (!$vueDetaillee && !empty($logements)): ?>
         <!-- Grille de statut des logements (vue globale uniquement) -->
