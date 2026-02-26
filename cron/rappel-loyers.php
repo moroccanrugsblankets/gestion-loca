@@ -222,9 +222,9 @@ function genererMessageStatut($pdo, $mois, $annee) {
             $montantImpaye = $bien['montant_total_impaye'];
             
             $detailImpaye = '';
-            if ($bien['nb_mois_impayes'] > 0) {
+            /*if ($bien['nb_mois_impayes'] > 0) {
                 $detailImpaye = ' (' . number_format($montantImpaye, 2, ',', ' ') . ' €)';
-            }
+            }*/
             
             $listeBiens[] = sprintf(
                 '<tr>
@@ -257,14 +257,10 @@ function genererMessageStatut($pdo, $mois, $annee) {
                 <li>Total de biens en location: <strong>%d</strong></li>
                 <li style="color: #28a745;">✅ Biens à jour: <strong>%d</strong></li>
                 <li style="color: #dc3545;">❌ Biens avec loyers impayés: <strong>%d</strong></li>
-                <li style="color: #ffc107;">⏳ Biens en attente: <strong>%d</strong></li>
-                %s
             </ul>',
             $nbTotal,
             $nbPayes,
             $nbImpayes,
-            $nbAttente,
-            $montantTotalImpaye > 0 ? '<li style="color: #dc3545;"><strong>Total impayés: ' . number_format($montantTotalImpaye, 2, ',', ' ') . ' €</strong></li>' : ''
         );
         
         if ($tousPayes) {
