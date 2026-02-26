@@ -751,11 +751,14 @@ function replaceTemplateVariables($template, $data) {
         $placeholder = '{{' . $key . '}}';
         // Ensure value is a string
         $value = $value !== null ? (string)$value : '';
-        // Don't escape HTML for 'signature' and 'commentaire' variables since they contain HTML
+        // Don't escape HTML for variables that contain HTML content
         // SECURITY NOTE: These variables should already be sanitized before being passed here
         // - 'signature' is from trusted database/admin input
         // - 'commentaire' is user input that's already escaped with htmlspecialchars() before being wrapped in HTML
-        if ($key === 'signature' || $key === 'commentaire') {
+        // - 'status_paiements' is HTML generated server-side with htmlspecialchars() on user data
+        // - 'bouton_interface' is HTML generated server-side with a trusted URL
+        $htmlExemptKeys = ['signature', 'commentaire', 'status_paiements', 'bouton_interface'];
+        if (in_array($key, $htmlExemptKeys, true)) {
             $template = str_replace($placeholder, $value, $template);
         } else {
             $template = str_replace($placeholder, htmlspecialchars($value, ENT_QUOTES, 'UTF-8'), $template);
