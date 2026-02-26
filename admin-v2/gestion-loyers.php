@@ -307,8 +307,8 @@ function creerEntryTracking($pdo, $logementId, $contratId, $mois, $annee, $monta
  * 
  * Règle métier:
  * - Tous les mois antérieurs au mois actuel doivent être soit "paye" soit "impaye", pas "attente"
- * - Le mois courant est en "attente" du 1er au 5 du mois ; au-delà du 5, s'il est encore en
- *   "attente" (non payé), il passe automatiquement en "impaye"
+ * - Le mois courant est en "attente" du 1er au N du mois (N configurable, défaut: 5) ; au-delà,
+ *   s'il est encore en "attente" (non payé), il passe automatiquement en "impaye"
  * 
  * @param PDO $pdo Connexion à la base de données
  * @return int Nombre de lignes mises à jour
@@ -320,6 +320,10 @@ function updatePreviousMonthsToImpaye($pdo) {
         $currentYear = (int)date('Y');
         $currentMonth = (int)date('n');
         $currentDay = (int)date('j');
+        
+        // Récupérer le nombre de jours configuré avant de passer en impayé (défaut: 5)
+        $joursAvantImpaye = (int)getParameter('jours_avant_impaye', 5);
+        if ($joursAvantImpaye < 1) $joursAvantImpaye = 1;
         
         // Mettre à jour les mois strictement antérieurs au mois actuel
         $stmt = $pdo->prepare("
@@ -336,8 +340,8 @@ function updatePreviousMonthsToImpaye($pdo) {
         $stmt->execute([$currentYear, $currentYear, $currentMonth]);
         $updated = $stmt->rowCount();
         
-        // Si on est après le 5 du mois, le mois courant en "attente" passe en "impaye"
-        if ($currentDay > 5) {
+        // Si on est après le Nème jour du mois, le mois courant en "attente" passe en "impaye"
+        if ($currentDay > $joursAvantImpaye) {
             $stmt2 = $pdo->prepare("
                 UPDATE loyers_tracking
                 SET statut_paiement = 'impaye',
@@ -513,7 +517,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 INNER JOIN contrats c ON c.logement_id = l.id
                 INNER JOIN (
                     SELECT logement_id, MAX(date_prise_effet) AS max_date
-                    FROM contrats WHERE " . CONTRAT_ACTIF_FILTER . " GROUP BY logement_id
+                    FROM contrats c WHERE " . CONTRAT_ACTIF_FILTER . " GROUP BY logement_id
                 ) dc ON c.logement_id = dc.logement_id AND c.date_prise_effet = dc.max_date
                 LEFT JOIN loyers_tracking lt ON lt.logement_id = l.id AND lt.mois = ? AND lt.annee = ?
                 ORDER BY l.reference
