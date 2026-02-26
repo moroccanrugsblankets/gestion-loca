@@ -506,61 +506,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception('Aucun administrateur configuré pour recevoir les rappels');
             }
             
-            // Récupérer les statuts de paiement du mois courant
-            $stmtStatus = $pdo->prepare("
+            // Récupérer les statuts de paiement agrégés sur tous les mois
+            $stmtStatus = $pdo->query("
                 SELECT 
-                    l.reference, l.adresse, l.loyer, l.charges,
-                    COALESCE(lt.statut_paiement, 'attente') as statut_paiement,
-                    (SELECT GROUP_CONCAT(CONCAT(prenom, ' ', nom) SEPARATOR ', ')
-                     FROM locataires loc WHERE loc.contrat_id = c.id) as locataires
+                    l.reference,
+                    (SELECT GROUP_CONCAT(CONCAT(loc.prenom, ' ', loc.nom) SEPARATOR ', ')
+                     FROM locataires loc WHERE loc.contrat_id = c.id) as locataires,
+                    COALESCE(SUM(CASE WHEN lt.statut_paiement = 'impaye' THEN lt.montant_attendu ELSE 0 END), 0) as montant_total_impaye,
+                    COUNT(CASE WHEN lt.statut_paiement = 'impaye' THEN 1 END) as nb_mois_impayes,
+                    COUNT(CASE WHEN lt.statut_paiement = 'attente' THEN 1 END) as nb_mois_attente,
+                    COUNT(CASE WHEN lt.statut_paiement = 'paye' THEN 1 END) as nb_mois_payes,
+                    CASE
+                        WHEN COUNT(CASE WHEN lt.statut_paiement = 'impaye' THEN 1 END) > 0 THEN 'impaye'
+                        WHEN COUNT(CASE WHEN lt.statut_paiement = 'attente' THEN 1 END) > 0 THEN 'attente'
+                        ELSE 'paye'
+                    END as statut_global
                 FROM logements l
                 INNER JOIN contrats c ON c.logement_id = l.id
                 INNER JOIN (
                     SELECT logement_id, MAX(date_prise_effet) AS max_date
                     FROM contrats c WHERE " . CONTRAT_ACTIF_FILTER . " GROUP BY logement_id
                 ) dc ON c.logement_id = dc.logement_id AND c.date_prise_effet = dc.max_date
-                LEFT JOIN loyers_tracking lt ON lt.logement_id = l.id AND lt.mois = ? AND lt.annee = ?
+                LEFT JOIN loyers_tracking lt ON lt.logement_id = l.id AND lt.deleted_at IS NULL
+                GROUP BY l.id, l.reference, c.id
                 ORDER BY l.reference
             ");
-            $stmtStatus->execute([$moisCourant, $anneeCourante]);
             $biens = $stmtStatus->fetchAll(PDO::FETCH_ASSOC);
             
             $nbPayes = 0; $nbImpayes = 0; $nbAttente = 0;
+            $montantTotalImpaye = 0;
             $lignes = [];
             foreach ($biens as $bien) {
-                $montant = $bien['loyer'] + $bien['charges'];
-                $s = $bien['statut_paiement'];
+                $s = $bien['statut_global'];
                 if ($s === 'paye') { $nbPayes++; $icon = '✅'; $label = 'Payé'; $bg = '#28a745'; }
-                elseif ($s === 'impaye') { $nbImpayes++; $icon = '❌'; $label = 'Impayé'; $bg = '#dc3545'; }
+                elseif ($s === 'impaye') { $nbImpayes++; $icon = '❌'; $label = 'Impayé'; $bg = '#dc3545'; $montantTotalImpaye += $bien['montant_total_impaye']; }
                 else { $nbAttente++; $icon = '⏳'; $label = 'En attente'; $bg = '#ffc107'; }
+                $statutAffiche = $icon . ' ' . $label;
+                if ($s === 'impaye' && $bien['montant_total_impaye'] > 0) {
+                    $statutAffiche .= ' (' . number_format($bien['montant_total_impaye'], 2, ',', ' ') . ' €)';
+                }
                 $lignes[] = '<tr><td style="padding:8px;border:1px solid #dee2e6"><strong>' . htmlspecialchars($bien['reference']) . '</strong></td>'
                     . '<td style="padding:8px;border:1px solid #dee2e6">' . htmlspecialchars($bien['locataires'] ?: 'Non assigné') . '</td>'
-                    . '<td style="padding:8px;border:1px solid #dee2e6">' . htmlspecialchars(substr($bien['adresse'], 0, MAX_ADRESSE_LENGTH)) . '</td>'
-                    . '<td style="padding:8px;border:1px solid #dee2e6;text-align:right">' . number_format($montant, 2, ',', ' ') . ' €</td>'
-                    . '<td style="padding:8px;border:1px solid #dee2e6;text-align:center;background-color:' . $bg . ';color:white;font-weight:bold">' . $icon . ' ' . $label . '</td></tr>';
+                    . '<td style="padding:8px;border:1px solid #dee2e6;text-align:center;background-color:' . $bg . ';color:white;font-weight:bold">' . $statutAffiche . '</td></tr>';
             }
             
             $tousPayes = ($nbImpayes === 0 && $nbAttente === 0);
             $templateId = $tousPayes ? 'confirmation_loyers_payes' : 'rappel_loyers_impaye';
             
-            $moisNom = $nomsMois[$moisCourant];
             $boutonHtml = '';
             if (getParameter('rappel_loyers_inclure_bouton', true)) {
                 $urlInterface = rtrim($config['SITE_URL'], '/') . '/admin-v2/gestion-loyers.php';
                 $boutonHtml = '<div style="text-align:center"><a href="' . htmlspecialchars($urlInterface) . '" style="display:inline-block;padding:12px 30px;background:#007bff;color:white;text-decoration:none;border-radius:5px;margin:20px 0">📊 Accéder à l\'interface de gestion</a></div>';
             }
             
-            $resume = '<p><strong>Récapitulatif pour ' . $moisNom . ' ' . $anneeCourante . ':</strong></p><ul>'
+            $resume = '<p><strong>Récapitulatif général (tous les mois) :</strong></p><ul>'
                 . '<li>Total biens en location: <strong>' . count($biens) . '</strong></li>'
-                . '<li style="color:#28a745">✅ Loyers payés: <strong>' . $nbPayes . '</strong></li>'
-                . '<li style="color:#dc3545">❌ Loyers impayés: <strong>' . $nbImpayes . '</strong></li>'
-                . '<li style="color:#ffc107">⏳ En attente: <strong>' . $nbAttente . '</strong></li></ul>';
+                . '<li style="color:#28a745">✅ Biens à jour: <strong>' . $nbPayes . '</strong></li>'
+                . '<li style="color:#dc3545">❌ Biens avec loyers impayés: <strong>' . $nbImpayes . '</strong></li>'
+                . '<li style="color:#ffc107">⏳ Biens en attente: <strong>' . $nbAttente . '</strong></li>'
+                . ($montantTotalImpaye > 0 ? '<li style="color:#dc3545"><strong>Total impayés: ' . number_format($montantTotalImpaye, 2, ',', ' ') . ' €</strong></li>' : '')
+                . '</ul>';
             
             $tableHtml = '<table style="width:100%;border-collapse:collapse;margin-top:20px"><thead><tr style="background-color:#f8f9fa">'
                 . '<th style="padding:10px;border:1px solid #dee2e6">Référence</th>'
                 . '<th style="padding:10px;border:1px solid #dee2e6">Locataire(s)</th>'
-                . '<th style="padding:10px;border:1px solid #dee2e6">Adresse</th>'
-                . '<th style="padding:10px;border:1px solid #dee2e6;text-align:right">Montant</th>'
                 . '<th style="padding:10px;border:1px solid #dee2e6;text-align:center">Statut</th>'
                 . '</tr></thead><tbody>' . implode('', $lignes) . '</tbody></table>';
             
