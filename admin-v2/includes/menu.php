@@ -56,6 +56,7 @@ $page_to_menu_map = [
     'edit-bilan-logement.php' => 'contrats.php',
     'bilan-logement-configuration.php' => 'contrats.php',
     'configuration-rappels-loyers.php' => 'gestion-loyers.php',
+    'stripe-configuration.php' => 'gestion-loyers.php',
 ];
 
 // Check if current page is a detail page, if so use parent menu
@@ -169,6 +170,11 @@ $active_menu = $page_to_menu_map[$current_page] ?? $current_page;
                 <li class="nav-item">
                     <a class="nav-link <?php echo $current_page === 'configuration-rappels-loyers.php' ? 'active' : ''; ?>" href="configuration-rappels-loyers.php" style="padding: 8px 20px; font-size: 0.9rem;">
                         <i class="bi bi-gear"></i> Configuration Rappels
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?php echo $current_page === 'stripe-configuration.php' ? 'active' : ''; ?>" href="stripe-configuration.php" style="padding: 8px 20px; font-size: 0.9rem;">
+                        <i class="bi bi-credit-card"></i> Paiement Stripe
                     </a>
                 </li>
             </ul>
