@@ -556,12 +556,128 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
         
+        // Envoi d'un lien de paiement Stripe au locataire
+        if (isset($_POST['action']) && $_POST['action'] === 'envoyer_lien_stripe') {
+            $logementId = (int)$_POST['logement_id'];
+            $contratId  = (int)$_POST['contrat_id'];
+            $mois       = (int)$_POST['mois'];
+            $annee      = (int)$_POST['annee'];
+
+            if (!getParameter('stripe_actif', false)) {
+                throw new Exception('Le paiement en ligne Stripe n\'est pas activé. Configurez-le dans Paramètres → Paiement Stripe.');
+            }
+
+            // Récupérer les infos du logement et du contrat
+            $stmtInfo = $pdo->prepare("
+                SELECT l.*, c.id as contrat_id, l.loyer, l.charges
+                FROM logements l
+                INNER JOIN contrats c ON c.logement_id = l.id
+                WHERE l.id = ? AND c.id = ? AND " . CONTRAT_ACTIF_FILTER . "
+            ");
+            $stmtInfo->execute([$logementId, $contratId]);
+            $info = $stmtInfo->fetch(PDO::FETCH_ASSOC);
+
+            if (!$info) {
+                throw new Exception('Contrat ou logement introuvable.');
+            }
+
+            $montant = (float)$info['loyer'] + (float)$info['charges'];
+
+            // Créer ou récupérer l'entrée loyers_tracking
+            $pdo->prepare("
+                INSERT INTO loyers_tracking (logement_id, contrat_id, mois, annee, montant_attendu, statut_paiement)
+                VALUES (?, ?, ?, ?, ?, 'attente')
+                ON DUPLICATE KEY UPDATE montant_attendu = VALUES(montant_attendu)
+            ")->execute([$logementId, $contratId, $mois, $annee, $montant]);
+
+            $ltStmt = $pdo->prepare("SELECT id FROM loyers_tracking WHERE contrat_id = ? AND mois = ? AND annee = ? AND deleted_at IS NULL LIMIT 1");
+            $ltStmt->execute([$contratId, $mois, $annee]);
+            $lt = $ltStmt->fetch(PDO::FETCH_ASSOC);
+            $ltId = $lt['id'];
+
+            // Créer ou réutiliser la session de paiement Stripe
+            $sessStmt = $pdo->prepare("
+                SELECT * FROM stripe_payment_sessions
+                WHERE contrat_id = ? AND mois = ? AND annee = ?
+                  AND statut NOT IN ('paye', 'annule')
+                  AND token_expiration > NOW()
+                ORDER BY created_at DESC LIMIT 1
+            ");
+            $sessStmt->execute([$contratId, $mois, $annee]);
+            $paySession = $sessStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$paySession) {
+                $liensHeures = (int)getParameter('stripe_lien_expiration_heures', 168);
+                $token = bin2hex(random_bytes(32));
+                $expiration = date('Y-m-d H:i:s', time() + $liensHeures * 3600);
+                $pdo->prepare("
+                    INSERT INTO stripe_payment_sessions
+                        (loyer_tracking_id, contrat_id, logement_id, mois, annee, montant, token_acces, token_expiration, statut)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'en_attente')
+                ")->execute([$ltId, $contratId, $logementId, $mois, $annee, $montant, $token, $expiration]);
+                $sessStmt->execute([$contratId, $mois, $annee]);
+                $paySession = $sessStmt->fetch(PDO::FETCH_ASSOC);
+            }
+
+            $lienPaiement  = rtrim($config['SITE_URL'], '/') . '/payment/pay.php?token=' . urlencode($paySession['token_acces']);
+            $dateExpiration = date('d/m/Y à H:i', strtotime($paySession['token_expiration']));
+            $periode = $nomsMois[$mois] . ' ' . $annee;
+            $montantLoyer   = number_format((float)$info['loyer'], 2, ',', ' ');
+            $montantCharges = number_format((float)$info['charges'], 2, ',', ' ');
+            $montantTotal   = number_format($montant, 2, ',', ' ');
+
+            // Récupérer tous les locataires du contrat
+            $locatairesStmt = $pdo->prepare("SELECT * FROM locataires WHERE contrat_id = ? ORDER BY ordre");
+            $locatairesStmt->execute([$contratId]);
+            $locataires = $locatairesStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($locataires)) {
+                throw new Exception('Aucun locataire trouvé pour ce contrat.');
+            }
+
+            $nbEnvoyes = 0;
+            foreach ($locataires as $locataire) {
+                $sent = sendTemplatedEmail('stripe_invitation_paiement', $locataire['email'], [
+                    'locataire_nom'     => $locataire['nom'],
+                    'locataire_prenom'  => $locataire['prenom'],
+                    'adresse'           => $info['adresse'],
+                    'periode'           => $periode,
+                    'montant_loyer'     => $montantLoyer,
+                    'montant_charges'   => $montantCharges,
+                    'montant_total'     => $montantTotal,
+                    'lien_paiement'     => $lienPaiement,
+                    'date_expiration'   => $dateExpiration,
+                    'signature'         => getParameter('email_signature', ''),
+                ], null, false, true, ['contexte' => 'stripe_manuel']);
+
+                if ($sent) $nbEnvoyes++;
+            }
+
+            if ($nbEnvoyes > 0) {
+                // Marquer l'invitation envoyée
+                $pdo->prepare("
+                    UPDATE stripe_payment_sessions SET email_invitation_envoye = 1, date_email_invitation = NOW()
+                    WHERE id = ?
+                ")->execute([$paySession['id']]);
+                echo json_encode(['success' => true, 'message' => "Lien de paiement Stripe envoyé à $nbEnvoyes locataire(s)."]);
+            } else {
+                throw new Exception('Échec de l\'envoi du lien de paiement.');
+            }
+            exit;
+        }
+
     } catch (Exception $e) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         exit;
     }
 }
+
+// Charger le SDK Stripe si disponible (pour vérifier si le module est actif)
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+}
+$stripeActif = function_exists('getParameter') ? getParameter('stripe_actif', false) : false;
 
 ?>
 <!DOCTYPE html>
@@ -911,6 +1027,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <a href="configuration-rappels-loyers.php" class="btn btn-primary">
                     <i class="bi bi-gear"></i> Configuration
                 </a>
+                <a href="stripe-configuration.php" class="btn btn-outline-secondary" title="Configuration Paiement Stripe">
+                    <i class="bi bi-credit-card"></i> Stripe
+                </a>
                 <button class="btn btn-success" onclick="envoyerRappelManuel()">
                     <i class="bi bi-envelope"></i> Envoyer rappel maintenant
                 </button>
@@ -1098,6 +1217,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     onclick="event.stopPropagation(); envoyerRappelLocataire(<?= $logement['id'] ?>, <?= $logement['contrat_id'] ?>, <?= $m['num'] ?>, <?= $m['annee'] ?>)">
                                 <i class="bi bi-envelope"></i> Rappel
                             </button>
+                            <?php if ($stripeActif): ?>
+                            <button class="btn btn-sm btn-outline-warning mt-1"
+                                    onclick="event.stopPropagation(); envoyerLienStripe(<?= $logement['id'] ?>, <?= $logement['contrat_id'] ?>, <?= $m['num'] ?>, <?= $m['annee'] ?>)"
+                                    title="Envoyer un lien de paiement Stripe au locataire">
+                                <i class="bi bi-credit-card"></i> Lien paiement
+                            </button>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
@@ -1180,13 +1306,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 alert('Erreur de communication avec le serveur');
             });
         }
-        
+
+        function envoyerLienStripe(logementId, contratId, mois, annee) {
+            if (!confirm('Envoyer un lien de paiement Stripe au locataire pour ce mois ?')) {
+                return;
+            }
+            fetch('', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    action: 'envoyer_lien_stripe',
+                    logement_id: logementId,
+                    contrat_id: contratId,
+                    mois: mois,
+                    annee: annee
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                } else {
+                    alert('❌ Erreur: ' + (data.error || 'Échec de l\'envoi'));
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                alert('Erreur de communication avec le serveur');
+            });
+        }
+
         function envoyerRappelManuel() {
             if (!confirm('Envoyer un rappel immédiat aux administrateurs concernant l\'état des loyers ?')) {
                 return;
             }
-            
-            // Envoyer la requête AJAX
+
             fetch('', {
                 method: 'POST',
                 headers: {

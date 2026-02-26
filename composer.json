@@ -5,6 +5,7 @@
     "require": {
         "php": ">=7.2",
         "phpmailer/phpmailer": "^6.8",
-        "tecnickcom/tcpdf": "^6.6"
+        "tecnickcom/tcpdf": "^6.6",
+        "stripe/stripe-php": "^15.3"
     }
 }
