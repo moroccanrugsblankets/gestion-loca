@@ -82,7 +82,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if ($stripeActif === '1') {
                 $activeKey = ($stripeMode === 'live') ? $skLive : $skTest;
                 if (empty($activeKey)) {
-                    $errors[] = 'La clé secrète Stripe (' . $stripeMode . ') est obligatoire pour activer le paiement.';
+                    // Le champ a été laissé vide (ne pas modifier) : vérifier qu'une clé existe déjà en base
+                    $existingKey = getParam($pdo, ($stripeMode === 'live') ? 'stripe_secret_key_live' : 'stripe_secret_key_test', '');
+                    if (empty($existingKey)) {
+                        $errors[] = 'La clé secrète Stripe (' . $stripeMode . ') est obligatoire pour activer le paiement.';
+                    }
                 }
             }
 
