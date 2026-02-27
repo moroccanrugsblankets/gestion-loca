@@ -123,72 +123,8 @@ foreach ($contrats as $contrat) {
     $contratId  = $contrat['contrat_id'];
     $logementId = $contrat['logement_id'];
     $montant    = (float)$contrat['loyer'] + (float)$contrat['charges'];
-    $periode    = $nomsMois[$moisActuel] . ' ' . $anneeActuelle;
 
-    // Vérifier si le loyer du mois est déjà payé
-    $ltStmt = $pdo->prepare("
-        SELECT id, statut_paiement
-        FROM loyers_tracking
-        WHERE contrat_id = ? AND mois = ? AND annee = ? AND deleted_at IS NULL
-        LIMIT 1
-    ");
-    $ltStmt->execute([$contratId, $moisActuel, $anneeActuelle]);
-    $lt = $ltStmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($lt && $lt['statut_paiement'] === 'paye') {
-        logMsg("Contrat $contratId ($contrat[adresse]) : loyer $periode déjà payé - ignoré.");
-        continue;
-    }
-
-    // Créer une entrée de tracking si elle n'existe pas
-    if (!$lt) {
-        $pdo->prepare("
-            INSERT INTO loyers_tracking (logement_id, contrat_id, mois, annee, montant_attendu, statut_paiement)
-            VALUES (?, ?, ?, ?, ?, 'attente')
-            ON DUPLICATE KEY UPDATE montant_attendu = VALUES(montant_attendu)
-        ")->execute([$logementId, $contratId, $moisActuel, $anneeActuelle, $montant]);
-
-        $ltStmt->execute([$contratId, $moisActuel, $anneeActuelle]);
-        $lt = $ltStmt->fetch(PDO::FETCH_ASSOC);
-    }
-
-    $ltId = $lt['id'];
-
-    // Récupérer ou créer la session de paiement Stripe
-    $sessionStmt = $pdo->prepare("
-        SELECT * FROM stripe_payment_sessions
-        WHERE contrat_id = ? AND mois = ? AND annee = ?
-          AND statut NOT IN ('paye', 'annule')
-        ORDER BY created_at DESC
-        LIMIT 1
-    ");
-    $sessionStmt->execute([$contratId, $moisActuel, $anneeActuelle]);
-    $paySession = $sessionStmt->fetch(PDO::FETCH_ASSOC);
-
-    // Créer une nouvelle session si nécessaire ou si le lien est expiré
-    if (!$paySession || strtotime($paySession['token_expiration']) < time()) {
-        $token = bin2hex(random_bytes(32));
-        $expiration = date('Y-m-d H:i:s', time() + $liensExpirationHeures * 3600);
-
-        $pdo->prepare("
-            INSERT INTO stripe_payment_sessions
-                (loyer_tracking_id, contrat_id, logement_id, mois, annee, montant, token_acces, token_expiration, statut)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'en_attente')
-        ")->execute([$ltId, $contratId, $logementId, $moisActuel, $anneeActuelle, $montant, $token, $expiration]);
-
-        $sessionStmt->execute([$contratId, $moisActuel, $anneeActuelle]);
-        $paySession = $sessionStmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$paySession) {
-            logMsg("Erreur création session de paiement pour contrat $contratId", true);
-            continue;
-        }
-    }
-
-    $lienPaiement  = $siteUrl . '/payment/pay.php?token=' . urlencode($paySession['token_acces']);
-    $dateExpiration = date('d/m/Y à H:i', strtotime($paySession['token_expiration']));
-
-    // Récupérer les locataires du contrat
+    // Récupérer les locataires du contrat (commun à tous les mois)
     $locatairesStmt = $pdo->prepare("SELECT * FROM locataires WHERE contrat_id = ? ORDER BY ordre");
     $locatairesStmt->execute([$contratId]);
     $locataires = $locatairesStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -203,51 +139,140 @@ foreach ($contrats as $contrat) {
     $montantTotal   = number_format($montant, 2, ',', ' ');
     $signature      = getParameter('email_signature', '');
 
-    // Choisir le template selon le contexte
-    $templateId = ($doInvitation && !$paySession['email_invitation_envoye'])
-        ? 'stripe_invitation_paiement'
-        : 'stripe_rappel_paiement';
+    // ── Construire la liste des mois à traiter : mois antérieurs non payés + mois courant ──
+    $monthsToProcess = [];
 
-    // Si invitation déjà envoyée et aujourd'hui = jour invitation, on ne renvoie pas
-    if ($doInvitation && $paySession['email_invitation_envoye'] && !$doRappel) {
-        logMsg("Contrat $contratId : invitation déjà envoyée ce mois - ignoré.");
-        continue;
+    // Mois antérieurs non payés déjà présents dans loyers_tracking
+    $pastStmt = $pdo->prepare("
+        SELECT mois, annee
+        FROM loyers_tracking
+        WHERE contrat_id = ? AND statut_paiement != 'paye' AND deleted_at IS NULL
+          AND (annee < ? OR (annee = ? AND mois < ?))
+        ORDER BY annee ASC, mois ASC
+    ");
+    $pastStmt->execute([$contratId, $anneeActuelle, $anneeActuelle, $moisActuel]);
+    foreach ($pastStmt->fetchAll(PDO::FETCH_ASSOC) as $pm) {
+        $monthsToProcess[] = ['mois' => (int)$pm['mois'], 'annee' => (int)$pm['annee'], 'is_past' => true];
     }
 
-    // Si c'est un jour de rappel seulement (pas d'invitation), utiliser le template rappel
-    if (!$doInvitation && $doRappel) {
-        $templateId = 'stripe_rappel_paiement';
-    }
+    // Mois courant
+    $monthsToProcess[] = ['mois' => $moisActuel, 'annee' => $anneeActuelle, 'is_past' => false];
 
-    foreach ($locataires as $locataire) {
-        $sent = sendTemplatedEmail($templateId, $locataire['email'], [
-            'locataire_nom'     => $locataire['nom'],
-            'locataire_prenom'  => $locataire['prenom'],
-            'adresse'           => $contrat['adresse'],
-            'periode'           => $periode,
-            'montant_loyer'     => $montantLoyer,
-            'montant_charges'   => $montantCharges,
-            'montant_total'     => $montantTotal,
-            'lien_paiement'     => $lienPaiement,
-            'date_expiration'   => $dateExpiration,
-            'signature'         => $signature,
-        ], null, false, true, ['contexte' => 'stripe_' . $templateId]);
+    foreach ($monthsToProcess as $monthEntry) {
+        $mois   = $monthEntry['mois'];
+        $annee  = $monthEntry['annee'];
+        $isPast = $monthEntry['is_past'];
+        $periode = $nomsMois[$mois] . ' ' . $annee;
 
-        if ($sent) {
-            logMsg("Email $templateId envoyé à {$locataire['email']} pour contrat $contratId ($periode)");
-        } else {
-            logMsg("Échec envoi email $templateId à {$locataire['email']}", true);
+        // Vérifier si le loyer du mois est déjà payé
+        $ltStmt = $pdo->prepare("
+            SELECT id, statut_paiement
+            FROM loyers_tracking
+            WHERE contrat_id = ? AND mois = ? AND annee = ? AND deleted_at IS NULL
+            LIMIT 1
+        ");
+        $ltStmt->execute([$contratId, $mois, $annee]);
+        $lt = $ltStmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($lt && $lt['statut_paiement'] === 'paye') {
+            logMsg("Contrat $contratId ($contrat[adresse]) : loyer $periode déjà payé - ignoré.");
+            continue;
         }
-    }
 
-    // Mettre à jour le flag d'invitation si c'est l'invitation initiale
-    if ($doInvitation && !$paySession['email_invitation_envoye']) {
-        $pdo->prepare("
-            UPDATE stripe_payment_sessions
-            SET email_invitation_envoye = 1, date_email_invitation = NOW()
-            WHERE id = ?
-        ")->execute([$paySession['id']]);
-    }
+        // Créer une entrée de tracking si elle n'existe pas (uniquement pour le mois courant)
+        if (!$lt && !$isPast) {
+            $pdo->prepare("
+                INSERT INTO loyers_tracking (logement_id, contrat_id, mois, annee, montant_attendu, statut_paiement)
+                VALUES (?, ?, ?, ?, ?, 'attente')
+                ON DUPLICATE KEY UPDATE montant_attendu = VALUES(montant_attendu)
+            ")->execute([$logementId, $contratId, $mois, $annee, $montant]);
+
+            $ltStmt->execute([$contratId, $mois, $annee]);
+            $lt = $ltStmt->fetch(PDO::FETCH_ASSOC);
+        }
+
+        $ltId = $lt['id'];
+
+        // Récupérer ou créer la session de paiement Stripe
+        $sessionStmt = $pdo->prepare("
+            SELECT * FROM stripe_payment_sessions
+            WHERE contrat_id = ? AND mois = ? AND annee = ?
+              AND statut NOT IN ('paye', 'annule')
+            ORDER BY created_at DESC
+            LIMIT 1
+        ");
+        $sessionStmt->execute([$contratId, $mois, $annee]);
+        $paySession = $sessionStmt->fetch(PDO::FETCH_ASSOC);
+
+        // Créer une nouvelle session si nécessaire ou si le lien est expiré
+        if (!$paySession || strtotime($paySession['token_expiration']) < time()) {
+            $token = bin2hex(random_bytes(32));
+            $expiration = date('Y-m-d H:i:s', time() + $liensExpirationHeures * 3600);
+
+            $pdo->prepare("
+                INSERT INTO stripe_payment_sessions
+                    (loyer_tracking_id, contrat_id, logement_id, mois, annee, montant, token_acces, token_expiration, statut)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'en_attente')
+            ")->execute([$ltId, $contratId, $logementId, $mois, $annee, $montant, $token, $expiration]);
+
+            $sessionStmt->execute([$contratId, $mois, $annee]);
+            $paySession = $sessionStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$paySession) {
+                logMsg("Erreur création session de paiement pour contrat $contratId ($periode)", true);
+                continue;
+            }
+        }
+
+        $lienPaiement   = $siteUrl . '/payment/pay.php?token=' . urlencode($paySession['token_acces']);
+        $dateExpiration = date('d/m/Y à H:i', strtotime($paySession['token_expiration']));
+
+        // Choisir le template selon le contexte
+        // Les mois passés sont toujours des rappels ; le mois courant suit la logique invitation/rappel
+        if ($isPast) {
+            $templateId = 'stripe_rappel_paiement';
+        } elseif ($doInvitation && !$paySession['email_invitation_envoye']) {
+            $templateId = 'stripe_invitation_paiement';
+        } else {
+            $templateId = 'stripe_rappel_paiement';
+        }
+
+        // Si invitation déjà envoyée ce mois et aujourd'hui = jour invitation sans rappel, ignorer
+        if (!$isPast && $doInvitation && $paySession['email_invitation_envoye'] && !$doRappel) {
+            logMsg("Contrat $contratId : invitation déjà envoyée ce mois - ignoré.");
+            continue;
+        }
+
+        foreach ($locataires as $locataire) {
+            $sent = sendTemplatedEmail($templateId, $locataire['email'], [
+                'locataire_nom'     => $locataire['nom'],
+                'locataire_prenom'  => $locataire['prenom'],
+                'adresse'           => $contrat['adresse'],
+                'periode'           => $periode,
+                'montant_loyer'     => $montantLoyer,
+                'montant_charges'   => $montantCharges,
+                'montant_total'     => $montantTotal,
+                'lien_paiement'     => $lienPaiement,
+                'date_expiration'   => $dateExpiration,
+                'signature'         => $signature,
+            ], null, false, true, ['contexte' => 'stripe_' . $templateId]);
+
+            if ($sent) {
+                logMsg("Email $templateId envoyé à {$locataire['email']} pour contrat $contratId ($periode)");
+            } else {
+                logMsg("Échec envoi email $templateId à {$locataire['email']}", true);
+            }
+        }
+
+        // Mettre à jour le flag d'invitation si c'est l'invitation initiale du mois courant
+        if (!$isPast && $doInvitation && !$paySession['email_invitation_envoye']) {
+            $pdo->prepare("
+                UPDATE stripe_payment_sessions
+                SET email_invitation_envoye = 1, date_email_invitation = NOW()
+                WHERE id = ?
+            ")->execute([$paySession['id']]);
+        }
+    } // end foreach monthsToProcess
 }
 
 // ─── Enregistrer le résultat dans cron_jobs ─────────────────────────────────
