@@ -222,11 +222,16 @@ foreach ($contrats as $contrat) {
             $pdo->prepare("
                 INSERT INTO loyers_tracking (logement_id, contrat_id, mois, annee, montant_attendu, statut_paiement)
                 VALUES (?, ?, ?, ?, ?, 'attente')
-                ON DUPLICATE KEY UPDATE montant_attendu = VALUES(montant_attendu)
+                ON DUPLICATE KEY UPDATE montant_attendu = VALUES(montant_attendu), deleted_at = NULL
             ")->execute([$logementId, $contratId, $mois, $annee, $montant]);
 
             $ltStmt->execute([$contratId, $mois, $annee]);
             $lt = $ltStmt->fetch(PDO::FETCH_ASSOC);
+        }
+
+        if (!$lt || empty($lt['id'])) {
+            logMsg("Contrat $contratId : impossible de récupérer l'entrée de tracking pour $periode - ignoré.", true);
+            continue;
         }
 
         $ltId = $lt['id'];
