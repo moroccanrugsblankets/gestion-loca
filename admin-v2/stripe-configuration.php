@@ -12,6 +12,7 @@
 require_once '../includes/config.php';
 require_once 'auth.php';
 require_once '../includes/db.php';
+require_once '../includes/functions.php';
 
 // Charger le SDK Stripe si disponible (pour tester la connexion)
 $stripeDisponible = file_exists(__DIR__ . '/../vendor/autoload.php');
