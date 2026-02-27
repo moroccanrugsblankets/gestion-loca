@@ -87,7 +87,7 @@ logMsg("Démarrage - mode=$stripeMode, jour=$aujourdHui, invitation=" . ($doInvi
 
 // ─── Récupérer les contrats actifs et leurs locataires ──────────────────────
 $contrats = $pdo->query("
-    SELECT c.id as contrat_id, c.reference_unique,
+    SELECT c.id as contrat_id, c.reference_unique, c.date_prise_effet,
            l.id as logement_id, l.adresse, l.loyer, l.charges
     FROM contrats c
     INNER JOIN logements l ON c.logement_id = l.id
@@ -142,17 +142,55 @@ foreach ($contrats as $contrat) {
     // ── Construire la liste des mois à traiter : mois antérieurs non payés + mois courant ──
     $monthsToProcess = [];
 
-    // Mois antérieurs non payés déjà présents dans loyers_tracking
-    $pastStmt = $pdo->prepare("
-        SELECT mois, annee
+    // Récupérer tous les statuts de paiement des mois passés en une seule requête
+    $pastTrackingStmt = $pdo->prepare("
+        SELECT mois, annee, statut_paiement
         FROM loyers_tracking
-        WHERE contrat_id = ? AND statut_paiement != 'paye' AND deleted_at IS NULL
+        WHERE contrat_id = ? AND deleted_at IS NULL
           AND (annee < ? OR (annee = ? AND mois < ?))
-        ORDER BY annee ASC, mois ASC
     ");
-    $pastStmt->execute([$contratId, $anneeActuelle, $anneeActuelle, $moisActuel]);
-    foreach ($pastStmt->fetchAll(PDO::FETCH_ASSOC) as $pm) {
-        $monthsToProcess[] = ['mois' => (int)$pm['mois'], 'annee' => (int)$pm['annee'], 'is_past' => true];
+    $pastTrackingStmt->execute([$contratId, $anneeActuelle, $anneeActuelle, $moisActuel]);
+    $paidMonths = [];
+    foreach ($pastTrackingStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        if ($row['statut_paiement'] === 'paye') {
+            $paidMonths[$row['annee'] . '-' . $row['mois']] = true;
+        }
+    }
+
+    // Mois antérieurs non payés : itérer depuis la date de prise d'effet du contrat
+    // afin d'inclure les mois sans entrée dans loyers_tracking (ex. module Stripe récemment activé)
+    if (!empty($contrat['date_prise_effet'])) {
+        try {
+            $iterDate  = new DateTime($contrat['date_prise_effet']);
+            $iterDate->modify('first day of this month');
+            $limitDate = new DateTime(sprintf('%04d-%02d-01', $anneeActuelle, $moisActuel));
+        } catch (Exception $e) {
+            logMsg("Contrat $contratId : date_prise_effet invalide ({$contrat['date_prise_effet']}) - " . $e->getMessage(), true);
+            $iterDate = null;
+        }
+        if ($iterDate !== null) {
+            while ($iterDate < $limitDate) {
+                $iterMois  = (int)$iterDate->format('n');
+                $iterAnnee = (int)$iterDate->format('Y');
+                if (!isset($paidMonths[$iterAnnee . '-' . $iterMois])) {
+                    $monthsToProcess[] = ['mois' => $iterMois, 'annee' => $iterAnnee, 'is_past' => true];
+                }
+                $iterDate->modify('+1 month');
+            }
+        }
+    } else {
+        // Fallback si pas de date_prise_effet : utiliser les entrées existantes
+        $pastFallbackStmt = $pdo->prepare("
+            SELECT mois, annee
+            FROM loyers_tracking
+            WHERE contrat_id = ? AND statut_paiement != 'paye' AND deleted_at IS NULL
+              AND (annee < ? OR (annee = ? AND mois < ?))
+            ORDER BY annee ASC, mois ASC
+        ");
+        $pastFallbackStmt->execute([$contratId, $anneeActuelle, $anneeActuelle, $moisActuel]);
+        foreach ($pastFallbackStmt->fetchAll(PDO::FETCH_ASSOC) as $pm) {
+            $monthsToProcess[] = ['mois' => (int)$pm['mois'], 'annee' => (int)$pm['annee'], 'is_past' => true];
+        }
     }
 
     // Mois courant
@@ -179,8 +217,8 @@ foreach ($contrats as $contrat) {
             continue;
         }
 
-        // Créer une entrée de tracking si elle n'existe pas (uniquement pour le mois courant)
-        if (!$lt && !$isPast) {
+        // Créer une entrée de tracking si elle n'existe pas
+        if (!$lt) {
             $pdo->prepare("
                 INSERT INTO loyers_tracking (logement_id, contrat_id, mois, annee, montant_attendu, statut_paiement)
                 VALUES (?, ?, ?, ?, ?, 'attente')
