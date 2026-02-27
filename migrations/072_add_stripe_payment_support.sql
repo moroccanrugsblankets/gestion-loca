@@ -42,4 +42,4 @@ CREATE TABLE IF NOT EXISTS stripe_payment_sessions (
 -- 2. Ajouter les colonnes Stripe dans loyers_tracking
 ALTER TABLE loyers_tracking
     ADD COLUMN stripe_session_id VARCHAR(255) NULL COMMENT 'Dernière session Stripe associée',
-    ADD COLUMN mode_paiement ENUM('manuel','stripe','virement','especes','cheque') DEFAULT 'manuel' COMMENT 'Mode de paiement utilisé',
+    ADD COLUMN mode_paiement ENUM('manuel','stripe','virement','especes','cheque') DEFAULT 'manuel' COMMENT 'Mode de paiement utilisé';
