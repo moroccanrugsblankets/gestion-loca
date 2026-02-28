@@ -6,7 +6,7 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 
 /**
- * CRON JOB: Envoi automatique des invitations et rappels de paiement Stripe
+ * CRON JOB: Simulation envoi automatique des invitations et rappels de paiement Stripe
  */
 
 require_once __DIR__ . '/../includes/config.php';
@@ -25,8 +25,8 @@ require_once $autoload;
 // ─── Logging ────────────────────────────────────────────────────────────────
 function logMsg(string $msg, bool $isError = false): void {
     $level = $isError ? '[ERROR]' : '[INFO]';
-    $line = '[' . date('Y-m-d H:i:s') . "] $level $msg\n";
-    echo $line;
+    $line = '[' . date('Y-m-d H:i:s') . "] $level $msg<br>";
+    echo "<pre>$line</pre>";
 }
 function logSection(string $title): void { logMsg("========== $title =========="); }
 function logStep(string $msg): void { logMsg("---- $msg ----"); }
@@ -81,14 +81,12 @@ $contrats = $pdo->query("
 if (empty($contrats)) { logMsg('Aucun contrat actif trouvé.'); exit(0); }
 
 $nomsMois = [1=>'Janvier',2=>'Février',3=>'Mars',4=>'Avril',5=>'Mai',6=>'Juin',7=>'Juillet',8=>'Août',9=>'Septembre',10=>'Octobre',11=>'Novembre',12=>'Décembre'];
-$liensExpirationHeures = (int)getParameter('stripe_lien_expiration_heures', 168);
 $siteUrl = rtrim($config['SITE_URL'], '/');
 
 // ─── Traitement de chaque contrat ───────────────────────────────────────────
 foreach ($contrats as $contrat) {
     $contratId  = $contrat['contrat_id'];
     $logementId = $contrat['logement_id'];
-    $montant    = (float)$contrat['loyer'] + (float)$contrat['charges'];
 
     logSection("Contrat $contratId - logement $logementId");
 
@@ -97,11 +95,6 @@ foreach ($contrats as $contrat) {
     $locatairesStmt->execute([$contratId]);
     $locataires = $locatairesStmt->fetchAll(PDO::FETCH_ASSOC);
     if (empty($locataires)) { logStep("Aucun locataire trouvé → SKIP"); continue; }
-
-    $montantLoyer   = number_format((float)$contrat['loyer'], 2, ',', ' ');
-    $montantCharges = number_format((float)$contrat['charges'], 2, ',', ' ');
-    $montantTotal   = number_format($montant, 2, ',', ' ');
-    $signature      = getParameter('email_signature', '');
 
     // Construire la liste des mois à traiter depuis la prise d'effet du contrat
     $dateDebut = new DateTime($contrat['date_prise_effet']);
@@ -146,23 +139,13 @@ foreach ($contrats as $contrat) {
             logStep("Template choisi = RAPPEL");
         }
 
-        // Envoi du mail
+        // Simulation d'envoi (pas de mail réel)
         foreach ($locataires as $locataire) {
-            $sent = sendTemplatedEmail($templateId, $locataire['email'], [
-                'locataire_nom'     => $locataire['nom'],
-                'locataire_prenom'  => $locataire['prenom'],
-                'adresse'           => $contrat['adresse'],
-                'periode'           => $periode,
-                'montant_loyer'     => $montantLoyer,
-                'montant_charges'   => $montantCharges,
-                'montant_total'     => $montantTotal,
-                'lien_paiement'     => $siteUrl.'/payment/pay.php?token=xxx',
-                'date_expiration'   => date('d/m/Y à H:i', time()+$liensExpirationHeures*3600),
-                'signature'         => $signature,
-            ]);
-            logStep($sent ? "✅ Email $templateId envoyé à {$locataire['email']} pour $periode" : "❌ Échec envoi email $templateId à {$locataire['email']} pour $periode");
+            echo "<p>[DEBUG] Objet du mail : <b>$templateId</b> → Destinataire : {$locataire['email']} → Période : $periode</p>";
+            logStep("Simulation envoi : $templateId à {$locataire['email']} pour $periode");
         }
     }
 }
 
 logSection('Cron stripe-paiements terminé');
+exit(0);
