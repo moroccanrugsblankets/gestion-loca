@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $pkLive       = trim($_POST['stripe_public_key_live'] ?? '');
             $skLive       = trim($_POST['stripe_secret_key_live'] ?? '');
             $webhookSecret = trim($_POST['stripe_webhook_secret'] ?? '');
-            $jourInvitation = max(1, min(28, (int)($_POST['stripe_paiement_invitation_jour'] ?? 1)));
+            $jourInvitation = max(1, min(23, (int)($_POST['stripe_paiement_invitation_jour'] ?? 1)));
             $liensHeures  = max(24, min(720, (int)($_POST['stripe_lien_expiration_heures'] ?? 168)));
             $maxMoisArrieres = max(0, min(24, (int)($_POST['stripe_rappel_mois_arrieres_max'] ?? 3)));
 
@@ -353,11 +353,11 @@ $csrfToken = generateCsrfToken();
                     <div class="col-md-4">
                         <div class="mb-3">
                             <label class="form-label fw-semibold">
-                                Jour d'envoi de l'invitation mensuelle
+                                Jour ouvrable d'envoi de l'invitation mensuelle
                             </label>
                             <input type="number" class="form-control" name="stripe_paiement_invitation_jour"
-                                   value="<?php echo $jourInvitation; ?>" min="1" max="28">
-                            <div class="form-text">Jour du mois où le lien de paiement est envoyé automatiquement (défaut: 1)</div>
+                                   value="<?php echo $jourInvitation; ?>" min="1" max="23">
+                            <div class="form-text">Numéro de jour ouvrable du mois (lundi–vendredi) : 1 = 1<sup>er</sup> jour ouvrable, 2 = 2<sup>e</sup> jour ouvrable, etc. (défaut : 1)</div>
                         </div>
                     </div>
                     <div class="col-md-4">
