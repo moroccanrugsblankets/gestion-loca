@@ -65,6 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $webhookSecret = trim($_POST['stripe_webhook_secret'] ?? '');
             $jourInvitation = max(1, min(28, (int)($_POST['stripe_paiement_invitation_jour'] ?? 1)));
             $liensHeures  = max(24, min(720, (int)($_POST['stripe_lien_expiration_heures'] ?? 168)));
+            $maxMoisArrieres = max(0, min(24, (int)($_POST['stripe_rappel_mois_arrieres_max'] ?? 3)));
 
             // Rappel jours (liste séparée par virgules)
             $rappelJoursRaw = $_POST['stripe_paiement_rappel_jours'] ?? '';
@@ -102,6 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 setParam($pdo, 'stripe_lien_expiration_heures', (string)$liensHeures);
                 setParam($pdo, 'stripe_paiement_rappel_jours', $rappelJoursJson);
                 setParam($pdo, 'stripe_methodes_paiement', $methodesJson);
+                setParam($pdo, 'stripe_rappel_mois_arrieres_max', (string)$maxMoisArrieres);
                 $successMsg = 'Configuration Stripe enregistrée avec succès.';
             }
         }
@@ -140,6 +142,7 @@ $webhookConfigured   = !empty(getParam($pdo, 'stripe_webhook_secret', ''));
 $jourInvitation      = (int)getParam($pdo, 'stripe_paiement_invitation_jour', 1);
 $rappelJours         = getParam($pdo, 'stripe_paiement_rappel_jours', [7, 14]);
 $liensHeures         = (int)getParam($pdo, 'stripe_lien_expiration_heures', 168);
+$maxMoisArrieres     = (int)getParam($pdo, 'stripe_rappel_mois_arrieres_max', 3);
 $methodesAcceptees   = getParam($pdo, 'stripe_methodes_paiement', ['card', 'sepa_debit']);
 $rappelJoursStr      = is_array($rappelJours) ? implode(', ', $rappelJours) : '7, 14';
 $webhookUrl          = rtrim($config['SITE_URL'], '/') . '/payment/stripe-webhook.php';
@@ -379,6 +382,22 @@ $csrfToken = generateCsrfToken();
                                 <span class="input-group-text">heures</span>
                             </div>
                             <div class="form-text"><?php echo round($liensHeures / 24, 1); ?> jour(s) — défaut: 168h (7 jours)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                Mois arriérés max par rappel
+                            </label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" name="stripe_rappel_mois_arrieres_max"
+                                       value="<?php echo $maxMoisArrieres; ?>" min="0" max="24">
+                                <span class="input-group-text">mois</span>
+                            </div>
+                            <div class="form-text">Nombre de mois passés non payés inclus dans chaque rappel (0 = illimité, défaut : 3)</div>
                         </div>
                     </div>
                 </div>
