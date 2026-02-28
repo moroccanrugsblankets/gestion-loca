@@ -171,14 +171,54 @@ function logEmail($to, $subject, $body, $statut = 'success', $messageErreur = nu
  */
 function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true, $isAdminEmail = false, $replyTo = null, $replyToName = null, $addAdminBcc = false, $logContext = []) {
     global $config, $pdo;
-    
+
+    // Override SMTP/FROM config with values stored in the parametres table (if available).
+    // This allows admins to configure email sending directly from the admin UI without
+    // editing files. DB values take priority over the static $config array.
+    static $smtpDbLoaded = false;
+    if (!$smtpDbLoaded && $pdo) {
+        $smtpDbLoaded = true;
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT cle, valeur FROM parametres
+                 WHERE groupe = 'email'
+                   AND cle IN ('smtp_host','smtp_port','smtp_secure','smtp_username','smtp_password','mail_from','mail_from_name')"
+            );
+            $stmt->execute();
+            $smtpMap = [
+                'smtp_host'      => 'SMTP_HOST',
+                'smtp_port'      => 'SMTP_PORT',
+                'smtp_secure'    => 'SMTP_SECURE',
+                'smtp_username'  => 'SMTP_USERNAME',
+                'smtp_password'  => 'SMTP_PASSWORD',
+                'mail_from'      => 'MAIL_FROM',
+                'mail_from_name' => 'MAIL_FROM_NAME',
+            ];
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                if (isset($smtpMap[$row['cle']]) && $row['valeur'] !== '') {
+                    $val = $row['valeur'];
+                    if ($row['cle'] === 'smtp_port') {
+                        $val = (int)$val;
+                    }
+                    $config[$smtpMap[$row['cle']]] = $val;
+                }
+            }
+            // If credentials are set in DB, make sure SMTP_AUTH is on
+            if (!empty($config['SMTP_USERNAME']) && !empty($config['SMTP_PASSWORD'])) {
+                $config['SMTP_AUTH'] = true;
+            }
+        } catch (Exception $e) {
+            error_log("Could not load SMTP config from database: " . $e->getMessage());
+        }
+    }
+
     // Validate SMTP configuration if SMTP auth is enabled
     if ($config['SMTP_AUTH']) {
         if (empty($config['SMTP_PASSWORD']) || empty($config['SMTP_USERNAME']) || empty($config['SMTP_HOST'])) {
             error_log("ERREUR CRITIQUE: Configuration SMTP incomplète. Password: " . (empty($config['SMTP_PASSWORD']) ? 'VIDE' : 'défini') . 
                      ", Username: " . (empty($config['SMTP_USERNAME']) ? 'VIDE' : 'défini') . 
                      ", Host: " . (empty($config['SMTP_HOST']) ? 'VIDE' : 'défini'));
-            error_log("L'email à $to ne peut pas être envoyé. Veuillez configurer les paramètres SMTP dans includes/config.local.php");
+            error_log("L'email à $to ne peut pas être envoyé. Veuillez configurer les paramètres SMTP dans l'interface Admin > Paramètres ou dans includes/config.local.php");
             return false;
         }
     }
