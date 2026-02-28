@@ -12,6 +12,7 @@
  *   - stripe_paiement_invitation_jour : Jour du mois pour l'envoi initial (integer, défaut: 1)
  *   - stripe_paiement_rappel_jours : Jours de rappel (json array, défaut: [7, 14])
  *   - stripe_lien_expiration_heures: Durée de validité du lien en heures (défaut: 168 = 7j)
+ *   - stripe_rappel_mois_arrieres_max : Nombre max de mois passés non payés à rappeler (défaut: 3)
  *
  * Usage:
  *   php cron/stripe-paiements.php
@@ -116,6 +117,7 @@ $nomsMois = [
 ];
 
 $liensExpirationHeures = (int)getParameter('stripe_lien_expiration_heures', 168);
+$maxMoisArrieres = (int)getParameter('stripe_rappel_mois_arrieres_max', 3);
 $siteUrl = rtrim($config['SITE_URL'], '/');
 
 // ─── Traitement de chaque contrat ───────────────────────────────────────────
@@ -143,13 +145,14 @@ foreach ($contrats as $contrat) {
     $monthsToProcess = [];
 
     // Récupérer tous les statuts de paiement des mois passés en une seule requête
+    // Inclut aussi les entrées soft-deleted pour ne pas relancer des rappels sur des mois déjà payés
     $pastTrackingStmt = $pdo->prepare("
         SELECT mois, annee, statut_paiement
         FROM loyers_tracking
-        WHERE contrat_id = ? AND deleted_at IS NULL
+        WHERE logement_id = ?
           AND (annee < ? OR (annee = ? AND mois < ?))
     ");
-    $pastTrackingStmt->execute([$contratId, $anneeActuelle, $anneeActuelle, $moisActuel]);
+    $pastTrackingStmt->execute([$logementId, $anneeActuelle, $anneeActuelle, $moisActuel]);
     $paidMonths = [];
     foreach ($pastTrackingStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
         if ($row['statut_paiement'] === 'paye') {
@@ -193,6 +196,11 @@ foreach ($contrats as $contrat) {
         }
     }
 
+    // Limiter le nombre de mois passés non payés à traiter (pour éviter les envois massifs)
+    if ($maxMoisArrieres > 0 && count($monthsToProcess) > $maxMoisArrieres) {
+        $monthsToProcess = array_slice($monthsToProcess, -$maxMoisArrieres);
+    }
+
     // Mois courant
     $monthsToProcess[] = ['mois' => $moisActuel, 'annee' => $anneeActuelle, 'is_past' => false];
 
@@ -222,7 +230,11 @@ foreach ($contrats as $contrat) {
             $pdo->prepare("
                 INSERT INTO loyers_tracking (logement_id, contrat_id, mois, annee, montant_attendu, statut_paiement)
                 VALUES (?, ?, ?, ?, ?, 'attente')
-                ON DUPLICATE KEY UPDATE montant_attendu = VALUES(montant_attendu), deleted_at = NULL
+                ON DUPLICATE KEY UPDATE
+                    statut_paiement = IF(contrat_id != VALUES(contrat_id), 'attente', statut_paiement),
+                    contrat_id = VALUES(contrat_id),
+                    montant_attendu = VALUES(montant_attendu),
+                    deleted_at = NULL
             ")->execute([$logementId, $contratId, $mois, $annee, $montant]);
 
             $ltStmt->execute([$contratId, $mois, $annee]);
