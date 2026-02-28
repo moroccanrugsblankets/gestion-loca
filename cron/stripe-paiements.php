@@ -114,7 +114,7 @@ foreach ($contrats as $contrat) {
 
     // Préparer requête loyers_tracking
     $ltStmt = $pdo->prepare("
-        SELECT id, statut_paiement, date_email_invitation
+        SELECT id, statut_paiement
         FROM loyers_tracking
         WHERE contrat_id = ? AND mois = ? AND annee = ? AND deleted_at IS NULL
         LIMIT 1
@@ -132,13 +132,6 @@ foreach ($contrats as $contrat) {
         $lt = $ltStmt->fetch(PDO::FETCH_ASSOC);
         if ($lt && $lt['statut_paiement'] === 'paye') { logStep("Déjà payé → SKIP"); continue; }
 
-        // Anti-doublon
-        $todayDate = date('Y-m-d');
-        $derniereDate = (!empty($lt['date_email_invitation']))
-            ? date('Y-m-d', strtotime($lt['date_email_invitation']))
-            : null;
-        if ($derniereDate === $todayDate) { logStep("Déjà envoyé aujourd'hui → SKIP"); continue; }
-
         // Choix du template
         if ($doInvitation && !$isPast) {
             $templateId = 'stripe_invitation_paiement';
@@ -149,7 +142,7 @@ foreach ($contrats as $contrat) {
         }
 
         // Envoi du mail
-                foreach ($locataires as $locataire) {
+        foreach ($locataires as $locataire) {
             $sent = sendTemplatedEmail($templateId, $locataire['email'], [
                 'locataire_nom'     => $locataire['nom'],
                 'locataire_prenom'  => $locataire['prenom'],
@@ -162,27 +155,10 @@ foreach ($contrats as $contrat) {
                 'date_expiration'   => date('d/m/Y à H:i', time()+$liensExpirationHeures*3600),
                 'signature'         => $signature,
             ]);
-
-            if ($sent) {
-                logStep("✅ Email $templateId envoyé à {$locataire['email']} pour $periode");
-            } else {
-                logError("❌ Échec envoi email $templateId à {$locataire['email']} pour $periode");
-            }
+            logStep($sent ? "✅ Email $templateId envoyé à {$locataire['email']} pour $periode" : "❌ Échec envoi email $templateId à {$locataire['email']} pour $periode");
         }
-
-        // Mise à jour de la table loyers_tracking pour anti-doublon
-        try {
-            $pdo->prepare("
-                UPDATE loyers_tracking
-                SET date_email_invitation = NOW()
-                WHERE contrat_id = ? AND mois = ? AND annee = ?
-            ")->execute([$contratId, $mois, $annee]);
-            logStep("Mise à jour loyers_tracking → date_email_invitation enregistrée pour $periode");
-        } catch (Exception $e) {
-            logError("Erreur update loyers_tracking : ".$e->getMessage());
-        }
-    } // fin foreach monthsToProcess
-} // fin foreach contrats
+    }
+}
 
 // ─── Enregistrer le résultat global ─────────────────────────────────────────
 try {
