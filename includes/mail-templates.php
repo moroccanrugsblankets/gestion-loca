@@ -218,7 +218,7 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
             error_log("ERREUR CRITIQUE: Configuration SMTP incomplète. Password: " . (empty($config['SMTP_PASSWORD']) ? 'VIDE' : 'défini') . 
                      ", Username: " . (empty($config['SMTP_USERNAME']) ? 'VIDE' : 'défini') . 
                      ", Host: " . (empty($config['SMTP_HOST']) ? 'VIDE' : 'défini'));
-            error_log("L'email à $to ne peut pas être envoyé. Veuillez configurer les paramètres SMTP dans l'interface Admin > Paramètres ou dans includes/config.local.php");
+            error_log("L'email à $to ne peut pas être envoyé. Veuillez configurer les paramètres SMTP dans l'interface Admin > Paramètres.");
             return false;
         }
     }

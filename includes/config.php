@@ -39,20 +39,22 @@ $config = [
     // =====================================================
     // CONFIGURATION EMAIL
     // =====================================================
-    'MAIL_FROM' => 'contact@myinvest-immobilier.com',
-    'MAIL_FROM_NAME' => 'My Invest Immobilier',
+    // ⚠️ Ces valeurs sont gérées via Admin > Paramètres (table `parametres`, groupe 'email').
+    // Ne les modifiez PAS ici — toute valeur définie ici sera ignorée dès que la base de données
+    // contient la configuration correspondante.
+    'MAIL_FROM' => '',
+    'MAIL_FROM_NAME' => '',
     
     // Configuration SMTP pour PHPMailer
-    // ⚠️ IMPORTANT: Les emails ne seront PAS envoyés tant que SMTP_PASSWORD n'est pas configuré!
-    // Note: Serveur SMTP OVH — adaptez ces valeurs si vous changez d'hébergeur.
-    // IMPORTANT: Ne commitez JAMAIS de vrais mots de passe dans Git
-    // Utilisez includes/config.local.php pour vos credentials (voir PHPMAILER_CONFIGURATION.md)
-    'SMTP_HOST' => 'ssl0.ovh.net', // Serveur SMTP OVH (remplacer par smtp.example.com sur un autre hébergeur)
-    'SMTP_PORT' => 587, // Port SMTP (587 pour TLS, 465 pour SSL)
-    'SMTP_SECURE' => 'tls', // 'tls' ou 'ssl'
-    'SMTP_AUTH' => true, // Authentification SMTP
-    'SMTP_USERNAME' => 'contact@myinvest-immobilier.com', // Votre email SMTP
-    'SMTP_PASSWORD' => '', // ⚠️ CONFIGUREZ CECI dans includes/config.local.php - OBLIGATOIRE POUR ENVOYER DES EMAILS!
+    // ⚠️ Configurez le SMTP uniquement via l'interface Admin > Paramètres.
+    // Les valeurs ci-dessous sont des neutres qui n'activent aucun envoi SMTP tant que
+    // la base de données ne fournit pas d'identifiant et de mot de passe valides.
+    'SMTP_HOST' => '',
+    'SMTP_PORT' => 587, // Port par défaut (surchargé par la base de données)
+    'SMTP_SECURE' => 'tls', // Valeur par défaut (surchargée par la base de données)
+    'SMTP_AUTH' => false, // Désactivé par défaut ; activé automatiquement si des identifiants DB sont trouvés
+    'SMTP_USERNAME' => '',
+    'SMTP_PASSWORD' => '',
     'SMTP_DEBUG' => 0, // 0 = off, 1 = client, 2 = client et serveur
     
     // =====================================================
