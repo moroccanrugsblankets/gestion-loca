@@ -218,7 +218,7 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
             error_log("ERREUR CRITIQUE: Configuration SMTP incomplète. Password: " . (empty($config['SMTP_PASSWORD']) ? 'VIDE' : 'défini') . 
                      ", Username: " . (empty($config['SMTP_USERNAME']) ? 'VIDE' : 'défini') . 
                      ", Host: " . (empty($config['SMTP_HOST']) ? 'VIDE' : 'défini'));
-            error_log("L'email à $to ne peut pas être envoyé. Veuillez configurer les paramètres SMTP dans l'interface Admin > Paramètres ou dans includes/config.local.php");
+            error_log("L'email à $to ne peut pas être envoyé. Veuillez configurer les paramètres SMTP dans l'interface Admin > Paramètres.");
             return false;
         }
     }
@@ -259,7 +259,8 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
         $toNormalized = strtolower($to);
 
         // Ajouter les administrateurs en BCC si c'est un email admin OU si addAdminBcc est activé
-        // Bloc unique pour éviter d'ajouter les mêmes adresses deux fois (cause de doublons)
+        // On suit les adresses déjà ajoutées pour éviter tout doublon BCC.
+        $bccAdded = [$toNormalized => true]; // Le destinataire principal ne doit jamais être en BCC
         if (($isAdminEmail || $addAdminBcc) && $pdo) {
             try {
                 $stmt = $pdo->prepare("SELECT email FROM administrateurs WHERE actif = TRUE");
@@ -267,8 +268,10 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
                 $admins = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 
                 foreach ($admins as $admin) {
-                    if (!empty($admin['email']) && filter_var($admin['email'], FILTER_VALIDATE_EMAIL) && strtolower($admin['email']) !== $toNormalized) {
+                    $adminEmailNorm = strtolower($admin['email'] ?? '');
+                    if (!empty($adminEmailNorm) && filter_var($adminEmailNorm, FILTER_VALIDATE_EMAIL) && !isset($bccAdded[$adminEmailNorm])) {
                         $mail->addBCC($admin['email']);
+                        $bccAdded[$adminEmailNorm] = true;
                     }
                 }
             } catch (Exception $e) {
@@ -277,13 +280,17 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
         }
         
         // Si c'est un email admin et qu'une adresse secondaire est configurée
-        if ($isAdminEmail && !empty($config['ADMIN_EMAIL_SECONDARY']) && strtolower($config['ADMIN_EMAIL_SECONDARY']) !== $toNormalized) {
+        $secondaryNorm = strtolower($config['ADMIN_EMAIL_SECONDARY'] ?? '');
+        if ($isAdminEmail && !empty($secondaryNorm) && !isset($bccAdded[$secondaryNorm])) {
             $mail->addBCC($config['ADMIN_EMAIL_SECONDARY']);
+            $bccAdded[$secondaryNorm] = true;
         }
         
         // Ajouter BCC pour l'adresse BCC admin si c'est un email admin OU si addAdminBcc est activé
-        if (($isAdminEmail || $addAdminBcc) && !empty($config['ADMIN_EMAIL_BCC']) && strtolower($config['ADMIN_EMAIL_BCC']) !== $toNormalized) {
+        $bccAdminNorm = strtolower($config['ADMIN_EMAIL_BCC'] ?? '');
+        if (($isAdminEmail || $addAdminBcc) && !empty($bccAdminNorm) && !isset($bccAdded[$bccAdminNorm])) {
             $mail->addBCC($config['ADMIN_EMAIL_BCC']);
+            $bccAdded[$bccAdminNorm] = true;
         }
         
         // Replace {{signature}} placeholder if present in body
@@ -392,15 +399,15 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
             $logContext['template_id'] ?? null,
             $logContext['contexte'] ?? null);
         
-        // Ne PAS utiliser le fallback mail() quand SMTP est configuré :
-        // Si PHPMailer a déjà livré l'email avant de lever une exception (ex: déconnexion SMTP),
-        // appeler sendEmailFallback() enverrait un doublon au destinataire.
-        if ($config['SMTP_AUTH']) {
-            error_log("ATTENTION: Pas de fallback car SMTP est configuré. L'email n'a peut-être pas été envoyé.");
+        // Ne PAS utiliser le fallback mail() quand SMTP est configuré OU en mode CLI (cron) :
+        // Le serveur SMTP peut avoir accepté l'email avant de lever l'exception (ex: déconnexion
+        // OVH après livraison). Appeler sendEmailFallback() enverrait un doublon au destinataire.
+        if ($config['SMTP_AUTH'] || !empty($config['SMTP_HOST']) || php_sapi_name() === 'cli') {
+            error_log("ATTENTION: Pas de fallback (SMTP configuré ou mode CLI). L'email n'a peut-être pas été envoyé à $to.");
             return false;
         }
         
-        // Fallback avec mail() natif uniquement si SMTP n'est pas configuré
+        // Fallback avec mail() natif uniquement si aucun SMTP n'est configuré et pas en mode CLI
         error_log("Tentative de fallback avec mail() natif...");
         return sendEmailFallback($to, $subject, $body, $attachmentPath, $isHtml);
     }
