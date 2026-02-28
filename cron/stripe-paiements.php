@@ -323,12 +323,25 @@ foreach ($contrats as $contrat) {
         // Choisir le template selon le contexte
         // Les mois passés sont toujours des rappels ; le mois courant suit la logique invitation/rappel
         if ($isPast) {
+            // Éviter les doublons : ne pas renvoyer si un email a été envoyé il y a moins de 6 jours
+            if ($paySession['email_invitation_envoye'] && !empty($paySession['date_email_invitation'])) {
+                $joursSinceEmail = (int)floor((time() - strtotime($paySession['date_email_invitation'])) / 86400);
+                if ($joursSinceEmail < 6) {
+                    logMsg("Contrat $contratId ({$contrat['adresse']}) : rappel $periode déjà envoyé il y a {$joursSinceEmail}j - ignoré.");
+                    continue;
+                }
+            }
             $templateId = 'stripe_rappel_paiement';
             logMsg("--- Choix template : $templateId (mois passé) ---");
         } elseif ($doInvitation && !$paySession['email_invitation_envoye']) {
             $templateId = 'stripe_invitation_paiement';
             logMsg("--- Choix template : $templateId (doInvitation=oui, email_invitation_envoye=non) ---");
         } else {
+            // Sur un jour de rappel uniquement, ignorer si l'invitation n'a pas encore été envoyée
+            if ($doRappel && !$doInvitation && !$paySession['email_invitation_envoye']) {
+                logMsg("Contrat $contratId ({$contrat['adresse']}) : rappel $periode ignoré (invitation non encore envoyée).");
+                continue;
+            }
             $templateId = 'stripe_rappel_paiement';
             logMsg("--- Choix template : $templateId (doInvitation=" . ($doInvitation ? 'oui' : 'non') . ", doRappel=" . ($doRappel ? 'oui' : 'non') . ", email_invitation_envoye={$paySession['email_invitation_envoye']}) ---");
         }
@@ -360,8 +373,9 @@ foreach ($contrats as $contrat) {
             }
         }
 
-        // Mettre à jour le flag d'invitation si c'est l'invitation initiale du mois courant
-        if (!$isPast && $doInvitation && !$paySession['email_invitation_envoye']) {
+        // Mettre à jour le flag d'invitation si c'est l'invitation initiale du mois courant,
+        // ou mettre à jour la date du dernier email pour les mois passés (throttle anti-doublons)
+        if ($isPast || (!$isPast && $doInvitation && !$paySession['email_invitation_envoye'])) {
             logMsg("--- REQUÊTE 8 : UPDATE stripe_payment_sessions SET email_invitation_envoye=1 WHERE id={$paySession['id']} ---");
             $pdo->prepare("
                 UPDATE stripe_payment_sessions
