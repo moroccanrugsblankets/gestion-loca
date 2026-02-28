@@ -44,10 +44,10 @@ $config = [
     
     // Configuration SMTP pour PHPMailer
     // ⚠️ IMPORTANT: Les emails ne seront PAS envoyés tant que SMTP_PASSWORD n'est pas configuré!
-    // Note: Configurez ces valeurs selon votre serveur SMTP
+    // Note: Serveur SMTP OVH — adaptez ces valeurs si vous changez d'hébergeur.
     // IMPORTANT: Ne commitez JAMAIS de vrais mots de passe dans Git
     // Utilisez includes/config.local.php pour vos credentials (voir PHPMAILER_CONFIGURATION.md)
-    'SMTP_HOST' => 'smtp.gmail.com', // Exemple: smtp.gmail.com, smtp.office365.com, etc.
+    'SMTP_HOST' => 'ssl0.ovh.net', // Serveur SMTP OVH (remplacer par smtp.example.com sur un autre hébergeur)
     'SMTP_PORT' => 587, // Port SMTP (587 pour TLS, 465 pour SSL)
     'SMTP_SECURE' => 'tls', // 'tls' ou 'ssl'
     'SMTP_AUTH' => true, // Authentification SMTP
