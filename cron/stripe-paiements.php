@@ -227,6 +227,13 @@ foreach ($contrats as $contrat) {
         logMsg("  → mois={$me['mois']}/{$me['annee']} | is_past=" . ($me['is_past'] ? 'oui' : 'non (mois courant)'));
     }
 
+    // Préparer la requête pour vérifier le statut de paiement d’un mois donné
+$ltStmt = $pdo->prepare("
+    SELECT id, statut_paiement
+    FROM loyers_tracking
+    WHERE contrat_id = ? AND mois = ? AND annee = ? AND deleted_at IS NULL
+    LIMIT 1
+");
     foreach ($monthsToProcess as $monthEntry) {
     $mois   = $monthEntry['mois'];
     $annee  = $monthEntry['annee'];
