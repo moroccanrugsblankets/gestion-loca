@@ -47,7 +47,6 @@ if (!$doInvitation && !$doRappel) { logMsg("Aucune action prévue aujourd'hui.")
 
 logSection("Démarrage du cron - mode=$stripeMode, jour=$aujourdHui");
 
-// ─── Requête contrats actifs ───────────────────────────────
 $sqlContrats = "
     SELECT c.id as contrat_id, c.date_prise_effet,
            l.id as logement_id, l.adresse, l.loyer, l.charges
@@ -61,7 +60,6 @@ $sqlContrats = "
         GROUP BY logement_id
     ) actifs ON c.id = actifs.max_id
 ";
-logStep("SQL Contrats: $sqlContrats");
 $contrats = $pdo->query($sqlContrats)->fetchAll(PDO::FETCH_ASSOC);
 
 $nomsMois = [1=>'Janvier',2=>'Février',3=>'Mars',4=>'Avril',5=>'Mai',6=>'Juin',7=>'Juillet',8=>'Août',9=>'Septembre',10=>'Octobre',11=>'Novembre',12=>'Décembre'];
@@ -71,15 +69,12 @@ foreach ($contrats as $contrat) {
     $contratId  = $contrat['contrat_id'];
     logSection("Contrat $contratId");
 
-    // ─── Requête locataires ───────────────────────────────
     $sqlLocataires = "SELECT * FROM locataires WHERE contrat_id = ?";
-    logStep("SQL Locataires: $sqlLocataires [contrat_id=$contratId]");
     $locatairesStmt = $pdo->prepare($sqlLocataires);
     $locatairesStmt->execute([$contratId]);
     $locataires = $locatairesStmt->fetchAll(PDO::FETCH_ASSOC);
     if (empty($locataires)) { logStep("Pas de locataires"); continue; }
 
-    // ─── Requête loyers impayés ───────────────────────────
     $sqlImpayes = "
         SELECT DISTINCT mois, annee
         FROM loyers_tracking
@@ -88,7 +83,6 @@ foreach ($contrats as $contrat) {
           AND deleted_at IS NULL
         ORDER BY annee, mois
     ";
-    logStep("SQL Impayés: $sqlImpayes [contrat_id=$contratId]");
     $impayesStmt = $pdo->prepare($sqlImpayes);
     $impayesStmt->execute([$contratId]);
     $monthsToProcess = $impayesStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -101,22 +95,25 @@ foreach ($contrats as $contrat) {
 
         logStep("Traitement période $periode");
 
-        // Choix du template
         if ($doInvitation && !$isPast) {
             $templateId = 'stripe_invitation_paiement';
             logStep("Template choisi = INVITATION");
-        } elseif ($doRappel && $isPast) {
+        } else {
             $templateId = 'stripe_rappel_paiement';
             logStep("Template choisi = RAPPEL");
-        } else {
-            logStep("Période ignorée (mois actuel hors jour d'invitation, ou mois passé hors jour de rappel)");
-            continue;
         }
 
-        // Envoi réel du mail
+        // Filtrer les adresses uniques pour éviter doublons
+        $emailsEnvoyes = [];
         foreach ($locataires as $locataire) {
-            logStep("Appel sendTemplatedEmail pour {$locataire['email']} ($periode)");
-            $sent = sendTemplatedEmail($templateId, $locataire['email'], [
+            $email = $locataire['email'];
+            if (in_array($email, $emailsEnvoyes)) {
+                logStep("Email déjà envoyé à $email → SKIP");
+                continue;
+            }
+            $emailsEnvoyes[] = $email;
+
+            $sent = sendTemplatedEmail($templateId, $email, [
                 'locataire_nom'     => $locataire['nom'],
                 'locataire_prenom'  => $locataire['prenom'],
                 'adresse'           => $contrat['adresse'],
@@ -130,9 +127,9 @@ foreach ($contrats as $contrat) {
             ]);
 
             if ($sent) {
-                logStep("✅ Email $templateId envoyé à {$locataire['email']} pour $periode");
+                logStep("✅ Email $templateId envoyé à $email pour $periode");
             } else {
-                logStep("❌ Échec envoi email $templateId à {$locataire['email']} pour $periode");
+                logStep("❌ Échec envoi email $templateId à $email pour $periode");
             }
         }
     }
