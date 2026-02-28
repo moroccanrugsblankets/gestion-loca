@@ -105,9 +105,12 @@ foreach ($contrats as $contrat) {
         if ($doInvitation && !$isPast) {
             $templateId = 'stripe_invitation_paiement';
             logStep("Template choisi = INVITATION");
-        } else {
+        } elseif ($doRappel && $isPast) {
             $templateId = 'stripe_rappel_paiement';
             logStep("Template choisi = RAPPEL");
+        } else {
+            logStep("Période ignorée (mois actuel hors jour d'invitation, ou mois passé hors jour de rappel)");
+            continue;
         }
 
         // Envoi réel du mail
