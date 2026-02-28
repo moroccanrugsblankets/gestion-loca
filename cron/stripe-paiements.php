@@ -23,16 +23,10 @@ if (!file_exists($autoload)) {
 require_once $autoload;
 
 // ─── Logging ────────────────────────────────────────────────────────────────
-$logFile = __DIR__ . '/stripe-paiements-log.txt';
-$cronLogs = [];
-
 function logMsg(string $msg, bool $isError = false): void {
-    global $logFile, $cronLogs;
     $level = $isError ? '[ERROR]' : '[INFO]';
     $line = '[' . date('Y-m-d H:i:s') . "] $level $msg\n";
     echo $line;
-    file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
-    $cronLogs[] = $line;
 }
 function logSection(string $title): void { logMsg("========== $title =========="); }
 function logStep(string $msg): void { logMsg("---- $msg ----"); }
@@ -158,19 +152,6 @@ foreach ($contrats as $contrat) {
             logStep($sent ? "✅ Email $templateId envoyé à {$locataire['email']} pour $periode" : "❌ Échec envoi email $templateId à {$locataire['email']} pour $periode");
         }
     }
-}
-
-// ─── Enregistrer le résultat global ─────────────────────────────────────────
-try {
-    $cronLogsStr = implode('', $cronLogs);
-    $pdo->prepare("
-        UPDATE cron_jobs
-        SET last_run = NOW(), last_result = ?
-        WHERE fichier = 'cron/stripe-paiements.php'
-    ")->execute([mb_substr($cronLogsStr, 0, 65000)]);
-    logSection("Mise à jour cron_jobs réussie");
-} catch (Exception $e) {
-    logError('Erreur mise à jour cron_jobs - '.$e->getMessage());
 }
 
 logSection('Cron stripe-paiements terminé');
