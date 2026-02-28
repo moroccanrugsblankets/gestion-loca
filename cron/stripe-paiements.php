@@ -4,15 +4,15 @@
  * CRON JOB: Envoi automatique des invitations et rappels de paiement Stripe
  */
 
-// Activer l'affichage des erreurs pour le debug
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/mail-templates.php';
+
+// Activer l'affichage des erreurs pour le debug
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
 
 // Charger Stripe SDK
 $autoload = __DIR__ . '/../vendor/autoload.php';
