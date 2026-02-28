@@ -300,12 +300,15 @@ foreach ($contrats as $contrat) {
             logMsg("--- REQUÊTE 7 : INSERT stripe_payment_sessions pour contrat_id=$contratId mois=$mois annee=$annee ($raison) ---");
             $token = bin2hex(random_bytes(32));
             $expiration = date('Y-m-d H:i:s', time() + $liensExpirationHeures * 3600);
+            // Preserve the invitation-sent flag from the expired session so that subsequent
+            // reminder days still send a reminder (not a duplicate invitation).
+            $inheritedInvitationEnvoye = $paySession ? (int)$paySession['email_invitation_envoye'] : 0;
 
             $pdo->prepare("
                 INSERT INTO stripe_payment_sessions
-                    (loyer_tracking_id, contrat_id, logement_id, mois, annee, montant, token_acces, token_expiration, statut)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'en_attente')
-            ")->execute([$ltId, $contratId, $logementId, $mois, $annee, $montant, $token, $expiration]);
+                    (loyer_tracking_id, contrat_id, logement_id, mois, annee, montant, token_acces, token_expiration, statut, email_invitation_envoye)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'en_attente', ?)
+            ")->execute([$ltId, $contratId, $logementId, $mois, $annee, $montant, $token, $expiration, $inheritedInvitationEnvoye]);
 
             $sessionStmt->execute([$contratId, $mois, $annee]);
             $paySession = $sessionStmt->fetch(PDO::FETCH_ASSOC);
@@ -337,13 +340,15 @@ foreach ($contrats as $contrat) {
             $templateId = 'stripe_invitation_paiement';
             logMsg("--- Choix template : $templateId (doInvitation=oui, email_invitation_envoye=non) ---");
         } else {
-            // Sur un jour de rappel uniquement, ignorer si l'invitation n'a pas encore été envoyée
+            // Sur un jour de rappel, si l'invitation n'a pas encore été envoyée pour le mois
+            // courant, envoyer l'invitation maintenant (rattrapage) plutôt que de l'ignorer.
             if ($doRappel && !$doInvitation && !$paySession['email_invitation_envoye']) {
-                logMsg("Contrat $contratId ({$contrat['adresse']}) : rappel $periode ignoré (invitation non encore envoyée).");
-                continue;
+                $templateId = 'stripe_invitation_paiement';
+                logMsg("--- Choix template : $templateId (mois courant, invitation non encore envoyée, envoi rattrapé) ---");
+            } else {
+                $templateId = 'stripe_rappel_paiement';
+                logMsg("--- Choix template : $templateId (doInvitation=" . ($doInvitation ? 'oui' : 'non') . ", doRappel=" . ($doRappel ? 'oui' : 'non') . ", email_invitation_envoye={$paySession['email_invitation_envoye']}) ---");
             }
-            $templateId = 'stripe_rappel_paiement';
-            logMsg("--- Choix template : $templateId (doInvitation=" . ($doInvitation ? 'oui' : 'non') . ", doRappel=" . ($doRappel ? 'oui' : 'non') . ", email_invitation_envoye={$paySession['email_invitation_envoye']}) ---");
         }
 
         // Si invitation déjà envoyée ce mois et aujourd'hui = jour invitation sans rappel, ignorer
@@ -373,9 +378,10 @@ foreach ($contrats as $contrat) {
             }
         }
 
-        // Mettre à jour le flag d'invitation si c'est l'invitation initiale du mois courant,
+        // Mettre à jour le flag d'invitation si c'est l'invitation initiale du mois courant
+        // (qu'elle soit envoyée le jour d'invitation normal ou en rattrapage un jour de rappel),
         // ou mettre à jour la date du dernier email pour les mois passés (throttle anti-doublons)
-        if ($isPast || (!$isPast && $doInvitation && !$paySession['email_invitation_envoye'])) {
+        if ($isPast || (!$isPast && $templateId === 'stripe_invitation_paiement')) {
             logMsg("--- REQUÊTE 8 : UPDATE stripe_payment_sessions SET email_invitation_envoye=1 WHERE id={$paySession['id']} ---");
             $pdo->prepare("
                 UPDATE stripe_payment_sessions
