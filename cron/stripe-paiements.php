@@ -87,6 +87,7 @@ if (!$doInvitation && !$doRappel) {
 logMsg("Démarrage - mode=$stripeMode, jour=$aujourdHui, invitation=" . ($doInvitation ? 'oui' : 'non') . ", rappel=" . ($doRappel ? 'oui' : 'non'));
 
 // ─── Récupérer les contrats actifs et leurs locataires ──────────────────────
+logMsg("--- REQUÊTE 1 : Récupération des contrats actifs (statut=valide, date_prise_effet <= CURDATE()) ---");
 $contrats = $pdo->query("
     SELECT c.id as contrat_id, c.reference_unique, c.date_prise_effet,
            l.id as logement_id, l.adresse, l.loyer, l.charges
@@ -108,6 +109,11 @@ if (empty($contrats)) {
     exit(0);
 }
 
+logMsg("--- RÉSULTAT 1 : " . count($contrats) . " contrat(s) actif(s) trouvé(s) ---");
+foreach ($contrats as $c) {
+    logMsg("  Contrat id={$c['contrat_id']} | logement_id={$c['logement_id']} | adresse={$c['adresse']} | date_prise_effet={$c['date_prise_effet']} | loyer={$c['loyer']} | charges={$c['charges']}");
+}
+
 logMsg(count($contrats) . ' contrat(s) actif(s) trouvé(s).');
 
 $nomsMois = [
@@ -127,9 +133,14 @@ foreach ($contrats as $contrat) {
     $montant    = (float)$contrat['loyer'] + (float)$contrat['charges'];
 
     // Récupérer les locataires du contrat (commun à tous les mois)
+    logMsg("--- REQUÊTE 2 : Récupération des locataires pour contrat_id=$contratId (logement_id=$logementId) ---");
     $locatairesStmt = $pdo->prepare("SELECT * FROM locataires WHERE contrat_id = ? ORDER BY ordre");
     $locatairesStmt->execute([$contratId]);
     $locataires = $locatairesStmt->fetchAll(PDO::FETCH_ASSOC);
+    logMsg("--- RÉSULTAT 2 : " . count($locataires) . " locataire(s) pour contrat_id=$contratId ---");
+    foreach ($locataires as $loc) {
+        logMsg("  Locataire id={$loc['id']} | nom={$loc['nom']} {$loc['prenom']} | email={$loc['email']}");
+    }
 
     if (empty($locataires)) {
         logMsg("Contrat $contratId : aucun locataire trouvé - ignoré.", true);
@@ -146,6 +157,7 @@ foreach ($contrats as $contrat) {
 
     // Récupérer tous les statuts de paiement des mois passés en une seule requête
     // Inclut aussi les entrées soft-deleted pour ne pas relancer des rappels sur des mois déjà payés
+    logMsg("--- REQUÊTE 3 : Récupération des mois passés (loyers_tracking) pour logement_id=$logementId avant $anneeActuelle-$moisActuel ---");
     $pastTrackingStmt = $pdo->prepare("
         SELECT mois, annee, statut_paiement
         FROM loyers_tracking
@@ -155,14 +167,17 @@ foreach ($contrats as $contrat) {
     $pastTrackingStmt->execute([$logementId, $anneeActuelle, $anneeActuelle, $moisActuel]);
     $paidMonths = [];
     foreach ($pastTrackingStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        logMsg("  loyers_tracking : mois={$row['mois']}/{$row['annee']} statut={$row['statut_paiement']}");
         if ($row['statut_paiement'] === 'paye') {
             $paidMonths[$row['annee'] . '-' . $row['mois']] = true;
         }
     }
+    logMsg("--- RÉSULTAT 3 : mois déjà payés = [" . implode(', ', array_keys($paidMonths)) . "] ---");
 
     // Mois antérieurs non payés : itérer depuis la date de prise d'effet du contrat
     // afin d'inclure les mois sans entrée dans loyers_tracking (ex. module Stripe récemment activé)
     if (!empty($contrat['date_prise_effet'])) {
+        logMsg("--- Contrat $contratId : itération des mois depuis date_prise_effet={$contrat['date_prise_effet']} jusqu'à $anneeActuelle-$moisActuel ---");
         try {
             $iterDate  = new DateTime($contrat['date_prise_effet']);
             $iterDate->modify('first day of this month');
@@ -183,6 +198,7 @@ foreach ($contrats as $contrat) {
         }
     } else {
         // Fallback si pas de date_prise_effet : utiliser les entrées existantes
+        logMsg("--- REQUÊTE 3b (fallback) : Récupération des mois non payés depuis loyers_tracking pour contrat_id=$contratId ---");
         $pastFallbackStmt = $pdo->prepare("
             SELECT mois, annee
             FROM loyers_tracking
@@ -192,17 +208,24 @@ foreach ($contrats as $contrat) {
         ");
         $pastFallbackStmt->execute([$contratId, $anneeActuelle, $anneeActuelle, $moisActuel]);
         foreach ($pastFallbackStmt->fetchAll(PDO::FETCH_ASSOC) as $pm) {
+            logMsg("  Fallback mois non payé : {$pm['mois']}/{$pm['annee']}");
             $monthsToProcess[] = ['mois' => (int)$pm['mois'], 'annee' => (int)$pm['annee'], 'is_past' => true];
         }
     }
 
     // Limiter le nombre de mois passés non payés à traiter (pour éviter les envois massifs)
     if ($maxMoisArrieres > 0 && count($monthsToProcess) > $maxMoisArrieres) {
+        logMsg("--- Limitation des mois passés : " . count($monthsToProcess) . " → $maxMoisArrieres (stripe_rappel_mois_arrieres_max=$maxMoisArrieres) ---");
         $monthsToProcess = array_slice($monthsToProcess, -$maxMoisArrieres);
     }
 
     // Mois courant
     $monthsToProcess[] = ['mois' => $moisActuel, 'annee' => $anneeActuelle, 'is_past' => false];
+
+    logMsg("--- Contrat $contratId : mois à traiter = " . count($monthsToProcess) . " ---");
+    foreach ($monthsToProcess as $me) {
+        logMsg("  → mois={$me['mois']}/{$me['annee']} | is_past=" . ($me['is_past'] ? 'oui' : 'non (mois courant)'));
+    }
 
     foreach ($monthsToProcess as $monthEntry) {
         $mois   = $monthEntry['mois'];
@@ -210,7 +233,10 @@ foreach ($contrats as $contrat) {
         $isPast = $monthEntry['is_past'];
         $periode = $nomsMois[$mois] . ' ' . $annee;
 
+        logMsg("=== Contrat $contratId | Traitement de la période : $periode (is_past=" . ($isPast ? 'oui' : 'non') . ") ===");
+
         // Vérifier si le loyer du mois est déjà payé
+        logMsg("--- REQUÊTE 4 : Vérification loyers_tracking pour contrat_id=$contratId mois=$mois annee=$annee (deleted_at IS NULL) ---");
         $ltStmt = $pdo->prepare("
             SELECT id, statut_paiement
             FROM loyers_tracking
@@ -219,6 +245,7 @@ foreach ($contrats as $contrat) {
         ");
         $ltStmt->execute([$contratId, $mois, $annee]);
         $lt = $ltStmt->fetch(PDO::FETCH_ASSOC);
+        logMsg("--- RÉSULTAT 4 : loyers_tracking " . ($lt ? "id={$lt['id']} statut={$lt['statut_paiement']}" : "AUCUNE ENTRÉE") . " ---");
 
         if ($lt && $lt['statut_paiement'] === 'paye') {
             logMsg("Contrat $contratId ($contrat[adresse]) : loyer $periode déjà payé - ignoré.");
@@ -227,6 +254,7 @@ foreach ($contrats as $contrat) {
 
         // Créer une entrée de tracking si elle n'existe pas
         if (!$lt) {
+            logMsg("--- REQUÊTE 5 : INSERT loyers_tracking pour contrat_id=$contratId mois=$mois annee=$annee montant=$montant ---");
             $pdo->prepare("
                 INSERT INTO loyers_tracking (logement_id, contrat_id, mois, annee, montant_attendu, statut_paiement)
                 VALUES (?, ?, ?, ?, ?, 'attente')
@@ -239,6 +267,7 @@ foreach ($contrats as $contrat) {
 
             $ltStmt->execute([$contratId, $mois, $annee]);
             $lt = $ltStmt->fetch(PDO::FETCH_ASSOC);
+            logMsg("--- RÉSULTAT 5 : loyers_tracking créé/mis à jour → " . ($lt ? "id={$lt['id']} statut={$lt['statut_paiement']}" : "ÉCHEC RÉCUPÉRATION") . " ---");
         }
 
         if (!$lt || empty($lt['id'])) {
@@ -249,6 +278,7 @@ foreach ($contrats as $contrat) {
         $ltId = $lt['id'];
 
         // Récupérer ou créer la session de paiement Stripe
+        logMsg("--- REQUÊTE 6 : Recherche session Stripe pour contrat_id=$contratId mois=$mois annee=$annee (statut NOT IN paye/annule) ---");
         $sessionStmt = $pdo->prepare("
             SELECT * FROM stripe_payment_sessions
             WHERE contrat_id = ? AND mois = ? AND annee = ?
@@ -258,9 +288,16 @@ foreach ($contrats as $contrat) {
         ");
         $sessionStmt->execute([$contratId, $mois, $annee]);
         $paySession = $sessionStmt->fetch(PDO::FETCH_ASSOC);
+        if ($paySession) {
+            logMsg("--- RÉSULTAT 6 : Session Stripe id={$paySession['id']} statut={$paySession['statut']} email_invitation_envoye={$paySession['email_invitation_envoye']} token_expiration={$paySession['token_expiration']} ---");
+        } else {
+            logMsg("--- RÉSULTAT 6 : Aucune session Stripe active trouvée ---");
+        }
 
         // Créer une nouvelle session si nécessaire ou si le lien est expiré
         if (!$paySession || strtotime($paySession['token_expiration']) < time()) {
+            $raison = !$paySession ? 'aucune session existante' : 'session expirée (expiration=' . $paySession['token_expiration'] . ')';
+            logMsg("--- REQUÊTE 7 : INSERT stripe_payment_sessions pour contrat_id=$contratId mois=$mois annee=$annee ($raison) ---");
             $token = bin2hex(random_bytes(32));
             $expiration = date('Y-m-d H:i:s', time() + $liensExpirationHeures * 3600);
 
@@ -277,6 +314,7 @@ foreach ($contrats as $contrat) {
                 logMsg("Erreur création session de paiement pour contrat $contratId ($periode)", true);
                 continue;
             }
+            logMsg("--- RÉSULTAT 7 : Nouvelle session créée id={$paySession['id']} expiration=$expiration ---");
         }
 
         $lienPaiement   = $siteUrl . '/payment/pay.php?token=' . urlencode($paySession['token_acces']);
@@ -286,10 +324,13 @@ foreach ($contrats as $contrat) {
         // Les mois passés sont toujours des rappels ; le mois courant suit la logique invitation/rappel
         if ($isPast) {
             $templateId = 'stripe_rappel_paiement';
+            logMsg("--- Choix template : $templateId (mois passé) ---");
         } elseif ($doInvitation && !$paySession['email_invitation_envoye']) {
             $templateId = 'stripe_invitation_paiement';
+            logMsg("--- Choix template : $templateId (doInvitation=oui, email_invitation_envoye=non) ---");
         } else {
             $templateId = 'stripe_rappel_paiement';
+            logMsg("--- Choix template : $templateId (doInvitation=" . ($doInvitation ? 'oui' : 'non') . ", doRappel=" . ($doRappel ? 'oui' : 'non') . ", email_invitation_envoye={$paySession['email_invitation_envoye']}) ---");
         }
 
         // Si invitation déjà envoyée ce mois et aujourd'hui = jour invitation sans rappel, ignorer
@@ -321,17 +362,20 @@ foreach ($contrats as $contrat) {
 
         // Mettre à jour le flag d'invitation si c'est l'invitation initiale du mois courant
         if (!$isPast && $doInvitation && !$paySession['email_invitation_envoye']) {
+            logMsg("--- REQUÊTE 8 : UPDATE stripe_payment_sessions SET email_invitation_envoye=1 WHERE id={$paySession['id']} ---");
             $pdo->prepare("
                 UPDATE stripe_payment_sessions
                 SET email_invitation_envoye = 1, date_email_invitation = NOW()
                 WHERE id = ?
             ")->execute([$paySession['id']]);
+            logMsg("--- RÉSULTAT 8 : flag email_invitation_envoye mis à 1 pour session id={$paySession['id']} ---");
         }
     } // end foreach monthsToProcess
 }
 
 // ─── Enregistrer le résultat dans cron_jobs ─────────────────────────────────
 try {
+    logMsg("--- REQUÊTE 9 : UPDATE cron_jobs SET last_run=NOW() WHERE fichier='cron/stripe-paiements.php' ---");
     $cronLogsStr = implode('', $cronLogs);
     $pdo->prepare("
         UPDATE cron_jobs
@@ -339,6 +383,7 @@ try {
             last_result = ?
         WHERE fichier = 'cron/stripe-paiements.php'
     ")->execute([mb_substr($cronLogsStr, 0, 65000)]);
+    logMsg("--- RÉSULTAT 9 : cron_jobs mis à jour ---");
 } catch (Exception $e) {
     error_log('stripe-paiements cron: erreur mise à jour last_run - ' . $e->getMessage());
 }
