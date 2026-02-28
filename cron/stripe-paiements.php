@@ -62,6 +62,7 @@ $contrats = $pdo->query("
 ")->fetchAll(PDO::FETCH_ASSOC);
 
 $nomsMois = [1=>'Janvier',2=>'Février',3=>'Mars',4=>'Avril',5=>'Mai',6=>'Juin',7=>'Juillet',8=>'Août',9=>'Septembre',10=>'Octobre',11=>'Novembre',12=>'Décembre'];
+$siteUrl = rtrim($config['SITE_URL'], '/');
 
 foreach ($contrats as $contrat) {
     $contratId  = $contrat['contrat_id'];
@@ -72,9 +73,9 @@ foreach ($contrats as $contrat) {
     $locataires = $locatairesStmt->fetchAll(PDO::FETCH_ASSOC);
     if (empty($locataires)) { logStep("Pas de locataires"); continue; }
 
-    // Récupérer uniquement les mois impayés
+    // Récupérer uniquement les mois impayés (sans doublons)
     $impayesStmt = $pdo->prepare("
-        SELECT mois, annee
+        SELECT DISTINCT mois, annee
         FROM loyers_tracking
         WHERE contrat_id = ? 
           AND statut_paiement != 'paye'
@@ -101,7 +102,7 @@ foreach ($contrats as $contrat) {
             logStep("Template choisi = RAPPEL");
         }
 
-        // Envoi réel du mail
+        // Envoi réel du mail (une seule fois par locataire et par mois)
         foreach ($locataires as $locataire) {
             $sent = sendTemplatedEmail($templateId, $locataire['email'], [
                 'locataire_nom'     => $locataire['nom'],
