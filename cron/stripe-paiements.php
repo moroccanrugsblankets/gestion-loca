@@ -103,33 +103,32 @@ foreach ($contrats as $contrat) {
             logStep("Template choisi = RAPPEL");
         }
 
-        // Filtrer les adresses uniques pour éviter doublons
-        $emailsEnvoyes = [];
+        // Envoi réel du mail avec BCC aux admins
         foreach ($locataires as $locataire) {
-            $email = $locataire['email'];
-            if (in_array($email, $emailsEnvoyes)) {
-                logStep("Email déjà envoyé à $email → SKIP");
-                continue;
-            }
-            $emailsEnvoyes[] = $email;
-
-            $sent = sendTemplatedEmail($templateId, $email, [
-                'locataire_nom'     => $locataire['nom'],
-                'locataire_prenom'  => $locataire['prenom'],
-                'adresse'           => $contrat['adresse'],
-                'periode'           => $periode,
-                'montant_loyer'     => number_format((float)$contrat['loyer'], 2, ',', ' '),
-                'montant_charges'   => number_format((float)$contrat['charges'], 2, ',', ' '),
-                'montant_total'     => number_format((float)$contrat['loyer'] + (float)$contrat['charges'], 2, ',', ' '),
-                'lien_paiement'     => $siteUrl.'/payment/pay.php?token=xxx',
-                'date_expiration'   => date('d/m/Y à H:i', time()+168*3600),
-                'signature'         => getParameter('email_signature', ''),
-            ]);
+            $sent = sendTemplatedEmail(
+                $templateId,
+                $locataire['email'],
+                [
+                    'locataire_nom'     => $locataire['nom'],
+                    'locataire_prenom'  => $locataire['prenom'],
+                    'adresse'           => $contrat['adresse'],
+                    'periode'           => $periode,
+                    'montant_loyer'     => number_format((float)$contrat['loyer'], 2, ',', ' '),
+                    'montant_charges'   => number_format((float)$contrat['charges'], 2, ',', ' '),
+                    'montant_total'     => number_format((float)$contrat['loyer'] + (float)$contrat['charges'], 2, ',', ' '),
+                    'lien_paiement'     => $siteUrl.'/payment/pay.php?token=xxx',
+                    'date_expiration'   => date('d/m/Y à H:i', time()+168*3600),
+                    'signature'         => getParameter('email_signature', ''),
+                ],
+                null,       // attachmentPath
+                false,      // isAdminEmail
+                true        // addAdminBcc → copie cachée aux admins
+            );
 
             if ($sent) {
-                logStep("✅ Email $templateId envoyé à $email pour $periode");
+                logStep("✅ Email $templateId envoyé à {$locataire['email']} pour $periode (admins en BCC)");
             } else {
-                logStep("❌ Échec envoi email $templateId à $email pour $periode");
+                logStep("❌ Échec envoi email $templateId à {$locataire['email']} pour $periode");
             }
         }
     }
