@@ -325,9 +325,10 @@ foreach ($contrats as $contrat) {
 
         // Choisir le template selon le contexte
         // - Mois passés : toujours rappel (skip si déjà envoyé aujourd'hui)
-        // - Mois courant : invitation si aujourd'hui = jour d'invitation ET pas encore envoyée ce mois ;
-        //                  rappel sur un jour de rappel configuré (skip si déjà envoyé aujourd'hui) ;
-        //                  ignoré sinon (invitation déjà envoyée et aujourd'hui n'est pas un jour de rappel)
+        // - Mois courant sur un jour d'invitation, invitation pas encore envoyée : invitation
+        // - Mois courant sur un jour de rappel, invitation pas encore envoyée : invitation (rattrapage)
+        // - Mois courant sur un jour de rappel, invitation déjà envoyée : rappel (skip si déjà envoyé aujourd'hui)
+        // - Mois courant sur le jour d'invitation, invitation déjà envoyée, pas un jour de rappel : ignoré
         $todayDate  = date('Y-m-d');
         $derniereDate = (!empty($paySession['date_email_invitation']))
             ? date('Y-m-d', strtotime($paySession['date_email_invitation']))
@@ -347,16 +348,22 @@ foreach ($contrats as $contrat) {
             $templateId = 'stripe_invitation_paiement';
             logMsg("--- Choix template : $templateId (mois courant, jour d'invitation) ---");
         } elseif ($doRappel) {
-            // Mois courant, jour de rappel → rappel
+            // Mois courant, jour de rappel
             // Éviter les doublons : ne pas renvoyer si déjà envoyé aujourd'hui
             if ($derniereDate === $todayDate) {
-                logMsg("Contrat $contratId ({$contrat['adresse']}) : rappel $periode déjà envoyé aujourd'hui - ignoré.");
+                logMsg("Contrat $contratId ({$contrat['adresse']}) : email $periode déjà envoyé aujourd'hui - ignoré.");
                 continue;
             }
-            $templateId = 'stripe_rappel_paiement';
-            logMsg("--- Choix template : $templateId (mois courant, jour de rappel) ---");
+            if (!$paySession['email_invitation_envoye']) {
+                // Invitation pas encore envoyée ce mois : envoyer l'invitation (rattrapage)
+                $templateId = 'stripe_invitation_paiement';
+                logMsg("--- Choix template : $templateId (mois courant, invitation pas encore envoyée, rattrapage) ---");
+            } else {
+                $templateId = 'stripe_rappel_paiement';
+                logMsg("--- Choix template : $templateId (mois courant, jour de rappel) ---");
+            }
         } else {
-            // Mois courant, jour d'invitation mais invitation déjà envoyée → ignoré
+            // Mois courant, jour d'invitation, invitation déjà envoyée ce mois et aujourd'hui n'est pas un jour de rappel
             logMsg("Contrat $contratId ({$contrat['adresse']}) : invitation $periode déjà envoyée ce mois, et aujourd'hui n'est pas un jour de rappel - ignoré.");
             continue;
         }
