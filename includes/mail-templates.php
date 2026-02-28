@@ -215,6 +215,9 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
         // Destinataire principal
         $mail->addAddress($to);
         
+        // Normaliser l'adresse principale pour éviter les doublons en BCC
+        $toNormalized = strtolower($to);
+
         // Si c'est un email admin, ajouter les administrateurs actifs en copie cachée (BCC)
         if ($isAdminEmail && $pdo) {
             try {
@@ -223,7 +226,7 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
                 $admins = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 
                 foreach ($admins as $admin) {
-                    if (!empty($admin['email']) && filter_var($admin['email'], FILTER_VALIDATE_EMAIL)) {
+                    if (!empty($admin['email']) && filter_var($admin['email'], FILTER_VALIDATE_EMAIL) && strtolower($admin['email']) !== $toNormalized) {
                         $mail->addBCC($admin['email']);
                     }
                 }
@@ -233,12 +236,12 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
         }
         
         // Fallback: Si c'est un email admin et qu'une adresse secondaire est configurée
-        if ($isAdminEmail && !empty($config['ADMIN_EMAIL_SECONDARY'])) {
+        if ($isAdminEmail && !empty($config['ADMIN_EMAIL_SECONDARY']) && strtolower($config['ADMIN_EMAIL_SECONDARY']) !== $toNormalized) {
             $mail->addBCC($config['ADMIN_EMAIL_SECONDARY']);
         }
         
         // Ajouter BCC pour contact@myinvest-immobilier.com si c'est un email admin OU si addAdminBcc est activé
-        if (($isAdminEmail || $addAdminBcc) && !empty($config['ADMIN_EMAIL_BCC'])) {
+        if (($isAdminEmail || $addAdminBcc) && !empty($config['ADMIN_EMAIL_BCC']) && strtolower($config['ADMIN_EMAIL_BCC']) !== $toNormalized) {
             $mail->addBCC($config['ADMIN_EMAIL_BCC']);
         }
         
@@ -250,7 +253,7 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
                 $admins = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 
                 foreach ($admins as $admin) {
-                    if (!empty($admin['email']) && filter_var($admin['email'], FILTER_VALIDATE_EMAIL)) {
+                    if (!empty($admin['email']) && filter_var($admin['email'], FILTER_VALIDATE_EMAIL) && strtolower($admin['email']) !== $toNormalized) {
                         $mail->addBCC($admin['email']);
                     }
                 }
