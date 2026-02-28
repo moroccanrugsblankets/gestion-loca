@@ -101,10 +101,26 @@ foreach ($contrats as $contrat) {
             logStep("Template choisi = RAPPEL");
         }
 
-        // Simulation d'envoi
+        // Envoi réel du mail
         foreach ($locataires as $locataire) {
-            echo "<p>[DEBUG] Objet du mail : <b>$templateId</b> → Destinataire : {$locataire['email']} → Période : $periode</p>";
-            logStep("Simulation envoi : $templateId à {$locataire['email']} pour $periode");
+            $sent = sendTemplatedEmail($templateId, $locataire['email'], [
+                'locataire_nom'     => $locataire['nom'],
+                'locataire_prenom'  => $locataire['prenom'],
+                'adresse'           => $contrat['adresse'],
+                'periode'           => $periode,
+                'montant_loyer'     => number_format((float)$contrat['loyer'], 2, ',', ' '),
+                'montant_charges'   => number_format((float)$contrat['charges'], 2, ',', ' '),
+                'montant_total'     => number_format((float)$contrat['loyer'] + (float)$contrat['charges'], 2, ',', ' '),
+                'lien_paiement'     => $siteUrl.'/payment/pay.php?token=xxx',
+                'date_expiration'   => date('d/m/Y à H:i', time()+168*3600),
+                'signature'         => getParameter('email_signature', ''),
+            ]);
+
+            if ($sent) {
+                logStep("✅ Email $templateId envoyé à {$locataire['email']} pour $periode");
+            } else {
+                logStep("❌ Échec envoi email $templateId à {$locataire['email']} pour $periode");
+            }
         }
     }
 }
