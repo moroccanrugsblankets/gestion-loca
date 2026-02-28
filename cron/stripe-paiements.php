@@ -103,8 +103,9 @@ foreach ($contrats as $contrat) {
             logStep("Template choisi = RAPPEL");
         }
 
-        // Envoi réel du mail avec BCC aux admins
         foreach ($locataires as $locataire) {
+            logStep("Préparation envoi pour {$locataire['email']} (contrat=$contratId, période=$periode)");
+
             $sent = sendTemplatedEmail(
                 $templateId,
                 $locataire['email'],
@@ -122,7 +123,8 @@ foreach ($contrats as $contrat) {
                 ],
                 null,       // attachmentPath
                 false,      // isAdminEmail
-                true        // addAdminBcc → copie cachée aux admins
+                true,       // addAdminBcc
+                ['debug' => "contrat=$contratId;periode=$periode;locataire={$locataire['email']}"]
             );
 
             if ($sent) {
