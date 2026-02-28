@@ -1,49 +1,37 @@
 #!/usr/bin/env php
 <?php
-// Activer l'affichage des erreurs pour debug
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
-
-/**
- * CRON JOB: Simulation envoi automatique des invitations et rappels de paiement Stripe
- */
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/mail-templates.php';
 
-// Charger Stripe SDK
 $autoload = __DIR__ . '/../vendor/autoload.php';
 if (!file_exists($autoload)) {
-    error_log('[stripe-paiements] vendor/autoload.php introuvable - exécutez composer install');
-    exit(1);
+    exit("Stripe SDK manquant\n");
 }
 require_once $autoload;
 
-// ─── Logging ────────────────────────────────────────────────────────────────
 function logMsg(string $msg, bool $isError = false): void {
     $level = $isError ? '[ERROR]' : '[INFO]';
-    $line = '[' . date('Y-m-d H:i:s') . "] $level $msg<br>";
-    echo "<pre>$line</pre>";
+    echo "<pre>[".date('Y-m-d H:i:s')."] $level $msg</pre>";
 }
 function logSection(string $title): void { logMsg("========== $title =========="); }
 function logStep(string $msg): void { logMsg("---- $msg ----"); }
-function logError(string $msg): void { logMsg("!!!! ERREUR : $msg !!!!", true); }
 
-// ─── Vérifications préalables ───────────────────────────────────────────────
 $stripeActif = getParameter('stripe_actif', false);
-if (!$stripeActif) { logMsg('Module Stripe inactif. Arrêt du cron.'); exit(0); }
+if (!$stripeActif) { logMsg('Module Stripe inactif.'); exit; }
 
 $stripeMode = getParameter('stripe_mode', 'test');
 $stripeSecretKey = ($stripeMode === 'live')
     ? getParameter('stripe_secret_key_live', '')
     : getParameter('stripe_secret_key_test', '');
-if (empty($stripeSecretKey)) { logError('Clé secrète Stripe non configurée.'); exit(1); }
+if (empty($stripeSecretKey)) { logMsg('Clé Stripe manquante', true); exit; }
 \Stripe\Stripe::setApiKey($stripeSecretKey);
 
-// ─── Déterminer l'action à effectuer aujourd'hui ────────────────────────────
 $aujourdHui = (int)date('j');
 $moisActuel = (int)date('n');
 $anneeActuelle = (int)date('Y');
@@ -55,14 +43,10 @@ if (!is_array($joursRappel)) $joursRappel = [7, 14];
 $doInvitation = ($aujourdHui === $jourInvitation);
 $doRappel     = in_array($aujourdHui, $joursRappel, true);
 
-if (!$doInvitation && !$doRappel) {
-    logMsg("Aucune action prévue pour le jour $aujourdHui.");
-    exit(0);
-}
+if (!$doInvitation && !$doRappel) { logMsg("Aucune action prévue aujourd'hui."); exit; }
 
 logSection("Démarrage du cron - mode=$stripeMode, jour=$aujourdHui");
 
-// ─── Récupérer les contrats actifs ─────────────────────────────────────────
 $contrats = $pdo->query("
     SELECT c.id as contrat_id, c.date_prise_effet,
            l.id as logement_id, l.adresse, l.loyer, l.charges
@@ -72,80 +56,62 @@ $contrats = $pdo->query("
         SELECT logement_id, MAX(id) AS max_id
         FROM contrats
         WHERE statut = 'valide'
-          AND date_prise_effet IS NOT NULL
           AND date_prise_effet <= CURDATE()
         GROUP BY logement_id
     ) actifs ON c.id = actifs.max_id
 ")->fetchAll(PDO::FETCH_ASSOC);
 
-if (empty($contrats)) { logMsg('Aucun contrat actif trouvé.'); exit(0); }
-
 $nomsMois = [1=>'Janvier',2=>'Février',3=>'Mars',4=>'Avril',5=>'Mai',6=>'Juin',7=>'Juillet',8=>'Août',9=>'Septembre',10=>'Octobre',11=>'Novembre',12=>'Décembre'];
-$siteUrl = rtrim($config['SITE_URL'], '/');
 
-// ─── Traitement de chaque contrat ───────────────────────────────────────────
 foreach ($contrats as $contrat) {
     $contratId  = $contrat['contrat_id'];
-    $logementId = $contrat['logement_id'];
+    logSection("Contrat $contratId");
 
-    logSection("Contrat $contratId - logement $logementId");
-
-    // Locataires
-    $locatairesStmt = $pdo->prepare("SELECT * FROM locataires WHERE contrat_id = ? ORDER BY ordre");
+    $locatairesStmt = $pdo->prepare("SELECT * FROM locataires WHERE contrat_id = ?");
     $locatairesStmt->execute([$contratId]);
     $locataires = $locatairesStmt->fetchAll(PDO::FETCH_ASSOC);
-    if (empty($locataires)) { logStep("Aucun locataire trouvé → SKIP"); continue; }
+    if (empty($locataires)) { logStep("Pas de locataires"); continue; }
 
-    // Construire la liste des mois à traiter depuis la prise d'effet du contrat
+    // Construire la liste des mois depuis la prise d'effet
     $dateDebut = new DateTime($contrat['date_prise_effet']);
     $dateCourante = new DateTime();
-    $monthsToProcess = [];
-
-    while ($dateDebut <= $dateCourante) {
-        $mois = (int)$dateDebut->format('n');
-        $annee = (int)$dateDebut->format('Y');
-        $isPast = ($annee < $anneeActuelle) || ($annee == $anneeActuelle && $mois < $moisActuel);
-
-        $monthsToProcess[] = ['mois'=>$mois,'annee'=>$annee,'is_past'=>$isPast];
-        $dateDebut->modify('+1 month');
-    }
-
-    // Préparer requête loyers_tracking
     $ltStmt = $pdo->prepare("
-        SELECT id, statut_paiement
+        SELECT statut_paiement
         FROM loyers_tracking
         WHERE contrat_id = ? AND mois = ? AND annee = ? AND deleted_at IS NULL
         LIMIT 1
     ");
 
-    foreach ($monthsToProcess as $monthEntry) {
-        $mois   = $monthEntry['mois'];
-        $annee  = $monthEntry['annee'];
-        $isPast = $monthEntry['is_past'];
+    while ($dateDebut <= $dateCourante) {
+        $mois = (int)$dateDebut->format('n');
+        $annee = (int)$dateDebut->format('Y');
+        $isPast = ($annee < $anneeActuelle) || ($annee == $anneeActuelle && $mois < $moisActuel);
         $periode = $nomsMois[$mois] . ' ' . $annee;
-
-        logStep("Traitement période $periode");
 
         $ltStmt->execute([$contratId, $mois, $annee]);
         $lt = $ltStmt->fetch(PDO::FETCH_ASSOC);
-        if ($lt && $lt['statut_paiement'] === 'paye') { logStep("Déjà payé → SKIP"); continue; }
+
+        // Filtrer uniquement les mois impayés
+        if ($lt && $lt['statut_paiement'] === 'paye') {
+            logStep("$periode déjà payé → SKIP");
+            $dateDebut->modify('+1 month');
+            continue;
+        }
 
         // Choix du template
         if ($doInvitation && !$isPast) {
             $templateId = 'stripe_invitation_paiement';
-            logStep("Template choisi = INVITATION");
         } else {
             $templateId = 'stripe_rappel_paiement';
-            logStep("Template choisi = RAPPEL");
         }
 
-        // Simulation d'envoi (pas de mail réel)
         foreach ($locataires as $locataire) {
             echo "<p>[DEBUG] Objet du mail : <b>$templateId</b> → Destinataire : {$locataire['email']} → Période : $periode</p>";
             logStep("Simulation envoi : $templateId à {$locataire['email']} pour $periode");
         }
+
+        $dateDebut->modify('+1 month');
     }
 }
 
 logSection('Cron stripe-paiements terminé');
-exit(0);
