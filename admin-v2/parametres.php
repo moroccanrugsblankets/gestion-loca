@@ -8,6 +8,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'update') {
         $hasError = false;
         foreach ($_POST['parametres'] as $cle => $valeur) {
+            // For the SMTP password field: if submitted empty, keep the existing DB value
+            if ($cle === 'smtp_password' && $valeur === '') {
+                continue;
+            }
+
             // Validate JSON parameters
             $stmt = $pdo->prepare("SELECT type FROM parametres WHERE cle = ?");
             $stmt->execute([$cle]);
@@ -128,13 +133,13 @@ foreach ($allParams as $param) {
             <?php foreach ($parametres as $groupe => $params): ?>
                 <div class="param-card">
                     <h5>
-                        <i class="bi bi-<?php echo $groupe === 'workflow' ? 'arrow-repeat' : 'check-circle'; ?>"></i>
+                        <i class="bi bi-<?php echo $groupe === 'workflow' ? 'arrow-repeat' : ($groupe === 'email' ? 'envelope-at' : 'check-circle'); ?>"></i>
                         <?php 
                         $groupeTitles = [
                             'workflow' => 'Workflow et Délais',
                             'criteres' => 'Critères d\'Acceptation',
                             'general' => 'Général',
-                            'email' => 'Signature Email'
+                            'email' => 'Configuration Email & SMTP'
                         ];
                         echo $groupeTitles[$groupe] ?? ucfirst($groupe);
                         ?>
@@ -203,7 +208,14 @@ foreach ($allParams as $param) {
                                     'nb_occupants_acceptes' => 'Nombres d\'occupants acceptés',
                                     'garantie_visale_requise' => 'Garantie Visale requise',
                                     'email_signature' => 'Signature des emails',
-                                    'logo_societe' => 'Logo de la société'
+                                    'logo_societe' => 'Logo de la société',
+                                    'mail_from' => 'Adresse email d\'expédition',
+                                    'mail_from_name' => 'Nom de l\'expéditeur',
+                                    'smtp_host' => 'Serveur SMTP',
+                                    'smtp_port' => 'Port SMTP',
+                                    'smtp_secure' => 'Sécurité SMTP',
+                                    'smtp_username' => 'Identifiant SMTP (email)',
+                                    'smtp_password' => 'Mot de passe SMTP',
                                 ];
                                 echo $labels[$param['cle']] ?? $param['cle'];
                                 ?>
@@ -267,6 +279,32 @@ foreach ($allParams as $param) {
                                     </div>
                                 </div>
                                 <?php endif; ?>
+                            <?php elseif ($param['cle'] === 'smtp_password'): ?>
+                                <input type="password"
+                                       name="parametres[<?php echo $param['cle']; ?>]"
+                                       class="form-control"
+                                       value=""
+                                       autocomplete="new-password"
+                                       placeholder="<?php echo !empty($param['valeur']) ? '••••••••  (défini - laissez vide pour conserver)' : 'Entrez le mot de passe SMTP'; ?>">
+                                <small class="text-muted">Mot de passe SMTP ou <em>App Password</em> (Gmail, Outlook…). Laissez vide pour conserver la valeur existante.</small>
+                                <?php if (!empty($param['valeur'])): ?>
+                                <div class="mt-1"><span class="badge bg-success"><i class="bi bi-check-circle"></i> Mot de passe SMTP défini</span></div>
+                                <?php else: ?>
+                                <div class="mt-1"><span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> Aucun mot de passe SMTP configuré</span></div>
+                                <?php endif; ?>
+                            <?php elseif ($param['cle'] === 'smtp_secure'): ?>
+                                <select name="parametres[<?php echo $param['cle']; ?>]" class="form-select">
+                                    <option value="tls" <?php echo $param['valeur'] === 'tls' ? 'selected' : ''; ?>>TLS (port 587 recommandé)</option>
+                                    <option value="ssl" <?php echo $param['valeur'] === 'ssl' ? 'selected' : ''; ?>>SSL (port 465)</option>
+                                </select>
+                            <?php elseif ($param['cle'] === 'smtp_port'): ?>
+                                <input type="number"
+                                       name="parametres[<?php echo $param['cle']; ?>]"
+                                       class="form-control"
+                                       value="<?php echo htmlspecialchars($param['valeur']); ?>"
+                                       min="1" max="65535"
+                                       required>
+                                <small class="text-muted">587 (TLS) ou 465 (SSL)</small>
                             <?php else: ?>
                                 <input type="text" 
                                        name="parametres[<?php echo $param['cle']; ?>]" 

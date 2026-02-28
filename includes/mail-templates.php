@@ -171,14 +171,54 @@ function logEmail($to, $subject, $body, $statut = 'success', $messageErreur = nu
  */
 function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true, $isAdminEmail = false, $replyTo = null, $replyToName = null, $addAdminBcc = false, $logContext = []) {
     global $config, $pdo;
-    
+
+    // Override SMTP/FROM config with values stored in the parametres table (if available).
+    // This allows admins to configure email sending directly from the admin UI without
+    // editing files. DB values take priority over the static $config array.
+    static $smtpDbLoaded = false;
+    if (!$smtpDbLoaded && $pdo) {
+        $smtpDbLoaded = true;
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT cle, valeur FROM parametres
+                 WHERE groupe = 'email'
+                   AND cle IN ('smtp_host','smtp_port','smtp_secure','smtp_username','smtp_password','mail_from','mail_from_name')"
+            );
+            $stmt->execute();
+            $smtpMap = [
+                'smtp_host'      => 'SMTP_HOST',
+                'smtp_port'      => 'SMTP_PORT',
+                'smtp_secure'    => 'SMTP_SECURE',
+                'smtp_username'  => 'SMTP_USERNAME',
+                'smtp_password'  => 'SMTP_PASSWORD',
+                'mail_from'      => 'MAIL_FROM',
+                'mail_from_name' => 'MAIL_FROM_NAME',
+            ];
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                if (isset($smtpMap[$row['cle']]) && $row['valeur'] !== '') {
+                    $val = $row['valeur'];
+                    if ($row['cle'] === 'smtp_port') {
+                        $val = (int)$val;
+                    }
+                    $config[$smtpMap[$row['cle']]] = $val;
+                }
+            }
+            // If credentials are set in DB, make sure SMTP_AUTH is on
+            if (!empty($config['SMTP_USERNAME']) && !empty($config['SMTP_PASSWORD'])) {
+                $config['SMTP_AUTH'] = true;
+            }
+        } catch (Exception $e) {
+            error_log("Could not load SMTP config from database: " . $e->getMessage());
+        }
+    }
+
     // Validate SMTP configuration if SMTP auth is enabled
     if ($config['SMTP_AUTH']) {
         if (empty($config['SMTP_PASSWORD']) || empty($config['SMTP_USERNAME']) || empty($config['SMTP_HOST'])) {
             error_log("ERREUR CRITIQUE: Configuration SMTP incomplète. Password: " . (empty($config['SMTP_PASSWORD']) ? 'VIDE' : 'défini') . 
                      ", Username: " . (empty($config['SMTP_USERNAME']) ? 'VIDE' : 'défini') . 
                      ", Host: " . (empty($config['SMTP_HOST']) ? 'VIDE' : 'défini'));
-            error_log("L'email à $to ne peut pas être envoyé. Veuillez configurer les paramètres SMTP dans includes/config.local.php");
+            error_log("L'email à $to ne peut pas être envoyé. Veuillez configurer les paramètres SMTP dans l'interface Admin > Paramètres ou dans includes/config.local.php");
             return false;
         }
     }
@@ -218,8 +258,9 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
         // Normaliser l'adresse principale pour éviter les doublons en BCC
         $toNormalized = strtolower($to);
 
-        // Si c'est un email admin, ajouter les administrateurs actifs en copie cachée (BCC)
-        if ($isAdminEmail && $pdo) {
+        // Ajouter les administrateurs en BCC si c'est un email admin OU si addAdminBcc est activé
+        // Bloc unique pour éviter d'ajouter les mêmes adresses deux fois (cause de doublons)
+        if (($isAdminEmail || $addAdminBcc) && $pdo) {
             try {
                 $stmt = $pdo->prepare("SELECT email FROM administrateurs WHERE actif = TRUE");
                 $stmt->execute();
@@ -235,31 +276,14 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
             }
         }
         
-        // Fallback: Si c'est un email admin et qu'une adresse secondaire est configurée
+        // Si c'est un email admin et qu'une adresse secondaire est configurée
         if ($isAdminEmail && !empty($config['ADMIN_EMAIL_SECONDARY']) && strtolower($config['ADMIN_EMAIL_SECONDARY']) !== $toNormalized) {
             $mail->addBCC($config['ADMIN_EMAIL_SECONDARY']);
         }
         
-        // Ajouter BCC pour contact@myinvest-immobilier.com si c'est un email admin OU si addAdminBcc est activé
+        // Ajouter BCC pour l'adresse BCC admin si c'est un email admin OU si addAdminBcc est activé
         if (($isAdminEmail || $addAdminBcc) && !empty($config['ADMIN_EMAIL_BCC']) && strtolower($config['ADMIN_EMAIL_BCC']) !== $toNormalized) {
             $mail->addBCC($config['ADMIN_EMAIL_BCC']);
-        }
-        
-        // Si addAdminBcc est activé, ajouter tous les administrateurs en BCC (copie cachée invisible pour le client)
-        if ($addAdminBcc && $pdo) {
-            try {
-                $stmt = $pdo->prepare("SELECT email FROM administrateurs WHERE actif = TRUE");
-                $stmt->execute();
-                $admins = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                foreach ($admins as $admin) {
-                    if (!empty($admin['email']) && filter_var($admin['email'], FILTER_VALIDATE_EMAIL) && strtolower($admin['email']) !== $toNormalized) {
-                        $mail->addBCC($admin['email']);
-                    }
-                }
-            } catch (Exception $e) {
-                error_log("Could not fetch admin emails for BCC: " . $e->getMessage());
-            }
         }
         
         // Replace {{signature}} placeholder if present in body
@@ -368,22 +392,17 @@ function sendEmail($to, $subject, $body, $attachmentPath = null, $isHtml = true,
             $logContext['template_id'] ?? null,
             $logContext['contexte'] ?? null);
         
-        // En cas d'échec SMTP, ne PAS essayer le fallback si les credentials ne sont pas configurés
-        // Le fallback mail() retourne toujours true même si l'email n'est pas envoyé
-        // Note: Cette vérification est redondante avec la validation initiale (ligne 139-144)
-        // mais sert de filet de sécurité au cas où la config serait modifiée dynamiquement
-        if ($config['SMTP_AUTH'] && (empty($config['SMTP_PASSWORD']) || empty($config['SMTP_USERNAME']))) {
-            error_log("ATTENTION: Pas de fallback car les credentials SMTP ne sont pas configurés. L'email n'a PAS été envoyé.");
+        // Ne PAS utiliser le fallback mail() quand SMTP est configuré :
+        // Si PHPMailer a déjà livré l'email avant de lever une exception (ex: déconnexion SMTP),
+        // appeler sendEmailFallback() enverrait un doublon au destinataire.
+        if ($config['SMTP_AUTH']) {
+            error_log("ATTENTION: Pas de fallback car SMTP est configuré. L'email n'a peut-être pas été envoyé.");
             return false;
         }
         
-        // Sinon, essayer avec la fonction mail() native en fallback
-        if ($config['SMTP_AUTH']) {
-            error_log("Tentative de fallback avec mail() natif...");
-            return sendEmailFallback($to, $subject, $body, $attachmentPath, $isHtml);
-        }
-        
-        return false;
+        // Fallback avec mail() natif uniquement si SMTP n'est pas configuré
+        error_log("Tentative de fallback avec mail() natif...");
+        return sendEmailFallback($to, $subject, $body, $attachmentPath, $isHtml);
     }
 }
 
