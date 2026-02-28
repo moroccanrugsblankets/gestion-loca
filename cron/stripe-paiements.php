@@ -103,8 +103,19 @@ foreach ($contrats as $contrat) {
     $montantTotal   = number_format($montant, 2, ',', ' ');
     $signature      = getParameter('email_signature', '');
 
-    // Mois à traiter (mois courant + éventuellement mois passés)
-    $monthsToProcess = [['mois'=>$moisActuel,'annee'=>$anneeActuelle,'is_past'=>false]];
+    // Construire la liste des mois à traiter depuis la prise d'effet du contrat
+    $dateDebut = new DateTime($contrat['date_prise_effet']);
+    $dateCourante = new DateTime();
+    $monthsToProcess = [];
+
+    while ($dateDebut <= $dateCourante) {
+        $mois = (int)$dateDebut->format('n');
+        $annee = (int)$dateDebut->format('Y');
+        $isPast = ($annee < $anneeActuelle) || ($annee == $anneeActuelle && $mois < $moisActuel);
+
+        $monthsToProcess[] = ['mois'=>$mois,'annee'=>$annee,'is_past'=>$isPast];
+        $dateDebut->modify('+1 month');
+    }
 
     // Préparer requête loyers_tracking
     $ltStmt = $pdo->prepare("
@@ -155,4 +166,3 @@ foreach ($contrats as $contrat) {
 }
 
 logSection('Cron stripe-paiements terminé');
-exit(0);
