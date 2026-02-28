@@ -1,5 +1,10 @@
 #!/usr/bin/env php
 <?php
+// Activer l'affichage des erreurs pour debug
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+
 /**
  * CRON JOB: Envoi automatique des invitations et rappels de paiement Stripe
  */
@@ -8,11 +13,6 @@ require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/mail-templates.php';
-
-// Activer l'affichage des erreurs pour le debug
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
 
 // Charger Stripe SDK
 $autoload = __DIR__ . '/../vendor/autoload.php';
@@ -34,28 +34,19 @@ function logMsg(string $msg, bool $isError = false): void {
     file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
     $cronLogs[] = $line;
 }
-function logSection(string $title): void {
-    logMsg("========== $title ==========");
-}
-function logStep(string $msg): void {
-    logMsg("---- $msg ----");
-}
+function logSection(string $title): void { logMsg("========== $title =========="); }
+function logStep(string $msg): void { logMsg("---- $msg ----"); }
+function logError(string $msg): void { logMsg("!!!! ERREUR : $msg !!!!", true); }
 
 // ─── Vérifications préalables ───────────────────────────────────────────────
 $stripeActif = getParameter('stripe_actif', false);
-if (!$stripeActif) {
-    logMsg('Module Stripe inactif. Arrêt du cron.');
-    exit(0);
-}
+if (!$stripeActif) { logMsg('Module Stripe inactif. Arrêt du cron.'); exit(0); }
 
 $stripeMode = getParameter('stripe_mode', 'test');
 $stripeSecretKey = ($stripeMode === 'live')
     ? getParameter('stripe_secret_key_live', '')
     : getParameter('stripe_secret_key_test', '');
-if (empty($stripeSecretKey)) {
-    logMsg('Clé secrète Stripe non configurée. Arrêt du cron.', true);
-    exit(1);
-}
+if (empty($stripeSecretKey)) { logError('Clé secrète Stripe non configurée.'); exit(1); }
 \Stripe\Stripe::setApiKey($stripeSecretKey);
 
 // ─── Déterminer l'action à effectuer aujourd'hui ────────────────────────────
@@ -93,10 +84,7 @@ $contrats = $pdo->query("
     ) actifs ON c.id = actifs.max_id
 ")->fetchAll(PDO::FETCH_ASSOC);
 
-if (empty($contrats)) {
-    logMsg('Aucun contrat actif trouvé.');
-    exit(0);
-}
+if (empty($contrats)) { logMsg('Aucun contrat actif trouvé.'); exit(0); }
 
 $nomsMois = [1=>'Janvier',2=>'Février',3=>'Mars',4=>'Avril',5=>'Mai',6=>'Juin',7=>'Juillet',8=>'Août',9=>'Septembre',10=>'Octobre',11=>'Novembre',12=>'Décembre'];
 $liensExpirationHeures = (int)getParameter('stripe_lien_expiration_heures', 168);
@@ -114,17 +102,14 @@ foreach ($contrats as $contrat) {
     $locatairesStmt = $pdo->prepare("SELECT * FROM locataires WHERE contrat_id = ? ORDER BY ordre");
     $locatairesStmt->execute([$contratId]);
     $locataires = $locatairesStmt->fetchAll(PDO::FETCH_ASSOC);
-    if (empty($locataires)) {
-        logStep("Aucun locataire trouvé → SKIP");
-        continue;
-    }
+    if (empty($locataires)) { logStep("Aucun locataire trouvé → SKIP"); continue; }
 
     $montantLoyer   = number_format((float)$contrat['loyer'], 2, ',', ' ');
     $montantCharges = number_format((float)$contrat['charges'], 2, ',', ' ');
     $montantTotal   = number_format($montant, 2, ',', ' ');
     $signature      = getParameter('email_signature', '');
 
-    // Mois à traiter (mois courant + mois passés)
+    // Mois à traiter (mois courant + éventuellement mois passés)
     $monthsToProcess = [['mois'=>$moisActuel,'annee'=>$anneeActuelle,'is_past'=>false]];
 
     // Préparer requête loyers_tracking
@@ -145,20 +130,14 @@ foreach ($contrats as $contrat) {
 
         $ltStmt->execute([$contratId, $mois, $annee]);
         $lt = $ltStmt->fetch(PDO::FETCH_ASSOC);
-        if ($lt && $lt['statut_paiement'] === 'paye') {
-            logStep("Déjà payé → SKIP");
-            continue;
-        }
+        if ($lt && $lt['statut_paiement'] === 'paye') { logStep("Déjà payé → SKIP"); continue; }
 
         // Anti-doublon
         $todayDate = date('Y-m-d');
         $derniereDate = (!empty($lt['date_email_invitation']))
             ? date('Y-m-d', strtotime($lt['date_email_invitation']))
             : null;
-        if ($derniereDate === $todayDate) {
-            logStep("Déjà envoyé aujourd'hui → SKIP");
-            continue;
-        }
+        if ($derniereDate === $todayDate) { logStep("Déjà envoyé aujourd'hui → SKIP"); continue; }
 
         // Choix du template
         if ($doInvitation && !$isPast) {
@@ -170,7 +149,7 @@ foreach ($contrats as $contrat) {
         }
 
         // Envoi du mail
-        foreach ($locataires as $locataire) {
+                foreach ($locataires as $locataire) {
             $sent = sendTemplatedEmail($templateId, $locataire['email'], [
                 'locataire_nom'     => $locataire['nom'],
                 'locataire_prenom'  => $locataire['prenom'],
@@ -183,12 +162,29 @@ foreach ($contrats as $contrat) {
                 'date_expiration'   => date('d/m/Y à H:i', time()+$liensExpirationHeures*3600),
                 'signature'         => $signature,
             ]);
-            logStep($sent ? "Email $templateId envoyé à {$locataire['email']}" : "Échec envoi email $templateId à {$locataire['email']}");
-        }
-    }
-}
 
-// ─── Enregistrer le résultat ───────────────────────────────────────────────
+            if ($sent) {
+                logStep("✅ Email $templateId envoyé à {$locataire['email']} pour $periode");
+            } else {
+                logError("❌ Échec envoi email $templateId à {$locataire['email']} pour $periode");
+            }
+        }
+
+        // Mise à jour de la table loyers_tracking pour anti-doublon
+        try {
+            $pdo->prepare("
+                UPDATE loyers_tracking
+                SET date_email_invitation = NOW()
+                WHERE contrat_id = ? AND mois = ? AND annee = ?
+            ")->execute([$contratId, $mois, $annee]);
+            logStep("Mise à jour loyers_tracking → date_email_invitation enregistrée pour $periode");
+        } catch (Exception $e) {
+            logError("Erreur update loyers_tracking : ".$e->getMessage());
+        }
+    } // fin foreach monthsToProcess
+} // fin foreach contrats
+
+// ─── Enregistrer le résultat global ─────────────────────────────────────────
 try {
     $cronLogsStr = implode('', $cronLogs);
     $pdo->prepare("
@@ -196,5 +192,10 @@ try {
         SET last_run = NOW(), last_result = ?
         WHERE fichier = 'cron/stripe-paiements.php'
     ")->execute([mb_substr($cronLogsStr, 0, 65000)]);
+    logSection("Mise à jour cron_jobs réussie");
 } catch (Exception $e) {
-    error_log('Erreur
+    logError('Erreur mise à jour cron_jobs - '.$e->getMessage());
+}
+
+logSection('Cron stripe-paiements terminé');
+exit(0);
