@@ -36,11 +36,40 @@ $aujourdHui = (int)date('j');
 $moisActuel = (int)date('n');
 $anneeActuelle = (int)date('Y');
 
+/**
+ * Retourne le jour calendaire correspondant au N-ième jour ouvrable du mois.
+ * Les jours ouvrables sont du lundi au vendredi (ISO 1-5).
+ */
+function getNthWorkingDayOfMonth(int $n, int $year, int $month): int {
+    $count = 0;
+    $daysInMonth = (int)date('t', mktime(0, 0, 0, $month, 1, $year));
+    for ($day = 1; $day <= $daysInMonth; $day++) {
+        $dow = (int)date('N', mktime(0, 0, 0, $month, $day, $year));
+        if ($dow <= 5) { // lundi(1) à vendredi(5)
+            $count++;
+            if ($count === $n) {
+                return $day;
+            }
+        }
+    }
+    // fallback : dernier jour ouvrable du mois
+    for ($day = $daysInMonth; $day >= 1; $day--) {
+        $dow = (int)date('N', mktime(0, 0, 0, $month, $day, $year));
+        if ($dow <= 5) {
+            return $day;
+        }
+    }
+    return $daysInMonth;
+}
+
 $jourInvitation = (int)getParameter('stripe_paiement_invitation_jour', 1);
 $joursRappel    = getParameter('stripe_paiement_rappel_jours', [7, 14]);
 if (!is_array($joursRappel)) $joursRappel = [7, 14];
 
-$doInvitation = ($aujourdHui === $jourInvitation);
+// Convertir le N-ième jour ouvrable en jour calendaire
+$jourInvitationCalendaire = getNthWorkingDayOfMonth($jourInvitation, $anneeActuelle, $moisActuel);
+
+$doInvitation = ($aujourdHui === $jourInvitationCalendaire);
 $doRappel     = in_array($aujourdHui, $joursRappel, true);
 
 if (!$doInvitation && !$doRappel) { logMsg("Aucune action prévue aujourd'hui."); exit; }
@@ -76,7 +105,7 @@ foreach ($contrats as $contrat) {
     if (empty($locataires)) { logStep("Pas de locataires"); continue; }
 
     $sqlImpayes = "
-        SELECT DISTINCT mois, annee
+        SELECT id, mois, annee, montant_attendu
         FROM loyers_tracking
         WHERE contrat_id = ? 
           AND statut_paiement != 'paye'
@@ -106,6 +135,51 @@ foreach ($contrats as $contrat) {
         foreach ($locataires as $locataire) {
             logStep("Préparation envoi pour {$locataire['email']} (contrat=$contratId, période=$periode)");
 
+            // Récupérer ou créer une session de paiement avec un vrai token
+            $liensHeures = (int)getParameter('stripe_lien_expiration_heures', 168);
+            $montant = (float)($monthEntry['montant_attendu'] ?? ((float)$contrat['loyer'] + (float)$contrat['charges']));
+            $token = null;
+            $expirationTimestamp = time() + $liensHeures * 3600;
+
+            // Chercher une session existante non expirée et non payée
+            $existingStmt = $pdo->prepare("
+                SELECT token_acces, token_expiration FROM stripe_payment_sessions
+                WHERE contrat_id = ? AND mois = ? AND annee = ?
+                  AND statut NOT IN ('paye','annule')
+                  AND token_expiration > NOW()
+                ORDER BY created_at DESC LIMIT 1
+            ");
+            $existingStmt->execute([$contratId, $mois, $annee]);
+            $existingSession = $existingStmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($existingSession) {
+                $token = $existingSession['token_acces'];
+                $expirationTimestamp = strtotime($existingSession['token_expiration']);
+            } else {
+                // Créer une nouvelle session de paiement
+                $token = bin2hex(random_bytes(32));
+                $expiration = date('Y-m-d H:i:s', $expirationTimestamp);
+                $insertStmt = $pdo->prepare("
+                    INSERT INTO stripe_payment_sessions
+                        (loyer_tracking_id, contrat_id, logement_id, mois, annee, montant,
+                         token_acces, token_expiration, statut)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'en_attente')
+                ");
+                $insertStmt->execute([
+                    $monthEntry['id'],
+                    $contratId,
+                    $contrat['logement_id'],
+                    $mois,
+                    $annee,
+                    $montant,
+                    $token,
+                    $expiration,
+                ]);
+            }
+
+            $lienPaiement = $siteUrl . '/payment/pay.php?token=' . urlencode($token);
+            $dateExpiration = date('d/m/Y à H:i', $expirationTimestamp);
+
             $sent = sendTemplatedEmail(
                 $templateId,
                 $locataire['email'],
@@ -117,8 +191,8 @@ foreach ($contrats as $contrat) {
                     'montant_loyer'     => number_format((float)$contrat['loyer'], 2, ',', ' '),
                     'montant_charges'   => number_format((float)$contrat['charges'], 2, ',', ' '),
                     'montant_total'     => number_format((float)$contrat['loyer'] + (float)$contrat['charges'], 2, ',', ' '),
-                    'lien_paiement'     => $siteUrl.'/payment/pay.php?token=xxx',
-                    'date_expiration'   => date('d/m/Y à H:i', time()+168*3600),
+                    'lien_paiement'     => $lienPaiement,
+                    'date_expiration'   => $dateExpiration,
                     'signature'         => getParameter('email_signature', ''),
                 ],
                 null,       // attachmentPath
