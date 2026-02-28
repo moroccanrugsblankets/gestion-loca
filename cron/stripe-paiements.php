@@ -72,45 +72,40 @@ foreach ($contrats as $contrat) {
     $locataires = $locatairesStmt->fetchAll(PDO::FETCH_ASSOC);
     if (empty($locataires)) { logStep("Pas de locataires"); continue; }
 
-    // Construire la liste des mois depuis la prise d'effet
-    $dateDebut = new DateTime($contrat['date_prise_effet']);
-    $dateCourante = new DateTime();
-    $ltStmt = $pdo->prepare("
-        SELECT statut_paiement
+    // Récupérer uniquement les mois impayés
+    $impayesStmt = $pdo->prepare("
+        SELECT mois, annee
         FROM loyers_tracking
-        WHERE contrat_id = ? AND mois = ? AND annee = ? AND deleted_at IS NULL
-        LIMIT 1
+        WHERE contrat_id = ? 
+          AND statut_paiement != 'paye'
+          AND deleted_at IS NULL
+        ORDER BY annee, mois
     ");
+    $impayesStmt->execute([$contratId]);
+    $monthsToProcess = $impayesStmt->fetchAll(PDO::FETCH_ASSOC);
 
-    while ($dateDebut <= $dateCourante) {
-        $mois = (int)$dateDebut->format('n');
-        $annee = (int)$dateDebut->format('Y');
+    foreach ($monthsToProcess as $monthEntry) {
+        $mois   = (int)$monthEntry['mois'];
+        $annee  = (int)$monthEntry['annee'];
         $isPast = ($annee < $anneeActuelle) || ($annee == $anneeActuelle && $mois < $moisActuel);
         $periode = $nomsMois[$mois] . ' ' . $annee;
 
-        $ltStmt->execute([$contratId, $mois, $annee]);
-        $lt = $ltStmt->fetch(PDO::FETCH_ASSOC);
-
-        // Filtrer uniquement les mois impayés
-        if ($lt && $lt['statut_paiement'] === 'paye') {
-            logStep("$periode déjà payé → SKIP");
-            $dateDebut->modify('+1 month');
-            continue;
-        }
+        logStep("Traitement période $periode");
 
         // Choix du template
         if ($doInvitation && !$isPast) {
             $templateId = 'stripe_invitation_paiement';
+            logStep("Template choisi = INVITATION");
         } else {
             $templateId = 'stripe_rappel_paiement';
+            logStep("Template choisi = RAPPEL");
         }
 
+        // Simulation d'envoi
         foreach ($locataires as $locataire) {
             echo "<p>[DEBUG] Objet du mail : <b>$templateId</b> → Destinataire : {$locataire['email']} → Période : $periode</p>";
             logStep("Simulation envoi : $templateId à {$locataire['email']} pour $periode");
         }
-
-        $dateDebut->modify('+1 month');
     }
 }
 
