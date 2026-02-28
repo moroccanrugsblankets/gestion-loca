@@ -47,7 +47,8 @@ if (!$doInvitation && !$doRappel) { logMsg("Aucune action prévue aujourd'hui.")
 
 logSection("Démarrage du cron - mode=$stripeMode, jour=$aujourdHui");
 
-$contrats = $pdo->query("
+// ─── Requête contrats actifs ───────────────────────────────
+$sqlContrats = "
     SELECT c.id as contrat_id, c.date_prise_effet,
            l.id as logement_id, l.adresse, l.loyer, l.charges
     FROM contrats c
@@ -59,7 +60,9 @@ $contrats = $pdo->query("
           AND date_prise_effet <= CURDATE()
         GROUP BY logement_id
     ) actifs ON c.id = actifs.max_id
-")->fetchAll(PDO::FETCH_ASSOC);
+";
+logStep("SQL Contrats: $sqlContrats");
+$contrats = $pdo->query($sqlContrats)->fetchAll(PDO::FETCH_ASSOC);
 
 $nomsMois = [1=>'Janvier',2=>'Février',3=>'Mars',4=>'Avril',5=>'Mai',6=>'Juin',7=>'Juillet',8=>'Août',9=>'Septembre',10=>'Octobre',11=>'Novembre',12=>'Décembre'];
 $siteUrl = rtrim($config['SITE_URL'], '/');
@@ -68,20 +71,25 @@ foreach ($contrats as $contrat) {
     $contratId  = $contrat['contrat_id'];
     logSection("Contrat $contratId");
 
-    $locatairesStmt = $pdo->prepare("SELECT * FROM locataires WHERE contrat_id = ?");
+    // ─── Requête locataires ───────────────────────────────
+    $sqlLocataires = "SELECT * FROM locataires WHERE contrat_id = ?";
+    logStep("SQL Locataires: $sqlLocataires [contrat_id=$contratId]");
+    $locatairesStmt = $pdo->prepare($sqlLocataires);
     $locatairesStmt->execute([$contratId]);
     $locataires = $locatairesStmt->fetchAll(PDO::FETCH_ASSOC);
     if (empty($locataires)) { logStep("Pas de locataires"); continue; }
 
-    // Récupérer uniquement les mois impayés (sans doublons)
-    $impayesStmt = $pdo->prepare("
+    // ─── Requête loyers impayés ───────────────────────────
+    $sqlImpayes = "
         SELECT DISTINCT mois, annee
         FROM loyers_tracking
         WHERE contrat_id = ? 
           AND statut_paiement != 'paye'
           AND deleted_at IS NULL
         ORDER BY annee, mois
-    ");
+    ";
+    logStep("SQL Impayés: $sqlImpayes [contrat_id=$contratId]");
+    $impayesStmt = $pdo->prepare($sqlImpayes);
     $impayesStmt->execute([$contratId]);
     $monthsToProcess = $impayesStmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -102,8 +110,9 @@ foreach ($contrats as $contrat) {
             logStep("Template choisi = RAPPEL");
         }
 
-        // Envoi réel du mail (une seule fois par locataire et par mois)
+        // Envoi réel du mail
         foreach ($locataires as $locataire) {
+            logStep("Appel sendTemplatedEmail pour {$locataire['email']} ($periode)");
             $sent = sendTemplatedEmail($templateId, $locataire['email'], [
                 'locataire_nom'     => $locataire['nom'],
                 'locataire_prenom'  => $locataire['prenom'],
