@@ -335,38 +335,36 @@ foreach ($contrats as $contrat) {
             : null;
 
         if ($isPast) {
-            // Mois passé : toujours rappel
-            // Éviter les doublons : ne pas renvoyer si déjà envoyé aujourd'hui
-            if ($derniereDate === $todayDate) {
-                logMsg("Contrat $contratId ({$contrat['adresse']}) : rappel $periode déjà envoyé aujourd'hui - ignoré.");
-                continue;
-            }
-            $templateId = 'stripe_rappel_paiement';
-            logMsg("--- Choix template : $templateId (mois passé) ---");
-        } elseif ($doInvitation && !$paySession['email_invitation_envoye']) {
-            // Mois courant, jour d'invitation, invitation pas encore envoyée ce mois
-            $templateId = 'stripe_invitation_paiement';
-            logMsg("--- Choix template : $templateId (mois courant, jour d'invitation) ---");
-        } elseif ($doRappel) {
-            // Mois courant, jour de rappel
-            // Éviter les doublons : ne pas renvoyer si déjà envoyé aujourd'hui
-            if ($derniereDate === $todayDate) {
-                logMsg("Contrat $contratId ({$contrat['adresse']}) : email $periode déjà envoyé aujourd'hui - ignoré.");
-                continue;
-            }
-            if (!$paySession['email_invitation_envoye']) {
-                // Invitation pas encore envoyée ce mois : envoyer l'invitation (rattrapage)
-                $templateId = 'stripe_invitation_paiement';
-                logMsg("--- Choix template : $templateId (mois courant, invitation pas encore envoyée, rattrapage) ---");
-            } else {
-                $templateId = 'stripe_rappel_paiement';
-                logMsg("--- Choix template : $templateId (mois courant, jour de rappel) ---");
-            }
-        } else {
-            // Mois courant, jour d'invitation, invitation déjà envoyée ce mois et aujourd'hui n'est pas un jour de rappel
-            logMsg("Contrat $contratId ({$contrat['adresse']}) : invitation $periode déjà envoyée ce mois, et aujourd'hui n'est pas un jour de rappel - ignoré.");
-            continue;
-        }
+    // Mois passé : toujours rappel
+    // Éviter les doublons : ne pas renvoyer si déjà envoyé aujourd'hui
+    if ($derniereDate === $todayDate) {
+        logMsg("Contrat $contratId ({$contrat['adresse']}) : rappel $periode déjà envoyé aujourd'hui - ignoré.");
+        continue;
+    }
+    $templateId = 'stripe_rappel_paiement';
+    logMsg("--- Choix template : $templateId (mois passé, rappel obligatoire) ---");
+} elseif ($doInvitation && !$paySession['email_invitation_envoye']) {
+    // Mois courant, jour d'invitation
+    $templateId = 'stripe_invitation_paiement';
+    logMsg("--- Choix template : $templateId (mois courant, invitation) ---");
+} elseif ($doRappel) {
+    // Mois courant, jour de rappel
+    if ($derniereDate === $todayDate) {
+        logMsg("Contrat $contratId ({$contrat['adresse']}) : email $periode déjà envoyé aujourd'hui - ignoré.");
+        continue;
+    }
+    if (!$paySession['email_invitation_envoye']) {
+        $templateId = 'stripe_invitation_paiement';
+        logMsg("--- Choix template : $templateId (mois courant, rattrapage invitation) ---");
+    } else {
+        $templateId = 'stripe_rappel_paiement';
+        logMsg("--- Choix template : $templateId (mois courant, rappel) ---");
+    }
+} else {
+    // Pas de condition remplie → ignorer
+    logMsg("Contrat $contratId ({$contrat['adresse']}) : aucune action pour $periode.");
+    continue;
+}
 
         foreach ($locataires as $locataire) {
             $sent = sendTemplatedEmail($templateId, $locataire['email'], [
