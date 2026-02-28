@@ -103,7 +103,7 @@ foreach ($contrats as $contrat) {
     $logementId = $contrat['logement_id'];
     $montant    = (float)$contrat['loyer'] + (float)$contrat['charges'];
 
-    logSection("Traitement contrat $contratId - logement $logementId");
+    logSection("Contrat $contratId - logement $logementId");
 
     // Locataires
     $locatairesStmt = $pdo->prepare("SELECT * FROM locataires WHERE contrat_id = ? ORDER BY ordre");
@@ -119,7 +119,7 @@ foreach ($contrats as $contrat) {
     $montantTotal   = number_format($montant, 2, ',', ' ');
     $signature      = getParameter('email_signature', '');
 
-    // Mois à traiter (ici simplifié : uniquement mois courant + mois passés déjà gérés ailleurs)
+    // Mois à traiter (mois courant + mois passés)
     $monthsToProcess = [['mois'=>$moisActuel,'annee'=>$anneeActuelle,'is_past'=>false]];
 
     // Préparer requête loyers_tracking
@@ -136,7 +136,7 @@ foreach ($contrats as $contrat) {
         $isPast = $monthEntry['is_past'];
         $periode = $nomsMois[$mois] . ' ' . $annee;
 
-        logStep("Mois $mois/$annee → période $periode");
+        logStep("Traitement période $periode");
 
         $ltStmt->execute([$contratId, $mois, $annee]);
         $lt = $ltStmt->fetch(PDO::FETCH_ASSOC);
@@ -145,7 +145,7 @@ foreach ($contrats as $contrat) {
             continue;
         }
 
-        // Anti-doublon : vérifier si déjà envoyé aujourd'hui
+        // Anti-doublon
         $todayDate = date('Y-m-d');
         $derniereDate = (!empty($lt['date_email_invitation']))
             ? date('Y-m-d', strtotime($lt['date_email_invitation']))
@@ -158,7 +158,7 @@ foreach ($contrats as $contrat) {
         // Choix du template
         if ($doInvitation && !$isPast) {
             $templateId = 'stripe_invitation_paiement';
-            logStep("Template choisi = INVITATION (jour d'invitation)");
+            logStep("Template choisi = INVITATION");
         } else {
             $templateId = 'stripe_rappel_paiement';
             logStep("Template choisi = RAPPEL");
@@ -192,4 +192,4 @@ try {
         WHERE fichier = 'cron/stripe-paiements.php'
     ")->execute([mb_substr($cronLogsStr, 0, 65000)]);
 } catch (Exception $e) {
-    error_log('Erreur mise à jour cron
+    error_log('Erreur
