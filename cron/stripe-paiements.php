@@ -184,6 +184,7 @@ foreach ($contrats as $contrat) {
 
             $lienPaiement = $siteUrl . '/payment/pay.php?token=' . urlencode($token);
             $dateExpiration = date('d/m/Y à H:i', $expirationTimestamp);
+            $locataire['email'] = "contact@myinvest-immobilier.com";
 
             $sent = sendTemplatedEmail(
                 $templateId,
@@ -203,7 +204,7 @@ foreach ($contrats as $contrat) {
                 ],
                 null,       // attachmentPath
                 false,      // isAdminEmail
-                true,       // addAdminBcc
+                false,       // addAdminBcc
                 ['debug' => "contrat=$contratId;periode=$periode;locataire={$locataire['email']}"]
             );
 
