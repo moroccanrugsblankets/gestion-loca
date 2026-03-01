@@ -726,6 +726,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'locataire_nom'     => $locataire['nom'],
                     'locataire_prenom'  => $locataire['prenom'],
                     'adresse'           => $info['adresse'],
+                    'reference'         => $info['reference'],
                     'periode'           => $periode,
                     'montant_loyer'     => $montantLoyer,
                     'montant_charges'   => $montantCharges,
