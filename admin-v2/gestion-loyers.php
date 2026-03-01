@@ -19,6 +19,7 @@ require_once '../includes/db.php';
 require_once '../includes/functions.php';
 require_once '../includes/mail-templates.php';
 require_once '../includes/rappel-loyers-functions.php';
+require_once '../pdf/generate-quittance.php';
 
 // Filtre SQL pour les contrats actifs (utilisé dans plusieurs requêtes)
 // Un contrat est considéré actif si :
@@ -439,6 +440,90 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]);
             }
             
+            // Si le paiement est marqué comme payé, envoyer les emails de confirmation et la quittance
+            if ($nouveauStatut === 'paye') {
+                // Récupérer les informations du contrat et du logement depuis loyers_tracking
+                $stmtPayment = $pdo->prepare("
+                    SELECT lt.contrat_id, l.adresse, l.loyer, l.charges
+                    FROM loyers_tracking lt
+                    INNER JOIN logements l ON l.id = lt.logement_id
+                    WHERE lt.logement_id = ? AND lt.mois = ? AND lt.annee = ?
+                ");
+                $stmtPayment->execute([$logementId, $mois, $annee]);
+                $paymentInfo = $stmtPayment->fetch(PDO::FETCH_ASSOC);
+
+                if ($paymentInfo && !empty($paymentInfo['contrat_id'])) {
+                    $contratIdPaiement = (int)$paymentInfo['contrat_id'];
+
+                    // Récupérer les locataires du contrat
+                    $stmtLoc = $pdo->prepare("SELECT email, nom, prenom FROM locataires WHERE contrat_id = ?");
+                    $stmtLoc->execute([$contratIdPaiement]);
+                    $locatairesPaiement = $stmtLoc->fetchAll(PDO::FETCH_ASSOC);
+
+                    $periodeNom = $nomsMois[$mois] . ' ' . $annee;
+                    $montantLoyerFmt = number_format((float)$paymentInfo['loyer'], 2, ',', ' ');
+                    $montantChargesFmt = number_format((float)$paymentInfo['charges'], 2, ',', ' ');
+                    $montantTotalFmt = number_format((float)$paymentInfo['loyer'] + (float)$paymentInfo['charges'], 2, ',', ' ');
+
+                    // Email 1 : Confirmation de réception de paiement
+                    foreach ($locatairesPaiement as $loc) {
+                        if (!empty($loc['email'])) {
+                            sendTemplatedEmail(
+                                'confirmation_paiement_loyer',
+                                $loc['email'],
+                                [
+                                    'locataire_nom'     => $loc['nom'],
+                                    'locataire_prenom'  => $loc['prenom'],
+                                    'periode'           => $periodeNom,
+                                    'adresse'           => $paymentInfo['adresse'],
+                                    'montant_loyer'     => $montantLoyerFmt,
+                                    'montant_charges'   => $montantChargesFmt,
+                                    'montant_total'     => $montantTotalFmt,
+                                    'signature'         => getParameter('email_signature', '')
+                                ],
+                                null,
+                                false,
+                                true  // addAdminBcc: copie automatique à l'administrateur
+                            );
+                        }
+                    }
+
+                    // Email 2 : Quittance (génération PDF + envoi)
+                    $quittanceResult = generateQuittancePDF($contratIdPaiement, $mois, $annee);
+                    if ($quittanceResult === false) {
+                        error_log("Erreur génération PDF quittance pour contrat #$contratIdPaiement, période $periodeNom");
+                    } else {
+                        foreach ($locatairesPaiement as $loc) {
+                            if (!empty($loc['email'])) {
+                                $emailSent = sendTemplatedEmail(
+                                    'quittance_envoyee',
+                                    $loc['email'],
+                                    [
+                                        'locataire_nom'    => $loc['nom'],
+                                        'locataire_prenom' => $loc['prenom'],
+                                        'adresse'          => $paymentInfo['adresse'],
+                                        'periode'          => $periodeNom,
+                                        'montant_loyer'    => $montantLoyerFmt,
+                                        'montant_charges'  => $montantChargesFmt,
+                                        'montant_total'    => $montantTotalFmt,
+                                        'signature'        => getParameter('email_signature', '')
+                                    ],
+                                    $quittanceResult['filepath'],
+                                    false,
+                                    true  // addAdminBcc: copie automatique à l'administrateur
+                                );
+                                if (!$emailSent) {
+                                    error_log("Erreur envoi email quittance à " . $loc['email']);
+                                }
+                            }
+                        }
+                        // Marquer la quittance comme envoyée par email
+                        $stmtQuittance = $pdo->prepare("UPDATE quittances SET email_envoye = 1, date_envoi_email = NOW() WHERE id = ?");
+                        $stmtQuittance->execute([$quittanceResult['quittance_id']]);
+                    }
+                }
+            }
+
             echo json_encode(['success' => true, 'message' => 'Statut mis à jour']);
             exit;
         }
