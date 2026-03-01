@@ -36,10 +36,13 @@ try {
                l.adresse,
                l.reference as logement_ref,
                (SELECT GROUP_CONCAT(CONCAT(loc.prenom, ' ', loc.nom) SEPARATOR ', ')
-                FROM locataires loc WHERE loc.contrat_id = sps.contrat_id) as locataires_noms
+                FROM locataires loc WHERE loc.contrat_id = sps.contrat_id) as locataires_noms,
+               lt.statut_paiement as loyer_statut
         FROM stripe_payment_sessions sps
         INNER JOIN contrats c ON sps.contrat_id = c.id
         INNER JOIN logements l ON sps.logement_id = l.id
+        LEFT JOIN loyers_tracking lt ON lt.contrat_id = sps.contrat_id
+            AND lt.mois = sps.mois AND lt.annee = sps.annee AND lt.deleted_at IS NULL
         WHERE sps.token_acces = ?
         LIMIT 1
     ");
@@ -57,12 +60,15 @@ if (!$session) {
 }
 
 // Vérifier la validité du lien
-if ($session['statut'] === 'paye') {
+// Le statut dans loyers_tracking (modifiable par l'admin) a la priorité sur stripe_payment_sessions.statut
+$loyerStatut = $session['loyer_statut'] ?? null;
+$adminMarkedUnpaid = ($loyerStatut === 'impaye' || $loyerStatut === 'attente');
+if ($session['statut'] === 'paye' && !$adminMarkedUnpaid) {
     $alreadyPaid = true;
-} elseif ($session['statut'] === 'annule') {
+} elseif ($session['statut'] === 'annule' && !$adminMarkedUnpaid) {
     http_response_code(410);
     die('Ce lien de paiement a été annulé.');
-} elseif (strtotime($session['token_expiration']) < time()) {
+} elseif (strtotime($session['token_expiration']) < time() && !$adminMarkedUnpaid) {
     http_response_code(410);
     die('Ce lien de paiement a expiré. Veuillez contacter votre propriétaire pour obtenir un nouveau lien.');
 } else {

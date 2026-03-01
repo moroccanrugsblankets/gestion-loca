@@ -201,6 +201,11 @@ $active_menu = $page_to_menu_map[$current_page] ?? $current_page;
             </a>
         </li>
         <li class="nav-item">
+            <a class="nav-link <?php echo $active_menu === 'sauvegardes.php' ? 'active' : ''; ?>" href="sauvegardes.php">
+                <i class="bi bi-archive"></i> Sauvegardes
+            </a>
+        </li>
+        <li class="nav-item">
             <a class="nav-link <?php echo $active_menu === 'administrateurs.php' ? 'active' : ''; ?>" href="administrateurs.php">
                 <i class="bi bi-shield-lock"></i> Comptes Administrateurs
             </a>

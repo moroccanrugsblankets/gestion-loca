@@ -78,7 +78,7 @@ logSection("Démarrage du cron - mode=$stripeMode, jour=$aujourdHui");
 
 $sqlContrats = "
     SELECT c.id as contrat_id, c.date_prise_effet,
-           l.id as logement_id, l.adresse, l.loyer, l.charges
+           l.id as logement_id, l.adresse, l.reference, l.loyer, l.charges
     FROM contrats c
     INNER JOIN logements l ON c.logement_id = l.id
     INNER JOIN (
@@ -124,12 +124,17 @@ foreach ($contrats as $contrat) {
 
         logStep("Traitement période $periode");
 
+        // Sur le jour d'invitation : invitation pour le mois courant uniquement
         if ($doInvitation && !$isPast) {
             $templateId = 'stripe_invitation_paiement';
             logStep("Template choisi = INVITATION");
-        } else {
+        } elseif ($doRappel && $isPast) {
+            // Sur un jour de rappel : rappels pour les mois passés impayés uniquement
             $templateId = 'stripe_rappel_paiement';
             logStep("Template choisi = RAPPEL");
+        } else {
+            logStep("Ignoré : mois " . ($isPast ? "passé" : "courant") . " mais condition non remplie (invitation=$doInvitation, rappel=$doRappel)");
+            continue;
         }
 
         foreach ($locataires as $locataire) {
@@ -187,6 +192,7 @@ foreach ($contrats as $contrat) {
                     'locataire_nom'     => $locataire['nom'],
                     'locataire_prenom'  => $locataire['prenom'],
                     'adresse'           => $contrat['adresse'],
+                    'reference'         => $contrat['reference'],
                     'periode'           => $periode,
                     'montant_loyer'     => number_format((float)$contrat['loyer'], 2, ',', ' '),
                     'montant_charges'   => number_format((float)$contrat['charges'], 2, ',', ' '),
