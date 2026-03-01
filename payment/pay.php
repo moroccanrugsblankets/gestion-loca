@@ -184,7 +184,7 @@ if (!$checkoutUrl) {
             $methodesAcceptees = ['card'];
         }
 
-        $successUrl = rtrim($config['SITE_URL'], '/') . '/payment/pay.php?token=' . urlencode($token) . '&stripe_success=1&session_id={CHECKOUT_SESSION_ID}';
+        $successUrl = rtrim($config['SITE_URL'], '/') . '/payment/merci.php?token=' . urlencode($token) . '&session_id={CHECKOUT_SESSION_ID}';
         $cancelUrl  = rtrim($config['SITE_URL'], '/') . '/payment/pay.php?token=' . urlencode($token) . '&stripe_cancel=1';
 
         // Récupérer les infos du premier locataire pour préremplir Stripe
