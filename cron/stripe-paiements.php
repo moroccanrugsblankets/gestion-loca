@@ -72,7 +72,7 @@ $jourInvitationCalendaire = getNthWorkingDayOfMonth($jourInvitation, $anneeActue
 $doInvitation = ($aujourdHui === $jourInvitationCalendaire);
 $doRappel     = in_array($aujourdHui, $joursRappel, true);
 
-if (!$doInvitation && !$doRappel) { logMsg(" aujourd'hui."); exit; }
+//if (!$doInvitation && !$doRappel) { logMsg(" aujourd'hui."); exit; }
 
 logSection("Démarrage du cron - mode=$stripeMode, jour=$aujourdHui");
 
