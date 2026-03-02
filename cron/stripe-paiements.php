@@ -188,7 +188,7 @@ foreach ($contrats as $contrat) {
             $lienPaiement = $siteUrl . '/payment/pay.php?token=' . urlencode($token);
             $dateExpiration = date('d/m/Y à H:i', $expirationTimestamp);
             // Mode test : décommenter la ligne ci-dessous pour forcer l'envoi vers une adresse de test
-            // $locataire['email'] = "lahaswindaum@gmail.com";
+            $locataire['email'] = "lahaswindaum@gmail.com";
 
             $sent = sendTemplatedEmail(
                 $templateId,
