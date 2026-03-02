@@ -99,7 +99,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             }
         }
 
-        // ── Modification responsabilité ──────────────────────────────────────
+        // ── Changement de contrat ────────────────────────────────────────────
+        if ($action === 'change_contrat' && !$isClos) {
+            $newContratId = (int)($_POST['new_contrat_id'] ?? 0);
+            if ($newContratId <= 0) {
+                $errors[] = 'Veuillez sélectionner un contrat valide.';
+            } else {
+                // Récupérer les infos du nouveau contrat
+                $stmtNewContrat = $pdo->prepare("
+                    SELECT c.id, c.logement_id, l.adresse, l.reference as logement_ref,
+                           c.reference_unique as contrat_ref
+                    FROM contrats c
+                    INNER JOIN logements l ON c.logement_id = l.id
+                    WHERE c.id = ? AND c.statut = 'valide'
+                    LIMIT 1
+                ");
+                $stmtNewContrat->execute([$newContratId]);
+                $newContrat = $stmtNewContrat->fetch(PDO::FETCH_ASSOC);
+
+                if (!$newContrat) {
+                    $errors[] = 'Contrat introuvable ou invalide.';
+                } else {
+                    $oldContratRef = $sig['contrat_ref'];
+                    $pdo->prepare("
+                        UPDATE signalements
+                        SET contrat_id = ?, logement_id = ?, updated_at = NOW()
+                        WHERE id = ?
+                    ")->execute([$newContratId, $newContrat['logement_id'], $id]);
+
+                    $pdo->prepare("
+                        INSERT INTO signalements_actions (signalement_id, type_action, description, acteur, ancienne_valeur, nouvelle_valeur, ip_address)
+                        VALUES (?, 'contrat_change', ?, ?, ?, ?, ?)
+                    ")->execute([$id,
+                        "Contrat modifié : $oldContratRef → {$newContrat['contrat_ref']}",
+                        $adminName, $oldContratRef, $newContrat['contrat_ref'],
+                        $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+                    ]);
+
+                    header("Location: signalement-detail.php?id=$id&success=contrat");
+                    exit;
+                }
+            }
+        }
+
+
         if ($action === 'set_responsabilite' && !$isClos) {
             $responsabilite = $_POST['responsabilite'] ?? '';
             if (!in_array($responsabilite, ['locataire', 'proprietaire', 'non_determine'])) {
@@ -193,6 +236,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                     }
                 }
 
+                // Envoyer WhatsApp via Twilio si mode whatsapp ou les_deux
+                if (in_array($modeNotif, ['whatsapp', 'les_deux']) && !empty($collabTel)) {
+                    $twilioSid    = getParameter('twilio_account_sid', '');
+                    $twilioToken  = getParameter('twilio_auth_token', '');
+                    $twilioFrom   = getParameter('twilio_whatsapp_from', '');
+                    if (!empty($twilioSid) && !empty($twilioToken) && !empty($twilioFrom)) {
+                        $siteUrl = rtrim($config['SITE_URL'], '/');
+                        $signalementUrl = $siteUrl . '/admin-v2/signalement-detail.php?id=' . $id;
+                        $waMessage = "[Signalement {$sig['priorite']}] {$sig['titre']}\n"
+                            . "Adresse : {$sig['adresse']}\n"
+                            . "Priorité : {$sig['priorite']}\n"
+                            . "Description : " . mb_substr($sig['description'], 0, 200) . "...\n"
+                            . "Lien mission : $signalementUrl";
+                        $toNum = preg_replace('/\s+/', '', $collabTel);
+                        if (substr($toNum, 0, 1) !== '+') {
+                            $toNum = '+' . $toNum;
+                        }
+                        $ch = curl_init("https://api.twilio.com/2010-04-01/Accounts/$twilioSid/Messages.json");
+                        curl_setopt($ch, CURLOPT_POST, true);
+                        curl_setopt($ch, CURLOPT_USERPWD, "$twilioSid:$twilioToken");
+                        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
+                            'From' => 'whatsapp:' . $twilioFrom,
+                            'To'   => 'whatsapp:' . $toNum,
+                            'Body' => $waMessage,
+                        ]));
+                        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+                        $waResponse = curl_exec($ch);
+                        $waHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                        curl_close($ch);
+                        if ($waHttpCode < 200 || $waHttpCode >= 300) {
+                            error_log("Twilio WhatsApp error: HTTP $waHttpCode — $waResponse");
+                            $errors[] = 'Avertissement : le message WhatsApp n\'a pas pu être envoyé via Twilio.';
+                        }
+                    }
+                }
+
                 if (empty($errors)) {
                     header("Location: signalement-detail.php?id=$id&success=attribution");
                     exit;
@@ -239,6 +319,18 @@ try {
     $collabList = []; // Table absente si migration non appliquée
 }
 
+// Charger la liste des contrats actifs pour le changement de contrat
+$contratsListStmt = $pdo->query("
+    SELECT c.id, c.reference_unique, l.adresse, l.reference as logement_ref,
+           (SELECT GROUP_CONCAT(CONCAT(prenom, ' ', nom) SEPARATOR ', ')
+            FROM locataires WHERE contrat_id = c.id) as locataires
+    FROM contrats c
+    INNER JOIN logements l ON c.logement_id = l.id
+    WHERE c.statut = 'valide'
+    ORDER BY l.adresse
+");
+$contratsList = $contratsListStmt->fetchAll(PDO::FETCH_ASSOC);
+
 $csrfToken = generateCsrfToken();
 
 $statutLabels = [
@@ -256,6 +348,7 @@ $actionIcons = [
     'responsabilite'  => 'bi-shield-check text-success',
     'complement'      => 'bi-chat-text text-secondary',
     'cloture'         => 'bi-lock-fill text-secondary',
+    'contrat_change'  => 'bi-file-earmark-text text-primary',
 ];
 
 $successParam = $_GET['success'] ?? '';
@@ -265,6 +358,7 @@ if ($successParam) {
         'responsabilite' => 'Responsabilité confirmée avec succès.',
         'attribution'    => 'Signalement attribué avec succès.',
         'complement'     => 'Complément ajouté avec succès.',
+        'contrat'        => 'Contrat mis à jour avec succès.',
     ];
     $successMsg = $successMessages[$successParam] ?? 'Modification enregistrée.';
 }
@@ -573,6 +667,30 @@ if ($successParam) {
                     </form>
                 </div>
 
+                <!-- Modifier le contrat attribué -->
+                <div class="section-card">
+                    <h6 class="fw-semibold mb-3"><i class="bi bi-file-earmark-text me-2"></i>Modifier le contrat attribué</h6>
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                        <input type="hidden" name="action" value="change_contrat">
+                        <div class="mb-2">
+                            <select class="form-select form-select-sm" name="new_contrat_id" required>
+                                <option value="">— Sélectionner un contrat —</option>
+                                <?php foreach ($contratsList as $ct): ?>
+                                <option value="<?php echo $ct['id']; ?>" <?php echo $sig['contrat_id'] == $ct['id'] ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($ct['reference_unique']); ?>
+                                    — <?php echo htmlspecialchars($ct['adresse']); ?>
+                                    <?php if (!empty($ct['locataires'])): ?>(<?php echo htmlspecialchars($ct['locataires']); ?>)<?php endif; ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-outline-secondary btn-sm w-100">
+                            <i class="bi bi-arrow-repeat me-1"></i>Mettre à jour le contrat
+                        </button>
+                    </form>
+                </div>
+
                 <!-- Transférer à un collaborateur -->
                 <div class="section-card">
                     <h6 class="fw-semibold mb-3">
@@ -586,7 +704,7 @@ if ($successParam) {
                         <div class="mb-2">
                             <label class="form-label small fw-semibold">Sélectionner un collaborateur</label>
                             <select class="form-select form-select-sm" id="collab-select" name="collab_select_id">
-                                <option value="">— Saisie manuelle —</option>
+                                <option value="">— Sélectionner —</option>
                                 <?php foreach ($collabList as $cl): ?>
                                 <option value="<?php echo $cl['id']; ?>"
                                     data-nom="<?php echo htmlspecialchars($cl['nom']); ?>"
@@ -609,17 +727,20 @@ if ($successParam) {
                         <div class="mb-2">
                             <input type="text" class="form-control form-control-sm" name="collaborateur_nom" id="collab-nom"
                                    placeholder="Nom du collaborateur *"
-                                   value="<?php echo htmlspecialchars($sig['collaborateur_nom'] ?? ''); ?>" required>
+                                   value="<?php echo htmlspecialchars($sig['collaborateur_nom'] ?? ''); ?>"
+                                   <?php echo !empty($collabList) ? 'readonly' : ''; ?> required>
                         </div>
                         <div class="mb-2">
                             <input type="email" class="form-control form-control-sm" name="collaborateur_email" id="collab-email"
                                    placeholder="Email"
-                                   value="<?php echo htmlspecialchars($sig['collaborateur_email'] ?? ''); ?>">
+                                   value="<?php echo htmlspecialchars($sig['collaborateur_email'] ?? ''); ?>"
+                                   <?php echo !empty($collabList) ? 'readonly' : ''; ?>>
                         </div>
                         <div class="mb-2">
                             <input type="tel" class="form-control form-control-sm" name="collaborateur_telephone" id="collab-tel"
                                    placeholder="Téléphone / WhatsApp"
-                                   value="<?php echo htmlspecialchars($sig['collaborateur_telephone'] ?? ''); ?>">
+                                   value="<?php echo htmlspecialchars($sig['collaborateur_telephone'] ?? ''); ?>"
+                                   <?php echo !empty($collabList) ? 'readonly' : ''; ?>>
                         </div>
                         <div class="mb-3">
                             <label class="form-label small fw-semibold">Mode d'envoi</label>
@@ -643,7 +764,12 @@ if ($successParam) {
                         </div>
                         <div id="whatsapp-info" class="alert alert-info small mb-2 d-none">
                             <i class="bi bi-whatsapp me-1"></i>
-                            Pour WhatsApp, copiez le message ci-dessous et envoyez-le manuellement via l'application :
+                            <?php
+                            $twilioConfigured = !empty(getParameter('twilio_account_sid')) && !empty(getParameter('twilio_auth_token')) && !empty(getParameter('twilio_whatsapp_from'));
+                            if ($twilioConfigured): ?>
+                            Le message WhatsApp sera envoyé automatiquement via l'API Twilio lors du transfert.
+                            <?php else: ?>
+                            <strong>Twilio non configuré.</strong> Copiez le message ci-dessous et envoyez-le manuellement via WhatsApp :
                             <div class="mt-1 font-monospace small p-2 bg-white rounded border" id="whatsapp-msg">
                                 [Signalement <?php echo htmlspecialchars($sig['priorite']); ?>] <?php echo htmlspecialchars($sig['titre']); ?>
                                 Adresse : <?php echo htmlspecialchars($sig['adresse']); ?>
@@ -651,6 +777,8 @@ if ($successParam) {
                                 Description : <?php echo htmlspecialchars(mb_substr($sig['description'], 0, 200)); ?>...
                                 Lien mission : <?php echo htmlspecialchars(rtrim($config['SITE_URL'], '/') . '/admin-v2/signalement-detail.php?id=' . $id); ?>
                             </div>
+                            <div class="mt-1"><a href="parametres.php#twilio" class="small">Configurer Twilio →</a></div>
+                            <?php endif; ?>
                         </div>
                         <button type="submit" class="btn btn-info btn-sm w-100 text-white">
                             <i class="bi bi-send me-1"></i>Transférer

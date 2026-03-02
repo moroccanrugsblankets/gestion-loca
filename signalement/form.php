@@ -14,6 +14,7 @@
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/mail-templates.php';
 
 $errors = [];
 $success = false;
@@ -166,6 +167,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $etapeFormulaire && !empty($_POST['
 
             $pdo->commit();
             $success = true;
+
+            // Envoi des emails de notification après commit réussi
+            $siteUrl = rtrim($config['SITE_URL'] ?? '', '/');
+
+            // 1. Email de confirmation au locataire
+            $locataireEmail = strtolower(trim($locataire['email'] ?? ''));
+            if (!empty($locataireEmail)) {
+                $vars = [
+                    'prenom'      => $locataire['prenom'],
+                    'nom'         => $locataire['nom'],
+                    'reference'   => $reference,
+                    'titre'       => $titre,
+                    'priorite'    => ucfirst($priorite),
+                    'adresse'     => $locataire['adresse'],
+                    'date'        => date('d/m/Y à H:i'),
+                    'company'     => $config['COMPANY_NAME'] ?? '',
+                ];
+                $sent = sendTemplatedEmail('nouveau_signalement_locataire', $locataireEmail, $vars, null, false, false,
+                    ['contexte' => "signalement_confirmation;sig_id=$newSignalementId"]);
+                if (!$sent) {
+                    error_log("signalement/form.php: Impossible d'envoyer l'email de confirmation au locataire ($locataireEmail)");
+                }
+            }
+
+            // 2. Email de notification à l'admin
+            $adminEmail = getAdminEmail();
+            if (!empty($adminEmail)) {
+                $vars = [
+                    'reference'   => $reference,
+                    'titre'       => $titre,
+                    'priorite'    => ucfirst($priorite),
+                    'adresse'     => $locataire['adresse'],
+                    'locataire'   => $locataire['prenom'] . ' ' . $locataire['nom'],
+                    'description' => $description,
+                    'date'        => date('d/m/Y à H:i'),
+                    'lien_admin'  => $siteUrl . '/admin-v2/signalement-detail.php?id=' . $newSignalementId,
+                ];
+                sendTemplatedEmail('nouveau_signalement_admin', $adminEmail, $vars, null, true, false,
+                    ['contexte' => "signalement_admin_notification;sig_id=$newSignalementId"]);
+            }
         } catch (Exception $e) {
             $pdo->rollBack();
             error_log('signalement/form.php insert error: ' . $e->getMessage());
