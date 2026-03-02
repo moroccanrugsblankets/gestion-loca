@@ -565,6 +565,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'locataire_prenom' => $info['prenom_locataire'],
                     'periode' => $moisNom . ' ' . $annee,
                     'adresse' => $info['adresse'],
+                    'reference' => $info['reference'],
                     'montant_total' => number_format($montantTotal, 2, ',', ' '),
                     'signature' => getParameter('email_signature', '')
                 ],
@@ -1330,6 +1331,13 @@ $stripeActif = function_exists('getParameter') ? getParameter('stripe_actif', fa
             };
             
             const nouveauStatut = cycle[statutActuel] || 'attente';
+
+            // Demander confirmation avant de passer au statut "payé" (des emails seront envoyés au client)
+            if (nouveauStatut === 'paye') {
+                if (!confirm('Confirmer le paiement ?\n\nUn email de confirmation et une quittance seront automatiquement envoyés au locataire.')) {
+                    return;
+                }
+            }
             
             // Envoyer la requête AJAX
             fetch('', {

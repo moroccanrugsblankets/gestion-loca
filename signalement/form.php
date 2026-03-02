@@ -14,6 +14,7 @@
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/mail-templates.php';
 
 $errors = [];
 $success = false;
@@ -58,32 +59,36 @@ if (!empty($emailSaisi)) {
 
 // Étape 2 : traitement du signalement
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $etapeFormulaire && !empty($_POST['action_signaler'])) {
-    $titre = trim($_POST['titre'] ?? '');
+    $typeProbleme = trim($_POST['type_probleme'] ?? '');
     $description = trim($_POST['description'] ?? '');
     $priorite = in_array($_POST['priorite'] ?? '', ['urgent', 'normal']) ? $_POST['priorite'] : 'normal';
-    $checklistConfirmee = !empty($_POST['checklist_confirmee']);
+    $checklistGuide = !empty($_POST['checklist_guide']);
+    $checklistConditions = !empty($_POST['checklist_conditions']);
+    $checklistConfirmee = $checklistGuide && $checklistConditions;
 
-    if (empty($titre)) {
-        $errors[] = 'Le titre est obligatoire.';
-    } elseif (mb_strlen($titre) > 255) {
-        $errors[] = 'Le titre ne peut pas dépasser 255 caractères.';
+    $typesValides = ['Plomberie', 'Électricité', 'Serrurerie', 'Chauffage', 'Électroménager', 'Autre'];
+    if (empty($typeProbleme) || !in_array($typeProbleme, $typesValides)) {
+        $errors[] = 'Veuillez sélectionner un type de problème.';
     }
 
     if (empty($description)) {
         $errors[] = 'La description est obligatoire.';
     }
 
-    if (!$checklistConfirmee) {
-        $errors[] = 'Vous devez confirmer avoir vérifié la liste des responsabilités avant de soumettre votre signalement.';
+    if (!$checklistGuide) {
+        $errors[] = 'Veuillez confirmer avoir consulté le guide des réparations locatives.';
+    }
+    if (!$checklistConditions) {
+        $errors[] = 'Veuillez confirmer avoir pris connaissance des conditions d\'intervention.';
     }
 
-    // Validation des photos (obligatoires)
+    // Validation des photos/vidéos (obligatoires)
     $uploadedPhotos = [];
     if (empty($_FILES['photos']['name'][0])) {
         $errors[] = 'Au moins une photo est obligatoire.';
     } else {
-        $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-        $maxSize = 10 * 1024 * 1024; // 10 Mo par photo
+        $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'video/mp4', 'video/quicktime', 'video/x-msvideo'];
+        $maxSize = 10 * 1024 * 1024; // 10 Mo par fichier
         $uploadDir = __DIR__ . '/../uploads/signalements/';
 
         if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
@@ -96,12 +101,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $etapeFormulaire && !empty($_POST['
             foreach ($_FILES['photos']['tmp_name'] as $i => $tmpName) {
                 if ($_FILES['photos']['error'][$i] !== UPLOAD_ERR_OK) continue;
                 if ($_FILES['photos']['size'][$i] > $maxSize) {
-                    $errors[] = 'La photo « ' . htmlspecialchars($_FILES['photos']['name'][$i]) . ' » dépasse la taille maximale (10 Mo).';
+                    $errors[] = 'Le fichier « ' . htmlspecialchars($_FILES['photos']['name'][$i]) . ' » dépasse la taille maximale (10 Mo).';
                     continue;
                 }
                 $mime = mime_content_type($tmpName);
                 if (!in_array($mime, $allowedMimes)) {
-                    $errors[] = 'Format de photo non supporté pour « ' . htmlspecialchars($_FILES['photos']['name'][$i]) . ' » (JPG, PNG ou WebP uniquement).';
+                    $errors[] = 'Format non supporté pour « ' . htmlspecialchars($_FILES['photos']['name'][$i]) . ' » (JPG, PNG, WebP ou vidéo MP4/MOV).';
                     continue;
                 }
                 $ext = pathinfo($_FILES['photos']['name'][$i], PATHINFO_EXTENSION);
@@ -115,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $etapeFormulaire && !empty($_POST['
                 ];
             }
             if (empty($uploadedPhotos) && empty($errors)) {
-                $errors[] = 'Au moins une photo valide est obligatoire.';
+                $errors[] = 'Au moins un fichier valide est obligatoire.';
             }
         }
     }
@@ -125,23 +130,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $etapeFormulaire && !empty($_POST['
             $pdo->beginTransaction();
 
             $reference = 'SIG-' . date('Ymd') . '-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
+            $titre = $typeProbleme; // Titre auto-généré depuis le type de problème
 
-            $insertStmt = $pdo->prepare("
-                INSERT INTO signalements
-                    (reference, contrat_id, logement_id, locataire_id, titre, description,
-                     priorite, checklist_confirmee, statut)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'nouveau')
-            ");
-            $insertStmt->execute([
-                $reference,
-                $locataire['contrat_id'],
-                $locataire['logement_id'],
-                $locataire['id'],
-                $titre,
-                $description,
-                $priorite,
-                $checklistConfirmee ? 1 : 0,
-            ]);
+            // Tenter l'insertion avec type_probleme (disponible après migration 085)
+            try {
+                $insertStmt = $pdo->prepare("
+                    INSERT INTO signalements
+                        (reference, contrat_id, logement_id, locataire_id, titre, description,
+                         priorite, type_probleme, checklist_confirmee, statut)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'nouveau')
+                ");
+                $insertStmt->execute([
+                    $reference,
+                    $locataire['contrat_id'],
+                    $locataire['logement_id'],
+                    $locataire['id'],
+                    $titre,
+                    $description,
+                    $priorite,
+                    $typeProbleme,
+                    $checklistConfirmee ? 1 : 0,
+                ]);
+            } catch (Exception $e) {
+                // Fallback sans type_probleme si colonne absente (migration 085 non encore appliquée)
+                if (strpos($e->getMessage(), 'type_probleme') === false && strpos($e->getMessage(), 'Unknown column') === false) {
+                    throw $e; // Re-lancer si l'erreur n'est pas liée à la colonne manquante
+                }
+                error_log('signalement/form.php: type_probleme column not found, falling back to old INSERT: ' . $e->getMessage());
+                $insertStmt = $pdo->prepare("
+                    INSERT INTO signalements
+                        (reference, contrat_id, logement_id, locataire_id, titre, description,
+                         priorite, checklist_confirmee, statut)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'nouveau')
+                ");
+                $insertStmt->execute([
+                    $reference,
+                    $locataire['contrat_id'],
+                    $locataire['logement_id'],
+                    $locataire['id'],
+                    $titre,
+                    $description,
+                    $priorite,
+                    $checklistConfirmee ? 1 : 0,
+                ]);
+            }
             $newSignalementId = $pdo->lastInsertId();
 
             foreach ($uploadedPhotos as $photo) {
@@ -166,6 +198,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $etapeFormulaire && !empty($_POST['
 
             $pdo->commit();
             $success = true;
+
+            // Envoi des emails de notification après commit réussi
+            $siteUrl = rtrim($config['SITE_URL'] ?? '', '/');
+
+            // 1. Email de confirmation au locataire
+            $locataireEmail = strtolower(trim($locataire['email'] ?? ''));
+            if (!empty($locataireEmail)) {
+                $vars = [
+                    'prenom'      => $locataire['prenom'],
+                    'nom'         => $locataire['nom'],
+                    'reference'   => $reference,
+                    'titre'       => $titre,
+                    'priorite'    => ucfirst($priorite),
+                    'adresse'     => $locataire['adresse'],
+                    'date'        => date('d/m/Y à H:i'),
+                    'company'     => $config['COMPANY_NAME'] ?? '',
+                ];
+                $sent = sendTemplatedEmail('nouveau_signalement_locataire', $locataireEmail, $vars, null, false, false,
+                    ['contexte' => "signalement_confirmation;sig_id=$newSignalementId"]);
+                if (!$sent) {
+                    error_log("signalement/form.php: Impossible d'envoyer l'email de confirmation au locataire ($locataireEmail)");
+                }
+            }
+
+            // 2. Email de notification à l'admin
+            $adminEmail = getAdminEmail();
+            if (!empty($adminEmail)) {
+                $vars = [
+                    'reference'   => $reference,
+                    'titre'       => $titre,
+                    'priorite'    => ucfirst($priorite),
+                    'adresse'     => $locataire['adresse'],
+                    'locataire'   => $locataire['prenom'] . ' ' . $locataire['nom'],
+                    'description' => $description,
+                    'date'        => date('d/m/Y à H:i'),
+                    'lien_admin'  => $siteUrl . '/admin-v2/signalement-detail.php?id=' . $newSignalementId,
+                ];
+                sendTemplatedEmail('nouveau_signalement_admin', $adminEmail, $vars, null, true, false,
+                    ['contexte' => "signalement_admin_notification;sig_id=$newSignalementId"]);
+            }
         } catch (Exception $e) {
             $pdo->rollBack();
             error_log('signalement/form.php insert error: ' . $e->getMessage());
@@ -178,23 +250,33 @@ if ($success) {
     header('Location: confirmation.php?ref=' . urlencode($newSignalementId ?? ''));
     exit;
 }
+
+// Paramètre configurable : lien vers le guide des réparations locatives
+// Valider l'URL pour éviter les schémas dangereux (javascript:, data:, etc.)
+$guideLienRaw = getParameter('guide_reparations_lien', '');
+$guideLien = (!empty($guideLienRaw) && preg_match('#^https?://#i', $guideLienRaw)) ? $guideLienRaw : '';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Signaler une anomalie — <?php echo htmlspecialchars($config['COMPANY_NAME']); ?></title>
+    <title>Déclaration d'anomalie — <?php echo htmlspecialchars($config['COMPANY_NAME']); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
         body { background: #f0f4f8; }
         .form-card { background: #fff; border-radius: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
         .header-brand { background: linear-gradient(135deg, #2c3e50, #3498db); color: #fff; border-radius: 14px 14px 0 0; padding: 28px 30px 22px; }
-        .checklist-item { padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
-        .checklist-item:last-child { border-bottom: none; }
-        .badge-urgent { background: #dc3545; }
-        .badge-normal { background: #6c757d; }
+        .section-divider { border-top: 2px solid #e9ecef; margin: 28px 0; }
+        .section-label { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6c757d; margin-bottom: 10px; }
+        .section-number { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: #3498db; color: #fff; font-weight: 700; font-size: 13px; margin-right: 8px; flex-shrink: 0; }
+        .section-title { display: flex; align-items: center; font-size: 1.05rem; font-weight: 700; color: #2c3e50; margin-bottom: 14px; }
+        .bareme-box { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 16px; }
+        .bareme-box li { padding: 4px 0; }
+        .type-radio label { cursor: pointer; border: 2px solid #dee2e6; border-radius: 8px; padding: 10px 14px; transition: border-color .15s, background .15s; display: block; }
+        .type-radio input[type="radio"]:checked + label { border-color: #3498db; background: #eaf4fd; }
+        .type-radio input[type="radio"] { display: none; }
     </style>
 </head>
 <body>
@@ -204,12 +286,15 @@ if ($success) {
 
             <div class="form-card mb-5">
                 <div class="header-brand">
-                    <h2 class="mb-1"><i class="bi bi-exclamation-triangle me-2"></i>Signaler une anomalie</h2>
+                    <h2 class="mb-1">🛠 Déclaration d'anomalie ou demande d'intervention</h2>
                     <?php if ($locataire): ?>
                     <p class="mb-0 opacity-75">
-                        <?php echo htmlspecialchars($locataire['adresse']); ?>
+                        <i class="bi bi-house me-1"></i><?php echo htmlspecialchars($locataire['adresse']); ?>
+                        <?php if (!empty($locataire['logement_ref'])): ?>
+                            &nbsp;—&nbsp;<span class="font-monospace"><?php echo htmlspecialchars($locataire['logement_ref']); ?></span>
+                        <?php endif; ?>
                         &nbsp;—&nbsp;
-                        <?php echo htmlspecialchars($locataire['prenom'] . ' ' . $locataire['nom']); ?>
+                        <i class="bi bi-person me-1"></i><?php echo htmlspecialchars($locataire['prenom'] . ' ' . $locataire['nom']); ?>
                     </p>
                     <?php else: ?>
                     <p class="mb-0 opacity-75">Portail locataire — <?php echo htmlspecialchars($config['COMPANY_NAME']); ?></p>
@@ -231,7 +316,7 @@ if ($success) {
 
                     <?php if (!$etapeFormulaire): ?>
                     <!-- Étape 1 : identification par email -->
-                    <p class="text-muted mb-4">Saisissez votre adresse email pour accéder au formulaire de signalement.</p>
+                    <p class="text-muted mb-4">Saisissez votre adresse email pour accéder au formulaire de déclaration.</p>
                     <form method="POST" novalidate>
                         <div class="mb-4">
                             <label class="form-label fw-semibold" for="email">
@@ -248,38 +333,145 @@ if ($success) {
                     </form>
 
                     <?php else: ?>
-                    <!-- Étape 2 : formulaire de signalement -->
+                    <!-- Étape 2 : formulaire de déclaration -->
                     <form method="POST" enctype="multipart/form-data" novalidate>
                         <input type="hidden" name="email" value="<?php echo htmlspecialchars($emailSaisi); ?>">
                         <input type="hidden" name="action_signaler" value="1">
 
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold" for="titre">
-                                Titre du signalement <span class="text-danger">*</span>
-                            </label>
-                            <input type="text" class="form-control form-control-lg" id="titre" name="titre"
-                                   maxlength="255" required
-                                   placeholder="Ex : Fuite d'eau sous l'évier, Chauffage en panne..."
-                                   value="<?php echo htmlspecialchars($_POST['titre'] ?? ''); ?>">
+                        <!-- ─── Section 1 : Introduction ──────────────────── -->
+                        <div class="section-title">
+                            <span class="section-number">1</span> Introduction
+                        </div>
+                        <p class="text-muted mb-0">
+                            Nous sommes désolés que vous rencontriez une difficulté dans le logement.<br>
+                            Afin de traiter votre demande efficacement et dans les meilleurs délais, merci de prendre
+                            connaissance des informations ci-dessous avant validation.
+                        </p>
+
+                        <div class="section-divider"></div>
+
+                        <!-- ─── Section 2 : Vérification préalable ─────────── -->
+                        <div class="section-title">
+                            <span class="section-number">2</span> Vérification préalable
+                        </div>
+                        <p class="text-muted mb-2">
+                            Certaines situations relèvent de l'entretien courant du logement <strong>(à la charge du locataire)</strong>,
+                            d'autres nécessitent une intervention du propriétaire.
+                        </p>
+                        <p class="text-muted mb-2">Avant toute déclaration, merci de vérifier si le problème concerne par exemple :</p>
+                        <ul class="text-muted mb-3">
+                            <li>remplacement d'ampoule</li>
+                            <li>débouchage simple (évier, siphon)</li>
+                            <li>nettoyage ou réglage</li>
+                            <li>joints d'usage</li>
+                            <li>piles, télécommandes</li>
+                            <li>entretien courant des équipements</li>
+                        </ul>
+                        <?php if (!empty($guideLien)): ?>
+                        <p class="mb-0">
+                            👉 <strong><a href="<?php echo htmlspecialchars($guideLien); ?>" target="_blank" rel="noopener">
+                                Consultez le guide des réparations locatives ici
+                            </a></strong>
+                        </p>
+                        <?php else: ?>
+                        <p class="text-muted small mb-0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Le lien vers le guide des réparations locatives peut être configuré par l'administrateur.
+                        </p>
+                        <?php endif; ?>
+
+                        <div class="section-divider"></div>
+
+                        <!-- ─── Section 3 : Conditions d'intervention ──────── -->
+                        <div class="section-title">
+                            <span class="section-number">3</span> Conditions d'intervention
+                        </div>
+                        <p class="fw-semibold mb-2">Intervention technique</p>
+                        <p class="text-muted mb-3">
+                            Si l'intervention ne relève pas de la responsabilité du propriétaire, une facturation distincte
+                            sera établie selon le barème ci-dessous.
+                        </p>
+                        <div class="bareme-box">
+                            <p class="fw-semibold mb-2">Barème applicable :</p>
+                            <ul class="mb-0">
+                                <li>Forfait déplacement + diagnostic (incluant jusqu'à 1 heure sur place) : <strong>80 € TTC</strong></li>
+                                <li>Heure supplémentaire entamée : <strong>60 € TTC</strong></li>
+                                <li>Fournitures et pièces : <strong>facturées au coût réel</strong></li>
+                            </ul>
+                        </div>
+
+                        <div class="section-divider"></div>
+
+                        <!-- ─── Section 4 : Confirmation ───────────────────── -->
+                        <div class="section-title">
+                            <span class="section-number">4</span> Confirmation
+                        </div>
+                        <div class="mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="checklist_guide"
+                                       name="checklist_guide" value="1"
+                                       <?php echo !empty($_POST['checklist_guide']) ? 'checked' : ''; ?> required>
+                                <label class="form-check-label" for="checklist_guide">
+                                    J'ai consulté le guide des réparations locatives<?php echo !empty($guideLien) ? ' (<a href="' . htmlspecialchars($guideLien) . '" target="_blank" rel="noopener">voir le guide</a>)' : ''; ?>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mb-0">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="checklist_conditions"
+                                       name="checklist_conditions" value="1"
+                                       <?php echo !empty($_POST['checklist_conditions']) ? 'checked' : ''; ?> required>
+                                <label class="form-check-label" for="checklist_conditions">
+                                    J'ai pris connaissance des conditions d'intervention et du barème applicable
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="section-divider"></div>
+
+                        <!-- ─── Section 5 : Formulaire de déclaration ──────── -->
+                        <div class="section-title">
+                            <span class="section-number">5</span> Formulaire de déclaration
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label fw-semibold">Priorité <span class="text-danger">*</span></label>
-                            <div class="d-flex gap-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="priorite" id="prio_normal"
-                                           value="normal" <?php echo (($_POST['priorite'] ?? 'normal') === 'normal') ? 'checked' : ''; ?>>
-                                    <label class="form-check-label" for="prio_normal">
-                                        <span class="badge badge-normal">Normal</span>
-                                        <small class="text-muted ms-1">— Peut attendre quelques jours</small>
+                            <label class="form-label fw-semibold">Type de problème <span class="text-danger">*</span></label>
+                            <div class="row g-2">
+                                <?php
+                                $types = ['Plomberie', 'Électricité', 'Serrurerie', 'Chauffage', 'Électroménager', 'Autre'];
+                                $typeIcons = ['Plomberie' => '🔧', 'Électricité' => '⚡', 'Serrurerie' => '🔑', 'Chauffage' => '🔥', 'Électroménager' => '🏠', 'Autre' => '❓'];
+                                $selectedType = $_POST['type_probleme'] ?? '';
+                                foreach ($types as $type):
+                                    $typeId = 'type_' . strtolower(preg_replace('/[^a-z]/i', '_', $type)); ?>
+                                <div class="col-6 col-md-4 type-radio">
+                                    <input type="radio" name="type_probleme" id="<?php echo $typeId; ?>"
+                                           value="<?php echo htmlspecialchars($type); ?>"
+                                           <?php echo $selectedType === $type ? 'checked' : ''; ?>>
+                                    <label for="<?php echo $typeId; ?>">
+                                        <?php echo $typeIcons[$type]; ?> <?php echo htmlspecialchars($type); ?>
                                     </label>
                                 </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Niveau d'urgence <span class="text-danger">*</span></label>
+                            <div class="d-flex flex-column gap-2">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="priorite" id="prio_urgent"
                                            value="urgent" <?php echo (($_POST['priorite'] ?? '') === 'urgent') ? 'checked' : ''; ?>>
                                     <label class="form-check-label" for="prio_urgent">
-                                        <span class="badge badge-urgent text-white">Urgent</span>
-                                        <small class="text-muted ms-1">— Risque pour la sécurité ou habitation</small>
+                                        <strong>Urgent</strong>
+                                        <small class="text-muted ms-1">— dégât des eaux, impossibilité d'accéder au logement…</small>
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="priorite" id="prio_normal"
+                                           value="normal" <?php echo (($_POST['priorite'] ?? 'normal') === 'normal') ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="prio_normal">
+                                        <strong>Normal</strong>
+                                        <small class="text-muted ms-1">— peut attendre quelques jours</small>
                                     </label>
                                 </div>
                             </div>
@@ -296,68 +488,15 @@ if ($success) {
 
                         <div class="mb-4">
                             <label class="form-label fw-semibold" for="photos">
-                                Photos <span class="text-danger">*</span>
+                                Photos / vidéos <span class="text-danger">*</span>
                             </label>
                             <input type="file" class="form-control" id="photos" name="photos[]"
-                                   accept="image/jpeg,image/png,image/webp" multiple>
-                            <div class="form-text">JPG, PNG ou WebP — 10 Mo max par photo. Ajoutez plusieurs photos si nécessaire.</div>
-                        </div>
-
-                        <div class="mb-4">
-                            <div class="card border-warning">
-                                <div class="card-header bg-warning bg-opacity-10 fw-semibold">
-                                    <i class="bi bi-clipboard-check me-2 text-warning"></i>
-                                    Vérification de la responsabilité — À lire attentivement
-                                </div>
-                                <div class="card-body">
-                                    <p class="text-muted small mb-3">
-                                        Avant de valider votre signalement, veuillez vérifier si la réparation est à votre charge
-                                        ou à celle du propriétaire.
-                                    </p>
-                                    <div class="row g-3 mb-3">
-                                        <div class="col-md-6">
-                                            <div class="p-3 rounded" style="background:#fff3cd;">
-                                                <strong><i class="bi bi-person me-1"></i>À la charge du locataire :</strong>
-                                                <div class="checklist-item">Remplacement des ampoules</div>
-                                                <div class="checklist-item">Entretien courant (joints, filtres, débouchage)</div>
-                                                <div class="checklist-item">Petites réparations (poignées, serrures usées)</div>
-                                                <div class="checklist-item">Raccords peinture ou petits accrocs</div>
-                                                <div class="checklist-item">Entretien de la chaudière (annuel)</div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="p-3 rounded" style="background:#d4edda;">
-                                                <strong><i class="bi bi-house me-1"></i>À la charge du propriétaire :</strong>
-                                                <div class="checklist-item">Toiture, façade, gros œuvre</div>
-                                                <div class="checklist-item">Chauffage collectif, chaudière défectueuse</div>
-                                                <div class="checklist-item">Canalisations encastrées, fuites structurelles</div>
-                                                <div class="checklist-item">Volets, portes et fenêtres défectueux</div>
-                                                <div class="checklist-item">Équipements vétustes fournis avec le logement</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="form-check mt-2">
-                                        <input class="form-check-input" type="checkbox" id="checklist_confirmee"
-                                               name="checklist_confirmee" value="1"
-                                               <?php echo !empty($_POST['checklist_confirmee']) ? 'checked' : ''; ?> required>
-                                        <label class="form-check-label fw-semibold" for="checklist_confirmee">
-                                            J'ai vérifié la liste ci-dessus et je confirme que cette réparation
-                                            ne relève pas de ma responsabilité de locataire.
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="alert alert-light border small text-muted mb-4">
-                            <i class="bi bi-info-circle me-1"></i>
-                            Votre signalement sera transmis à l'équipe de gestion. La date de dépôt sera
-                            enregistrée automatiquement et servira de référence en cas de litige.
-                            Toutes les actions sur ce dossier seront horodatées.
+                                   accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" multiple>
+                            <div class="form-text">JPG, PNG, WebP ou vidéo — 10 Mo max par fichier. Ajoutez plusieurs fichiers si nécessaire.</div>
                         </div>
 
                         <button type="submit" class="btn btn-primary btn-lg w-100">
-                            <i class="bi bi-send me-2"></i>Soumettre le signalement
+                            <i class="bi bi-send me-2"></i>Envoyer ma demande
                         </button>
                     </form>
                     <?php endif; ?>
