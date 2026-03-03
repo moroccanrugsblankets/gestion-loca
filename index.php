@@ -367,7 +367,7 @@ $companyEmail = $config['COMPANY_EMAIL'] ?? '';
         .section-title {
             display: flex;
             align-items: center;
-            font-size: 1rem;
+            font-size: 1.5rem;
             font-weight: 700;
             color: #2c3e50;
             margin-bottom: 12px;
@@ -386,6 +386,9 @@ $companyEmail = $config['COMPANY_EMAIL'] ?? '';
             flex-shrink: 0;
         }
         .guide-content h1,.guide-content h2,.guide-content h3 { margin-top: 1.1rem; }
+        .guide-content h2 { font-size: 1.4rem; }
+        .guide-content h3 { font-size: 1.2rem; }
+        .guide-content h4 { font-size: 1.1rem; }
         .bareme-box {
             background: #f8f9fa;
             border: 1px solid #dee2e6;
