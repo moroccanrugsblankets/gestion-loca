@@ -421,7 +421,8 @@ $companyEmail = $config['COMPANY_EMAIL'] ?? '';
                             <i class="bi bi-house-door me-2"></i>Portail locataire
                         <?php elseif ($state === 'choice'): ?>
                             <i class="bi bi-grid me-2"></i>Bonjour, <?php echo htmlspecialchars($locataire['prenom']); ?> !
-                        <?php elseif (str_starts_with($state, 'anomalie')): ?>
+                        <?php // Remplacement de str_starts_with par strncmp pour PHP 7 ?>
+                        <?php elseif (isset($state) && strncmp($state, 'anomalie', 8) === 0): ?>
                             <i class="bi bi-tools me-2"></i>Déclaration d'anomalie
                         <?php endif; ?>
                     </h2>
