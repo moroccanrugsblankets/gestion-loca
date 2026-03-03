@@ -671,7 +671,7 @@ $companyEmail = $config['COMPANY_EMAIL'] ?? '';
                                 <div class="row g-2">
                                     <?php
                                     $types     = ['Plomberie', 'Électricité', 'Serrurerie', 'Chauffage', 'Électroménager', 'Autre'];
-                                    $typeIcons = ['Plomberie' => '��', 'Électricité' => '⚡', 'Serrurerie' => '🔑', 'Chauffage' => '🔥', 'Électroménager' => '🏠', 'Autre' => '❓'];
+                                    $typeIcons = ['Plomberie' => '🛁', 'Électricité' => '⚡', 'Serrurerie' => '🔑', 'Chauffage' => '🔥', 'Électroménager' => '🏠', 'Autre' => '❓'];
                                     $selectedType = $_POST['type_probleme'] ?? '';
                                     foreach ($types as $type):
                                         $typeId = 'type_' . strtolower(preg_replace('/[^a-z]/i', '_', $type));
