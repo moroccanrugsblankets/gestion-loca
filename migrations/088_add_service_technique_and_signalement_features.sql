@@ -8,12 +8,12 @@
 
 -- 1. Champ service_technique dans collaborateurs
 ALTER TABLE collaborateurs
-    ADD COLUMN IF NOT EXISTS service_technique TINYINT(1) NOT NULL DEFAULT 0
+    ADD COLUMN service_technique TINYINT(1) NOT NULL DEFAULT 0
         COMMENT 'Si 1, ce collaborateur est désigné comme Service Technique (reçoit les notifications en BCC)';
 
 -- 2. Champ disponibilites dans signalements (renseigné par le locataire)
 ALTER TABLE signalements
-    ADD COLUMN IF NOT EXISTS disponibilites TEXT NULL
+    ADD COLUMN disponibilites TEXT NULL
         COMMENT 'Disponibilités renseignées par le locataire lors du signalement (3 jours suivants)';
 
 -- 3. Template email : confirmation de responsabilité à la charge du locataire
