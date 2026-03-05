@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = 'Au moins une photo est obligatoire.';
             } else {
                 $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'video/mp4', 'video/quicktime', 'video/x-msvideo'];
-                $maxSize      = 10 * 1024 * 1024;
+                $maxSize      = 30 * 1024 * 1024;
                 $uploadDir    = __DIR__ . '/../uploads/signalements/';
 
                 if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     foreach ($_FILES['photos']['tmp_name'] as $i => $tmpName) {
                         if ($_FILES['photos']['error'][$i] !== UPLOAD_ERR_OK) continue;
                         if ($_FILES['photos']['size'][$i] > $maxSize) {
-                            $errors[] = 'Le fichier « ' . htmlspecialchars($_FILES['photos']['name'][$i]) . ' » dépasse 10 Mo.';
+                            $errors[] = 'Le fichier « ' . htmlspecialchars($_FILES['photos']['name'][$i]) . ' » dépasse 30 Mo.';
                             continue;
                         }
                         $mime = mime_content_type($tmpName);
@@ -278,6 +278,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Email au service technique
                     $stEmail = getServiceTechniqueEmail();
                     if ($stEmail && !in_array(strtolower($stEmail), array_map('strtolower', $allAdminEmails)) && strtolower($stEmail) !== strtolower($locataireEmail)) {
+                        $stActionButtonsHtml = '<div style="margin: 25px 0; text-align: center;">'
+                            . '<a href="' . htmlspecialchars($siteUrl . '/admin-v2/signalement-detail.php?id=' . $newSignalementId, ENT_QUOTES, 'UTF-8') . '" '
+                            . 'style="display:inline-block;background:#3498db;color:white;padding:12px 24px;text-decoration:none;border-radius:6px;font-weight:bold;font-size:14px;">'
+                            . 'Voir le signalement →</a></div>';
                         sendTemplatedEmail('nouveau_signalement_service_technique', $stEmail, [
                             'reference'           => $reference,
                             'titre'               => $titre,
@@ -289,6 +293,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'date'                => date('d/m/Y à H:i'),
                             'disponibilites_html' => $disponibilitesHtml,
                             'photos_html'         => $photosHtml,
+                            'action_buttons_html' => $stActionButtonsHtml,
                         ], $attachmentsArg, false, false, ['contexte' => "signalement_st_notification;sig_id=$newSignalementId"]);
                     }
 
@@ -709,7 +714,7 @@ $companyEmail = $config['COMPANY_EMAIL'] ?? '';
                                 </label>
                                 <input type="file" class="form-control" id="photos" name="photos[]"
                                        accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" multiple>
-                                <div class="form-text">JPG, PNG, WebP ou vidéo — 10 Mo max par fichier.</div>
+                                <div class="form-text">JPG, PNG, WebP ou vidéo — 30 Mo max par fichier.</div>
                                 <!-- Preview zone for selected files -->
                                 <div id="file-preview-zone" class="mt-3 d-none">
                                     <p class="small fw-semibold mb-2">Fichiers sélectionnés :</p>

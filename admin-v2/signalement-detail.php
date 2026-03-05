@@ -160,21 +160,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             } else {
                 $old = $sig['responsabilite'];
 
-                // If locataire is responsible, automatically close the ticket
-                $autoClose = ($responsabilite === 'locataire');
-                if ($autoClose) {
-                    $pdo->prepare("UPDATE signalements SET responsabilite = ?, responsabilite_confirmee_admin = 1, statut = 'clos', date_cloture = COALESCE(date_cloture, NOW()), updated_at = NOW() WHERE id = ?")
-                        ->execute([$responsabilite, $id]);
-                } else {
-                    $pdo->prepare("UPDATE signalements SET responsabilite = ?, responsabilite_confirmee_admin = 1, updated_at = NOW() WHERE id = ?")
-                        ->execute([$responsabilite, $id]);
-                }
+                // When locataire is responsible, do NOT auto-close: tenant must accept first
+                $pdo->prepare("UPDATE signalements SET responsabilite = ?, responsabilite_confirmee_admin = 1, updated_at = NOW() WHERE id = ?")
+                    ->execute([$responsabilite, $id]);
 
                 $pdo->prepare("
                     INSERT INTO signalements_actions (signalement_id, type_action, description, acteur, ancienne_valeur, nouvelle_valeur, ip_address)
                     VALUES (?, 'responsabilite', ?, ?, ?, ?, ?)
                 ")->execute([$id,
-                    "Responsabilité définie : $old → $responsabilite" . ($autoClose ? ' (dossier clos automatiquement)' : ''),
+                    "Responsabilité définie : $old → $responsabilite",
                     $adminName, $old, $responsabilite,
                     $_SERVER['REMOTE_ADDR'] ?? 'unknown',
                 ]);
@@ -182,6 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                 // Send email to tenant when responsibility is confirmed
                 if ($responsabilite !== 'non_determine' && !empty($sig['locataire_email'])) {
                     $companyName = $config['COMPANY_NAME'] ?? 'My Invest Immobilier';
+                    $siteUrl = rtrim($config['SITE_URL'] ?? '', '/');
                     $emailVars = [
                         'prenom'         => $sig['locataire_prenom'] ?? $sig['locataire_nom'],
                         'nom'            => $sig['locataire_nom'],
@@ -194,6 +189,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                     $templateId = ($responsabilite === 'proprietaire')
                         ? 'confirmation_responsabilite_proprietaire'
                         : 'confirmation_responsabilite_locataire';
+
+                    // For locataire responsibility: include acceptance link with pricing info
+                    if ($responsabilite === 'locataire' && !empty($sig['token_signalement'])) {
+                        $lienAcceptation = $siteUrl . '/signalement/accepter-intervention.php?sig=' . $id . '&token=' . urlencode($sig['token_signalement']);
+                        $emailVars['lien_acceptation'] = $lienAcceptation;
+                    }
 
                     // Send to tenant with admin BCC
                     sendTemplatedEmail(
