@@ -19,7 +19,17 @@ if (isset($_GET['action']) && $_GET['action'] === 'view_email' && isset($_GET['i
     $stmt->execute([$id]);
     $email = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($email) {
-        echo json_encode(['success' => true, 'email' => $email]);
+        $json = json_encode(['success' => true, 'email' => $email], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        if ($json === false) {
+            // Sanitize each string field before retrying
+            array_walk_recursive($email, function (&$v) {
+                if (is_string($v)) {
+                    $v = mb_convert_encoding($v, 'UTF-8', 'UTF-8');
+                }
+            });
+            $json = json_encode(['success' => true, 'email' => $email], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+        echo $json ?: json_encode(['success' => false, 'error' => 'Erreur de sérialisation du contenu']);
     } else {
         echo json_encode(['success' => false, 'error' => 'Email introuvable']);
     }
