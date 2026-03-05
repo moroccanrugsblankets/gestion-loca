@@ -318,19 +318,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                 foreach ($toAttribuer as $collab) {
                     // Envoyer email si mode email ou les_deux
                     if (in_array($modeNotif, ['email', 'les_deux']) && !empty($collab['email'])) {
-                        $subject = "[Signalement {$sig['priorite']}] " . $sig['titre'] . " — " . $sig['adresse'];
-                        $body = "<p>Bonjour " . htmlspecialchars($collab['nom']) . ",</p>"
-                            . "<p>Un signalement vous a été attribué :</p>"
-                            . "<ul>"
-                            . "<li><strong>Référence :</strong> " . htmlspecialchars($sig['reference']) . "</li>"
-                            . "<li><strong>Titre :</strong> " . htmlspecialchars($sig['titre']) . "</li>"
-                            . "<li><strong>Priorité :</strong> " . htmlspecialchars($sig['priorite']) . "</li>"
-                            . "<li><strong>Adresse :</strong> " . htmlspecialchars($sig['adresse']) . "</li>"
-                            . "<li><strong>Description :</strong> " . nl2br(htmlspecialchars($sig['description'])) . "</li>"
-                            . "</ul>"
-                            . "<p><a href=\"" . htmlspecialchars($signalementUrl) . "\">Voir la mission interne</a></p>";
-                        $sent = sendEmail($collab['email'], $subject, $body, null, true, false, null, null, false,
-                            ['contexte' => "signalement_attribution;sig_id=$id"]);
+                        // Build photos/files HTML (linked by public URL — collaborators have no admin access)
+                        $photosHtml = '';
+                        if (!empty($photos)) {
+                            $siteUrlBase = rtrim($config['SITE_URL'], '/');
+                            $photosHtml = '<div style="background: #f8f9fa; padding: 15px; margin: 20px 0; border-radius: 5px;">'
+                                . '<h3 style="margin: 0 0 10px; color: #333; font-size: 16px;">📎 Fichiers joints (' . count($photos) . ')</h3>'
+                                . '<ul style="margin: 0; padding-left: 20px;">';
+                            foreach ($photos as $photo) {
+                                $photoUrl = $siteUrlBase . '/uploads/signalements/' . rawurlencode($photo['filename']);
+                                $isVideo  = strpos($photo['mime_type'] ?? '', 'video/') === 0;
+                                $icon     = $isVideo ? '🎬' : '📷';
+                                $photosHtml .= '<li style="margin: 4px 0;">'
+                                    . $icon . ' <a href="' . htmlspecialchars($photoUrl, ENT_QUOTES, 'UTF-8') . '" target="_blank">'
+                                    . htmlspecialchars($photo['original_name'], ENT_QUOTES, 'UTF-8')
+                                    . '</a></li>';
+                            }
+                            $photosHtml .= '</ul></div>';
+                        }
+
+                        $emailVars = [
+                            'collab_nom'          => $collab['nom'],
+                            'reference'           => $sig['reference'],
+                            'titre'               => $sig['titre'],
+                            'priorite'            => ucfirst($sig['priorite']),
+                            'adresse'             => $sig['adresse'],
+                            'locataire_nom'       => $sig['locataire_nom'] ?? '',
+                            'locataire_telephone' => $sig['locataire_telephone'] ?? '',
+                            'locataire_email'     => $sig['locataire_email'] ?? '',
+                            'description'         => $sig['description'],
+                            'date_signalement'    => !empty($sig['date_signalement'])
+                                ? date('d/m/Y à H:i', strtotime($sig['date_signalement']))
+                                : '',
+                            'company'             => $config['COMPANY_NAME'] ?? 'My Invest Immobilier',
+                            'photos_html'         => $photosHtml,
+                        ];
+
+                        $sent = sendTemplatedEmail(
+                            'signalement_attribution',
+                            $collab['email'],
+                            $emailVars,
+                            null,
+                            false,
+                            true, // addAdminBcc — les admins reçoivent une copie invisible
+                            ['contexte' => "signalement_attribution;sig_id=$id"]
+                        );
                         if (!$sent) {
                             $errors[] = 'Avertissement : l\'email à ' . htmlspecialchars($collab['nom']) . ' n\'a pas pu être envoyé.';
                         }
