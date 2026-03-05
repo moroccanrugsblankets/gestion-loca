@@ -74,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
         // ── Changement de statut ─────────────────────────────────────────────
         if ($action === 'change_statut' && !$isClos) {
             $newStatut = $_POST['statut'] ?? '';
-            $validStatuts = ['nouveau', 'en_cours', 'en_attente', 'resolu', 'clos'];
+            $validStatuts = ['nouveau', 'en_cours', 'pris_en_charge', 'sur_place', 'en_attente', 'reporte', 'resolu', 'clos'];
             if (!in_array($newStatut, $validStatuts)) {
                 $errors[] = 'Statut invalide.';
             } else {
@@ -289,18 +289,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                 // Insérer dans signalements_collaborateurs (si table disponible)
                 foreach ($toAttribuer as $collab) {
                     try {
+                        // Générer un token d'action unique pour ce collaborateur
+                        $actionToken = bin2hex(random_bytes(32));
                         $pdo->prepare("
                             INSERT INTO signalements_collaborateurs
                                 (signalement_id, collaborateur_id, collaborateur_nom, collaborateur_email,
-                                 collaborateur_telephone, mode_notification, attribue_par)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                                 collaborateur_telephone, mode_notification, attribue_par, action_token)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                             ON DUPLICATE KEY UPDATE
                                 collaborateur_nom = VALUES(collaborateur_nom),
                                 collaborateur_email = VALUES(collaborateur_email),
-                                collaborateur_telephone = VALUES(collaborateur_telephone)
-                        ")->execute([$id, $collab['id'], $collab['nom'], $collab['email'], $collab['tel'], $modeNotif, $adminName]);
+                                collaborateur_telephone = VALUES(collaborateur_telephone),
+                                action_token = COALESCE(action_token, VALUES(action_token))
+                        ")->execute([$id, $collab['id'], $collab['nom'], $collab['email'], $collab['tel'], $modeNotif, $adminName, $actionToken]);
                     } catch (Exception $e) {
-                        // Table absente si migration 089 non appliquée — ignorer
+                        // Table absente si migration 089/091 non appliquée — ignorer
                     }
                 }
 
@@ -337,6 +340,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                             $photosHtml .= '</ul></div>';
                         }
 
+                        // Récupérer le token d'action du collaborateur pour les boutons email
+                        $collabToken = '';
+                        try {
+                            $tokenStmt = $pdo->prepare("SELECT action_token FROM signalements_collaborateurs WHERE signalement_id = ? AND collaborateur_email = ? LIMIT 1");
+                            $tokenStmt->execute([$id, $collab['email']]);
+                            $collabToken = $tokenStmt->fetchColumn() ?: '';
+                        } catch (Exception $e) {}
+
+                        // Construire les boutons d'action
+                        $actionButtonsHtml = '';
+                        if (!empty($collabToken)) {
+                            $siteUrlBase = rtrim($config['SITE_URL'], '/');
+                            $baseActionUrl = $siteUrlBase . '/signalement/collab-action.php?token=' . urlencode($collabToken);
+                            $actionButtonsHtml = '<div style="margin: 25px 0; text-align: center;">'
+                                . '<p style="font-weight: bold; margin-bottom: 15px;">Actions rapides :</p>'
+                                . '<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">'
+                                . '<a href="' . $baseActionUrl . '&amp;action=pris_en_charge" style="display:inline-block;background:#3498db;color:white;padding:12px 18px;text-decoration:none;border-radius:6px;font-weight:bold;font-size:14px;">🔵 Pris en charge</a>'
+                                . '<a href="' . $baseActionUrl . '&amp;action=sur_place" style="display:inline-block;background:#e67e22;color:white;padding:12px 18px;text-decoration:none;border-radius:6px;font-weight:bold;font-size:14px;">🟠 Sur place</a>'
+                                . '<a href="' . $baseActionUrl . '&amp;action=termine" style="display:inline-block;background:#27ae60;color:white;padding:12px 18px;text-decoration:none;border-radius:6px;font-weight:bold;font-size:14px;">🟢 Intervention terminée</a>'
+                                . '<a href="' . $baseActionUrl . '&amp;action=impossible" style="display:inline-block;background:#e74c3c;color:white;padding:12px 18px;text-decoration:none;border-radius:6px;font-weight:bold;font-size:14px;">🔴 Impossible / Report</a>'
+                                . '</div></div>';
+                        }
+
                         $emailVars = [
                             'collab_nom'          => $collab['nom'],
                             'reference'           => $sig['reference'],
@@ -352,6 +378,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                                 : '',
                             'company'             => $config['COMPANY_NAME'] ?? 'My Invest Immobilier',
                             'photos_html'         => $photosHtml,
+                            'action_buttons_html' => $actionButtonsHtml,
                         ];
 
                         $sent = sendTemplatedEmail(
@@ -471,22 +498,39 @@ try {
 }
 
 $statutLabels = [
-    'nouveau'    => ['label' => 'Nouveau',     'class' => 'bg-primary'],
-    'en_cours'   => ['label' => 'En cours',    'class' => 'bg-warning text-dark'],
-    'en_attente' => ['label' => 'En attente',  'class' => 'bg-info text-dark'],
-    'resolu'     => ['label' => 'Résolu',      'class' => 'bg-success'],
-    'clos'       => ['label' => 'Clos',        'class' => 'bg-secondary'],
+    'nouveau'         => ['label' => 'Nouveau',         'class' => 'bg-primary'],
+    'en_cours'        => ['label' => 'En cours',        'class' => 'bg-warning text-dark'],
+    'pris_en_charge'  => ['label' => 'Pris en charge',  'class' => 'bg-info text-dark'],
+    'sur_place'       => ['label' => 'Sur place',       'class' => 'bg-warning text-dark'],
+    'en_attente'      => ['label' => 'En attente',      'class' => 'bg-info text-dark'],
+    'reporte'         => ['label' => 'Reporté',         'class' => 'bg-danger'],
+    'resolu'          => ['label' => 'Résolu',          'class' => 'bg-success'],
+    'clos'            => ['label' => 'Clos',            'class' => 'bg-secondary'],
 ];
 
 $actionIcons = [
-    'creation'        => 'bi-flag-fill text-primary',
-    'statut_change'   => 'bi-arrow-repeat text-warning',
-    'attribution'     => 'bi-person-check text-info',
-    'responsabilite'  => 'bi-shield-check text-success',
-    'complement'      => 'bi-chat-text text-secondary',
-    'cloture'         => 'bi-lock-fill text-secondary',
-    'contrat_change'  => 'bi-file-earmark-text text-primary',
+    'creation'           => 'bi-flag-fill text-primary',
+    'statut_change'      => 'bi-arrow-repeat text-warning',
+    'attribution'        => 'bi-person-check text-info',
+    'responsabilite'     => 'bi-shield-check text-success',
+    'complement'         => 'bi-chat-text text-secondary',
+    'cloture'            => 'bi-lock-fill text-secondary',
+    'contrat_change'     => 'bi-file-earmark-text text-primary',
+    'collab_pris_en_charge' => 'bi-check-circle text-info',
+    'collab_sur_place'   => 'bi-geo-alt text-warning',
+    'collab_termine'     => 'bi-check-circle-fill text-success',
+    'collab_impossible'  => 'bi-x-circle text-danger',
 ];
+
+// Charger le décompte associé à ce signalement (s'il existe)
+$decompte = null;
+try {
+    $decStmt = $pdo->prepare("SELECT id, reference, statut, montant_total, date_creation FROM signalements_decomptes WHERE signalement_id = ? LIMIT 1");
+    $decStmt->execute([$id]);
+    $decompte = $decStmt->fetch(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    // Table absente si migration non appliquée
+}
 
 $csrfToken = generateCsrfToken();
 
@@ -630,6 +674,23 @@ if ($successParam) {
                         </dd>
                         <?php endif; ?>
 
+                        <?php if (!empty($sig['nb_heures']) || !empty($sig['cout_materiaux']) || !empty($sig['notes_intervention'])): ?>
+                        <dt class="col-sm-4">Intervention</dt>
+                        <dd class="col-sm-8">
+                            <div class="p-2 bg-light rounded small">
+                                <?php if (!empty($sig['nb_heures'])): ?>
+                                    <div><i class="bi bi-clock me-1 text-muted"></i><strong>Heures :</strong> <?php echo number_format((float)$sig['nb_heures'], 2, ',', ' '); ?> h</div>
+                                <?php endif; ?>
+                                <?php if (!empty($sig['cout_materiaux'])): ?>
+                                    <div><i class="bi bi-currency-euro me-1 text-muted"></i><strong>Matériaux :</strong> <?php echo number_format((float)$sig['cout_materiaux'], 2, ',', ' '); ?> €</div>
+                                <?php endif; ?>
+                                <?php if (!empty($sig['notes_intervention'])): ?>
+                                    <div class="mt-1" style="white-space:pre-wrap;"><?php echo htmlspecialchars($sig['notes_intervention']); ?></div>
+                                <?php endif; ?>
+                            </div>
+                        </dd>
+                        <?php endif; ?>
+
                         <dt class="col-sm-4">Responsabilité</dt>
                         <dd class="col-sm-8">
                             <?php
@@ -693,16 +754,67 @@ if ($successParam) {
                     </dl>
                 </div>
 
+                <!-- Décompte d'intervention -->
+                <div class="section-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0"><i class="bi bi-receipt me-2"></i>Décompte d'intervention</h5>
+                        <?php if ($decompte): ?>
+                            <?php
+                            $decStatutLabels = ['brouillon' => ['Brouillon', 'secondary'], 'valide' => ['Validé', 'success'], 'facture_envoyee' => ['Facture envoyée', 'primary']];
+                            $dsl = $decStatutLabels[$decompte['statut']] ?? [$decompte['statut'], 'secondary'];
+                            ?>
+                            <span class="badge bg-<?php echo $dsl[1]; ?>"><?php echo $dsl[0]; ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <?php if ($decompte): ?>
+                        <p class="mb-2 small text-muted">
+                            Référence : <strong class="font-monospace"><?php echo htmlspecialchars($decompte['reference']); ?></strong>
+                            — Montant : <strong><?php echo number_format((float)$decompte['montant_total'], 2, ',', ' '); ?> €</strong>
+                            — Créé le <?php echo date('d/m/Y', strtotime($decompte['date_creation'])); ?>
+                        </p>
+                        <a href="decompte-detail.php?id=<?php echo $decompte['id']; ?>" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-pencil me-1"></i>Ouvrir le décompte
+                        </a>
+                    <?php else: ?>
+                        <p class="text-muted small mb-3">Aucun décompte créé pour ce signalement.</p>
+                        <a href="decompte-detail.php?sig=<?php echo $id; ?>" class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-plus-circle me-1"></i>Créer un décompte
+                        </a>
+                    <?php endif; ?>
+                </div>
+
                 <!-- Photos / Vidéos -->
                 <?php if (!empty($photos)): ?>
+                <?php
+                // Group photos by type
+                $photosByType = [];
+                foreach ($photos as $p) {
+                    $pt = $p['photo_type'] ?? 'signalement';
+                    $photosByType[$pt][] = $p;
+                }
+                $photoTypeLabels = [
+                    'signalement'  => ['Signalement initial', 'bi-camera'],
+                    'avant_travaux'=> ['Avant travaux', 'bi-camera-fill'],
+                    'apres_travaux'=> ['Après travaux', 'bi-camera-fill text-success'],
+                ];
+                ?>
                 <div class="section-card">
                     <h5 class="mb-3"><i class="bi bi-camera me-2"></i>Photos / Vidéos (<?php echo count($photos); ?>)</h5>
-                    <div class="d-flex flex-wrap gap-2">
-                        <?php foreach ($photos as $idx => $photo): ?>
+                    <?php foreach ($photosByType as $ptKey => $ptPhotos): ?>
+                    <?php if (count($photosByType) > 1): ?>
+                    <h6 class="text-muted small mb-2">
+                        <i class="<?php echo $photoTypeLabels[$ptKey][1] ?? 'bi-camera'; ?> me-1"></i>
+                        <?php echo $photoTypeLabels[$ptKey][0] ?? $ptKey; ?>
+                        (<?php echo count($ptPhotos); ?>)
+                    </h6>
+                    <?php endif; ?>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <?php foreach ($ptPhotos as $idx => $photo): ?>
                             <?php
+                            $pIdx      = $photo['id'] ?? $ptKey . $idx;
                             $mediaUrl  = rtrim($config['SITE_URL'], '/') . '/uploads/signalements/' . urlencode($photo['filename']);
                             $isVideo   = strpos($photo['mime_type'] ?? '', 'video/') === 0;
-                            $modalId   = 'media-modal-' . $idx;
+                            $modalId   = 'media-modal-' . $pIdx;
                             ?>
                             <?php if ($isVideo): ?>
                             <!-- Video thumbnail -->
@@ -757,6 +869,7 @@ if ($successParam) {
                             </div>
                         <?php endforeach; ?>
                     </div>
+                    <?php endforeach; // photosByType ?>
                 </div>
                 <?php endif; ?>
 

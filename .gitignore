@@ -4,6 +4,9 @@ uploads/*
 !uploads/signatures/
 uploads/signatures/*
 !uploads/signatures/.htaccess
+!uploads/decomptes/
+uploads/decomptes/*
+!uploads/decomptes/.gitkeep
 
 # PDF générés (contiennent des données personnelles)
 pdf/*

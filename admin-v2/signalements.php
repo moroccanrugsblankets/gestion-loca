@@ -17,7 +17,7 @@ $search         = trim($_GET['search'] ?? '');
 $where = ['1=1'];
 $params = [];
 
-if ($statutFilter && in_array($statutFilter, ['nouveau', 'en_cours', 'en_attente', 'resolu', 'clos'])) {
+if ($statutFilter && in_array($statutFilter, ['nouveau', 'en_cours', 'pris_en_charge', 'sur_place', 'en_attente', 'reporte', 'resolu', 'clos'])) {
     $where[] = 'sig.statut = ?';
     $params[] = $statutFilter;
 }
@@ -45,7 +45,7 @@ $stmt = $pdo->prepare("
     WHERE $whereClause
     ORDER BY
         CASE sig.priorite WHEN 'urgent' THEN 0 ELSE 1 END,
-        CASE sig.statut WHEN 'nouveau' THEN 0 WHEN 'en_cours' THEN 1 WHEN 'en_attente' THEN 2 WHEN 'resolu' THEN 3 ELSE 4 END,
+        CASE sig.statut WHEN 'nouveau' THEN 0 WHEN 'en_cours' THEN 1 WHEN 'pris_en_charge' THEN 2 WHEN 'sur_place' THEN 3 WHEN 'en_attente' THEN 4 WHEN 'reporte' THEN 5 WHEN 'resolu' THEN 6 ELSE 7 END,
         sig.date_signalement DESC
 ");
 $stmt->execute($params);
@@ -60,11 +60,14 @@ $stats = [
 ];
 
 $statutLabels = [
-    'nouveau'    => ['label' => 'Nouveau',     'class' => 'bg-primary'],
-    'en_cours'   => ['label' => 'En cours',    'class' => 'bg-warning text-dark'],
-    'en_attente' => ['label' => 'En attente',  'class' => 'bg-info text-dark'],
-    'resolu'     => ['label' => 'Résolu',      'class' => 'bg-success'],
-    'clos'       => ['label' => 'Clos',        'class' => 'bg-secondary'],
+    'nouveau'         => ['label' => 'Nouveau',         'class' => 'bg-primary'],
+    'en_cours'        => ['label' => 'En cours',        'class' => 'bg-warning text-dark'],
+    'pris_en_charge'  => ['label' => 'Pris en charge',  'class' => 'bg-info text-dark'],
+    'sur_place'       => ['label' => 'Sur place',       'class' => 'bg-warning text-dark'],
+    'en_attente'      => ['label' => 'En attente',      'class' => 'bg-info text-dark'],
+    'reporte'         => ['label' => 'Reporté',         'class' => 'bg-danger'],
+    'resolu'          => ['label' => 'Résolu',          'class' => 'bg-success'],
+    'clos'            => ['label' => 'Clos',            'class' => 'bg-secondary'],
 ];
 ?>
 <!DOCTYPE html>

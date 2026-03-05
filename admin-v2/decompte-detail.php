@@ -1,0 +1,973 @@
+<?php
+/**
+ * Détail / édition d'un décompte d'intervention — Interface admin
+ * My Invest Immobilier
+ *
+ * Modes:
+ *  - ?id=X           : Ouvrir un décompte existant
+ *  - ?sig=X          : Créer un décompte pour le signalement X
+ */
+
+require_once '../includes/config.php';
+require_once 'auth.php';
+require_once '../includes/db.php';
+require_once '../includes/functions.php';
+require_once '../includes/mail-templates.php';
+
+$decompteId  = isset($_GET['id'])  ? (int)$_GET['id']  : 0;
+$sigIdCreate = isset($_GET['sig']) ? (int)$_GET['sig']  : 0;
+
+$errors     = [];
+$successMsg = '';
+$decompte   = null;
+$sig        = null;
+$lignes     = [];
+$fichiers   = [];
+
+$adminName  = $_SESSION['admin_nom'] ?? 'Administrateur';
+
+// ── Charger ou créer le décompte ───────────────────────────────────────────────
+if ($decompteId > 0) {
+    // Charger un décompte existant
+    try {
+        $stmt = $pdo->prepare("
+            SELECT d.*,
+                   sig.id           AS sig_id,
+                   sig.reference    AS sig_reference,
+                   sig.titre        AS sig_titre,
+                   sig.statut       AS sig_statut,
+                   sig.nb_heures    AS sig_nb_heures,
+                   sig.cout_materiaux AS sig_cout_materiaux,
+                   l.adresse,
+                   c.reference_unique AS contrat_ref,
+                   CONCAT(loc.prenom, ' ', loc.nom) AS locataire_nom,
+                   loc.email AS locataire_email,
+                   loc.prenom AS locataire_prenom
+            FROM signalements_decomptes d
+            INNER JOIN signalements sig ON d.signalement_id = sig.id
+            INNER JOIN logements l ON sig.logement_id = l.id
+            INNER JOIN contrats c ON sig.contrat_id = c.id
+            LEFT JOIN locataires loc ON sig.locataire_id = loc.id
+            WHERE d.id = ?
+            LIMIT 1
+        ");
+        $stmt->execute([$decompteId]);
+        $decompte = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        $errors[] = 'Impossible de charger le décompte : ' . $e->getMessage();
+    }
+
+    if (!$decompte) {
+        header('Location: gestion-decomptes.php');
+        exit;
+    }
+
+    // Charger les lignes
+    try {
+        $stmtL = $pdo->prepare("SELECT * FROM signalements_decomptes_lignes WHERE decompte_id = ? ORDER BY ordre ASC, id ASC");
+        $stmtL->execute([$decompteId]);
+        $lignes = $stmtL->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        $lignes = [];
+    }
+
+    // Charger les fichiers
+    try {
+        $stmtF = $pdo->prepare("SELECT * FROM signalements_decomptes_fichiers WHERE decompte_id = ? ORDER BY uploaded_at ASC");
+        $stmtF->execute([$decompteId]);
+        $fichiers = $stmtF->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        $fichiers = [];
+    }
+
+    $sig = [
+        'id'        => $decompte['sig_id'],
+        'reference' => $decompte['sig_reference'],
+        'titre'     => $decompte['sig_titre'],
+        'statut'    => $decompte['sig_statut'],
+        'adresse'   => $decompte['adresse'],
+    ];
+
+} elseif ($sigIdCreate > 0) {
+    // Vérifier si un décompte existe déjà
+    try {
+        $existCheck = $pdo->prepare("SELECT id FROM signalements_decomptes WHERE signalement_id = ? LIMIT 1");
+        $existCheck->execute([$sigIdCreate]);
+        $existId = $existCheck->fetchColumn();
+        if ($existId) {
+            header("Location: decompte-detail.php?id=$existId");
+            exit;
+        }
+    } catch (Exception $e) {}
+
+    // Charger le signalement
+    try {
+        $stmt = $pdo->prepare("
+            SELECT sig.*,
+                   l.adresse,
+                   c.reference_unique AS contrat_ref,
+                   CONCAT(loc.prenom, ' ', loc.nom) AS locataire_nom,
+                   loc.email AS locataire_email,
+                   loc.prenom AS locataire_prenom
+            FROM signalements sig
+            INNER JOIN logements l ON sig.logement_id = l.id
+            INNER JOIN contrats c ON sig.contrat_id = c.id
+            LEFT JOIN locataires loc ON sig.locataire_id = loc.id
+            WHERE sig.id = ?
+            LIMIT 1
+        ");
+        $stmt->execute([$sigIdCreate]);
+        $sig = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        $errors[] = 'Signalement introuvable.';
+    }
+
+    if (!$sig && empty($errors)) {
+        header('Location: signalements.php');
+        exit;
+    }
+} else {
+    header('Location: gestion-decomptes.php');
+    exit;
+}
+
+// ── Traitement des formulaires ─────────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        $errors[] = 'Token CSRF invalide. Veuillez recharger la page.';
+    } else {
+        $postAction = $_POST['action'];
+
+        // ── Créer le décompte ──────────────────────────────────────────────────
+        if ($postAction === 'creer_decompte' && $sigIdCreate > 0 && !$decompte) {
+            try {
+                $ref = 'DEC-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
+                $pdo->prepare("
+                    INSERT INTO signalements_decomptes
+                        (signalement_id, reference, statut, montant_total, cree_par, date_creation)
+                    VALUES (?, ?, 'brouillon', 0.00, ?, NOW())
+                ")->execute([$sigIdCreate, $ref, $adminName]);
+
+                $newId = (int)$pdo->lastInsertId();
+
+                // Pré-remplir les 3 lignes standards
+                $defaultLignes = [
+                    ['Déplacement + Diagnostic + 1h', 0.00],
+                    ['Heures supplémentaires',        0.00],
+                    ['Fournitures',                   0.00],
+                ];
+                foreach ($defaultLignes as $idx => $dl) {
+                    $pdo->prepare("
+                        INSERT INTO signalements_decomptes_lignes (decompte_id, ordre, intitule, montant)
+                        VALUES (?, ?, ?, ?)
+                    ")->execute([$newId, $idx, $dl[0], $dl[1]]);
+                }
+
+                header("Location: decompte-detail.php?id=$newId&success=created");
+                exit;
+            } catch (Exception $e) {
+                $errors[] = 'Erreur lors de la création du décompte : ' . $e->getMessage();
+            }
+        }
+
+        // ── Sauvegarder les lignes ─────────────────────────────────────────────
+        if ($postAction === 'save_lignes' && $decompte) {
+            $isEditable = in_array($decompte['statut'], ['brouillon'], true);
+            if (!$isEditable) {
+                $errors[] = 'Ce décompte ne peut plus être modifié (statut : ' . $decompte['statut'] . ').';
+            } else {
+                try {
+                    // Supprimer toutes les lignes et réinsérer
+                    $pdo->prepare("DELETE FROM signalements_decomptes_lignes WHERE decompte_id = ?")
+                        ->execute([$decompteId]);
+
+                    $intitules = (array)($_POST['intitule'] ?? []);
+                    $montants  = (array)($_POST['montant']  ?? []);
+                    $total     = 0.0;
+
+                    foreach ($intitules as $idx => $intitule) {
+                        $intitule = trim($intitule);
+                        $montant  = floatval(str_replace(',', '.', $montants[$idx] ?? '0'));
+                        if ($intitule === '') continue;
+                        $total += max(0, $montant);
+                        $pdo->prepare("
+                            INSERT INTO signalements_decomptes_lignes (decompte_id, ordre, intitule, montant)
+                            VALUES (?, ?, ?, ?)
+                        ")->execute([$decompteId, (int)$idx, $intitule, $montant]);
+                    }
+
+                    // Notes
+                    $notes = trim($_POST['notes'] ?? '');
+                    $pdo->prepare("UPDATE signalements_decomptes SET montant_total = ?, notes = ?, updated_at = NOW() WHERE id = ?")
+                        ->execute([$total, $notes ?: null, $decompteId]);
+
+                    header("Location: decompte-detail.php?id=$decompteId&success=saved");
+                    exit;
+                } catch (Exception $e) {
+                    $errors[] = 'Erreur : ' . $e->getMessage();
+                }
+            }
+        }
+
+        // ── Upload de pièce jointe ─────────────────────────────────────────────
+        if ($postAction === 'upload_fichier' && $decompte) {
+            if (!empty($_FILES['fichier']['tmp_name']) && $_FILES['fichier']['error'] === UPLOAD_ERR_OK) {
+                $uploadDir = __DIR__ . '/../uploads/decomptes/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0755, true);
+                }
+                $origName = basename($_FILES['fichier']['name']);
+                $mimeType = mime_content_type($_FILES['fichier']['tmp_name']) ?: 'application/octet-stream';
+                $allowedMime = [
+                    'application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+                    'video/mp4', 'video/quicktime', 'video/mpeg',
+                ];
+                if (!in_array($mimeType, $allowedMime, true)) {
+                    $errors[] = 'Type de fichier non autorisé.';
+                } elseif ($_FILES['fichier']['size'] > 50 * 1024 * 1024) {
+                    $errors[] = 'Fichier trop volumineux (max 50 Mo).';
+                } else {
+                    $ext      = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+                    $filename = 'dec_' . $decompteId . '_' . uniqid() . '.' . $ext;
+                    if (move_uploaded_file($_FILES['fichier']['tmp_name'], $uploadDir . $filename)) {
+                        try {
+                            $pdo->prepare("
+                                INSERT INTO signalements_decomptes_fichiers
+                                    (decompte_id, filename, original_name, mime_type, taille, uploaded_by)
+                                VALUES (?, ?, ?, ?, ?, ?)
+                            ")->execute([$decompteId, $filename, $origName, $mimeType, (int)$_FILES['fichier']['size'], $adminName]);
+                            header("Location: decompte-detail.php?id=$decompteId&success=upload");
+                            exit;
+                        } catch (Exception $e) {
+                            $errors[] = 'Erreur BD : ' . $e->getMessage();
+                        }
+                    } else {
+                        $errors[] = 'Impossible d\'enregistrer le fichier.';
+                    }
+                }
+            } else {
+                $errors[] = 'Aucun fichier reçu.';
+            }
+        }
+
+        // ── Supprimer une pièce jointe ─────────────────────────────────────────
+        if ($postAction === 'delete_fichier' && $decompte) {
+            $fichierId = (int)($_POST['fichier_id'] ?? 0);
+            if ($fichierId > 0) {
+                try {
+                    $fStmt = $pdo->prepare("SELECT filename FROM signalements_decomptes_fichiers WHERE id = ? AND decompte_id = ?");
+                    $fStmt->execute([$fichierId, $decompteId]);
+                    $fRow = $fStmt->fetch(PDO::FETCH_ASSOC);
+                    if ($fRow) {
+                        $fPath = __DIR__ . '/../uploads/decomptes/' . $fRow['filename'];
+                        if (file_exists($fPath)) {
+                            @unlink($fPath);
+                        }
+                        $pdo->prepare("DELETE FROM signalements_decomptes_fichiers WHERE id = ? AND decompte_id = ?")
+                            ->execute([$fichierId, $decompteId]);
+                    }
+                    header("Location: decompte-detail.php?id=$decompteId&success=deleted");
+                    exit;
+                } catch (Exception $e) {
+                    $errors[] = 'Erreur : ' . $e->getMessage();
+                }
+            }
+        }
+
+        // ── Valider le décompte ────────────────────────────────────────────────
+        if ($postAction === 'valider' && $decompte && $decompte['statut'] === 'brouillon') {
+            try {
+                $pdo->prepare("
+                    UPDATE signalements_decomptes
+                    SET statut = 'valide', date_validation = NOW(), valide_par = ?, updated_at = NOW()
+                    WHERE id = ?
+                ")->execute([$adminName, $decompteId]);
+
+                // Notifier les collaborateurs
+                $companyName = $config['COMPANY_NAME'] ?? 'My Invest Immobilier';
+                $stmtLignes  = $pdo->prepare("SELECT * FROM signalements_decomptes_lignes WHERE decompte_id = ? ORDER BY ordre ASC");
+                $stmtLignes->execute([$decompteId]);
+                $allLignes = $stmtLignes->fetchAll(PDO::FETCH_ASSOC);
+
+                $lignesHtml = '';
+                if (!empty($allLignes)) {
+                    $lignesHtml = '<table style="width:100%;border-collapse:collapse;margin-top:10px;">'
+                        . '<thead><tr style="background:#f8f9fa;">'
+                        . '<th style="border:1px solid #dee2e6;padding:8px;text-align:left;">Intitulé</th>'
+                        . '<th style="border:1px solid #dee2e6;padding:8px;text-align:right;white-space:nowrap;">Montant</th>'
+                        . '</tr></thead><tbody>';
+                    foreach ($allLignes as $lg) {
+                        $lignesHtml .= '<tr>'
+                            . '<td style="border:1px solid #dee2e6;padding:8px;">' . htmlspecialchars($lg['intitule']) . '</td>'
+                            . '<td style="border:1px solid #dee2e6;padding:8px;text-align:right;">' . number_format((float)$lg['montant'], 2, ',', ' ') . ' €</td>'
+                            . '</tr>';
+                    }
+                    $lignesHtml .= '</tbody></table>';
+                }
+
+                $emailVars = [
+                    'reference_decompte'    => $decompte['reference'],
+                    'reference_signalement' => $decompte['sig_reference'],
+                    'titre'                 => $decompte['sig_titre'],
+                    'adresse'               => $decompte['adresse'],
+                    'montant_total'         => number_format((float)$decompte['montant_total'], 2, ',', ' '),
+                    'lignes_html'           => $lignesHtml,
+                    'company'               => $companyName,
+                ];
+
+                // Envoyer aux collaborateurs attribués au signalement
+                try {
+                    $stmtCollabs = $pdo->prepare("
+                        SELECT DISTINCT collaborateur_email, collaborateur_nom
+                        FROM signalements_collaborateurs
+                        WHERE signalement_id = ? AND collaborateur_email IS NOT NULL AND collaborateur_email <> ''
+                    ");
+                    $stmtCollabs->execute([$decompte['sig_id']]);
+                    $notifCollabs = $stmtCollabs->fetchAll(PDO::FETCH_ASSOC);
+                } catch (Exception $e) {
+                    $notifCollabs = [];
+                }
+
+                $sentEmails = [];
+                foreach ($notifCollabs as $nc) {
+                    if (!in_array($nc['collaborateur_email'], $sentEmails, true)) {
+                        $sentEmails[] = $nc['collaborateur_email'];
+                        $vars = array_merge($emailVars, ['collab_nom' => $nc['collaborateur_nom']]);
+                        sendTemplatedEmail('decompte_valide_collab', $nc['collaborateur_email'], $vars, null, false, true,
+                            ['contexte' => 'decompte_valide;dec_id=' . $decompteId]);
+                    }
+                }
+                // Notifier service technique
+                $stEmail = getServiceTechniqueEmail();
+                if ($stEmail && !in_array($stEmail, $sentEmails, true)) {
+                    sendTemplatedEmail('decompte_valide_collab', $stEmail, $emailVars, null, false, false,
+                        ['contexte' => 'decompte_valide_st;dec_id=' . $decompteId]);
+                }
+
+                header("Location: decompte-detail.php?id=$decompteId&success=valide");
+                exit;
+            } catch (Exception $e) {
+                $errors[] = 'Erreur lors de la validation : ' . $e->getMessage();
+            }
+        }
+
+        // ── Envoyer la facture au locataire ────────────────────────────────────
+        if ($postAction === 'envoyer_facture' && $decompte && $decompte['statut'] === 'valide') {
+            $locataireEmail = $decompte['locataire_email'] ?? '';
+            if (empty($locataireEmail)) {
+                $errors[] = 'Adresse email du locataire introuvable.';
+            } else {
+                try {
+                    // Recalculer lignes pour le corps de la facture
+                    $stmtLF = $pdo->prepare("SELECT * FROM signalements_decomptes_lignes WHERE decompte_id = ? ORDER BY ordre ASC");
+                    $stmtLF->execute([$decompteId]);
+                    $allLignesF = $stmtLF->fetchAll(PDO::FETCH_ASSOC);
+
+                    // Construire un corps de facture simple HTML
+                    $lignesTableHtml = '<table style="width:100%;border-collapse:collapse;margin:10px 0;">'
+                        . '<thead><tr style="background:#2c3e50;color:white;">'
+                        . '<th style="padding:10px;text-align:left;">Intitulé</th>'
+                        . '<th style="padding:10px;text-align:right;">Montant</th>'
+                        . '</tr></thead><tbody>';
+                    foreach ($allLignesF as $lg) {
+                        $lignesTableHtml .= '<tr style="border-bottom:1px solid #eee;">'
+                            . '<td style="padding:8px;">' . htmlspecialchars($lg['intitule']) . '</td>'
+                            . '<td style="padding:8px;text-align:right;">' . number_format((float)$lg['montant'], 2, ',', ' ') . ' €</td>'
+                            . '</tr>';
+                    }
+                    $lignesTableHtml .= '<tr style="background:#f8f9fa;font-weight:bold;">'
+                        . '<td style="padding:10px;">Total</td>'
+                        . '<td style="padding:10px;text-align:right;">' . number_format((float)$decompte['montant_total'], 2, ',', ' ') . ' €</td>'
+                        . '</tr></tbody></table>';
+
+                    $companyName = $config['COMPANY_NAME'] ?? 'My Invest Immobilier';
+                    $emailVarsF  = [
+                        'prenom'             => $decompte['locataire_prenom'] ?? '',
+                        'nom'                => $decompte['locataire_nom'] ?? '',
+                        'reference'          => $decompte['reference'],
+                        'reference_sig'      => $decompte['sig_reference'],
+                        'titre'              => $decompte['sig_titre'],
+                        'adresse'            => $decompte['adresse'],
+                        'montant_total'      => number_format((float)$decompte['montant_total'], 2, ',', ' '),
+                        'lignes_html'        => $lignesTableHtml,
+                        'date_facture'       => date('d/m/Y'),
+                        'company'            => $companyName,
+                        'contrat_ref'        => $decompte['contrat_ref'] ?? '',
+                    ];
+
+                    // Send invoice to tenant with optional file attachments
+                    $sent = sendFactureEmail($locataireEmail, $emailVarsF, $fichiers, $decompteId);
+
+                    if ($sent) {
+                        $pdo->prepare("
+                            UPDATE signalements_decomptes
+                            SET statut = 'facture_envoyee', date_facture = NOW(), updated_at = NOW()
+                            WHERE id = ?
+                        ")->execute([$decompteId]);
+
+                        header("Location: decompte-detail.php?id=$decompteId&success=facture");
+                        exit;
+                    } else {
+                        $errors[] = 'L\'envoi de la facture a échoué. Vérifiez la configuration email.';
+                    }
+                } catch (Exception $e) {
+                    $errors[] = 'Erreur : ' . $e->getMessage();
+                }
+            }
+        }
+    }
+}
+
+// Recharger après action
+if ($decompteId > 0) {
+    try {
+        $reloadStmt = $pdo->prepare("
+            SELECT d.*,
+                   sig.id           AS sig_id,
+                   sig.reference    AS sig_reference,
+                   sig.titre        AS sig_titre,
+                   sig.statut       AS sig_statut,
+                   sig.nb_heures    AS sig_nb_heures,
+                   sig.cout_materiaux AS sig_cout_materiaux,
+                   l.adresse,
+                   c.reference_unique AS contrat_ref,
+                   CONCAT(loc.prenom, ' ', loc.nom) AS locataire_nom,
+                   loc.email AS locataire_email,
+                   loc.prenom AS locataire_prenom
+            FROM signalements_decomptes d
+            INNER JOIN signalements sig ON d.signalement_id = sig.id
+            INNER JOIN logements l ON sig.logement_id = l.id
+            INNER JOIN contrats c ON sig.contrat_id = c.id
+            LEFT JOIN locataires loc ON sig.locataire_id = loc.id
+            WHERE d.id = ?
+            LIMIT 1
+        ");
+        $reloadStmt->execute([$decompteId]);
+        $decompte = $reloadStmt->fetch(PDO::FETCH_ASSOC);
+
+        $reloadLignes = $pdo->prepare("SELECT * FROM signalements_decomptes_lignes WHERE decompte_id = ? ORDER BY ordre ASC, id ASC");
+        $reloadLignes->execute([$decompteId]);
+        $lignes = $reloadLignes->fetchAll(PDO::FETCH_ASSOC);
+
+        $reloadFichiers = $pdo->prepare("SELECT * FROM signalements_decomptes_fichiers WHERE decompte_id = ? ORDER BY uploaded_at ASC");
+        $reloadFichiers->execute([$decompteId]);
+        $fichiers = $reloadFichiers->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {}
+}
+
+$successParam = $_GET['success'] ?? '';
+$successMessages = [
+    'created' => 'Décompte créé avec succès. Les lignes standards ont été pré-remplies.',
+    'saved'   => 'Lignes sauvegardées avec succès.',
+    'upload'  => 'Pièce jointe ajoutée.',
+    'deleted' => 'Pièce jointe supprimée.',
+    'valide'  => 'Décompte validé. Les collaborateurs ont été notifiés.',
+    'facture' => 'Facture envoyée au locataire.',
+];
+if ($successParam && isset($successMessages[$successParam])) {
+    $successMsg = $successMessages[$successParam];
+}
+
+$csrfToken   = generateCsrfToken();
+$isEditable  = $decompte && $decompte['statut'] === 'brouillon';
+$isValide    = $decompte && $decompte['statut'] === 'valide';
+$siteUrl     = rtrim($config['SITE_URL'] ?? '', '/');
+
+// Helper: Build invoice HTML for sending
+function buildFactureHtml(array $vars, array $fichiers = []): string {
+    $lignesHtml = $vars['lignes_html'] ?? '';
+    return '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Facture</title></head>
+<body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:640px;margin:0 auto;padding:20px;">
+<div style="background:linear-gradient(135deg,#2c3e50 0%,#3498db 100%);color:white;padding:30px;text-align:center;border-radius:10px 10px 0 0;">
+<h1 style="margin:0;">📄 Facture d\'Intervention</h1>
+<p style="margin:10px 0 0;">' . htmlspecialchars($vars['company']) . '</p>
+</div>
+<div style="background:#fff;padding:30px;border:1px solid #e0e0e0;border-top:none;">
+<p>Bonjour ' . htmlspecialchars($vars['prenom']) . ' ' . htmlspecialchars($vars['nom']) . ',</p>
+<p>Veuillez trouver ci-dessous la facture relative à l\'intervention effectuée dans votre logement.</p>
+<div style="background:#f8f9fa;border-left:4px solid #3498db;padding:15px;margin:20px 0;border-radius:0 5px 5px 0;">
+<p style="margin:5px 0;"><strong>N° Facture :</strong> <code>' . htmlspecialchars($vars['reference']) . '</code></p>
+<p style="margin:5px 0;"><strong>Signalement :</strong> ' . htmlspecialchars($vars['reference_sig']) . ' — ' . htmlspecialchars($vars['titre']) . '</p>
+<p style="margin:5px 0;"><strong>Logement :</strong> ' . htmlspecialchars($vars['adresse']) . '</p>
+<p style="margin:5px 0;"><strong>Date :</strong> ' . htmlspecialchars($vars['date_facture']) . '</p>
+</div>
+' . $lignesHtml . '
+</div>
+<div style="background:#f8f9fa;padding:15px;text-align:center;border-radius:0 0 10px 10px;border:1px solid #e0e0e0;border-top:none;">
+<p style="margin:0;color:#666;font-size:12px;">' . htmlspecialchars($vars['company']) . '</p>
+</div>
+</body></html>';
+}
+
+function sendFactureEmail(string $to, array $vars, array $fichiers, int $decompteId): bool {
+    global $pdo, $config;
+
+    // Build attachment list from uploaded files
+    $attachments = [];
+    foreach ($fichiers as $f) {
+        $path = __DIR__ . '/../uploads/decomptes/' . $f['filename'];
+        if (file_exists($path)) {
+            $attachments[] = ['path' => $path, 'name' => $f['original_name']];
+        }
+    }
+
+    $factureHtml = buildFactureHtml($vars, $fichiers);
+
+    // Use PHPMailer via sendTemplatedEmail structure but inject our custom HTML
+    // We'll store a temporary template ID and send using sendTemplatedEmail
+    // Actually, let's use a direct approach via the mailer
+    try {
+        $params = getParameter('smtp_host', '') ? [
+            'host'     => getParameter('smtp_host', ''),
+            'port'     => (int)getParameter('smtp_port', 587),
+            'username' => getParameter('smtp_username', ''),
+            'password' => getParameter('smtp_password', ''),
+            'from'     => getParameter('smtp_from_email', $config['ADMIN_EMAIL'] ?? ''),
+            'from_name'=> $config['COMPANY_NAME'] ?? 'My Invest Immobilier',
+        ] : null;
+
+        if (!$params || empty($params['host'])) {
+            // Fallback: use PHP mail()
+            $headers  = 'MIME-Version: 1.0' . "\r\n";
+            $headers .= 'Content-type: text/html; charset=UTF-8' . "\r\n";
+            $headers .= 'From: ' . ($config['COMPANY_NAME'] ?? 'My Invest') . ' <' . ($config['ADMIN_EMAIL'] ?? '') . '>' . "\r\n";
+            return mail($to, 'Facture d\'intervention — ' . $vars['reference'], $factureHtml, $headers);
+        }
+
+        require_once __DIR__ . '/../vendor/autoload.php';
+        $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+        $mail->isSMTP();
+        $mail->Host       = $params['host'];
+        $mail->SMTPAuth   = true;
+        $mail->Username   = $params['username'];
+        $mail->Password   = $params['password'];
+        $mail->SMTPSecure = $params['port'] == 465 ? PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS : PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = $params['port'];
+        $mail->CharSet    = 'UTF-8';
+
+        $mail->setFrom($params['from'], $params['from_name']);
+        $mail->addAddress($to);
+
+        // BCC admin
+        $adminEmail = $config['ADMIN_EMAIL'] ?? '';
+        if ($adminEmail && $adminEmail !== $to) {
+            $mail->addBCC($adminEmail);
+        }
+
+        foreach ($attachments as $att) {
+            $mail->addAttachment($att['path'], $att['name']);
+        }
+
+        $mail->isHTML(true);
+        $mail->Subject = 'Facture d\'intervention — ' . $vars['reference'];
+        $mail->Body    = $factureHtml;
+
+        $mail->send();
+        return true;
+    } catch (Exception $e) {
+        error_log('sendFactureEmail error: ' . $e->getMessage());
+        return false;
+    }
+}
+
+?>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo $decompte ? 'Décompte ' . htmlspecialchars($decompte['reference']) : 'Créer un décompte'; ?> — Admin My Invest</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <?php require_once __DIR__ . '/includes/sidebar-styles.php'; ?>
+    <style>
+        .section-card { background: #fff; border-radius: 10px; padding: 22px; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.07); }
+        .ligne-row td { vertical-align: middle; }
+        .total-row { background: #f8f9fa; font-weight: bold; }
+        .btn-delete-ligne { color: #dc3545; }
+        .btn-delete-ligne:hover { background: #dc3545; color: #fff; }
+    </style>
+</head>
+<body>
+    <?php require_once __DIR__ . '/includes/menu.php'; ?>
+
+    <div class="main-content">
+        <div class="container-fluid mt-4">
+
+        <!-- En-tête -->
+        <div class="d-flex justify-content-between align-items-start mb-4">
+            <div>
+                <h1>
+                    <i class="bi bi-receipt me-2"></i>
+                    <?php echo $decompte ? 'Décompte ' . htmlspecialchars($decompte['reference']) : 'Nouveau décompte'; ?>
+                </h1>
+                <?php if ($sig): ?>
+                <p class="text-muted mb-0">
+                    Signalement
+                    <a href="signalement-detail.php?id=<?php echo $sig['id']; ?>">
+                        <?php echo htmlspecialchars($sig['reference']); ?>
+                    </a>
+                    — <?php echo htmlspecialchars($sig['titre']); ?>
+                    — <?php echo htmlspecialchars($decompte ? $decompte['adresse'] : ($sig['adresse'] ?? '')); ?>
+                </p>
+                <?php endif; ?>
+            </div>
+            <a href="<?php echo $decompte ? 'gestion-decomptes.php' : 'signalement-detail.php?id=' . $sigIdCreate; ?>" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Retour
+            </a>
+        </div>
+
+        <?php if (!empty($errors)): ?>
+            <div class="alert alert-danger">
+                <?php foreach ($errors as $e): ?>
+                    <div><i class="bi bi-exclamation-circle me-1"></i><?php echo htmlspecialchars($e); ?></div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+        <?php if ($successMsg): ?>
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle-fill me-2"></i><?php echo htmlspecialchars($successMsg); ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!$decompte && $sig): ?>
+        <!-- ─── MODE CRÉATION ────────────────────────────────────────────────── -->
+        <div class="section-card">
+            <h5 class="mb-3"><i class="bi bi-plus-circle me-2"></i>Créer le décompte d'intervention</h5>
+            <p class="text-muted">Un décompte sera créé pour le signalement <strong><?php echo htmlspecialchars($sig['reference']); ?></strong> avec 3 lignes standards pré-remplies.</p>
+            <div class="row g-3 mb-3">
+                <div class="col-sm-4">
+                    <div class="p-3 bg-light rounded">
+                        <small class="text-muted d-block">Référence</small>
+                        <strong class="font-monospace"><?php echo htmlspecialchars($sig['reference']); ?></strong>
+                    </div>
+                </div>
+                <div class="col-sm-8">
+                    <div class="p-3 bg-light rounded">
+                        <small class="text-muted d-block">Titre</small>
+                        <strong><?php echo htmlspecialchars($sig['titre']); ?></strong>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="p-3 bg-light rounded">
+                        <small class="text-muted d-block">Logement</small>
+                        <?php echo htmlspecialchars($sig['adresse'] ?? ''); ?>
+                    </div>
+                </div>
+            </div>
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                <input type="hidden" name="action" value="creer_decompte">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i>Créer le décompte
+                </button>
+            </form>
+        </div>
+
+        <?php elseif ($decompte): ?>
+        <!-- ─── MODE ÉDITION / VISUALISATION ─────────────────────────────────── -->
+
+        <div class="row g-4">
+            <!-- Colonne gauche : lignes -->
+            <div class="col-lg-8">
+
+                <!-- Informations du décompte -->
+                <div class="section-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Lignes du décompte</h5>
+                        <?php if ($decompte['statut'] !== 'brouillon'): ?>
+                        <span class="badge bg-<?php echo $decompte['statut'] === 'valide' ? 'success' : 'primary'; ?> fs-6">
+                            <?php echo $decompte['statut'] === 'valide' ? 'Validé' : 'Facture envoyée'; ?>
+                        </span>
+                        <?php endif; ?>
+                    </div>
+
+                    <?php if ($isEditable): ?>
+                    <form method="POST" id="form-lignes">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                        <input type="hidden" name="action" value="save_lignes">
+
+                        <div class="table-responsive mb-3">
+                            <table class="table table-bordered mb-0" id="lignes-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Intitulé</th>
+                                        <th style="width:150px;">Montant (€)</th>
+                                        <th style="width:50px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lignes-body">
+                                    <?php foreach ($lignes as $idx => $lg): ?>
+                                    <tr class="ligne-row">
+                                        <td>
+                                            <input type="text" class="form-control form-control-sm"
+                                                   name="intitule[]"
+                                                   value="<?php echo htmlspecialchars($lg['intitule']); ?>"
+                                                   required>
+                                        </td>
+                                        <td>
+                                            <input type="number" class="form-control form-control-sm montant-input"
+                                                   name="montant[]"
+                                                   value="<?php echo number_format((float)$lg['montant'], 2, '.', ''); ?>"
+                                                   min="0" max="99999" step="0.01">
+                                        </td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-sm btn-delete-ligne border"
+                                                    onclick="deleteLigne(this)" title="Supprimer">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="total-row">
+                                        <td class="text-end fw-bold">Total</td>
+                                        <td class="fw-bold text-end" id="total-display">
+                                            <?php echo number_format((float)$decompte['montant_total'], 2, ',', ' '); ?> €
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="add-ligne-btn">
+                                <i class="bi bi-plus-circle me-1"></i>Ajouter une ligne
+                            </button>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Notes</label>
+                            <textarea class="form-control" name="notes" rows="2"
+                                      placeholder="Observations, remarques..."><?php echo htmlspecialchars($decompte['notes'] ?? ''); ?></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i>Sauvegarder
+                        </button>
+                    </form>
+                    <?php else: ?>
+                    <!-- Mode lecture seule -->
+                    <div class="table-responsive mb-3">
+                        <table class="table table-bordered mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Intitulé</th>
+                                    <th class="text-end" style="width:150px;">Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($lignes as $lg): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($lg['intitule']); ?></td>
+                                    <td class="text-end"><?php echo number_format((float)$lg['montant'], 2, ',', ' '); ?> €</td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                            <tfoot>
+                                <tr class="total-row">
+                                    <td class="text-end fw-bold">Total</td>
+                                    <td class="text-end fw-bold"><?php echo number_format((float)$decompte['montant_total'], 2, ',', ' '); ?> €</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    <?php if (!empty($decompte['notes'])): ?>
+                    <div class="p-3 bg-light rounded small"><?php echo nl2br(htmlspecialchars($decompte['notes'])); ?></div>
+                    <?php endif; ?>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Pièces jointes -->
+                <div class="section-card">
+                    <h5 class="mb-3"><i class="bi bi-paperclip me-2"></i>Pièces jointes</h5>
+
+                    <?php if (!empty($fichiers)): ?>
+                    <ul class="list-group mb-3">
+                        <?php foreach ($fichiers as $f): ?>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <?php
+                                $isImg = strpos($f['mime_type'], 'image/') === 0;
+                                $isPdf = $f['mime_type'] === 'application/pdf';
+                                $isVid = strpos($f['mime_type'], 'video/') === 0;
+                                $icon  = $isPdf ? 'bi-file-earmark-pdf text-danger' : ($isImg ? 'bi-file-image text-primary' : ($isVid ? 'bi-camera-video text-info' : 'bi-file-earmark'));
+                                ?>
+                                <i class="bi <?php echo $icon; ?> me-2"></i>
+                                <a href="<?php echo htmlspecialchars($siteUrl . '/uploads/decomptes/' . $f['filename']); ?>"
+                                   target="_blank">
+                                    <?php echo htmlspecialchars($f['original_name']); ?>
+                                </a>
+                                <small class="text-muted ms-2">
+                                    <?php echo $f['taille'] ? round($f['taille'] / 1024) . ' Ko' : ''; ?>
+                                </small>
+                            </div>
+                            <?php if ($isEditable): ?>
+                            <form method="POST" style="margin:0;" onsubmit="return confirm('Supprimer cette pièce jointe ?');">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                <input type="hidden" name="action" value="delete_fichier">
+                                <input type="hidden" name="fichier_id" value="<?php echo (int)$f['id']; ?>">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            <?php endif; ?>
+                        </li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <?php else: ?>
+                        <p class="text-muted small mb-3">Aucune pièce jointe.</p>
+                    <?php endif; ?>
+
+                    <form method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                        <input type="hidden" name="action" value="upload_fichier">
+                        <div class="input-group">
+                            <input type="file" class="form-control" name="fichier"
+                                   accept=".pdf,image/*,video/*" required>
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="bi bi-upload me-1"></i>Ajouter
+                            </button>
+                        </div>
+                        <div class="form-text">PDF, images, vidéos. Max 50 Mo.</div>
+                    </form>
+                </div>
+
+            </div>
+
+            <!-- Colonne droite : actions -->
+            <div class="col-lg-4">
+
+                <!-- Statut et infos -->
+                <div class="section-card">
+                    <h6 class="fw-semibold mb-3"><i class="bi bi-info-circle me-2"></i>Informations</h6>
+                    <dl class="row small mb-0">
+                        <dt class="col-5">Référence</dt>
+                        <dd class="col-7 font-monospace"><?php echo htmlspecialchars($decompte['reference']); ?></dd>
+
+                        <dt class="col-5">Statut</dt>
+                        <dd class="col-7">
+                            <?php
+                            $sLabels = ['brouillon' => ['Brouillon', 'secondary'], 'valide' => ['Validé', 'success'], 'facture_envoyee' => ['Facture envoyée', 'primary']];
+                            $sl = $sLabels[$decompte['statut']] ?? [$decompte['statut'], 'secondary'];
+                            ?>
+                            <span class="badge bg-<?php echo $sl[1]; ?>"><?php echo $sl[0]; ?></span>
+                        </dd>
+
+                        <dt class="col-5">Montant total</dt>
+                        <dd class="col-7 fw-bold"><?php echo number_format((float)$decompte['montant_total'], 2, ',', ' '); ?> €</dd>
+
+                        <dt class="col-5">Créé par</dt>
+                        <dd class="col-7"><?php echo htmlspecialchars($decompte['cree_par'] ?? '—'); ?></dd>
+
+                        <dt class="col-5">Date création</dt>
+                        <dd class="col-7"><?php echo date('d/m/Y H:i', strtotime($decompte['date_creation'])); ?></dd>
+
+                        <?php if ($decompte['date_validation']): ?>
+                        <dt class="col-5">Validé le</dt>
+                        <dd class="col-7"><?php echo date('d/m/Y H:i', strtotime($decompte['date_validation'])); ?></dd>
+                        <?php endif; ?>
+                    </dl>
+                </div>
+
+                <!-- Actions -->
+                <?php if ($isEditable): ?>
+                <div class="section-card border border-success">
+                    <h6 class="fw-semibold mb-3"><i class="bi bi-check-circle me-2 text-success"></i>Valider le décompte</h6>
+                    <p class="text-muted small">Une fois validé, le décompte ne pourra plus être modifié et les collaborateurs seront notifiés par email.</p>
+                    <form method="POST" onsubmit="return confirm('Valider ce décompte ? Cette action est irréversible.');">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                        <input type="hidden" name="action" value="valider">
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-check-circle me-1"></i>Valider le décompte
+                        </button>
+                    </form>
+                </div>
+                <?php endif; ?>
+
+                <?php if ($isValide): ?>
+                <div class="section-card border border-primary">
+                    <h6 class="fw-semibold mb-3"><i class="bi bi-send me-2 text-primary"></i>Convertir en facture</h6>
+                    <p class="text-muted small">Envoie une facture par email au locataire avec les pièces jointes.</p>
+                    <?php if (!empty($decompte['locataire_email'])): ?>
+                    <p class="small mb-3">
+                        <i class="bi bi-envelope me-1"></i>
+                        <strong><?php echo htmlspecialchars($decompte['locataire_email']); ?></strong>
+                    </p>
+                    <form method="POST" onsubmit="return confirm('Envoyer la facture au locataire ?');">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                        <input type="hidden" name="action" value="envoyer_facture">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-send me-1"></i>Envoyer la facture
+                        </button>
+                    </form>
+                    <?php else: ?>
+                    <div class="alert alert-warning small mb-0">
+                        <i class="bi bi-exclamation-triangle me-1"></i>Aucun email locataire disponible.
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+
+                <!-- Lien vers le signalement -->
+                <div class="section-card">
+                    <h6 class="fw-semibold mb-2"><i class="bi bi-link-45deg me-2"></i>Signalement associé</h6>
+                    <a href="signalement-detail.php?id=<?php echo $decompte['sig_id']; ?>"
+                       class="btn btn-outline-secondary btn-sm w-100">
+                        <i class="bi bi-eye me-1"></i>
+                        Voir le signalement <?php echo htmlspecialchars($decompte['sig_reference']); ?>
+                    </a>
+                </div>
+
+            </div>
+        </div>
+
+        <?php endif; ?>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    // ── Gestion dynamique des lignes ──────────────────────────────────────────
+    function updateTotal() {
+        var total = 0;
+        document.querySelectorAll('.montant-input').forEach(function(inp) {
+            var v = parseFloat(inp.value);
+            if (!isNaN(v) && v > 0) total += v;
+        });
+        var el = document.getElementById('total-display');
+        if (el) {
+            el.textContent = total.toFixed(2).replace('.', ',') + ' €';
+        }
+    }
+
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('montant-input')) {
+            updateTotal();
+        }
+    });
+
+    function deleteLigne(btn) {
+        var row = btn.closest('tr');
+        if (row) {
+            row.remove();
+            updateTotal();
+        }
+    }
+
+    document.getElementById('add-ligne-btn')?.addEventListener('click', function() {
+        var tbody = document.getElementById('lignes-body');
+        var tr = document.createElement('tr');
+        tr.className = 'ligne-row';
+        tr.innerHTML = '<td><input type="text" class="form-control form-control-sm" name="intitule[]" placeholder="Intitulé..." required></td>'
+            + '<td><input type="number" class="form-control form-control-sm montant-input" name="montant[]" value="0.00" min="0" max="99999" step="0.01"></td>'
+            + '<td class="text-center"><button type="button" class="btn btn-sm btn-delete-ligne border" onclick="deleteLigne(this)" title="Supprimer"><i class="bi bi-trash"></i></button></td>';
+        tbody.appendChild(tr);
+        tr.querySelector('input[type=text]').focus();
+    });
+    </script>
+</body>
+</html>
