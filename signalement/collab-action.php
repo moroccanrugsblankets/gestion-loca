@@ -412,6 +412,70 @@ $needsMotif  = $action === 'impossible';
         .action-body { padding: 30px; }
         .sig-info { background: #f8f9fa; border-radius: 8px; padding: 16px; margin-bottom: 24px; }
         .btn-submit { font-size: 1.05rem; padding: 12px 28px; border-radius: 8px; font-weight: 600; }
+        /* ── Drop zone + file preview list ── */
+        .file-preview-list { list-style: none; padding: 0; margin: 0; }
+        .file-preview-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            background: #fff;
+        }
+        .file-preview-thumb {
+            width: 52px;
+            height: 42px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            flex-shrink: 0;
+        }
+        .file-preview-video-icon {
+            width: 52px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #212529;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+        .file-preview-info { flex: 1; min-width: 0; }
+        .file-preview-name {
+            font-size: 0.875rem;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .file-preview-size { font-size: 0.75rem; color: #6c757d; }
+        .btn-remove-file {
+            flex-shrink: 0;
+            background: none;
+            border: none;
+            color: #dc3545;
+            padding: 4px 8px;
+            cursor: pointer;
+            border-radius: 4px;
+            line-height: 1;
+        }
+        .btn-remove-file:hover { background: #f8d7da; }
+        .drop-zone {
+            border: 2px dashed #ced4da;
+            border-radius: 8px;
+            padding: 24px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color .2s, background .2s;
+            background: #fafafa;
+        }
+        .drop-zone.drag-over {
+            border-color: #e67e22;
+            background: #fef9f0;
+        }
+        .drop-zone input[type=file] { display: none; }
     </style>
 </head>
 <body>
@@ -488,9 +552,32 @@ $needsMotif  = $action === 'impossible';
                             <i class="bi bi-camera me-1"></i>
                             <?php echo $action === 'sur_place' ? 'Photos avant travaux (optionnel)' : 'Photos après travaux (optionnel)'; ?>
                         </label>
-                        <input type="file" class="form-control" name="photos[]" multiple
-                               accept="image/*,video/*">
-                        <div class="form-text">Formats acceptés : images et vidéos. Max 50 Mo par fichier.</div>
+
+                        <!-- Drop zone -->
+                        <div class="drop-zone" id="dropZone">
+                            <input type="file" id="fileInput" name="photos[]" multiple
+                                   accept="image/*,video/*">
+                            <i class="bi bi-cloud-upload fs-2 text-muted d-block mb-2"></i>
+                            <p class="mb-1 fw-semibold">Glissez vos fichiers ici</p>
+                            <p class="mb-2 text-muted small">ou</p>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnBrowse">
+                                <i class="bi bi-folder2-open me-1"></i>Parcourir les fichiers
+                            </button>
+                            <p class="mt-2 mb-0 text-muted" style="font-size:.75rem;">
+                                Formats acceptés : images et vidéos. Max 50 Mo par fichier.
+                            </p>
+                        </div>
+
+                        <!-- Liste des fichiers sélectionnés -->
+                        <div id="fileListWrapper" class="mt-3" style="display:none;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-semibold small">Fichiers sélectionnés (<span id="fileCount">0</span>)</span>
+                                <button type="button" class="btn btn-outline-danger btn-sm" id="btnClearAll">
+                                    <i class="bi bi-trash me-1"></i>Tout supprimer
+                                </button>
+                            </div>
+                            <ul class="file-preview-list" id="filePreviewList"></ul>
+                        </div>
                     </div>
                     <?php endif; ?>
 
@@ -553,5 +640,153 @@ $needsMotif  = $action === 'impossible';
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function () {
+    'use strict';
+
+    var dropZone        = document.getElementById('dropZone');
+    var fileInput       = document.getElementById('fileInput');
+    var btnBrowse       = document.getElementById('btnBrowse');
+    var btnClearAll     = document.getElementById('btnClearAll');
+    var previewList     = document.getElementById('filePreviewList');
+    var fileListWrapper = document.getElementById('fileListWrapper');
+    var fileCountEl     = document.getElementById('fileCount');
+
+    if (!dropZone) return; // photos section not shown for this action
+
+    var fileDataTransfer = new DataTransfer(); // native FileList is read-only; we manage files here
+    var MAX_SIZE = 50 * 1024 * 1024; // 50 MB (matches server-side limit in collab-action.php)
+    var ignoreChange = false;
+
+    function formatBytes(bytes) {
+        if (bytes < 1024) return bytes + ' o';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' Ko';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' Mo';
+    }
+
+    function escHtml(str) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function refreshInput() {
+        var n = fileDataTransfer.files.length;
+        if (fileCountEl) fileCountEl.textContent = n;
+        if (fileListWrapper) fileListWrapper.style.display = n > 0 ? '' : 'none';
+    }
+
+    function addFilesToPreview(files) {
+        var added = 0;
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+            if (file.size > MAX_SIZE) {
+                alert('Fichier trop volumineux (max 50 Mo) : ' + file.name);
+                continue;
+            }
+            var dup = false;
+            for (var j = 0; j < fileDataTransfer.files.length; j++) {
+                if (fileDataTransfer.files[j].name === file.name && fileDataTransfer.files[j].size === file.size) {
+                    dup = true; break;
+                }
+            }
+            if (dup) continue;
+
+            fileDataTransfer.items.add(file);
+            added++;
+
+            var li = document.createElement('li');
+            li.className = 'file-preview-item';
+            li.dataset.index = fileDataTransfer.files.length - 1;
+
+            var isVideo = file.type.startsWith('video/');
+            var thumbHtml = isVideo
+                ? '<div class="file-preview-video-icon"><i class="bi bi-play-circle-fill text-white fs-4"></i></div>'
+                : '<img class="file-preview-thumb" src="" alt="">';
+
+            li.innerHTML = thumbHtml
+                + '<div class="file-preview-info">'
+                +   '<div class="file-preview-name">' + escHtml(file.name) + '</div>'
+                +   '<div class="file-preview-size">' + formatBytes(file.size) + '</div>'
+                + '</div>'
+                + '<button type="button" class="btn-remove-file" title="Supprimer" data-li-index="' + (fileDataTransfer.files.length - 1) + '">'
+                +   '<i class="bi bi-x-lg"></i>'
+                + '</button>';
+
+            previewList.appendChild(li);
+
+            if (!isVideo) {
+                (function (img, f) {
+                    var reader = new FileReader();
+                    reader.onload = function (e) { img.src = e.target.result; };
+                    reader.readAsDataURL(f);
+                })(li.querySelector('img'), file);
+            }
+        }
+        if (added > 0) refreshInput();
+    }
+
+    function rebuildIndices() {
+        previewList.querySelectorAll('.file-preview-item').forEach(function (li, idx) {
+            li.dataset.index = idx;
+            var btn = li.querySelector('.btn-remove-file');
+            if (btn) btn.dataset.liIndex = idx;
+        });
+    }
+
+    if (btnBrowse) btnBrowse.addEventListener('click', function () { fileInput.click(); });
+    dropZone.addEventListener('click', function (e) { if (e.target === dropZone) fileInput.click(); });
+
+    fileInput.addEventListener('change', function () {
+        if (ignoreChange) return;
+        if (fileInput.files.length > 0) {
+            addFilesToPreview(fileInput.files);
+            ignoreChange = true;
+            fileInput.value = '';
+            ignoreChange = false;
+        }
+    });
+
+    dropZone.addEventListener('dragover', function (e) { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', function () { dropZone.classList.remove('drag-over'); });
+    dropZone.addEventListener('drop', function (e) {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        if (e.dataTransfer.files.length > 0) addFilesToPreview(e.dataTransfer.files);
+    });
+
+    previewList.addEventListener('click', function (e) {
+        var btn = e.target.closest('.btn-remove-file');
+        if (!btn) return;
+        var idx = parseInt(btn.dataset.liIndex, 10);
+        var newDt = new DataTransfer();
+        for (var i = 0; i < fileDataTransfer.files.length; i++) {
+            if (i !== idx) newDt.items.add(fileDataTransfer.files[i]);
+        }
+        fileDataTransfer = newDt;
+        var li = btn.closest('.file-preview-item');
+        if (li) li.remove();
+        rebuildIndices();
+        refreshInput();
+    });
+
+    if (btnClearAll) {
+        btnClearAll.addEventListener('click', function () {
+            fileDataTransfer = new DataTransfer();
+            previewList.innerHTML = '';
+            refreshInput();
+        });
+    }
+
+    var form = document.querySelector('form[enctype="multipart/form-data"]');
+    if (form) {
+        form.addEventListener('submit', function () {
+            try {
+                ignoreChange = true;
+                fileInput.files = fileDataTransfer.files;
+                ignoreChange = false;
+            } catch (ex) { ignoreChange = false; }
+        });
+    }
+})();
+</script>
 </body>
 </html>

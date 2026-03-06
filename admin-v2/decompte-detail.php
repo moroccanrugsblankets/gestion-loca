@@ -13,6 +13,7 @@ require_once 'auth.php';
 require_once '../includes/db.php';
 require_once '../includes/functions.php';
 require_once '../includes/mail-templates.php';
+require_once '../pdf/generate-decompte.php';
 
 $decompteId  = isset($_GET['id'])  ? (int)$_GET['id']  : 0;
 $sigIdCreate = isset($_GET['sig']) ? (int)$_GET['sig']  : 0;
@@ -583,6 +584,14 @@ function sendFactureEmail(string $to, array $vars, array $fichiers, int $decompt
             $attachments[] = ['path' => $path, 'name' => $f['original_name']];
         }
     }
+
+    // Generate PDF of the decompte and prepend it to attachments
+    $pdfPath = generateDecomptePDF($decompteId, $vars);
+    if ($pdfPath && file_exists($pdfPath)) {
+        $pdfName = 'decompte-' . preg_replace('/[^A-Za-z0-9\-_]/', '_', $vars['reference'] ?? (string)$decompteId) . '.pdf';
+        array_unshift($attachments, ['path' => $pdfPath, 'name' => $pdfName]);
+    }
+
     $emailAttachments = !empty($attachments) ? $attachments : null;
 
     // Use template if it exists in the DB
@@ -998,7 +1007,7 @@ function sendFactureEmail(string $to, array $vars, array $fichiers, int $decompt
                 <?php if ($isValide): ?>
                 <div class="section-card border border-primary">
                     <h6 class="fw-semibold mb-3"><i class="bi bi-send me-2 text-primary"></i>Convertir en facture</h6>
-                    <p class="text-muted small">Envoie une facture par email au locataire avec les pièces jointes.</p>
+                    <p class="text-muted small">Envoie une facture par email au locataire avec le PDF du décompte en pièce jointe.</p>
                     <?php if (!empty($decompte['locataire_email'])): ?>
                     <p class="small mb-3">
                         <i class="bi bi-envelope me-1"></i>
@@ -1008,7 +1017,7 @@ function sendFactureEmail(string $to, array $vars, array $fichiers, int $decompt
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                         <input type="hidden" name="action" value="envoyer_facture">
                         <button type="submit" class="btn btn-primary w-100">
-                            <i class="bi bi-send me-1"></i>Envoyer la facture
+                            <i class="bi bi-send me-1"></i>Envoyer la facture (+ PDF)
                         </button>
                     </form>
                     <?php else: ?>
@@ -1026,6 +1035,14 @@ function sendFactureEmail(string $to, array $vars, array $fichiers, int $decompt
                        class="btn btn-outline-secondary btn-sm w-100">
                         <i class="bi bi-eye me-1"></i>
                         Voir le signalement <?php echo htmlspecialchars($decompte['sig_reference']); ?>
+                    </a>
+                </div>
+
+                <!-- Lien vers la configuration du template -->
+                <div class="section-card">
+                    <h6 class="fw-semibold mb-2"><i class="bi bi-gear me-2"></i>Configuration PDF</h6>
+                    <a href="decompte-configuration.php" class="btn btn-outline-secondary btn-sm w-100">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>Configurer le template PDF
                     </a>
                 </div>
 
