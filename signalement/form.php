@@ -425,58 +425,70 @@ $companyEmail = $config['COMPANY_EMAIL'] ?? '';
             background: #eaf4fd;
         }
         .type-radio input[type="radio"] { display: none; }
+        /* ── Drop zone + file preview list ── */
+        .file-preview-list { list-style: none; padding: 0; margin: 0; }
         .file-preview-item {
-            position: relative;
-            width: 110px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
             border: 1px solid #dee2e6;
-            border-radius: 8px;
-            overflow: hidden;
-            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            background: #fff;
         }
-        .file-preview-item img {
-            width: 100%;
-            height: 75px;
+        .file-preview-thumb {
+            width: 52px;
+            height: 42px;
             object-fit: cover;
-            display: block;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            flex-shrink: 0;
         }
-        .file-preview-item .file-preview-icon {
-            width: 100%;
-            height: 75px;
+        .file-preview-video-icon {
+            width: 52px;
+            height: 42px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #343a40;
-            font-size: 2rem;
-            color: #fff;
+            background: #212529;
+            border-radius: 4px;
+            flex-shrink: 0;
         }
-        .file-preview-item .file-preview-name {
-            font-size: 10px;
-            padding: 3px 4px;
+        .file-preview-info { flex: 1; min-width: 0; }
+        .file-preview-name {
+            font-size: 0.875rem;
+            font-weight: 500;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            text-align: center;
-            color: #495057;
         }
-        .file-preview-item .btn-remove-file {
-            position: absolute;
-            top: 3px;
-            right: 3px;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: rgba(220,53,69,0.85);
-            color: #fff;
+        .file-preview-size { font-size: 0.75rem; color: #6c757d; }
+        .btn-remove-file {
+            flex-shrink: 0;
+            background: none;
             border: none;
-            font-size: 11px;
-            line-height: 1;
+            color: #dc3545;
+            padding: 4px 8px;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
+            border-radius: 4px;
+            line-height: 1;
         }
-        .file-preview-item .btn-remove-file:hover { background: #dc3545; }
+        .btn-remove-file:hover { background: #f8d7da; }
+        .drop-zone {
+            border: 2px dashed #ced4da;
+            border-radius: 8px;
+            padding: 24px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color .2s, background .2s;
+            background: #fafafa;
+        }
+        .drop-zone.drag-over {
+            border-color: #3498db;
+            background: #eaf4fd;
+        }
+        .drop-zone input[type=file] { display: none; }
     </style>
 </head>
 <body>
@@ -712,16 +724,34 @@ $companyEmail = $config['COMPANY_EMAIL'] ?? '';
                             </div>
 
                             <div class="mb-4">
-                                <label class="form-label fw-semibold" for="photos">
-                                    Photos / vidéos <span class="text-danger">*</span>
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-camera me-1"></i>Photos / vidéos <span class="text-danger">*</span>
                                 </label>
-                                <input type="file" class="form-control" id="photos" name="photos[]"
-                                       accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" multiple>
-                                <div class="form-text">JPG, PNG, WebP ou vidéo — 30 Mo max par fichier.</div>
-                                <!-- Preview zone for selected files -->
-                                <div id="file-preview-zone" class="mt-3 d-none">
-                                    <p class="small fw-semibold mb-2">Fichiers sélectionnés :</p>
-                                    <div id="file-preview-list" class="d-flex flex-wrap gap-2"></div>
+
+                                <!-- Drop zone -->
+                                <div class="drop-zone" id="dropZone">
+                                    <input type="file" id="photos" name="photos[]" multiple
+                                           accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime">
+                                    <i class="bi bi-cloud-upload fs-2 text-muted d-block mb-2"></i>
+                                    <p class="mb-1 fw-semibold">Glissez vos fichiers ici</p>
+                                    <p class="mb-2 text-muted small">ou</p>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnBrowse">
+                                        <i class="bi bi-folder2-open me-1"></i>Parcourir les fichiers
+                                    </button>
+                                    <p class="mt-2 mb-0 text-muted" style="font-size:.75rem;">
+                                        Formats acceptés : JPG, PNG, WebP, MP4, MOV. Max 30 Mo par fichier.
+                                    </p>
+                                </div>
+
+                                <!-- Liste des fichiers sélectionnés -->
+                                <div id="fileListWrapper" class="mt-3" style="display:none;">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="fw-semibold small">Fichiers sélectionnés (<span id="fileCount">0</span>)</span>
+                                        <button type="button" class="btn btn-outline-danger btn-sm" id="btnClearAll">
+                                            <i class="bi bi-trash me-1"></i>Tout supprimer
+                                        </button>
+                                    </div>
+                                    <ul class="file-preview-list" id="filePreviewList"></ul>
                                 </div>
                             </div>
 
@@ -767,85 +797,188 @@ $companyEmail = $config['COMPANY_EMAIL'] ?? '';
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 (function () {
-    var fileInput = document.getElementById('photos');
-    var previewZone = document.getElementById('file-preview-zone');
-    var previewList = document.getElementById('file-preview-list');
+    'use strict';
 
-    if (!fileInput || !previewZone || !previewList) return;
+    // DataTransfer used to manage selected files (source of truth)
+    var fileDataTransfer = new DataTransfer();
 
-    // We maintain our own file list because <input type="file"> is read-only
-    var selectedFiles = [];
+    var dropZone      = document.getElementById('dropZone');
+    var fileInput     = document.getElementById('photos');
+    var btnBrowse     = document.getElementById('btnBrowse');
+    var btnClearAll   = document.getElementById('btnClearAll');
+    var previewList   = document.getElementById('filePreviewList');
+    var fileListWrapper = document.getElementById('fileListWrapper');
+    var fileCountEl   = document.getElementById('fileCount');
+
+    if (!dropZone) return;
+
+    var MAX_SIZE = 30 * 1024 * 1024; // 30 MB (matches server-side limit in form.php)
+    var ignoreChange = false;
+
+    // DataTransfer is used because the native FileList is read-only and
+    // does not allow individual file removal — we manage our own list here.
+
+    function formatBytes(bytes) {
+        if (bytes < 1024) return bytes + ' o';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' Ko';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' Mo';
+    }
 
     function refreshInput() {
-        // Rebuild the file list on a new DataTransfer object
-        var dt = new DataTransfer();
-        selectedFiles.forEach(function (f) { dt.items.add(f); });
-        fileInput.files = dt.files;
+        var n = fileDataTransfer.files.length;
+        if (fileCountEl) fileCountEl.textContent = n;
+        if (fileListWrapper) fileListWrapper.style.display = n > 0 ? '' : 'none';
     }
 
-    function renderPreviews() {
-        previewList.innerHTML = '';
-        if (selectedFiles.length === 0) {
-            previewZone.classList.add('d-none');
-            return;
-        }
-        previewZone.classList.remove('d-none');
+    function escHtml(str) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
 
-        selectedFiles.forEach(function (file, idx) {
-            var item = document.createElement('div');
-            item.className = 'file-preview-item';
+    function addFilesToPreview(files) {
+        var added = 0;
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
 
-            var removeBtn = document.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.className = 'btn-remove-file';
-            removeBtn.title = 'Supprimer';
-            removeBtn.innerHTML = '&times;';
-            (function (fileRef) {
-                removeBtn.addEventListener('click', function () {
-                    selectedFiles = selectedFiles.filter(function (f) { return f !== fileRef; });
-                    refreshInput();
-                    renderPreviews();
-                });
-            })(file);
-            item.appendChild(removeBtn);
+            if (file.size > MAX_SIZE) {
+                alert('Fichier trop volumineux (max 30 Mo) : ' + file.name);
+                continue;
+            }
 
-            if (file.type.startsWith('image/')) {
-                var img = document.createElement('img');
-                img.alt = file.name;
-                var reader = new FileReader();
-                reader.onload = function (e) { img.src = e.target.result; };
-                reader.readAsDataURL(file);
-                item.appendChild(img);
+            // Avoid duplicates (name + size)
+            var dup = false;
+            for (var j = 0; j < fileDataTransfer.files.length; j++) {
+                if (fileDataTransfer.files[j].name === file.name && fileDataTransfer.files[j].size === file.size) {
+                    dup = true;
+                    break;
+                }
+            }
+            if (dup) continue;
+
+            fileDataTransfer.items.add(file);
+            added++;
+
+            var li = document.createElement('li');
+            li.className = 'file-preview-item';
+            li.dataset.index = fileDataTransfer.files.length - 1;
+
+            var isVideo = file.type.startsWith('video/');
+            var thumbHtml;
+            if (isVideo) {
+                thumbHtml = '<div class="file-preview-video-icon">'
+                    + '<i class="bi bi-play-circle-fill text-white fs-4"></i>'
+                    + '</div>';
             } else {
-                // Video or other file type — show icon
-                var iconDiv = document.createElement('div');
-                iconDiv.className = 'file-preview-icon';
-                iconDiv.innerHTML = '<i class="bi bi-play-circle-fill"></i>';
-                item.appendChild(iconDiv);
+                thumbHtml = '<img class="file-preview-thumb" src="" alt="">';
             }
 
-            var nameDiv = document.createElement('div');
-            nameDiv.className = 'file-preview-name';
-            nameDiv.textContent = file.name;
-            item.appendChild(nameDiv);
+            li.innerHTML = thumbHtml
+                + '<div class="file-preview-info">'
+                +   '<div class="file-preview-name">' + escHtml(file.name) + '</div>'
+                +   '<div class="file-preview-size">' + formatBytes(file.size) + '</div>'
+                + '</div>'
+                + '<button type="button" class="btn-remove-file" title="Supprimer" data-li-index="' + (fileDataTransfer.files.length - 1) + '">'
+                +   '<i class="bi bi-x-lg"></i>'
+                + '</button>';
 
-            previewList.appendChild(item);
+            previewList.appendChild(li);
+
+            if (!isVideo) {
+                (function (img, f) {
+                    var reader = new FileReader();
+                    reader.onload = function (e) { img.src = e.target.result; };
+                    reader.readAsDataURL(f);
+                })(li.querySelector('img'), file);
+            }
+        }
+        if (added > 0) refreshInput();
+    }
+
+    function rebuildIndices() {
+        var items = previewList.querySelectorAll('.file-preview-item');
+        items.forEach(function (li, idx) {
+            li.dataset.index = idx;
+            var btn = li.querySelector('.btn-remove-file');
+            if (btn) btn.dataset.liIndex = idx;
         });
     }
 
+    // Click "Parcourir"
+    if (btnBrowse) btnBrowse.addEventListener('click', function () { fileInput.click(); });
+
+    // Click drop zone itself
+    dropZone.addEventListener('click', function (e) {
+        if (e.target === dropZone) fileInput.click();
+    });
+
+    // File input change
     fileInput.addEventListener('change', function () {
-        // Append new files (avoid duplicates by name+size)
-        Array.from(fileInput.files).forEach(function (newFile) {
-            var duplicate = selectedFiles.some(function (f) {
-                return f.name === newFile.name && f.size === newFile.size;
-            });
-            if (!duplicate) {
-                selectedFiles.push(newFile);
+        if (ignoreChange) return;
+        if (fileInput.files.length > 0) {
+            addFilesToPreview(fileInput.files);
+            ignoreChange = true;
+            fileInput.value = '';
+            ignoreChange = false;
+        }
+    });
+
+    // Drag & drop
+    dropZone.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+    });
+    dropZone.addEventListener('dragleave', function () {
+        dropZone.classList.remove('drag-over');
+    });
+    dropZone.addEventListener('drop', function (e) {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        if (e.dataTransfer.files.length > 0) {
+            addFilesToPreview(e.dataTransfer.files);
+        }
+    });
+
+    // Remove individual file
+    previewList.addEventListener('click', function (e) {
+        var btn = e.target.closest('.btn-remove-file');
+        if (!btn) return;
+        var idx = parseInt(btn.dataset.liIndex, 10);
+
+        var newDt = new DataTransfer();
+        for (var i = 0; i < fileDataTransfer.files.length; i++) {
+            if (i !== idx) newDt.items.add(fileDataTransfer.files[i]);
+        }
+        fileDataTransfer = newDt;
+
+        var li = btn.closest('.file-preview-item');
+        if (li) li.remove();
+
+        rebuildIndices();
+        refreshInput();
+    });
+
+    // Clear all
+    if (btnClearAll) {
+        btnClearAll.addEventListener('click', function () {
+            fileDataTransfer = new DataTransfer();
+            previewList.innerHTML = '';
+            refreshInput();
+        });
+    }
+
+    // Form submit: sync managed files to the native input
+    var form = document.querySelector('form[enctype="multipart/form-data"]');
+    if (form) {
+        form.addEventListener('submit', function () {
+            try {
+                ignoreChange = true;
+                fileInput.files = fileDataTransfer.files;
+                ignoreChange = false;
+            } catch (ex) {
+                ignoreChange = false;
             }
         });
-        refreshInput();
-        renderPreviews();
-    });
+    }
+
 })();
 </script>
 </body>
