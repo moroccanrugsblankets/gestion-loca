@@ -91,9 +91,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0755, true);
         }
-        $allowedMime = [
-            'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-            'video/mp4', 'video/quicktime', 'video/mpeg',
+        // Map MIME types to safe extensions to prevent extension spoofing
+        $mimeToExt = [
+            'image/jpeg'     => 'jpg',
+            'image/png'      => 'png',
+            'image/gif'      => 'gif',
+            'image/webp'     => 'webp',
+            'video/mp4'      => 'mp4',
+            'video/quicktime'=> 'mov',
+            'video/mpeg'     => 'mpg',
         ];
         $errors = [];
         $uploaded = 0;
@@ -106,15 +112,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $origName = basename($_FILES['photos']['name'][$i]);
                 $tmpName  = $_FILES['photos']['tmp_name'][$i];
                 $mimeType = mime_content_type($tmpName) ?: 'application/octet-stream';
-                if (!in_array($mimeType, $allowedMime, true)) {
-                    $errors[] = 'Type non autorisé : ' . $origName;
+                if (!isset($mimeToExt[$mimeType])) {
+                    $errors[] = 'Type non autorisé : ' . htmlspecialchars($origName);
                     continue;
                 }
                 if ($_FILES['photos']['size'][$i] > 50 * 1024 * 1024) {
-                    $errors[] = 'Fichier trop volumineux : ' . $origName;
+                    $errors[] = 'Fichier trop volumineux : ' . htmlspecialchars($origName);
                     continue;
                 }
-                $ext      = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+                // Use extension derived from actual MIME type, not user-supplied filename
+                $ext      = $mimeToExt[$mimeType];
                 $filename = 'log_' . $logement_id . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
                 if (move_uploaded_file($tmpName, $uploadDir . $filename)) {
                     $pdo->prepare("INSERT INTO logements_photos (logement_id, filename, original_name, mime_type, taille) VALUES (?, ?, ?, ?, ?)")
@@ -722,8 +729,8 @@ unset($_SESSION['success'], $_SESSION['error']);
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<!-- TinyMCE -->
-<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+<!-- TinyMCE Cloud - API key is public and domain-restricted -->
+<script src="https://cdn.tiny.cloud/1/odjqanpgdv2zolpduplee65ntoou1b56hg6gvgxvrt8dreh0/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 <script>
 tinymce.init({
     selector: '.tinymce-editor',
