@@ -163,11 +163,11 @@ $totalMensuel = (float)$logement['loyer'] + (float)$logement['charges'];
             margin-bottom: 1.25rem;
         }
         .section-title {
-            font-size: .75rem;
+            font-size: 1rem;
             font-weight: 700;
             letter-spacing: .08em;
             text-transform: uppercase;
-            color: #6b7280;
+            color: #1243a3;
             margin-bottom: 1rem;
         }
         /* Equipment badges */
