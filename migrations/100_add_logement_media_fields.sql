@@ -5,9 +5,9 @@
 
 -- Add new text content columns to logements
 ALTER TABLE logements
-    ADD COLUMN IF NOT EXISTS commodites TEXT NULL DEFAULT NULL COMMENT 'Commodités à proximité (HTML via TinyMCE)',
-    ADD COLUMN IF NOT EXISTS conditions_visite TEXT NULL DEFAULT NULL COMMENT 'Conditions de visite et de candidature (HTML via TinyMCE)',
-    ADD COLUMN IF NOT EXISTS video_youtube VARCHAR(2048) NULL DEFAULT NULL COMMENT 'URL de la vidéo YouTube associée au logement';
+    ADD COLUMN commodites TEXT NULL DEFAULT NULL COMMENT 'Commodités à proximité (HTML via TinyMCE)',
+    ADD COLUMN conditions_visite TEXT NULL DEFAULT NULL COMMENT 'Conditions de visite et de candidature (HTML via TinyMCE)',
+    ADD COLUMN video_youtube VARCHAR(2048) NULL DEFAULT NULL COMMENT 'URL de la vidéo YouTube associée au logement';
 
 -- Create logements_photos table for photo/video uploads
 CREATE TABLE IF NOT EXISTS logements_photos (
