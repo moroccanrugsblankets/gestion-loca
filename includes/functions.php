@@ -911,7 +911,7 @@ function evaluateCandidature($candidature) {
             $motifs[] = "Garantie Visale requise";
         }
     } elseif ($gvParam === 'non') {
-        // Visale is not required, but a hard "Non" from the candidate is still rejected
+        // Visale is not required, but an explicit "Non" from the candidate is still rejected
         if ($candidatVisale === 'Non') {
             $motifs[] = "Candidat ne peut pas bénéficier de la garantie Visale";
         }

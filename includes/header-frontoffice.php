@@ -51,9 +51,8 @@ function renderFrontOfficeHeader(string $siteUrl, string $companyName, ?string $
                 <?php if ($logoSrc): ?>
                     <img src="<?php echo htmlspecialchars($logoSrc); ?>"
                          alt="<?php echo htmlspecialchars($companyName); ?>"
-                         class="header-logo"
-                         onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
-                    <span style="display:none;"><?php echo htmlspecialchars($companyName); ?></span>
+                         class="header-logo js-logo-img">
+                    <span class="js-logo-fallback" style="display:none;"><?php echo htmlspecialchars($companyName); ?></span>
                 <?php else: ?>
                     <i class="bi bi-building me-1"></i><?php echo htmlspecialchars($companyName); ?>
                 <?php endif; ?>
@@ -66,5 +65,19 @@ function renderFrontOfficeHeader(string $siteUrl, string $companyName, ?string $
         </div>
     </div>
 </header>
+<?php if ($logoSrc): ?>
+<script>
+(function () {
+    var img = document.querySelector('.site-header .js-logo-img');
+    if (img) {
+        img.addEventListener('error', function () {
+            img.style.display = 'none';
+            var fallback = document.querySelector('.site-header .js-logo-fallback');
+            if (fallback) { fallback.style.display = 'inline'; }
+        });
+    }
+}());
+</script>
+<?php endif; ?>
 <?php
 }

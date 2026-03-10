@@ -212,6 +212,7 @@ body {
 .hero-card::before {
     content: '';
     position: absolute;
+    /* Decorative translucent circle offset to top-right corner of the hero card */
     top: -50%;
     right: -20%;
     width: 400px;
