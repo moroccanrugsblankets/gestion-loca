@@ -412,7 +412,6 @@ $siteUrl = rtrim($config['SITE_URL'] ?? '', '/');
 <!-- GrapesJS -->
 <script src="https://cdn.jsdelivr.net/npm/grapesjs@0.21.13/dist/grapes.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/grapesjs-blocks-basic@1.0.2/dist/index.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/grapesjs-preset-webpage@1.0.3/dist/index.js"></script>
 <script>
 // ── Auto-generate slug from title ─────────────────────────────────────────
 (function () {
@@ -456,12 +455,10 @@ $siteUrl = rtrim($config['SITE_URL'] ?? '', '/');
         width: '100%',
         storageManager: false,
         plugins: [
-            typeof gjsBlocksBasic !== 'undefined' ? gjsBlocksBasic : null,
-            typeof gjsPresetWebpage !== 'undefined' ? gjsPresetWebpage : null
+            typeof gjsBlocksBasic !== 'undefined' ? gjsBlocksBasic : null
         ].filter(Boolean),
         pluginsOpts: {
-            gjsBlocksBasic: {},
-            gjsPresetWebpage: {}
+            'grapesjs-blocks-basic': {}
         },
         canvas: {
             styles: [
@@ -470,15 +467,37 @@ $siteUrl = rtrim($config['SITE_URL'] ?? '', '/');
         }
     });
 
-    // Load initial content
+    // Extract all <style> blocks from an HTML string and return { html, css }.
+    function extractStyles(raw) {
+        var css = '';
+        var html = raw.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, function (match, content) {
+            css += content + '\n';
+            return '';
+        });
+        return { html: html.trim(), css: css.trim() };
+    }
+
+    // Build a combined string: <style>…</style>\n<html…>
+    function buildCombined(html, css) {
+        if (!css) return html;
+        return '<style>\n' + css + '\n</style>\n' + html;
+    }
+
+    // Load initial content, preserving any saved CSS
     if (initialHtml) {
-        editor.setComponents(initialHtml);
+        var parsed = extractStyles(initialHtml);
+        if (parsed.css) { editor.setStyle(parsed.css); }
+        if (parsed.html) { editor.setComponents(parsed.html); }
     }
 
     // Toggle: Visual ↔ Raw HTML
     function switchToVisual() {
         var raw = rawTextarea.value;
-        if (raw) { editor.setComponents(raw); }
+        if (raw) {
+            var parsed = extractStyles(raw);
+            editor.setStyle(parsed.css || '');
+            editor.setComponents(parsed.html);
+        }
         gjsContainer.style.display = '';
         rawWrapper.style.display = 'none';
         btnVisual.classList.add('active');
@@ -486,7 +505,7 @@ $siteUrl = rtrim($config['SITE_URL'] ?? '', '/');
     }
 
     function switchToRaw() {
-        rawTextarea.value = editor.getHtml() || '';
+        rawTextarea.value = buildCombined(editor.getHtml() || '', editor.getCss() || '');
         gjsContainer.style.display = 'none';
         rawWrapper.style.display = 'block';
         btnVisual.classList.remove('active');
@@ -513,7 +532,7 @@ $siteUrl = rtrim($config['SITE_URL'] ?? '', '/');
             if (isRaw) {
                 hiddenInput.value = rawTextarea.value;
             } else {
-                hiddenInput.value = editor.getHtml() || '';
+                hiddenInput.value = buildCombined(editor.getHtml() || '', editor.getCss() || '');
             }
         });
     }
