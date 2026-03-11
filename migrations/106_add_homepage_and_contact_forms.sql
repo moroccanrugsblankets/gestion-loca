@@ -10,7 +10,7 @@
 -- 1. Champ is_homepage dans frontend_pages
 -- ─────────────────────────────────────────────────────────────────────────────
 ALTER TABLE frontend_pages
-    ADD COLUMN IF NOT EXISTS is_homepage TINYINT(1) NOT NULL DEFAULT 0
+    ADD COLUMN is_homepage TINYINT(1) NOT NULL DEFAULT 0
         COMMENT '1 = page d\'accueil par défaut (une seule à la fois)'
     AFTER actif;
 
