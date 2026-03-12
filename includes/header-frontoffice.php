@@ -130,7 +130,7 @@ function renderFrontOfficeHeader(string $siteUrl, string $companyName, $extraNav
 <header class="site-header">
     <div class="container">
         <div class="d-flex align-items-center justify-content-between gap-3">
-            <a href="<?php echo htmlspecialchars(rtrim($siteUrl, '/') . '/logements.php'); ?>" class="brand d-flex align-items-center gap-2 text-decoration-none flex-shrink-0">
+            <a href="<?php echo htmlspecialchars($siteUrl); ?>" class="brand d-flex align-items-center gap-2 text-decoration-none flex-shrink-0">
                 <?php if ($logoSrc): ?>
                     <img src="<?php echo htmlspecialchars($logoSrc); ?>"
                          alt="<?php echo htmlspecialchars($companyName); ?>"
