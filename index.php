@@ -121,21 +121,13 @@ function renderSearchLogementsHtml(string $siteUrl): string
 function renderSearchLogementsHtml(string $siteUrl): string
 {
     $action = htmlspecialchars(rtrim($siteUrl, '/') . '/logements.php');
-    
-    // On construit le formulaire avec la nouvelle structure sémantique
     return '<form method="GET" action="' . $action . '" class="search-logements-form" role="search">'
-        . '  <div class="search-icon-wrapper">'
-        . '    🔍
-        . '  </div>'
-        . '  <div class="search-fields-wrapper">'
-        . '    <label for="ref-input">Référence logement :</label>'
-        . '    <input type="text" id="ref-input" name="ref" class="form-control"'
-        . '     placeholder="ex : RF-001"'
-        . '     aria-label="Référence du logement" required>'
-        . '  </div>'
-        . '  <button type="submit" class="btn-search-submit">'
-        . '    <i class="bi bi-arrow-right"></i>'
-        . '  </button>'
+        . '<div class="search-icon">🔍</div>'
+        . '<div class="search-text">'
+        . '  <label>Référence logement :</label>'
+        . '  <input type="text" name="ref" class="form-control" placeholder="Ex: RF-001" aria-label="Référence">'
+        . '</div>'
+        . '<button type="submit" class="search-btn"></button>'
         . '</form>';
 }
 
