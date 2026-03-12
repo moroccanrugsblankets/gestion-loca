@@ -266,7 +266,6 @@ renderFrontOfficeHeader($siteUrl, $companyName, null, $currentUrlSeoNoSlash);
     <div class="container text-center">
         <p class="mb-1">&copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($companyName); ?> — Tous droits réservés</p>
         <p class="mb-0">
-            <a href="<?php echo htmlspecialchars($siteUrl); ?>/logements.php">Logements</a>
             <?php foreach ($menuItems as $item): ?>
             &nbsp;·&nbsp;
             <a href="<?php echo htmlspecialchars($item['url']); ?>"><?php echo htmlspecialchars($item['label']); ?></a>
