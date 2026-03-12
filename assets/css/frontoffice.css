@@ -57,11 +57,11 @@ body {
 
 /* ── Footer ───────────────────────────────────────────────────────────────── */
 .site-footer {
-    background: var(--fo-white);
+    background: var(--fo-primary-dark);
     border-top: 1px solid var(--fo-border);
     padding: 1.5rem 0;
     font-size: 0.85rem;
-    color: var(--fo-muted);
+    color: var(--fo-white);
 }
 
 /* ── Hero banner (logements listing) ─────────────────────────────────────── */
