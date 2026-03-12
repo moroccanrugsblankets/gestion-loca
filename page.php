@@ -27,7 +27,7 @@ $page = null;
 if ($slug !== '') {
     try {
         $stmt = $pdo->prepare("
-            SELECT titre, contenu_html, meta_description, show_titre_bloc
+            SELECT titre, meta_title, contenu_html, meta_description, show_titre_bloc
             FROM frontend_pages
             WHERE slug = ? AND actif = 1
             LIMIT 1
@@ -36,7 +36,7 @@ if ($slug !== '') {
         $page = $stmt->fetch(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
         error_log('page.php DB error: ' . $e->getMessage());
-        // Retry without show_titre_bloc in case column doesn't exist yet
+        // Retry without meta_title / show_titre_bloc in case columns don't exist yet
         try {
             $stmt = $pdo->prepare("
                 SELECT titre, contenu_html, meta_description
@@ -59,6 +59,7 @@ if (!$page) {
 $companyName = $config['COMPANY_NAME'] ?? 'My Invest Immobilier';
 $siteUrl     = rtrim($config['SITE_URL'] ?? '', '/');
 $pageTitle   = $page ? htmlspecialchars($page['titre']) : 'Page introuvable';
+$metaTitle   = $page ? htmlspecialchars(!empty($page['meta_title']) ? $page['meta_title'] : $page['titre']) : 'Page introuvable';
 $metaDesc    = $page ? htmlspecialchars($page['meta_description'] ?? '') : '';
 ?>
 <!DOCTYPE html>
@@ -66,7 +67,7 @@ $metaDesc    = $page ? htmlspecialchars($page['meta_description'] ?? '') : '';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $pageTitle; ?> — <?php echo htmlspecialchars($companyName); ?></title>
+    <title><?php echo $metaTitle; ?> — <?php echo htmlspecialchars($companyName); ?></title>
     <?php if ($metaDesc): ?>
     <meta name="description" content="<?php echo $metaDesc; ?>">
     <?php endif; ?>
@@ -102,12 +103,27 @@ $metaDesc    = $page ? htmlspecialchars($page['meta_description'] ?? '') : '';
 $currentUrlSeoNoSlash = '/' . $slug;
 
 /**
- * Process [contact-form id=N] shortcodes embedded in page content.
- * Returns the HTML with shortcodes replaced by rendered forms.
+ * Process shortcodes embedded in page content.
+ *
+ * Supported shortcodes:
+ *   [contact-form id=N]   — renders a dynamic contact form
+ *   [search-logements]    — renders a property-search form pointing to logements.php
+ *
+ * Returns the HTML with shortcodes replaced by rendered HTML.
  */
 function processShortcodes(string $html, \PDO $pdo, string $siteUrl): string
 {
-    return preg_replace_callback(
+    // [search-logements] — search box that redirects to the properties listing page
+    $html = preg_replace_callback(
+        '/\[search-logements(?:\s[^\]]*)?\]/i',
+        function () use ($siteUrl): string {
+            return renderSearchLogementsHtml($siteUrl);
+        },
+        $html
+    );
+
+    // [contact-form id=N]
+    $html = preg_replace_callback(
         '/\[contact-form\s+id=["\']?(\d+)["\']?\]/i',
         function (array $m) use ($pdo, $siteUrl): string {
             $formId = (int)$m[1];
@@ -128,6 +144,25 @@ function processShortcodes(string $html, \PDO $pdo, string $siteUrl): string
         },
         $html
     );
+
+    return $html;
+}
+
+/**
+ * Renders a property-search form that redirects to /logements.php?ref=<value>.
+ * Submits on button click OR pressing the Enter key.
+ */
+function renderSearchLogementsHtml(string $siteUrl): string
+{
+    $action = htmlspecialchars(rtrim($siteUrl, '/') . '/logements.php');
+    return '<form method="GET" action="' . $action . '" class="search-logements-form d-flex gap-2" role="search">'
+        . '<input type="text" name="ref" class="form-control form-control-lg"'
+        . ' placeholder="Référence du logement (ex : T2-PARIS-01)"'
+        . ' aria-label="Référence du logement">'
+        . '<button type="submit" class="btn btn-warning btn-lg px-4">'
+        . '<i class="bi bi-search me-1"></i>Rechercher'
+        . '</button>'
+        . '</form>';
 }
 
 /**

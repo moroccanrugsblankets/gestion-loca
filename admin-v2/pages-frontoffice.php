@@ -20,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $slug           = trim(strtolower(preg_replace('/[^a-z0-9\-]/', '-', $_POST['slug'] ?? '')));
         $slug           = preg_replace('/-{2,}/', '-', trim($slug, '-'));
         $titre          = trim($_POST['titre'] ?? '');
+        $metaTitle      = trim($_POST['meta_title'] ?? '');
         $contenu        = $_POST['contenu_html'] ?? '';
         $metaDesc       = trim($_POST['meta_description'] ?? '');
         $actif          = isset($_POST['actif']) ? 1 : 0;
@@ -31,8 +32,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['error'] = 'Le slug et le titre sont obligatoires.';
         } else {
             // Ensure optional columns exist (auto-add if missing)
-            $hasHomepageCol    = ensureHomepageColumn($pdo);
+            $hasHomepageCol      = ensureHomepageColumn($pdo);
             $hasShowTitreBlocCol = ensureShowTitreBlocColumn($pdo);
+            $hasMetaTitleCol     = ensureMetaTitleColumn($pdo);
             if ($isHomepage && $hasHomepageCol) {
                 // Only one homepage at a time — clear existing before setting new
                 $pdo->prepare("UPDATE frontend_pages SET is_homepage = 0 WHERE id != ?")->execute([$id]);
@@ -40,6 +42,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($id > 0) {
                 $setClauses = "slug = ?, titre = ?, contenu_html = ?, meta_description = ?, actif = ?, ordre = ?";
                 $params     = [$slug, $titre, $contenu, $metaDesc, $actif, $ordre];
+                if ($hasMetaTitleCol) {
+                    $setClauses .= ", meta_title = ?";
+                    $params[]    = $metaTitle;
+                }
                 if ($hasHomepageCol) {
                     $setClauses .= ", is_homepage = ?";
                     $params[]    = $isHomepage;
@@ -54,9 +60,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute($params);
                 $_SESSION['success'] = 'Page mise à jour.';
             } else {
-                $cols   = "slug, titre, contenu_html, meta_description, actif, ordre";
+                $cols         = "slug, titre, contenu_html, meta_description, actif, ordre";
                 $placeholders = "?, ?, ?, ?, ?, ?";
-                $params = [$slug, $titre, $contenu, $metaDesc, $actif, $ordre];
+                $params       = [$slug, $titre, $contenu, $metaDesc, $actif, $ordre];
+                if ($hasMetaTitleCol) {
+                    $cols         .= ", meta_title";
+                    $placeholders .= ", ?";
+                    $params[]      = $metaTitle;
+                }
                 if ($hasHomepageCol) {
                     $cols         .= ", is_homepage";
                     $placeholders .= ", ?";
@@ -164,11 +175,31 @@ function ensureShowTitreBlocColumn(PDO $pdo): bool
     }
 }
 
+/**
+ * Ensures the meta_title column exists in frontend_pages, adding it if missing.
+ * meta_title is used for the HTML <title> SEO tag; titre is used for the H1 heading.
+ * Returns true when the column is available, false otherwise.
+ */
+function ensureMetaTitleColumn(PDO $pdo): bool
+{
+    if (columnExists($pdo, 'frontend_pages', 'meta_title')) {
+        return true;
+    }
+    try {
+        $pdo->exec("ALTER TABLE frontend_pages ADD COLUMN meta_title VARCHAR(255) NOT NULL DEFAULT '' AFTER titre");
+        return true;
+    } catch (Exception $e) {
+        // Column may have been added by a concurrent request — re-check
+        return columnExists($pdo, 'frontend_pages', 'meta_title');
+    }
+}
+
 // ── Chargement des données ────────────────────────────────────────────────────
 // Ensure optional columns exist before the main query so the UI is always
 // functional regardless of whether the migrations have been run.
 $hasHomepageCol      = ensureHomepageColumn($pdo);
 $hasShowTitreBlocCol = ensureShowTitreBlocColumn($pdo);
+$hasMetaTitleCol     = ensureMetaTitleColumn($pdo);
 
 $pages = [];
 try {
@@ -293,6 +324,19 @@ $siteUrl = rtrim($config['SITE_URL'] ?? '', '/');
                             </div>
                             <div class="form-text">Lettres minuscules, chiffres et tirets uniquement. Ex&nbsp;: <code>a-propos</code> → <code>/a-propos</code>.</div>
                         </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Meta Title (SEO)</label>
+                        <?php if ($hasMetaTitleCol): ?>
+                        <input type="text" name="meta_title" class="form-control"
+                               value="<?php echo htmlspecialchars($editPage['meta_title'] ?? ''); ?>"
+                               placeholder="Titre affiché dans l'onglet du navigateur et les résultats Google (60 car. max)" maxlength="255">
+                        <?php else: ?>
+                        <input type="text" name="meta_title" class="form-control"
+                               placeholder="Titre affiché dans l'onglet du navigateur et les résultats Google (60 car. max)" maxlength="255">
+                        <?php endif; ?>
+                        <div class="form-text">Si vide, le <strong>Titre</strong> de la page sera utilisé. Recommandé&nbsp;: 50–60 caractères.</div>
                     </div>
 
                     <div class="mb-3">
