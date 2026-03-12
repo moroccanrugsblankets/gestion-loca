@@ -57,7 +57,7 @@ body {
 
 /* ── Footer ───────────────────────────────────────────────────────────────── */
 .site-footer {
-    background: var(--fo-primary-dark);
+    background: #1a2a47;
     border-top: 1px solid var(--fo-border);
     padding: 1.5rem 0;
     font-size: 0.85rem;
