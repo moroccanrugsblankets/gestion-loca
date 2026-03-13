@@ -259,7 +259,8 @@ $currentUri = '/';
         ?>
     </div>
 </main>
-
+<!-- Footer -->
+<?php renderFrontOfficeFooter($companyName); ?>
 <footer>
     <div class="container">
         <p class="mb-1">&copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($companyName); ?> — Tous droits réservés</p>
