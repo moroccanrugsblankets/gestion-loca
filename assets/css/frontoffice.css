@@ -26,6 +26,9 @@ body {
     font-family: 'Segoe UI', system-ui, sans-serif;
     color: var(--fo-text);
 }
+.page-content-wrapper {
+    padding: 20px 20px !important;
+}
 /* ── Header ───────────────────────────────────────────────────────────────── */
 .site-header {
     background: var(--fo-white);
