@@ -547,7 +547,7 @@ renderFrontOfficeHeader($siteUrl, $companyName, $extraNav ?: null);
 <!-- Footer -->
 <footer class="site-footer">
     <div class="container text-center">
-        <p class="mb-0">&copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($companyName); ?> — Tous droits réservés</p>
+        <p class="mb-0">&copy; <?php echo htmlspecialchars($companyName); ?> — Tous droits réservés</p>
     </div>
 </footer>
 
