@@ -481,15 +481,6 @@ renderFrontOfficeHeader($siteUrl, $companyName, $extraNav ?: null);
 
             <?php if ($isDisponible): ?>
             <!-- CTA Candidature -->
-            <div class="section-card">
-                <a href="<?php echo htmlspecialchars($lienCandidature); ?>"
-                   class="btn btn-primary w-100 btn-lg">
-                    <i class="bi bi-person-plus me-2"></i>Déposer ma candidature
-                </a>
-            </div>
-            <?php endif; ?>
-
-            <?php if ($isDisponible): ?>
             <div class="mt-3 text-center">
                 <a href="<?php echo htmlspecialchars($lienCandidature); ?>" class="btn btn-primary">
                     <i class="bi bi-person-plus me-1"></i>Déposer ma candidature
