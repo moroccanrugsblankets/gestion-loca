@@ -524,17 +524,31 @@ document.getElementById('candidatureForm').addEventListener('submit', function(e
     
     // Si reCAPTCHA est activé, obtenir un token avant de soumettre
     if (typeof grecaptcha !== 'undefined' && window.RECAPTCHA_SITE_KEY) {
-        grecaptcha.ready(function() {
-            grecaptcha.execute(window.RECAPTCHA_SITE_KEY, {action: 'submit_candidature'})
-                .then(function(token) {
-                    submitForm(token);
-                })
-                .catch(function(error) {
-                    console.error('Erreur reCAPTCHA:', error);
-                    // Continuer sans reCAPTCHA en cas d'erreur
-                    submitForm(null);
-                });
-        });
+        if (window.RECAPTCHA_TYPE === 'v2') {
+            // V2: read the token from the g-recaptcha-response field (populated by widget)
+            var v2Response = document.querySelector('[name="g-recaptcha-response"]');
+            var v2Token = v2Response ? v2Response.value : '';
+            if (!v2Token) {
+                alert('Veuillez cocher la case de vérification anti-robot.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-send-fill"></i> Envoyer ma candidature';
+                return;
+            }
+            submitForm(v2Token);
+        } else {
+            // V3: execute invisible reCAPTCHA
+            grecaptcha.ready(function() {
+                grecaptcha.execute(window.RECAPTCHA_SITE_KEY, {action: 'submit_candidature'})
+                    .then(function(token) {
+                        submitForm(token);
+                    })
+                    .catch(function(error) {
+                        console.error('Erreur reCAPTCHA:', error);
+                        // Continuer sans reCAPTCHA en cas d'erreur
+                        submitForm(null);
+                    });
+            });
+        }
     } else {
         // Pas de reCAPTCHA, soumettre directement
         submitForm(null);

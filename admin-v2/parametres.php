@@ -67,6 +67,7 @@ $groupesExclus = [
     'workflow',       // → candidatures-configuration.php
     'inventaires',    // → inventaire-configuration.php
     'rappel_loyers',  // → configuration-rappels-loyers.php
+    'recaptcha',      // → recaptcha-configuration.php
 ];
 
 // Individual parameter keys managed on dedicated pages — hide from this generic page
@@ -464,6 +465,34 @@ foreach ($allParams as $param) {
                     <?php endforeach; ?>
                 </div>
             <?php endforeach; ?>
+
+            <!-- Sécurité & CAPTCHA — lien vers la page dédiée -->
+            <div class="param-card">
+                <h5><i class="bi bi-shield-lock"></i> Sécurité &amp; CAPTCHA</h5>
+                <p class="text-muted mb-3">
+                    Protégez vos formulaires publics contre les spams et les robots grâce à Google reCAPTCHA.
+                </p>
+                <?php
+                // Show current reCAPTCHA status
+                try {
+                    $stmtRc = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'recaptcha_enabled' LIMIT 1");
+                    $stmtRc->execute();
+                    $rcRow = $stmtRc->fetch(PDO::FETCH_ASSOC);
+                    $rcActive = ($rcRow && ($rcRow['valeur'] === '1' || $rcRow['valeur'] === 'true'));
+                } catch (Exception $e) {
+                    $rcActive = false;
+                }
+                ?>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="badge <?php echo $rcActive ? 'bg-success' : 'bg-secondary'; ?> fs-6">
+                        <i class="bi bi-<?php echo $rcActive ? 'check-circle' : 'x-circle'; ?> me-1"></i>
+                        reCAPTCHA <?php echo $rcActive ? 'Activé' : 'Désactivé'; ?>
+                    </span>
+                    <a href="recaptcha-configuration.php" class="btn btn-outline-primary">
+                        <i class="bi bi-gear me-1"></i>Configurer le reCAPTCHA
+                    </a>
+                </div>
+            </div>
 
             <div class="text-end">
                 <button type="submit" class="btn btn-primary btn-lg">

@@ -104,8 +104,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $requis     = isset($_POST['requis'])    ? 1 : 0;
         $ordre      = isset($_POST['ordre'])     ? (int)$_POST['ordre'] : 0;
 
-        $allowedTypes = ['text', 'email', 'tel', 'textarea', 'select', 'checkbox'];
+        $allowedTypes = ['text', 'email', 'tel', 'textarea', 'select', 'checkbox', 'recaptcha'];
         if (!in_array($typeChamp, $allowedTypes)) $typeChamp = 'text';
+
+        // reCAPTCHA field has no label (autofilled), no options, and is never required
+        if ($typeChamp === 'recaptcha') {
+            $nomChamp = 'recaptcha';
+            $label    = 'Vérification anti-robot';
+            $requis   = 0;
+        }
 
         if (empty($nomChamp) || empty($label) || $formId <= 0) {
             $_SESSION['error'] = 'L\'identifiant et le libellé du champ sont obligatoires.';
@@ -310,7 +317,7 @@ if (isset($_GET['edit'])) {
                             <div class="col">
                                 <label class="form-label fw-semibold">Type</label>
                                 <select name="type_champ" class="form-select" id="typeChampSelect">
-                                    <?php foreach (['text'=>'Texte','email'=>'Email','tel'=>'Téléphone','textarea'=>'Zone de texte','select'=>'Liste déroulante','checkbox'=>'Case à cocher'] as $v => $l): ?>
+                                    <?php foreach (['text'=>'Texte','email'=>'Email','tel'=>'Téléphone','textarea'=>'Zone de texte','select'=>'Liste déroulante','checkbox'=>'Case à cocher','recaptcha'=>'reCAPTCHA (anti-robot)'] as $v => $l): ?>
                                         <option value="<?php echo $v; ?>" <?php echo (!$editField && $v === 'text') || (!empty($editField['type_champ']) && $editField['type_champ'] === $v) ? 'selected' : ''; ?>>
                                             <?php echo $l; ?>
                                         </option>
@@ -322,6 +329,12 @@ if (isset($_GET['edit'])) {
                                 <input type="number" name="ordre" class="form-control"
                                        value="<?php echo (int)($editField['ordre'] ?? (count($formFields) + 1) * 10); ?>" min="0" step="10">
                             </div>
+                        </div>
+                        <div id="recaptchaNotice" style="<?php echo (!$editField || $editField['type_champ'] !== 'recaptcha') ? 'display:none' : ''; ?>" class="alert alert-info mb-3 py-2">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Le champ reCAPTCHA est automatiquement nommé <code>recaptcha</code> et labellisé
+                            "Vérification anti-robot". Il s'affiche selon la configuration globale
+                            (<a href="recaptcha-configuration.php">Paramètres → Sécurité &amp; CAPTCHA</a>).
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Placeholder</label>
@@ -707,14 +720,27 @@ if (isset($_GET['edit'])) {
     });
 }());
 
-// Show/hide options for select type
+// Show/hide options for select type and handle reCAPTCHA type
 (function () {
-    var sel = document.getElementById('typeChampSelect');
-    var wrap = document.getElementById('optionsWrapper');
-    if (!sel || !wrap) return;
-    sel.addEventListener('change', function () {
-        wrap.style.display = this.value === 'select' ? '' : 'none';
-    });
+    var sel       = document.getElementById('typeChampSelect');
+    var wrap      = document.getElementById('optionsWrapper');
+    var rcNotice  = document.getElementById('recaptchaNotice');
+    var labelInp  = document.getElementById('labelInput');
+    var nomInp    = document.getElementById('nomChampInput');
+    var reqSwitch = document.getElementById('requisSwitch');
+    if (!sel) return;
+
+    function applyType(val) {
+        if (wrap)     wrap.style.display     = (val === 'select')     ? '' : 'none';
+        if (rcNotice) rcNotice.style.display  = (val === 'recaptcha') ? '' : 'none';
+        var isRc = (val === 'recaptcha');
+        if (labelInp) { labelInp.readOnly = isRc; if (isRc) labelInp.value = 'Vérification anti-robot'; }
+        if (nomInp)   { nomInp.readOnly   = isRc; if (isRc) nomInp.value   = 'recaptcha'; }
+        if (reqSwitch){ reqSwitch.disabled  = isRc; if (isRc) reqSwitch.checked = false; }
+    }
+
+    sel.addEventListener('change', function () { applyType(this.value); });
+    applyType(sel.value);
 }());
 
 // Drag-and-drop reorder for fields

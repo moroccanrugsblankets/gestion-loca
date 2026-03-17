@@ -64,10 +64,103 @@ try {
     $fields = [];
 }
 
+// ── reCAPTCHA validation ──────────────────────────────────────────────────────
+$hasRcField = false;
+foreach ($fields as $field) {
+    if ($field['type_champ'] === 'recaptcha') {
+        $hasRcField = true;
+        break;
+    }
+}
+
+if ($hasRcField) {
+    // Load global reCAPTCHA settings
+    $rcEnabled   = false;
+    $rcType      = 'v2';
+    $rcSecretKey = '';
+    $rcMinScore  = 0.5;
+    try {
+        $stmtRc = $pdo->prepare("SELECT cle, valeur FROM parametres WHERE groupe = 'recaptcha'");
+        $stmtRc->execute();
+        foreach ($stmtRc->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            switch ($row['cle']) {
+                case 'recaptcha_enabled':
+                    $rcEnabled = ($row['valeur'] === '1' || $row['valeur'] === 'true');
+                    break;
+                case 'recaptcha_type':
+                    $rcType = $row['valeur'];
+                    break;
+                case 'recaptcha_secret_key':
+                    $rcSecretKey = $row['valeur'];
+                    break;
+            }
+        }
+    } catch (Exception $e) { /* ignore */ }
+
+    if ($rcEnabled && $rcSecretKey !== '') {
+        $rcResponse = trim($_POST['recaptcha_response'] ?? '');
+        if ($rcResponse === '' && $rcType === 'v2') {
+            // For V2, the response is in g-recaptcha-response
+            $rcResponse = trim($_POST['g-recaptcha-response'] ?? '');
+        }
+        if ($rcResponse === '') {
+            $ref = $_SERVER['HTTP_REFERER'] ?? ($siteUrl . '/');
+            $sep = strpos($ref, '?') !== false ? '&' : '?';
+            header('Location: ' . $ref . $sep . 'cf_error=' . urlencode('Vérification anti-robot requise.') . '&cf_form=' . $formId);
+            exit;
+        }
+
+        $verifyData = [
+            'secret'   => $rcSecretKey,
+            'response' => $rcResponse,
+            'remoteip' => $_SERVER['REMOTE_ADDR'] ?? '',
+        ];
+        $opts = [
+            'http' => [
+                'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                'method'  => 'POST',
+                'content' => http_build_query($verifyData),
+                'timeout' => 5,
+            ],
+        ];
+        $verifyResult = file_get_contents(
+            'https://www.google.com/recaptcha/api/siteverify',
+            false,
+            stream_context_create($opts)
+        );
+        if ($verifyResult === false) {
+            error_log('contact-form-submit.php reCAPTCHA API unreachable for form ' . $formId);
+            // Treat API failure as verification failure to remain secure
+            $ref = $_SERVER['HTTP_REFERER'] ?? ($siteUrl . '/');
+            $sep = strpos($ref, '?') !== false ? '&' : '?';
+            header('Location: ' . $ref . $sep . 'cf_error=' . urlencode('Vérification anti-robot temporairement indisponible. Veuillez réessayer.') . '&cf_form=' . $formId);
+            exit;
+        }
+        $rcResult = json_decode($verifyResult);
+
+        $rcOk = $rcResult && $rcResult->success;
+        if ($rcOk && $rcType === 'v3' && isset($rcResult->score)) {
+            $rcOk = $rcResult->score >= $rcMinScore;
+        }
+
+        if (!$rcOk) {
+            error_log('contact-form-submit.php reCAPTCHA failed for form ' . $formId);
+            $ref = $_SERVER['HTTP_REFERER'] ?? ($siteUrl . '/');
+            $sep = strpos($ref, '?') !== false ? '&' : '?';
+            header('Location: ' . $ref . $sep . 'cf_error=' . urlencode('Vérification anti-robot échouée. Veuillez réessayer.') . '&cf_form=' . $formId);
+            exit;
+        }
+    }
+}
+
 // Build data array and validate required fields
 $donnees = [];
 $errors  = [];
 foreach ($fields as $field) {
+    // Skip recaptcha field — it's handled separately above
+    if ($field['type_champ'] === 'recaptcha') {
+        continue;
+    }
     $nom   = $field['nom_champ'];
     $value = isset($_POST[$nom]) ? $_POST[$nom] : '';
     // Strip tags for safety (content is later displayed in admin only)

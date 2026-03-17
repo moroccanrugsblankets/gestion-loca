@@ -68,6 +68,7 @@ $page_to_menu_map = [
     'formulaires-contact.php'       => 'pages-frontoffice.php',
     'formulaire-contact-detail.php' => 'pages-frontoffice.php',
     'candidatures-configuration.php' => 'candidatures.php',
+    'recaptcha-configuration.php'    => 'parametres.php',
 ];
 
 // Check if current page is a detail page, if so use parent menu
@@ -238,6 +239,15 @@ $active_menu = $page_to_menu_map[$current_page] ?? $current_page;
             <a class="nav-link <?php echo $active_menu === 'parametres.php' ? 'active' : ''; ?>" href="parametres.php">
                 <i class="bi bi-gear"></i> Paramètres
             </a>
+            <?php if ($active_menu === 'parametres.php'): ?>
+            <ul class="nav flex-column ms-3">
+                <li class="nav-item">
+                    <a class="nav-link <?php echo $current_page === 'recaptcha-configuration.php' ? 'active' : ''; ?>" href="recaptcha-configuration.php" style="padding: 8px 20px; font-size: 0.9rem;">
+                        <i class="bi bi-shield-lock"></i> Sécurité &amp; CAPTCHA
+                    </a>
+                </li>
+            </ul>
+            <?php endif; ?>
         </li>
         <li class="nav-item">
             <a class="nav-link <?php echo $active_menu === 'pages-frontoffice.php' ? 'active' : ''; ?>" href="pages-frontoffice.php">
