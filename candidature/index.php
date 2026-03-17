@@ -58,6 +58,34 @@ $selected_logement = $selected_logement ?? null;
 $ref_locks_logement = ($ref_param && $selected_logement_id);
 $siteUrl     = rtrim($config['SITE_URL'] ?? '', '/');
 $companyName = $config['COMPANY_NAME'] ?? 'My Invest Immobilier';
+
+// Load reCAPTCHA settings from database
+$rcEnabled   = false;
+$rcType      = 'v2';
+$rcSiteKey   = '';
+try {
+    $stmtRc = $pdo->prepare("SELECT cle, valeur FROM parametres WHERE groupe = 'recaptcha'");
+    $stmtRc->execute();
+    foreach ($stmtRc->fetchAll(PDO::FETCH_ASSOC) as $rcRow) {
+        switch ($rcRow['cle']) {
+            case 'recaptcha_enabled':
+                $rcEnabled = ($rcRow['valeur'] === '1' || $rcRow['valeur'] === 'true');
+                break;
+            case 'recaptcha_type':
+                $rcType = $rcRow['valeur'];
+                break;
+            case 'recaptcha_site_key':
+                $rcSiteKey = $rcRow['valeur'];
+                break;
+        }
+    }
+} catch (Exception $e) {
+    // Fallback to config values
+    $rcEnabled = !empty($config['RECAPTCHA_ENABLED']) && $config['RECAPTCHA_ENABLED'];
+    $rcSiteKey = $config['RECAPTCHA_SITE_KEY'] ?? '';
+    $rcType    = 'v3'; // legacy was v3
+}
+$showRecaptcha = $rcEnabled && $rcSiteKey !== '';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -69,8 +97,12 @@ $companyName = $config['COMPANY_NAME'] ?? 'My Invest Immobilier';
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
     <link rel="stylesheet" href="<?php echo htmlspecialchars($siteUrl . '/assets/css/style.css'); ?>">
     <link rel="stylesheet" href="<?php echo htmlspecialchars($siteUrl . '/assets/css/frontoffice.css'); ?>">
-    <?php if (!empty($config['RECAPTCHA_ENABLED']) && $config['RECAPTCHA_ENABLED']): ?>
-    <script src="https://www.google.com/recaptcha/api.js?render=<?php echo htmlspecialchars($config['RECAPTCHA_SITE_KEY']); ?>"></script>
+    <?php if ($showRecaptcha): ?>
+    <?php if ($rcType === 'v3'): ?>
+    <script src="https://www.google.com/recaptcha/api.js?render=<?php echo htmlspecialchars($rcSiteKey); ?>"></script>
+    <?php else: ?>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <?php endif; ?>
     <?php endif; ?>
     <style>
         /* Document upload zone */
@@ -552,9 +584,21 @@ $companyName = $config['COMPANY_NAME'] ?? 'My Invest Immobilier';
                             <button type="button" class="btn btn-secondary" onclick="prevSection(6)">
                                 <i class="bi bi-arrow-left"></i> Précédent
                             </button>
+                            <?php if ($showRecaptcha && $rcType === 'v2'): ?>
+                            <div>
+                                <div class="g-recaptcha mb-3" data-sitekey="<?php echo htmlspecialchars($rcSiteKey); ?>"></div>
+                                <button type="submit" class="btn btn-success btn-lg" id="submitBtn">
+                                    <i class="bi bi-send-fill"></i> Envoyer ma candidature
+                                </button>
+                            </div>
+                            <?php else: ?>
+                            <?php if ($showRecaptcha && $rcType === 'v3'): ?>
+                            <input type="hidden" name="recaptcha_response" id="recaptchaToken">
+                            <?php endif; ?>
                             <button type="submit" class="btn btn-success btn-lg" id="submitBtn">
                                 <i class="bi bi-send-fill"></i> Envoyer ma candidature
                             </button>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </form>
@@ -605,10 +649,32 @@ $companyName = $config['COMPANY_NAME'] ?? 'My Invest Immobilier';
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <?php if (!empty($config['RECAPTCHA_ENABLED']) && $config['RECAPTCHA_ENABLED']): ?>
+    <?php if ($showRecaptcha): ?>
     <script>
-        // Exposer la clé site reCAPTCHA pour le JavaScript
-        window.RECAPTCHA_SITE_KEY = '<?php echo htmlspecialchars($config['RECAPTCHA_SITE_KEY']); ?>';
+        window.RECAPTCHA_SITE_KEY  = <?php echo json_encode($rcSiteKey, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+        window.RECAPTCHA_TYPE      = '<?php echo $rcType === 'v3' ? 'v3' : 'v2'; ?>';
+        <?php if ($rcType === 'v3'): ?>
+        // V3: get token on form submit
+        document.addEventListener('DOMContentLoaded', function () {
+            var form = document.getElementById('candidatureForm');
+            if (!form) return;
+            form.addEventListener('submit', function (e) {
+                var tokenInput = document.getElementById('recaptchaToken');
+                if (!tokenInput || tokenInput.value) return; // already filled
+                e.preventDefault();
+                if (typeof grecaptcha !== 'undefined') {
+                    grecaptcha.ready(function () {
+                        grecaptcha.execute(window.RECAPTCHA_SITE_KEY, { action: 'candidature' }).then(function (token) {
+                            tokenInput.value = token;
+                            form.submit();
+                        });
+                    });
+                } else {
+                    form.submit(); // submit anyway if reCAPTCHA failed to load
+                }
+            });
+        });
+        <?php endif; ?>
     </script>
     <?php endif; ?>
     <script src="candidature.js"></script>

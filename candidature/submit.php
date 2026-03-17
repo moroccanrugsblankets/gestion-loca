@@ -31,47 +31,84 @@ try {
     }
     logDebug("Connexion base de données vérifiée");
     
-    // Vérification reCAPTCHA (si activé)
-    if (!empty($config['RECAPTCHA_ENABLED']) && $config['RECAPTCHA_ENABLED']) {
-        if (empty($_POST['recaptcha_response'])) {
+    // Vérification reCAPTCHA (si activé) — lit les paramètres depuis la base de données
+    $rcEnabled   = false;
+    $rcType      = 'v2';
+    $rcSecretKey = '';
+    $rcMinScore  = 0.5;
+    try {
+        $stmtRc = $pdo->prepare("SELECT cle, valeur FROM parametres WHERE groupe = 'recaptcha'");
+        $stmtRc->execute();
+        foreach ($stmtRc->fetchAll(PDO::FETCH_ASSOC) as $rcRow) {
+            switch ($rcRow['cle']) {
+                case 'recaptcha_enabled':
+                    $rcEnabled = ($rcRow['valeur'] === '1' || $rcRow['valeur'] === 'true');
+                    break;
+                case 'recaptcha_type':
+                    $rcType = $rcRow['valeur'];
+                    break;
+                case 'recaptcha_secret_key':
+                    $rcSecretKey = $rcRow['valeur'];
+                    break;
+            }
+        }
+    } catch (Exception $rcEx) {
+        // Fallback: use config values if DB is unavailable
+        $rcEnabled   = !empty($config['RECAPTCHA_ENABLED']) && $config['RECAPTCHA_ENABLED'];
+        $rcSecretKey = $config['RECAPTCHA_SECRET_KEY'] ?? '';
+        $rcMinScore  = $config['RECAPTCHA_MIN_SCORE'] ?? 0.5;
+        $rcType      = 'v3'; // legacy config was v3
+    }
+
+    if ($rcEnabled && $rcSecretKey !== '') {
+        // The candidature JS always sends the token as 'recaptcha_response' via AJAX.
+        // Also accept 'g-recaptcha-response' as fallback for non-JS V2 native form submits.
+        $rcResponse = trim($_POST['recaptcha_response'] ?? '');
+        if ($rcResponse === '') {
+            $rcResponse = trim($_POST['g-recaptcha-response'] ?? '');
+        }
+
+        if (empty($rcResponse)) {
             logDebug("Erreur: Token reCAPTCHA manquant");
             throw new Exception('Vérification reCAPTCHA manquante');
         }
         
         // Vérifier le token reCAPTCHA auprès de Google
-        $recaptcha_url = 'https://www.google.com/recaptcha/api/siteverify';
-        $recaptcha_secret = $config['RECAPTCHA_SECRET_KEY'];
-        $recaptcha_response = $_POST['recaptcha_response'];
-        
-        $recaptcha_data = [
-            'secret' => $recaptcha_secret,
-            'response' => $recaptcha_response,
-            'remoteip' => getClientIp()
+        $recaptchaData = [
+            'secret'   => $rcSecretKey,
+            'response' => $rcResponse,
+            'remoteip' => getClientIp(),
         ];
         
-        $options = [
+        $rcOptions = [
             'http' => [
-                'header' => "Content-type: application/x-www-form-urlencoded\r\n",
-                'method' => 'POST',
-                'content' => http_build_query($recaptcha_data)
+                'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                'method'  => 'POST',
+                'content' => http_build_query($recaptchaData),
+                'timeout' => 5,
             ]
         ];
         
-        $context = stream_context_create($options);
-        $recaptcha_verify = file_get_contents($recaptcha_url, false, $context);
-        $recaptcha_result = json_decode($recaptcha_verify);
+        $rcContext = stream_context_create($rcOptions);
+        $rcVerify  = file_get_contents('https://www.google.com/recaptcha/api/siteverify', false, $rcContext);
+        if ($rcVerify === false) {
+            logDebug("Erreur: API reCAPTCHA injoignable");
+            throw new Exception('Service de vérification reCAPTCHA temporairement indisponible. Veuillez réessayer.');
+        }
+        $rcResult  = json_decode($rcVerify);
         
-        if (!$recaptcha_result || !$recaptcha_result->success) {
-            logDebug("Erreur: Échec de vérification reCAPTCHA", ['result' => $recaptcha_result]);
+        if (!$rcResult || !$rcResult->success) {
+            logDebug("Erreur: Échec de vérification reCAPTCHA", ['result' => $rcResult]);
             throw new Exception('Échec de la vérification reCAPTCHA');
         }
         
-        if ($recaptcha_result->score < $config['RECAPTCHA_MIN_SCORE']) {
-            logDebug("Erreur: Score reCAPTCHA trop bas", ['score' => $recaptcha_result->score]);
+        // V3: check score threshold
+        if ($rcType === 'v3' && isset($rcResult->score) && $rcResult->score < $rcMinScore) {
+            logDebug("Erreur: Score reCAPTCHA trop bas", ['score' => $rcResult->score]);
             throw new Exception('Vérification de sécurité échouée. Veuillez réessayer.');
         }
         
-        logDebug("reCAPTCHA validé", ['score' => $recaptcha_result->score]);
+        logDebug("reCAPTCHA validé", ['type' => $rcType, 'score' => $rcResult->score ?? 'n/a']);
     }
     
     // Vérification du token CSRF

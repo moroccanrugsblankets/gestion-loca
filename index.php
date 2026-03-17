@@ -135,6 +135,8 @@ function renderSearchLogementsHtml(string $siteUrl): string
  */
 function renderContactFormHtml(array $form, array $fields, string $siteUrl): string
 {
+    global $pdo;
+
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
@@ -144,12 +146,63 @@ function renderContactFormHtml(array $form, array $fields, string $siteUrl): str
     }
     $csrfToken = $_SESSION[$csrfKey];
 
+    // Load reCAPTCHA global settings
+    $rcEnabled   = false;
+    $rcType      = 'v2';
+    $rcSiteKey   = '';
+    $hasRcField  = false;
+    try {
+        $stmtRc = $pdo->prepare("SELECT cle, valeur FROM parametres WHERE groupe = 'recaptcha'");
+        $stmtRc->execute();
+        foreach ($stmtRc->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            switch ($row['cle']) {
+                case 'recaptcha_enabled':
+                    $rcEnabled = ($row['valeur'] === '1' || $row['valeur'] === 'true');
+                    break;
+                case 'recaptcha_type':
+                    $rcType = $row['valeur'];
+                    break;
+                case 'recaptcha_site_key':
+                    $rcSiteKey = $row['valeur'];
+                    break;
+            }
+        }
+    } catch (\Exception $e) { /* ignore — reCAPTCHA simply won't show */ }
+
+    // Check if this form has a recaptcha field
+    foreach ($fields as $field) {
+        if ($field['type_champ'] === 'recaptcha') {
+            $hasRcField = true;
+            break;
+        }
+    }
+
+    $showRecaptcha = $hasRcField && $rcEnabled && $rcSiteKey !== '';
     $formId = (int)$form['id'];
+
     $html  = '<form method="POST" action="' . htmlspecialchars($siteUrl . '/contact-form-submit.php') . '" ';
+    if ($showRecaptcha && $rcType === 'v3') {
+        $html .= 'id="cf_form_' . $formId . '" ';
+    }
     $html .= 'class="contact-form-shortcode" data-form-id="' . $formId . '">';
     $html .= '<input type="hidden" name="form_id" value="' . $formId . '">';
     $html .= '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($csrfToken) . '">';
+    if ($showRecaptcha && $rcType === 'v3') {
+        $html .= '<input type="hidden" name="recaptcha_response" id="cf_rc_token_' . $formId . '">';
+    }
     foreach ($fields as $field) {
+        if ($field['type_champ'] === 'recaptcha') {
+            if (!$showRecaptcha) {
+                continue; // reCAPTCHA disabled globally — skip field silently
+            }
+            $html .= '<div class="mb-3">';
+            if ($rcType === 'v2') {
+                $html .= '<div class="g-recaptcha" data-sitekey="' . htmlspecialchars($rcSiteKey) . '"></div>';
+            }
+            // V3: the token is submitted via the hidden field populated by JS
+            $html .= '</div>';
+            continue;
+        }
         $name  = htmlspecialchars($field['nom_champ']);
         $label = htmlspecialchars($field['label']);
         $ph    = htmlspecialchars($field['placeholder'] ?? '');
@@ -180,7 +233,20 @@ function renderContactFormHtml(array $form, array $fields, string $siteUrl): str
         }
         $html .= '</div>';
     }
-    $html .= '<button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i>Envoyer</button>';
+
+    // Submit button — V3: intercept submit to get token first
+    if ($showRecaptcha && $rcType === 'v3') {
+        $siteKeyJs = json_encode($rcSiteKey, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+        $html .= '<button type="button" class="btn btn-primary" onclick="cfSubmitV3_' . $formId . '(this)">';
+        $html .= '<i class="bi bi-send me-1"></i>Envoyer</button>';
+        $html .= '<script>function cfSubmitV3_' . $formId . '(btn){btn.disabled=true;';
+        $html .= 'grecaptcha.ready(function(){grecaptcha.execute(' . $siteKeyJs . ',{action:\'contact_form_' . $formId . '\'}).then(function(token){';
+        $html .= 'document.getElementById(\'cf_rc_token_' . $formId . '\').value=token;';
+        $html .= 'document.getElementById(\'cf_form_' . $formId . '\').submit();});});}</script>';
+    } else {
+        $html .= '<button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i>Envoyer</button>';
+    }
+
     $html .= '</form>';
     return $html;
 }
@@ -188,6 +254,21 @@ function renderContactFormHtml(array $form, array $fields, string $siteUrl): str
 // ── Menu de navigation ────────────────────────────────────────────────────────
 $menuItems = getFrontOfficeMenuItems();
 $currentUri = '/';
+
+// ── reCAPTCHA: check if we need to load the script ───────────────────────────
+$rcEnabledGlobal = false;
+$rcTypeGlobal    = 'v2';
+$rcSiteKeyGlobal = '';
+try {
+    $stmtRcGlobal = $pdo->prepare("SELECT cle, valeur FROM parametres WHERE groupe = 'recaptcha'");
+    $stmtRcGlobal->execute();
+    foreach ($stmtRcGlobal->fetchAll(PDO::FETCH_ASSOC) as $rr) {
+        if ($rr['cle'] === 'recaptcha_enabled')  $rcEnabledGlobal = ($rr['valeur'] === '1' || $rr['valeur'] === 'true');
+        if ($rr['cle'] === 'recaptcha_type')     $rcTypeGlobal    = $rr['valeur'];
+        if ($rr['cle'] === 'recaptcha_site_key') $rcSiteKeyGlobal = $rr['valeur'];
+    }
+} catch (Exception $e) { /* ignore */ }
+$loadRcScript = $rcEnabledGlobal && $rcSiteKeyGlobal !== '';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -200,6 +281,13 @@ $currentUri = '/';
     <?php endif; ?>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <?php if ($loadRcScript): ?>
+    <?php if ($rcTypeGlobal === 'v3'): ?>
+    <script src="https://www.google.com/recaptcha/api.js?render=<?php echo htmlspecialchars($rcSiteKeyGlobal); ?>"></script>
+    <?php else: ?>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <?php endif; ?>
+    <?php endif; ?>
     <style>
         body { background: #f0f4f8; color: #2c3e50; }
         .site-header { background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 15px 0; margin-bottom: 0; }
