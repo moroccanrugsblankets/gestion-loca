@@ -94,6 +94,9 @@ body {
     max-width: 160px;
     object-fit: contain;
 }
+.header-nav .btn {
+    background: var(--fo-secondary);
+}
 
 /* ── Nav links (header) ───────────────────────────────────────────────────── */
 .fo-nav-link {
