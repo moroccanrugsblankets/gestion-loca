@@ -104,8 +104,10 @@ body {
     color: var(--fo-white);
 }
 .offcanvas-header .btn-close {
-    color: var(--fo-secondary);
+  color: #fff !important;
+  filter: invert(1); /* utile si l’icône est une image SVG noire */
 }
+
 
 /* ── Nav links (header) ───────────────────────────────────────────────────── */
 .fo-nav-link {
