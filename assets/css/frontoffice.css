@@ -99,6 +99,10 @@ body {
 .header-nav .btn {
     background: var(--fo-secondary);
 }
+.offcanvas {
+    background: var(--fo-primary);
+    color: var(--fo-white);
+}
 
 /* ── Nav links (header) ───────────────────────────────────────────────────── */
 .fo-nav-link {
