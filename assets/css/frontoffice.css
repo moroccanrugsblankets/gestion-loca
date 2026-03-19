@@ -106,6 +106,7 @@ body {
 .offcanvas-header .btn-close {
   color: #fff !important;
   filter: invert(1); /* utile si l’icône est une image SVG noire */
+    --bs-btn-close-opacity: 1;
 }
 
 
