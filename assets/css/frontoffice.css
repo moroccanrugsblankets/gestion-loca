@@ -458,6 +458,7 @@ body {
     text-align: center;
     padding: 2.5rem 1rem;
     width: 100%;
+    margin:0; 
 }
 
 .page-titre-bloc h1 {
