@@ -51,6 +51,7 @@ body {
 .page-content-wrapper {
     padding: 20px 20px !important;
     margin: 0px auto !important;
+    border-radius: 0 !important;
 }
 
 /* ── Header ───────────────────────────────────────────────────────────────── */
@@ -147,7 +148,7 @@ body {
 
 /* ── Footer ───────────────────────────────────────────────────────────────── */
 footer {
-    margin-top: 0px;
+    margin-top: 0px !important;
 }
 .site-footer {
     background: var(--fo-primary-dark);
