@@ -24,6 +24,8 @@
     --fo-nav-opacity:   0.88;
     --fo-white:         #ffffff;
     --fo-body-bg:       #e8ddd4;
+    --bs-offcanvas-color:     #FFB347;
+    --bs-offcanvas-bg:  #12100F;
 }
 
 body {
