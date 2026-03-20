@@ -280,6 +280,10 @@ footer {
   padding: 20px;
   text-align: center;
 }
+.hero-container--compact {
+  min-height: auto;
+
+}
 
 .hero-content {
   max-width: 900px;
