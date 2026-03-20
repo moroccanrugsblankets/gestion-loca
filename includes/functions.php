@@ -1125,3 +1125,94 @@ function getInventaireEquipmentQuantity($eq) {
     return '';
 }
 
+/**
+ * Renders a property-search form that redirects to /logements.php?ref=<value>.
+ *
+ * This function generates the complete HTML block for the search engine widget,
+ * including its icon, label, input field and submit button.
+ * The rendered HTML uses the .search-logements-form CSS class defined in
+ * assets/css/frontoffice.css for its visual design.
+ *
+ * Usage (shortcode in CMS page content):
+ *   [search-logements]
+ *
+ * Usage (direct PHP call):
+ *   <?php echo renderSearchLogementsHtml($siteUrl); ?>
+ *
+ * Usage with a pre-filled value (e.g. on the logements listing page):
+ *   <?php echo renderSearchLogementsHtml($siteUrl, $filterRef); ?>
+ *
+ * @param string $siteUrl      Base URL of the application (e.g. https://example.com).
+ *                             Used to build the absolute action URL for the form.
+ * @param string $currentValue Optional pre-filled value for the reference input field.
+ * @return string              Complete HTML of the search block.
+ */
+function renderSearchLogementsHtml(string $siteUrl, string $currentValue = ''): string
+{
+    $action      = htmlspecialchars(rtrim($siteUrl, '/') . '/logements.php');
+    $inputValue  = $currentValue !== '' ? ' value="' . htmlspecialchars($currentValue) . '"' : '';
+    return '<form method="GET" action="' . $action . '" class="search-logements-form" role="search">'
+        . '<div class="search-icon" aria-hidden="true">🔍</div>'
+        . '<div class="search-text">'
+        . '<label>Référence logement :</label>'
+        . '<input type="text" name="ref" class="form-control"'
+        . $inputValue
+        . ' placeholder="Ex: RF-001" aria-label="Référence du logement">'
+        . '</div>'
+        . '<button type="submit" class="search-btn" aria-label="Rechercher">'
+        . '<i class="bi bi-search" aria-hidden="true"></i>'
+        . '</button>'
+        . '</form>';
+}
+
+/**
+ * Process shortcodes embedded in page content.
+ *
+ * Supported shortcodes:
+ *   [contact-form id=N]   — renders a dynamic contact form
+ *   [search-logements]    — renders a property-search form pointing to logements.php
+ *
+ * Returns the HTML with shortcodes replaced by rendered HTML.
+ *
+ * @param string $html    Raw HTML content that may contain shortcodes.
+ * @param \PDO   $pdo     Active database connection (used for [contact-form]).
+ * @param string $siteUrl Base URL of the application.
+ * @return string         HTML with all shortcodes replaced by their rendered output.
+ */
+function processShortcodes(string $html, \PDO $pdo, string $siteUrl): string
+{
+    // [search-logements] — search box that redirects to the properties listing page
+    $html = preg_replace_callback(
+        '/\[search-logements(?:\s[^\]]*)?\]/i',
+        function () use ($siteUrl): string {
+            return renderSearchLogementsHtml($siteUrl);
+        },
+        $html
+    );
+
+    // [contact-form id=N]
+    $html = preg_replace_callback(
+        '/\[contact-form\s+id=["\']?(\d+)["\']?\]/i',
+        function (array $m) use ($pdo, $siteUrl): string {
+            $formId = (int)$m[1];
+            try {
+                $stmt = $pdo->prepare("SELECT * FROM contact_forms WHERE id = ? AND actif = 1 LIMIT 1");
+                $stmt->execute([$formId]);
+                $form = $stmt->fetch(\PDO::FETCH_ASSOC);
+                if (!$form) {
+                    return '<!-- contact-form #' . $formId . ' not found -->';
+                }
+                $stmtF = $pdo->prepare("SELECT * FROM contact_form_fields WHERE form_id = ? ORDER BY ordre ASC, id ASC");
+                $stmtF->execute([$formId]);
+                $fields = $stmtF->fetchAll(\PDO::FETCH_ASSOC);
+                return renderContactFormHtml($form, $fields, $siteUrl);
+            } catch (\Exception $e) {
+                return '<!-- contact-form error: ' . htmlspecialchars($e->getMessage()) . ' -->';
+            }
+        },
+        $html
+    );
+
+    return $html;
+}
+
