@@ -80,11 +80,18 @@ $statutLabels = [
 <div class="orange-line">&nbsp;</div>
 <p>Consultez les informations du logement <br /> et d&eacute;posez votre candidature en ligne</p>
 <pre id="iefc2" class="notranslate"><?php echo renderSearchLogementsHtml($siteUrl); ?></pre>
-<div class="hero-footer-icons">
+            <?php if ($filterRef !== ''): ?>
+            <a href="logements.php" class="btn btn-outline-light btn-sm mt-2">
+                <i class="bi bi-x me-1"></i>Réinitialiser le filtre
+            </a>
+            <?php else: ?>
+    <div class="hero-footer-icons">
 <div class="icon-item">⚡ R&eacute;ponse rapide</div>
 <div class="separator">&nbsp;</div>
 <div class="icon-item">📂 Dossier simplifi&eacute;</div>
 </div>
+            <?php endif; ?>
+
 </div>
 </div>
 
