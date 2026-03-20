@@ -11,6 +11,7 @@
 
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/header-frontoffice.php';
 
 $companyName = $config['COMPANY_NAME'] ?? 'My Invest Immobilier';
@@ -77,16 +78,7 @@ $statutLabels = [
         <div class="container">
             <h1 class="mb-2">Nos logements disponibles</h1>
             <p class="opacity-80 mb-4">Trouvez votre prochain logement parmi nos offres.</p>
-            <form method="GET" action="logements.php" class="search-logements-form" role="search">
-                <div class="search-icon" aria-hidden="true">🔍</div>
-                <div class="search-text">
-                    <label>Référence logement :</label>
-                    <input type="text" name="ref" class="form-control"
-                           value="<?php echo htmlspecialchars($filterRef); ?>"
-                           placeholder="Ex: RF-001" aria-label="Référence du logement">
-                </div>
-                <button type="submit" class="search-btn" aria-label="Rechercher"><i class="bi bi-search" aria-hidden="true"></i></button>
-            </form>
+            <?php echo renderSearchLogementsHtml($siteUrl, $filterRef); ?>
             <?php if ($filterRef !== ''): ?>
             <a href="logements.php" class="btn btn-outline-light btn-sm mt-2">
                 <i class="bi bi-x me-1"></i>Réinitialiser le filtre

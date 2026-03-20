@@ -54,84 +54,8 @@ $metaTitle = htmlspecialchars(!empty($homePage['meta_title']) ? $homePage['meta_
 $metaDesc  = htmlspecialchars($homePage['meta_description'] ?? '');
 
 /**
- * Process shortcodes embedded in page content.
- *
- * Supported shortcodes:
- *   [contact-form id=N]   — renders a dynamic contact form
- *   [search-logements]    — renders a property-search form pointing to logements.php
- *
- * Returns the HTML with shortcodes replaced by rendered HTML.
- */
-function processShortcodes(string $html, \PDO $pdo, string $siteUrl): string
-{
-    // [search-logements] — search box that redirects to the properties listing page
-    $html = preg_replace_callback(
-        '/\[search-logements(?:\s[^\]]*)?\]/i',
-        function () use ($siteUrl): string {
-            return renderSearchLogementsHtml($siteUrl);
-        },
-        $html
-    );
-
-    // [contact-form id=N]
-    $html = preg_replace_callback(
-        '/\[contact-form\s+id=["\']?(\d+)["\']?\]/i',
-        function (array $m) use ($pdo, $siteUrl): string {
-            $formId = (int)$m[1];
-            try {
-                $stmt = $pdo->prepare("SELECT * FROM contact_forms WHERE id = ? AND actif = 1 LIMIT 1");
-                $stmt->execute([$formId]);
-                $form = $stmt->fetch(\PDO::FETCH_ASSOC);
-                if (!$form) {
-                    return '<!-- contact-form #' . $formId . ' not found -->';
-                }
-                $stmtF = $pdo->prepare("SELECT * FROM contact_form_fields WHERE form_id = ? ORDER BY ordre ASC, id ASC");
-                $stmtF->execute([$formId]);
-                $fields = $stmtF->fetchAll(\PDO::FETCH_ASSOC);
-                return renderContactFormHtml($form, $fields, $siteUrl);
-            } catch (\Exception $e) {
-                return '<!-- contact-form error: ' . htmlspecialchars($e->getMessage()) . ' -->';
-            }
-        },
-        $html
-    );
-
-    return $html;
-}
-
-/**
- * Renders a property-search form that redirects to /logements.php?ref=<value>.
- * Submits on button click OR pressing the Enter key.
- */
-/*
-function renderSearchLogementsHtml(string $siteUrl): string
-{
-    $action = htmlspecialchars(rtrim($siteUrl, '/') . '/logements.php');
-    return '<form method="GET" action="' . $action . '" class="search-logements-form d-flex gap-2" role="search">'
-        . '<input type="text" name="ref" class="form-control form-control-lg"'
-        . ' placeholder="Référence du logement (ex : T2-PARIS-01)"'
-        . ' aria-label="Référence du logement">'
-        . '<button type="submit" class="btn btn-warning btn-lg px-4">'
-        . '<i class="bi bi-search me-1"></i>Rechercher'
-        . '</button>'
-        . '</form>';
-}
-*/
-
-function renderSearchLogementsHtml(string $siteUrl): string
-{
-    $action = htmlspecialchars(rtrim($siteUrl, '/') . '/logements.php');
-    return '<form method="GET" action="' . $action . '" class="search-logements-form" role="search">'
-        . '<div class="search-icon">🔍</div>'
-        . '<div class="search-text">'
-        . '<label>Référence logement :</label>'
-        . '<input type="text" name="ref" class="form-control" placeholder="Ex: RF-001" aria-label="Référence">'
-        . '</div>'
-        . '<button type="submit" class="search-btn"></button>'
-        . '</form>';
-}
-/**
  * Renders the HTML for a contact form.
+ * Note: renderSearchLogementsHtml() and processShortcodes() are defined in includes/functions.php.
  */
 function renderContactFormHtml(array $form, array $fields, string $siteUrl): string
 {

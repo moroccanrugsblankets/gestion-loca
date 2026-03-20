@@ -11,6 +11,7 @@
 
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/header-frontoffice.php';
 
 $ref = isset($_GET['ref']) ? trim($_GET['ref']) : '';
