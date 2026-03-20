@@ -192,16 +192,17 @@ footer {
 }
 
 /* ── Search logements form (homepage block, also used in logements.php) ───── */
+
 .search-logements-form {
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 60px;
+    padding: 8px 10px 8px 35px;
     display: flex;
     align-items: center;
-    background: var(--fo-white);
-    border-radius: 50px;
-    padding: 0.4rem 0.4rem 0.4rem 1.2rem;
-    max-width: 520px;
-    margin: 0 auto;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    gap: 0.6rem;
+    max-width: 600px;
+    margin: 0 auto 40px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+    border: none;
 }
 
 .search-logements-form .search-icon {
